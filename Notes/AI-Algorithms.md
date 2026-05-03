@@ -672,10 +672,17 @@ softcapping
 #### Layer Normalization
 
 * The LayerNorm operator is a way to **improve the performance of sequential models (e.g., Transformers) or neural networks with small batch size**
-  * 对seq_len维度上的每一个embedding（768维）做LN
-* 对比layernorm和BN
-  * LayerNorm 在特征维度上对单个样本进行归一化，不依赖 batch size，训练和推理行为一致，常用于 RNN、Transformer 等序列模型。
-  * BatchNorm 在 batch 维度上对channel进行归一化，对 batch size 敏感，训练和推理行为不同，常用于 CNN。
+  * 对序列中每个 token 的 hidden embedding（如 768 维）做 LN
+* LayerNorm 的核心逻辑是样本内归一化：在单个样本 / token 的特征空间内求均值和方差，保持样本独立，避免跨样本统计量干扰。
+
+| 维度 | BatchNorm | LayerNorm |
+| --- | --- | --- |
+| 统计范围 | 同一特征 / channel 在 batch 内求均值方差；表格直觉是“按列归一化” | 单个样本 / token 内所有 hidden 维求均值方差；表格直觉是“按行归一化” |
+| 依赖 | 依赖 batch 统计量；训练和推理不同，推理用 running mean / variance | 不依赖 batch size；训练和推理行为基本一致 |
+| 适用 | CNN / 图像等 batch 统计稳定、channel 语义固定的场景 | RNN / Transformer / 文本语音等序列模型，小 batch 或动态长度更稳 |
+| 直觉 | 利用同一批样本校准每个特征维度 | 让每个样本自己的表示尺度稳定 |
+
+* 对 Transformer 张量 `[B, T, H]`：LayerNorm 通常对每个 `(B, T)` 位置上的 `H` 维 hidden state 做归一化，而不是跨 batch 或跨 token 求统计量。
 
 ##### Pre-LN
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "AI 热点"
+  short_description: "生成双语 AI 热点日报和行动建议"
+  default_prompt: "Use $ai-hotspots to produce today's bilingual AI daily report in HTML."
+
+policy:
+  allow_implicit_invocation: true

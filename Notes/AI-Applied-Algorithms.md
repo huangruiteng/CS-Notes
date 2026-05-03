@@ -1552,6 +1552,100 @@ $$p(\mathbf{x}_{1:N}) = \sum_{\mathbf{m}^{1:K-1}} \prod_{k=1}^{K} \underbrace{p(
 
 ![image-20250617211948454](./AI-Applied-Algorithms/image-20250617211948454.png)
 
+### Agent Memory Recommendation / Routing：把记忆系统建模成推荐系统
+
+Agent memory 不只是 RAG，也不只是“把历史经验塞进上下文”。一旦 memory 会被检索、注入、遵循、带来收益或回归，它就可以被系统化地建模成一个推荐 / 路由问题。
+
+核心抽象：
+
+| 推荐系统概念 | Agent memory 概念 |
+| --- | --- |
+| user / context | worker、task、domain、runtime state |
+| item | experience、procedure memory、trajectory fragment |
+| exposure | memory 被检索并注入上下文 |
+| click / convert | agent 遵循 memory，改变工具调用、计划或行动 |
+| reward | task outcome delta |
+| negative feedback | regression、wrong tool、DB diff worsened |
+| delete / bury | history-based deletion、utility-based pruning、rewrite |
+
+对应的效用函数可以写成：
+
+```text
+reward(memory, task)
+= outcome_with_memory
+- outcome_without_memory
+- token_cost_penalty
+- regression_penalty
+```
+
+这个领域的关键问题不是“memory 越多越差”，而是 **候选池越大，越需要质量估计、适用性判断、曝光反馈和生命周期治理**。Memory size 提供 coverage；memory noise、misalignment 和 token cost 造成负效用。真正要做的是：
+
+- `source_quality_gate`：源轨迹是否足够可靠，决定 add / reject / rewrite。
+- `applicability_gate`：当前 task、domain、runtime state、权限、precondition 是否匹配。
+- `routing / ranking`：在候选 memory 中选哪些、何时注入、以什么顺序注入。
+- `post_exposure_utility`：memory 被曝光后是否真正提升 outcome。
+- `lifecycle`：长期低效 memory 应该 bury、delete、merge 或 rewrite。
+
+这给 Agent Harness / OpenViking 的长期切口是：从 trace / replay 中构建 `memory_routing_dataset`，用 paired replay、DB/action correctness、token cost 和 regression signal 估计 memory 的 future utility。推荐系统经验可以迁移到这里：candidate generation、ranking、calibration、negative feedback、delayed feedback、exploration、cold start、item lifecycle、contextual bandit / RL。
+
+未来可继续填充的方向：
+
+- **数据 schema**：memory item 的 id、来源轨迹、precondition、domain、tool state、反例、曝光日志、utility 统计。
+- **模型形态**：rule / logistic / GBDT / two-tower / sequence model / contextual bandit / RL policy。
+- **反馈信号**：paired no-memory replay、strict selective addition、history-based deletion、ProactAgent paired-branch retrieval reward。
+- **评估指标**：task success delta、DB diff、wrong-tool rate、token cost、regression rate、coverage、memory churn。
+- **工程风险**：label leakage、simulator variance、misaligned replay、context overload、stale memory、过度个性化。
+
+#### A89: Agent Memory 管理：experience-following、错误传播与错配回放
+
+> 来源：[How Memory Management Impacts LLM Agents: An Empirical Study of Experience-Following Behavior](https://arxiv.org/abs/2505.16067)，用户 2026-05-03 精读。
+
+Agent memory 先分层：短期记忆是任务内 working memory；长期记忆可分为三类：semantic memory 保存世界知识和环境理解，procedural memory 保存规则、流程和操作策略，episodic memory 保存具体任务经历。A89 关注的是 episodic memory：把过去的 query-execution pair 存下来，后续相似任务检索出来当 demonstration。
+
+论文最关键的现象是 **experience-following**：当前任务输入与被召回 memory 的输入越相似，agent 输出越倾向于复刻历史输出。这个性质本身是双刃剑：正确经验被复用时会自我增强；错误经验被复用时会形成 error propagation；源任务看似正确但和目标任务前提不一致时，会形成 misaligned experience replay。
+
+这给 memory 系统一个很强的约束：相似度不是充分条件。Memory item 需要同时具备来源质量、适用边界和后续效用信号，否则 memory bank 越大，越容易把“看起来相似但前提不同”的经验注入上下文。
+
+```text
+memory utility
+= coverage gain
+- noise propagation
+- token cost
+- regression risk
+```
+
+因此 memory_size 本身不是坏事，它提供 coverage；真正的问题是 memory_noise 和 misalignment。更像推荐系统：候选池变大后，系统不应简单限制 item 数，而是要做质量估计、曝光反馈、降权、删除和重写。
+
+**Strict selective addition 的边界**：
+
+- 论文中的 strict addition 本质是用强 evaluator 判断源轨迹是否可写入；部分实验用 human/oracle 近似，AgentDriver 等设置会比较生成结果与 ground truth。
+- 这适合作为 upper bound 和设计启发，但不能直接当作线上策略，否则会把 label / gold execution 泄漏到 memory admission。
+- 工程可落地的版本应拆成三层：`source_quality_gate` 判断源轨迹能否写入，`applicability_gate` 判断当前任务能否使用，`post_exposure_utility` 判断注入后是否真的提升结果。
+
+**Deletion 也不应只按时间或频次**。论文提出 history-based deletion：一条 memory 被多次召回后，如果平均 future utility 低，就删除。这比 LRU 更接近“曝光后反馈”：不是看 memory 本身像不像，而是看它被曝光以后有没有提升 outcome。
+
+这件事可以抽象成 agent memory 的推荐系统；上面的 `Agent Memory Recommendation / Routing` 是后续持续填充这个领域的 canonical section。A89 在这里提供的是第一个关键 empirical foundation：为什么相似度召回会产生 behavior prior，以及为什么 memory lifecycle 必须基于 outcome feedback。
+
+| RecSys 概念 | Agent memory 概念 |
+| --- | --- |
+| user / context | worker、task、domain、runtime state |
+| item | experience、procedure memory、trajectory fragment |
+| exposure | memory 被检索并注入上下文 |
+| click / convert | agent 遵循 memory，改变工具调用或行动 |
+| reward | paired outcome delta |
+| negative feedback | regression、wrong tool、DB diff worsened |
+| delete / bury | history-based deletion、utility-based pruning |
+
+```text
+reward(memory, task)
+= outcome_with_memory
+- outcome_without_memory
+- token_cost_penalty
+- regression_penalty
+```
+
+对 Agent Harness / OpenViking 的直接启发：memory 不是“向量召回的文本块”，而是带稳定 id、来源轨迹、前提条件、适用范围、反例、曝光反馈和 lifecycle 的 experience item。评估也不能只看 recall 命中率，而要看 paired replay 后 task outcome、DB/action correctness、token cost 和 regression。
+
 ### File System as Meta Tool
 
 > File System as Meta Tool：AI Agent 基础设施新思路 https://mp.weixin.qq.com/s/seaRW3uKwNfX0pnis8g0Rw

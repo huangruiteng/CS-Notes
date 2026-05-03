@@ -19,3 +19,5 @@ tmp*
 .trae/web-manager/todos-web-manager-package/
 .trae/web-manager/*.tar.gz
 .trae/web-manager/*.zip
+
+log
