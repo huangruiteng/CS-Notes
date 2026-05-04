@@ -2,6 +2,7 @@
 **/.idea/**
 **/.env
 tmp*
+.tmp/
 .local/
 # **/创作/**
 .trae/logs
