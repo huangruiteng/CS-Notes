@@ -302,6 +302,86 @@ def get_archive_tasks():
     })
 
 # ============================================
+# Codex TODO 控制台：只读视图
+# ============================================
+
+def run_codex_todo_triage(*args):
+    """Run the Codex TODO triage helper and return Markdown output."""
+    script = REPO_ROOT / "Notes" / "snippets" / "codex_todo_triage.py"
+    if not script.exists():
+        return {
+            "success": False,
+            "message": f"Codex TODO triage script not found: {script}",
+            "markdown": "",
+        }
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), *args],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        return {
+            "success": result.returncode == 0,
+            "returncode": result.returncode,
+            "markdown": result.stdout,
+            "stderr": result.stderr,
+            "generated_at": datetime.now().isoformat(),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "message": "Codex TODO triage timed out after 20s",
+            "markdown": "",
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e),
+            "markdown": "",
+        }
+
+@app.route('/api/codex/summary', methods=['GET'])
+def codex_todo_summary():
+    """获取 Codex TODO 控制台摘要。"""
+    data = load_todos_from_json(TODOS_FILE)
+    todos = data.get("todos", [])
+    status_counts = {}
+    feedback_required = 0
+    for todo in todos:
+        status = todo.get("status", "")
+        status_counts[status] = status_counts.get(status, 0) + 1
+        if todo.get("status") in {"pending", "in-progress", "--progress"} and todo.get("feedback_required"):
+            feedback_required += 1
+
+    return jsonify({
+        "success": True,
+        "generated_at": datetime.now().isoformat(),
+        "total": len(todos),
+        "status_counts": status_counts,
+        "feedback_required": feedback_required,
+        "source": str(TODOS_FILE),
+        "runbook": str(REPO_ROOT / ".trae" / "documents" / "Codex-TODO-Web-Manager-v2.md"),
+    })
+
+@app.route('/api/codex/next-action', methods=['GET'])
+def codex_next_action():
+    """获取当前最高优先级的用户动作。"""
+    return jsonify(run_codex_todo_triage("--next-action"))
+
+@app.route('/api/codex/user-actions', methods=['GET'])
+def codex_user_actions():
+    """获取用户阻塞动作队列。"""
+    return jsonify(run_codex_todo_triage("--user-actions"))
+
+@app.route('/api/codex/check-blockers', methods=['GET'])
+def codex_check_blockers():
+    """运行轻量 blocker 检查。"""
+    return jsonify(run_codex_todo_triage("--check-blockers"))
+
+# ============================================
 # Plan 管理功能
 # ============================================
 
@@ -1157,6 +1237,10 @@ def static_files(path):
 # ============================================
 
 if __name__ == '__main__':
+    host = os.environ.get('WEB_MANAGER_HOST', '127.0.0.1')
+    port = int(os.environ.get('WEB_MANAGER_PORT', '5000'))
+    debug = os.environ.get('WEB_MANAGER_DEBUG', '0').lower() in ('1', 'true', 'yes', 'on')
+
     print("=" * 60)
     print("Todos Web Manager - 后端服务")
     print("=" * 60)
@@ -1179,8 +1263,13 @@ if __name__ == '__main__':
     print("  - POST   /api/git/commit          - 提交 Git 更改")
     print("  - POST   /api/git/push            - 推送到远程仓库")
     print("  - POST   /api/git/pull            - 从远程仓库拉取")
+    print("  - GET    /api/codex/summary       - Codex TODO 摘要")
+    print("  - GET    /api/codex/next-action   - Codex 下一步")
+    print("  - GET    /api/codex/user-actions  - Codex 用户动作队列")
+    print("  - GET    /api/codex/check-blockers - Codex 阻塞检查")
     print("=" * 60)
-    print("启动服务器: http://localhost:5000")
+    print(f"启动服务器: http://{host}:{port}")
+    print(f"Debug 模式: {debug}")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host=host, port=port, debug=debug, use_reloader=debug)

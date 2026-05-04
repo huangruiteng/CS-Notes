@@ -223,6 +223,10 @@ POST   /api/git/pull           - 从远程仓库拉取
         .tab.ai-tab.active {
             background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
         }
+
+        .tab.codex-tab.active {
+            background: linear-gradient(135deg, #0f766e 0%, #155e75 100%);
+        }
         
         .content {
             padding: 24px;
@@ -269,6 +273,62 @@ POST   /api/git/pull           - 从远程仓库拉取
             display: flex;
             flex-direction: column;
             gap: 20px;
+        }
+
+        .codex-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .codex-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .codex-card h3 {
+            margin: 0 0 12px 0;
+            color: #0f172a;
+            font-size: 18px;
+        }
+
+        .codex-card pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.6;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .codex-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
+        .codex-summary-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .codex-summary-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f766e;
+        }
+
+        .codex-summary-label {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #64748b;
         }
         
         .stat-group {
@@ -1026,6 +1086,7 @@ POST   /api/git/pull           - 从远程仓库拉取
         <div class="tabs">
             <div class="tab active" data-tab="my-tasks" onclick="switchMainTab('my-tasks')">👤 我的待办</div>
             <div class="tab ai-tab" data-tab="ai-workflow" onclick="switchMainTab('ai-workflow')">🤖 AI 工作流</div>
+            <div class="tab codex-tab" data-tab="codex-dashboard" onclick="switchMainTab('codex-dashboard')">⌁ Codex 控制台</div>
             <div class="tab" data-tab="execution-logs" onclick="switchMainTab('execution-logs')" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">📊 执行日志</div>
         </div>
         
@@ -1429,6 +1490,8 @@ POST   /api/git/pull           - 从远程仓库拉取
             
             if (tab === 'my-tasks') {
                 currentSubTab = 'pending-review-tasks';
+            } else if (tab === 'codex-dashboard') {
+                currentSubTab = 'codex';
             } else {
                 currentSubTab = 'all';
             }
@@ -1559,6 +1622,19 @@ POST   /api/git/pull           - 从远程仓库拉取
                 await loadExecutionLogs();
                 return;
             }
+
+            if (currentMainTab === 'codex-dashboard') {
+                addTaskToggle.style.display = 'none';
+                addTaskSection.style.display = 'none';
+                subTabsContainer.innerHTML = '';
+                document.getElementById('filtersSection').style.display = 'none';
+                document.getElementById('statsPanel').style.display = 'none';
+                await loadCodexDashboard();
+                return;
+            }
+
+            document.getElementById('filtersSection').style.display = 'block';
+            document.getElementById('statsPanel').style.display = 'flex';
             
             const todoInlinePlans = tasks.filter(t => t.plan && t.plan.status === 'pending');
             const independentPendingPlans = independentPlans.filter(p => p.status === 'pending');
@@ -1665,6 +1741,101 @@ POST   /api/git/pull           - 从远程仓库拉取
             
             let html = items.map(task => renderTaskItem(task)).join('');
             taskList.innerHTML = `<ul class="task-list">${html}</ul>`;
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function fetchCodexPanel(path) {
+            const response = await fetch(`${API_BASE}/codex/${path}`);
+            if (!response.ok) {
+                throw new Error(`${path} HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || data.stderr || `${path} failed`);
+            }
+            return data;
+        }
+
+        function renderCodexMarkdownCard(title, data) {
+            return `
+                <div class="codex-card">
+                    <h3>${escapeHtml(title)}</h3>
+                    <pre>${escapeHtml(data.markdown || data.message || '')}</pre>
+                </div>
+            `;
+        }
+
+        async function loadCodexDashboard() {
+            const taskList = document.getElementById('taskList');
+            try {
+                updateStatus('🔄 正在加载 Codex 控制台...');
+                taskList.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>正在加载 Codex 控制台...</p>
+                    </div>
+                `;
+
+                const [summary, nextAction, userActions, blockers] = await Promise.all([
+                    fetchCodexPanel('summary'),
+                    fetchCodexPanel('next-action'),
+                    fetchCodexPanel('user-actions'),
+                    fetchCodexPanel('check-blockers')
+                ]);
+
+                const statusCounts = summary.status_counts || {};
+                const summaryHtml = `
+                    <div class="codex-card">
+                        <h3>概览</h3>
+                        <div class="codex-summary-grid">
+                            <div class="codex-summary-item">
+                                <div class="codex-summary-value">${summary.total || 0}</div>
+                                <div class="codex-summary-label">Total</div>
+                            </div>
+                            <div class="codex-summary-item">
+                                <div class="codex-summary-value">${statusCounts.pending || 0}</div>
+                                <div class="codex-summary-label">Pending</div>
+                            </div>
+                            <div class="codex-summary-item">
+                                <div class="codex-summary-value">${statusCounts['in-progress'] || 0}</div>
+                                <div class="codex-summary-label">In Progress</div>
+                            </div>
+                            <div class="codex-summary-item">
+                                <div class="codex-summary-value">${summary.feedback_required || 0}</div>
+                                <div class="codex-summary-label">User Blocked</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                taskList.innerHTML = `
+                    <div class="status-bar" style="margin-bottom: 16px;">
+                        <div class="status-bar-text">Codex TODO 控制台只读视图</div>
+                        <button onclick="loadCodexDashboard()">刷新 Codex 控制台</button>
+                    </div>
+                    <div class="codex-dashboard">
+                        ${summaryHtml}
+                        ${renderCodexMarkdownCard('下一步', nextAction)}
+                        ${renderCodexMarkdownCard('用户动作队列', userActions)}
+                        ${renderCodexMarkdownCard('阻塞检查', blockers)}
+                    </div>
+                `;
+                updateStatus('✅ Codex 控制台已加载');
+            } catch (error) {
+                console.error('加载 Codex 控制台失败:', error);
+                logDebug(`❌ Codex 控制台加载失败: ${error.message}`);
+                showError(`❌ 加载 Codex 控制台失败: ${escapeHtml(error.message)}`);
+                updateStatus('❌ Codex 控制台加载失败');
+                renderEmptyState('加载失败', '请检查 /api/codex/* 只读接口是否可用');
+            }
         }
         
         let executionCharts = {};

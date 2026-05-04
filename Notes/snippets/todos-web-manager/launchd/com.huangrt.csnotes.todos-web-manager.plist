@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.huangrt.csnotes.todos-web-manager</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/bytedance/CS-Notes/Notes/snippets/todos-web-manager/start.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/bytedance/CS-Notes</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/bytedance/CS-Notes/.local/todos-web-manager/logs/launchd.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/bytedance/CS-Notes/.local/todos-web-manager/logs/launchd.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>REPO_ROOT</key>
+    <string>/Users/bytedance/CS-Notes</string>
+    <key>WEB_MANAGER_HOST</key>
+    <string>127.0.0.1</string>
+    <key>WEB_MANAGER_PORT</key>
+    <string>5000</string>
+    <key>WEB_MANAGER_DEBUG</key>
+    <string>0</string>
+  </dict>
+</dict>
+</plist>
