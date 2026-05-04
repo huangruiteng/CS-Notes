@@ -78,6 +78,9 @@ open -a Typora <file.md>
 4. 语言尽量压缩，不为“更整洁”而删除用户原内容。
 5. 外部材料必须附来源链接。
 6. 一份材料跨多个主题时，拆分落到多个位置，不强塞进一个文件。
+7. `Notes/` 内的数学公式默认面向 Typora 阅读：真正的公式用块级 `$$...$$`，不要用 ```text 代码块伪装公式；普通 schema / 字段列表才用代码块。
+8. 如果用户提供或原文包含对理解机制确有必要的关键图，优先保存到目标 Markdown 同名资源目录（如 `Notes/AI-Applied-Algorithms/`），再用相对路径链接（如 `![...](./AI-Applied-Algorithms/xxx.png)`）；不要只依赖聊天截图或外链。
+9. 对内部飞书 / ByteTech / 公司文档做笔记时，写入 git 关联笔记库前必须脱敏：不要写内部 URL、临时 token、内部人员/团队细节或非公开实现；优先引用公开论文、开源仓库、官方文档、release note。若材料来自内部文档但也有公开实现，公开笔记只能写“基于公开/开源材料分析”，完整内部来源和私有判断只放 `.local/`。
 
 ### B. 写作与公司项目
 
@@ -93,6 +96,14 @@ open -a Typora <file.md>
 - 真正开工前，先把任务改成 `in-progress` 并写入 `started_at`
 - 推进任务必须带来真实产物，不要只改状态文本
 - 明确区分：AI 可独立完成的任务 vs 必须等待用户动作的任务
+- 用户说 `推进TODO` / `推进todo` 时，默认不是只做一个小修，而是做一次 **批推进**：
+  - 目标批量：3-5 个低风险小切口，或 1 个主任务 + 2-4 个配套的文档/脚本/状态/规则更新。
+  - 先列出本轮 batch，确认它们共享同一目标、写入范围不冲突、不会触碰公司私密内容或高风险 git 操作。
+  - 对每个子切口都要有可验证产物；如果只够推进 1 个，必须说明为什么不能批推进。
+  - 批推进完成后，统一回写 `.trae/todos/todos.json`、刷新 `.local/CODEX_TODO_TRIAGE_INDEX.md`，并汇总实际产物。
+  - 这条规则服务长程 agent 目标：把 TODO 推进变成 plan -> batch execution -> checkpoint -> replayable record，而不是零散单步响应。
+- 推进 TODO 时，如果发现值得同步给 `agent-harness` 主控 agent 的设计判断、实验建议、数据字段、benchmark 变体或风险提醒，必须生成一段可直接转发的 `Agent Harness 主控转发稿` 给用户；不要假设 Codex 可以直接指挥另一个仓库的主控 agent。
+- `Agent Harness 主控转发稿` 应该短、明确、可执行，包含：背景、建议动作、验收标准、相关文件/链接；如果只是想法而非行动，不要打扰主控 agent。
 
 ### D. Tooling / agent / web-manager
 

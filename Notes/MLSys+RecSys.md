@@ -1123,6 +1123,24 @@ https://docs.nvidia.com/deeplearning/performance/index.html
 
 https://arxiv.org/pdf/1905.12322
 
+* 对应论文：[A Study of BFLOAT16 for Deep Learning Training](https://arxiv.org/abs/1905.12322)。
+  * 旧 TODO 里记录的标题是 “Numerical Precision in Deep Learning: FP32, FP16, and BF16 for LLMs and CTR Systems”，没有找到精确同名论文；但这篇是一手 arXiv，且明确覆盖 BF16 / FP32 / FP16 对比与 industrial recommendation systems，基本是当时想找的材料。
+* 核心判断：BF16 的优势不是“更精细”，而是**保留 FP32 的 exponent range，同时把 mantissa 缩短**，因此比 FP16 更少遇到 overflow / underflow，也通常不需要 loss scaling 或额外调参。
+  * FP16 mixed precision 的工程复杂度主要来自 loss scaling：要把梯度移到 FP16 可表示区间，否则小梯度会被 flush 成 0。
+  * BF16 保留 FP32 动态范围，代价是尾数精度更粗；训练通常依赖 FP32 accumulator 和 FP32 master weight 来稳住更新。
+* data flow：
+  * GEMM / FC / Conv 的输入 activation / weight 用 BF16；
+  * accumulate 到 FP32；
+  * bias 和 weight update 保持 FP32；
+  * 再通过 round-to-nearest-even 把中间 tensor 转回 BF16。
+* 对推荐系统的启发：
+  * 论文在 Criteo CTR 场景验证 Deep & Cross Network 和 DNN recommender。作者强调，推荐系统里 logloss 损失 0.001 就不可接受；这比很多 CV 指标更“抠”。
+  * Table 5 中 round-to-nearest 的 BF16 与 FP32 logloss 完全持平：DCN `0.44372 -> 0.44372`，DNN recommender `0.12520 -> 0.12520`；直接 truncation 有轻微退化：`0.44393` / `0.12537`。
+  * 这说明 RecSys 训练用 BF16 不是只看吞吐，还要关心 rounding mode、accumulator、master weight、embedding / dense 部分的数值路径；尤其 CTR/logloss 场景对小数点后变化很敏感，不能只用“LLM 训练经验”粗暴迁移。
+* 和 LLM / Agent infra 的连接：
+  * BF16 是训练稳定性锚点；FP8 / INT8 / weight-only quantization 才更多是后续 serving / rollout / inference 成本优化锚点。
+  * 如果以后做 agent runtime serving benchmark，precision 不是单独参数，而应该进入 reproducibility / outcome stability 维度：同一 agent workload 在 BF16/FP16/FP8 下，输出、tool action、reward 是否漂移。
+
 ![image-20250519223426286](./MLSys+RecSys/image-20250519223426286.png)
 
 #### Fp8-Mixed-Precision-Training

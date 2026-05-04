@@ -1582,7 +1582,7 @@ reward(memory, task)
 
 - `source_quality_gate`：源轨迹是否足够可靠，决定 add / reject / rewrite。
 - `applicability_gate`：当前 task、domain、runtime state、权限、precondition 是否匹配。
-- `routing / ranking`：在候选 memory 中选哪些、何时注入、以什么顺序注入。
+- `routing / ranking`：在候选 memory 中选哪些、是否触发检索、何时注入、以什么查询注入。
 - `post_exposure_utility`：memory 被曝光后是否真正提升 outcome。
 - `lifecycle`：长期低效 memory 应该 bury、delete、merge 或 rewrite。
 
@@ -1590,8 +1590,8 @@ reward(memory, task)
 
 未来可继续填充的方向：
 
-- **数据 schema**：memory item 的 id、来源轨迹、precondition、domain、tool state、反例、曝光日志、utility 统计。
-- **模型形态**：rule / logistic / GBDT / two-tower / sequence model / contextual bandit / RL policy。
+- **数据 schema**：memory item 的 id、来源轨迹、precondition、domain、tool state、反例、`retrieval_query`、`query_intent`、`trigger_state`、曝光日志、utility 统计。
+- **模型形态**：rule / logistic / GBDT / two-tower / sequence model / query generator / contextual bandit / RL policy。
 - **反馈信号**：paired no-memory replay、strict selective addition、history-based deletion、ProactAgent paired-branch retrieval reward。
 - **评估指标**：task success delta、DB diff、wrong-tool rate、token cost、regression rate、coverage、memory churn。
 - **工程风险**：label leakage、simulator variance、misaligned replay、context overload、stale memory、过度个性化。
@@ -1645,6 +1645,75 @@ reward(memory, task)
 ```
 
 对 Agent Harness / OpenViking 的直接启发：memory 不是“向量召回的文本块”，而是带稳定 id、来源轨迹、前提条件、适用范围、反例、曝光反馈和 lifecycle 的 experience item。评估也不能只看 recall 命中率，而要看 paired replay 后 task outcome、DB/action correctness、token cost 和 regression。
+
+#### S16: ProactAgent：把 retrieval 从 passive RAG 升级成 policy action
+
+> 来源：[Ask Only When Needed / ProactAgent](https://arxiv.org/abs/2604.20572)，用户 2026-05-04 精读。
+
+![ProactAgent overview](./AI-Applied-Algorithms/proactagent-overview.png)
+
+ProactAgent 的关键判断是：lifelong agent 的 memory retrieval 不应只是固定时机的 passive RAG，而应变成 agent 动作空间的一部分。形式上，它把交互任务写成 goal-conditioned POMDP；在每个 step，agent 基于 history `h_t` 选择动作，动作空间从环境动作扩展为：
+
+$$
+\mathcal{A} = \mathcal{A}_{env} \cup \mathcal{A}_{ret}, \quad
+a_t \in \mathcal{A}_{env}
+\ \text{or}\
+a_t = \mathrm{RETRIEVE}(q_t)
+$$
+
+其中 `q_t` 是自然语言检索 query；如果触发检索，返回的经验 `D_t` 会进入后续决策上下文。于是 trajectory 不再只是 `state/action/reward`，而是应显式记录：
+
+$$
+\tau = ((h_t, a_t, D_t, r^{env}_t))_{t=1}^{T}
+$$
+
+这对 Agent Harness 很直接：日志里不能只存 `retrieved_memory_ids`。如果只记录最后注入了哪些 memory，以后最多训练 memory ranker；要训练 retrieval policy，必须记录 **为什么此刻要检索、用什么 query 检索、在什么状态下触发**：
+
+```text
+retrieval_query
+query_intent
+trigger_state
+retrieval_action_taken
+candidate_memory_ids
+selected_memory_ids
+injected_memory_types
+```
+
+ProactAgent 的经验库也不是单一 memory pool，而是拆成五类 typed stores：
+
+| 类型 | 作用 | 来源 |
+| --- | --- | --- |
+| Factual memory `M^f` | 环境事实、工具输出、持久状态 | 单条轨迹 |
+| Episodic memory `M^e` | 局部计划、约束、交互模式 | 单条轨迹 |
+| Success skill `S+` | 成功轨迹抽象出的可复用策略 | 成功轨迹 |
+| Failure skill `S-` | 失败轨迹抽象出的错误模式和纠正规则 | 失败轨迹 |
+| Comparative skill `SΔ` | 为什么一个 continuation 优于另一个 | paired A/B branches |
+
+检索时使用 type-balanced top-k，避免单一类型占满上下文；每类内部的排序公式是：
+
+$$
+score(q_t, r) = sim(e(q_t), e(r)) + \lambda_p p(r)
+$$
+
+这里的 `p(r)` 是 priority。论文实现很简单：只有被实际 retrieve 且最终轨迹成功的 entry，priority 才 `+1`。这个机制粗糙但方向对：memory 的排序不能只看语义相似度，还要看曝光后的历史效用。
+
+ProactRL 的核心是用 paired branch 给检索动作构造 step-level reward：当某一步触发 retrieval 时，从同一个 prefix 出发 replay 一个 suppress retrieval 的 no-retrieval continuation，比较两条分支的 outcome 和效率：
+
+$$
+\Delta_i = (R^{env}_i - R^{env}_{j(i)})
+        + \lambda_T \frac{T_{j(i)} - T_i}{\max(T_{j(i)}, 1)}
+$$
+
+如果 retrieval branch 更好，则给正 process reward；更差则给负 process reward；此外还惩罚重复 query，并奖励更短的成功轨迹。最终再用 GRPO 做 trajectory-level 优化。它的价值不是“我们现在就要训 GRPO”，而是给了一个清晰的 credit assignment 目标：**retrieval 是否真的改善了当前 step 之后的执行，而不是任务最后刚好成功。**
+
+对 Agent Harness 的落地顺序应更克制。这里的 step-level replay 不应理解成“每个 step 都 replay / 每个阶段一套策略”，而是 **只针对 memory-trigger event 做局部反事实评估**：凡是某个 step 发生 memory injection，就从同一 prefix 构造一个 suppress retrieval branch，判断这次 memory exposure 是否真的带来增益。
+
+1. **V0：paired replay evaluator**。只回答“这次 memory 注入有没有帮助”，比较 task success、tool correctness、DB state、interaction efficiency、token cost 和 regression。它先是 evaluator，不是 policy trainer。
+2. **V1：给三个子问题打 weak label**。Step 级别最先优化的不是“每一步复杂策略”，而是：`should_retrieve` 当前 step 是否需要 recall memory；`retrieval_query_generator` 如果需要 recall，query 应该怎么生成；`memory_selector / reranker` 哪类 memory / 哪条 memory 应该注入。
+3. **V2：再考虑 policy / contextual bandit**。任务阶段差异不要做成多套策略，而是作为同一个 policy / ranker 的 context feature，例如 `planning`、`before_tool_call`、`after_tool_error`、`recovery`、`final_check`。
+4. ProactAgent 的五类 schema 可作为 experience base 的候选结构，但 Agent Harness V0 不必一次做满；可以先把 tau2 轨迹分成 factual / episodic / success / failure，再等 paired replay 稳定后生成 comparative skill。
+
+这篇和 A89 正好互补：A89 说明 memory 会成为强 behavior prior，因此要治理错误传播和错配回放；ProactAgent 则说明 retrieval 本身是可学习 action，因此要记录 trigger/query/state，并用 paired replay 给 retrieval decision 分配 credit。
 
 ### File System as Meta Tool
 

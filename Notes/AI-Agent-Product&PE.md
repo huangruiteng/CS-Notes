@@ -833,6 +833,21 @@ openclaw cron add --name "一次性任务" --description "20分钟后运行" --a
    - `--message`: 发送 Agent 消息（适合需要 Agent 执行具体任务）
    - 选择：如果只是触发检查流程，用 `--system-event`；如果需要 Agent 做具体事情，用 `--message`
 
+#### OpenClaw 成本与可观测性：APMPlus + diagnostics-otel
+
+> 来源：[你的 OpenClaw 也在偷偷烧钱吗？用 APMPlus 把成本看明白](https://mp.weixin.qq.com/s/5mDV8zscDaDG2myk6XnxcA)，火山引擎 Agent 社区，2026-02-26
+
+这篇的价值不在 APMPlus 本身，而在它把 long-running agent 的“成本黑盒”拆成了可观测指标。典型风险是心跳检查、上下文累积、多步推理等后台机制反复发送大上下文，闲置状态也可能持续烧 token。
+
+OpenClaw 已内置 `diagnostics-otel` 插件，可通过 OpenTelemetry 上报运行时事件到 APMPlus。值得沉淀的指标分四类：
+
+- 模型成本：`openclaw.tokens`、`openclaw.cost.usd`、`openclaw.context.tokens`、`openclaw.run.duration_ms`。
+- Webhook 集成：`openclaw.webhook.received`、`openclaw.webhook.error`、`openclaw.webhook.duration_ms`。
+- 队列健康：`openclaw.message.queued`、`openclaw.message.processed`、`openclaw.queue.depth`、`openclaw.queue.wait_ms`、`openclaw.queue.lane.enqueue/dequeue`。
+- 会话健康：`openclaw.session.state`、`openclaw.session.stuck`、`openclaw.session.stuck_age_ms`、`openclaw.run.attempt`。
+
+对 Agent Harness / Agent infra 的启发：不要只记录 task success/fail。一个可长期运行的 agent runtime 至少要同时记录 `cost`、`context_size`、`queue_wait`、`stuck_age`、`retry_count`、`tool/webhook_error`，否则很难判断“能力变强”是不是靠不可接受的 token 成本和卡死风险换来的。
+
 #### 架构设计
 
 ```
@@ -2268,7 +2283,7 @@ https://manus.im/app
 
 ### OpenViking：AI Agents 上下文数据库
 
-> 来源：[OpenViking 官网](https://openviking.ai/)、[Golang 集成实践](https://blog.csdn.net/shaobingj126/article/details/157869295)、[多仓库代码语义检索实战](https://mp.weixin.qq.com/s/atv7FQON8X-qmsB0PnZlVw)。源码补充来自 2026-04-29 对 concepts docs 与 `openviking/session/*` 的阅读。
+> 来源：[OpenViking 官网](https://openviking.ai/)、[OpenViking GitHub](https://github.com/volcengine/OpenViking)、[Golang 集成实践](https://blog.csdn.net/shaobingj126/article/details/157869295)、[多仓库代码语义检索实战](https://mp.weixin.qq.com/s/atv7FQON8X-qmsB0PnZlVw)。以下为基于公开文档和开源代码的分析，不包含内部设计文档链接。
 
 **核心定位**：OpenViking 不是传统“向量库 + RAG”包装，而是面向 Agent 的上下文数据库。它用 `viking://` 文件系统范式组织资源、记忆、技能和会话归档，让 Agent 可以按 URI 检索、浏览、读取、更新上下文，而不是把所有材料压成扁平 embedding 池。
 
@@ -2299,11 +2314,28 @@ https://manus.im/app
 - 新插件名为 `openviking`，替代旧的 `memory-openviking`；旧插件只支持 OpenClaw `2.10.x` 到 `2026.3.6`，在 3.7 以上可能导致 Agent 无响应或卡住。
 - 2.0 的重点是降低安装部署门槛，并补齐写入、读取、安装成功的验证路径。
 
+**开源实现补充：Session 能否承载一次任务 trajectory**：
+
+- 公开文档里的 Session 更像“会话级工作记忆 + 归档 + 记忆抽取”容器，而不是天然的 RL trajectory schema。它提供 `add_message`、`ContextPart`、`ToolPart`、`used(contexts, skill)` 和 `commit()`：可以记录消息、上下文注入、工具调用、实际使用的 context / skill，并在 commit 后归档与抽取长期记忆。
+- 因此，一个可行映射是：把一次 agent task run / episode 当成一个 OpenViking session。task instruction、observation、agent response 进入 messages；tool call 进入 `ToolPart`；被注入的 memory / resource / skill 进入 `ContextPart` 或 `used()`；任务结束后 `commit()` 形成 archive / overview / memory extraction。
+- 但这只能作为 coarse trajectory 容器。Agent Harness 仍应自己保存细粒度 replay/eval 事件：`step_id`、环境状态、DB diff、tool correctness、reward / evaluator delta、memory exposure id、paired replay branch、token/latency cost。否则只能复盘“这次会话用了哪些上下文”，很难训练 `should_retrieve`、query generator 或 memory reranker。
+- 更合理的边界是：OpenViking session 负责可寻址上下文、会话归档和长期记忆抽取；Agent Harness 负责 step-level trace、counterfactual replay、outcome feedback 和 label 生成。两者之间通过 session id / context URI / memory exposure id 对齐。
+
+**开源实现补充：索引结构**：
+
+- 从公开源码看，当前 OpenViking 更接近“统一 context collection + 逻辑类型隔离”，而不是三套完全独立的 memory / resource / skill 物理索引。
+- `CollectionSchemas.context_collection()` 定义了统一 schema：`id`、`uri`、`type`、`context_type`、`vector`、`sparse_vector`、`level`、`abstract`、`active_count`、owner/account 字段等。`context_type` 用于区分 `resource`、`memory`、`skill`。
+- 类型隔离主要发生在 URI 和检索层：memory 位于 `viking://user/memories` / `viking://agent/memories`，resource 位于 `viking://resources`，skill 位于 `viking://agent/skills`；`find()` 会基于 target URI 推断 context type，`search()` 可结合 session context 做 intent analysis，生成 typed queries 后分别检索 memory / resource / skill。
+- `HierarchicalRetriever` 的根目录选择也体现了这一点：`ContextType.MEMORY` 对应 user/agent memories，`RESOURCE` 对应 resources，`SKILL` 对应 agent skills。也就是说，早期“memory/resource/ability 独立索引”的设计直觉，在开源实现里更像是统一索引上的 type-aware routing / filtering / rerank。
+
+公开源码参考：[Session 文档](https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/08-session.md)、[Storage 文档](https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/05-storage.md)、[Retrieval 文档](https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/07-retrieval.md)、[`collection_schemas.py`](https://github.com/volcengine/OpenViking/blob/main/openviking/storage/collection_schemas.py)。
+
 **对当前 Agent Harness / OpenViking 主线的启发**：
 
 - 记忆和上下文主线应优先对齐 OpenViking，而不是自造重型 memory stack。演进路径：trivial memory demo -> OpenViking integration -> OpenViking feature extension。
 - worker-specific memory view 不应另起一套存储，先做成 retrieval policy：共享 OpenViking substrate，按 role / task / context_type 做 recall、filter、rerank、context packing。
 - Harness 的 `procedure memory injection replay` 可以借 OpenViking 承载上下文读写，但评估必须独立：比较无 memory / 有 memory 下的 task outcome、tool sequence、error class 和 token cost。
+- 如果要利用 OpenViking session 维护 task trajectory，建议先做最小对齐实验：一条 tau2 run 写入一个 session，同时在 Agent Harness trace 里记录 `session_id`、`context_uri`、`memory_exposure_id` 和 evaluator delta；不要把 OpenViking session 本身误当成完整 replay substrate。
 - 多仓库代码问答结果说明，OpenViking 适合做 AI infra open-source contribution loop 的 substrate：让 Agent 自动研究 vLLM / SGLang / verl / Ray 等仓库时，不再局限单 repo workspace，而是构建可更新的 repo context database。
 
 ### MemPalace：AI 记忆系统的"宫殿范式"
@@ -4696,6 +4728,28 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 * Dev Docs工作流：防止Claude失去上下文，忘记自己在干什么
 * PM2+Hooks零错误机制：不让任何TypeScript错误溜走
 * 专业化Agents军团：代码审查、调试、规划全自动化
+
+#### Claude Code 工作流：让 Agent 自带验证闭环
+
+> 来源：[How I use Claude Code (+ my best tips)](https://www.youtube.com/watch?v=8lF7HmQ_RgY)，补充阅读：[TL;DL transcript/summary](https://tldl-pod.com/episode/1769051199_1000747059706)。本条基于视频元信息与 transcript/summary 整理，未完整观看原视频。
+
+这篇材料最有价值的不是某个单点技巧，而是把 AI coding 的核心从“写更长 prompt”拉回到工程系统：**把任务拆成可机械验证的小动作，并给 agent 自己获取反馈的闭环**。
+
+核心做法：
+
+- **优先交给 AI 重复、机械、容易验证的任务**：越能通过测试、日志、截图、console、lint、benchmark 自动判断的任务，越适合交给 coding agent。
+- **如果不能给 agent 反馈闭环，人就会被迫成为反馈闭环**：agent 应该能自己运行测试、看截图、读日志、检查控制台、复现实验，而不是每一步都等人告诉它“对/错”。
+- **选择机器容易测试的技术栈**：能被 Playwright、单测、类型检查、日志和可观测性覆盖的系统，更适合 agentic coding；难验证的 UI/业务口径会显著增加人的 review 成本。
+- **MCP/工具的价值在于暴露 inspection surface**：浏览器、accessibility tree、Playwright screenshot、structured reasoning、文档检索等工具，本质是让 agent 能观察环境和校验结果，而不是单纯堆工具数量。
+- **用 git worktree 和多 Claude 实例并行，但必须配验证层**：多 agent 并行能提高吞吐，但要靠 PR review、CodeRabbit、第二模型审查、测试和架构约束控制质量。
+- **架构要适合 agent 接手**：避免巨大文件和隐式耦合，把系统拆成更小模块和清晰边界，让 agent 输出更容易局部验证、局部回滚。
+
+对 Agent Harness / OpenViking / 个人记忆系统的启发：
+
+- benchmark 不应只记录“任务是否完成”，还应记录 agent 是否拿到了足够的反馈工件：测试结果、日志、截图、trace、DB diff、tool transcript。
+- memory / skill 不应只存“成功经验”，还要存它依赖的验证条件：这条经验是在什么任务、什么工具状态、什么观察信号下成立的。
+- long-running coding agent 的关键不是无限循环，而是每个 task 都有独立 session、独立 workspace、明确验收信号和可回放 trace。
+- 多 agent / subagent 是否有价值，取决于任务能否拆成低耦合、可验证、可合并的单元；否则并行只会放大 review 和回归成本。
 
 ### 检索的实现
 

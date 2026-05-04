@@ -248,6 +248,12 @@ Reject or demote materials that are:
 
 Be concise. Tell the user what was added, where it was added, and the key judgment.
 
+When writing into `Notes/`:
+
+- Use Typora-friendly block math for real equations: `$$...$$`.
+- Do not put formulas in ```text code fences; reserve code fences for schemas, field lists, commands, and pseudocode.
+- If a figure from the source or user-provided material is essential to understanding the mechanism, save it into the target note's relative asset folder (for example `Notes/AI-Applied-Algorithms/`) and link it with a relative Markdown path. Prefer primary-source figures when available.
+
 For `精读`, use a mechanism-first guide rather than a broad reading plan:
 
 1. 一句话判断.
