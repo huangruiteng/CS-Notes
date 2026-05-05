@@ -2617,26 +2617,56 @@
       "assignee": "user",
       "feedback_required": true,
       "created_at": "2026-05-04T14:28:12+0800",
-      "updated_at": "2026-05-04T14:28:12+0800",
+      "updated_at": "2026-05-04T18:10:05+0800",
       "background": "OpenViking 公开 session 设计更偏会话级归档和 memory extraction，但可能可以把一次 agent task run / episode 映射成一个 session，作为 Agent Harness 与 OpenViking 对齐的 coarse trajectory container。需要向 OV 同学确认推荐用法和 schema 边界。",
       "links": [
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/08-session.md",
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/05-storage.md",
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/07-retrieval.md",
-        "Notes/AI-Agent-Product&PE.md"
+        "Notes/AI-Agent-Product&PE.md",
+        ".trae/documents/OpenViking-Session-Trajectory-Alignment.md"
       ],
-      "user_next_action": "可直接发给 OV 同学：我想确认一下 OpenViking session 能否作为一次 agent task run 的 trajectory 容器：把 task instruction / observation / response 写成 messages，把 tool call 写成 ToolPart，把 memory/resource/skill 注入写成 ContextPart 或 used()，任务结束后 commit 形成 archive/overview/memory extraction。这个用法是否推荐？如果要支持 replay/eval，step_id、env_state、tool correctness、DB diff、reward/evaluator delta、memory exposure id、paired replay branch 这些细粒度字段，建议扩展到 session schema，还是由外部 Agent Harness 保存，只用 session_id/context_uri 对齐？",
+      "user_next_action": "把 .trae/documents/OpenViking-Session-Trajectory-Alignment.md 中“可直接发给 OV 同学的话”发给 OV 同学，并把回复贴回 Codex；若想同步 agent-harness 主控，可转发同文档里的“Agent Harness 主控转发稿”。",
       "definition_of_done": [
         "拿到 OV 同学对 session-as-trajectory 是否推荐的明确反馈。",
         "确认是否需要 OpenViking 原生 step/tool/context usage 字段，或由 Agent Harness 外部维护细粒度 trace。",
         "确认当前开源实现中的 unified context collection + context_type/URI routing 是否是长期方向，还是未来会拆成 memory/resource/skill 独立 collection。",
         "把反馈交给 Codex，转成下一步 Agent Harness/OpenViking integration TODO。"
       ],
-      "progress": "等待用户和 OpenViking 同学交流。",
+      "progress": "Codex 已准备脱敏沟通包 .trae/documents/OpenViking-Session-Trajectory-Alignment.md：包含 OV 同学确认问题、session/trajectory 边界、Agent Harness 主控转发稿和后续分支动作。当前仍等待用户发给 OV 同学并贴回反馈。",
       "codex_triage": {
         "category": "user_blocked",
-        "judgment": "这是必须由用户发起的人际/内部协作确认；Codex 已准备好可转发问题和公开背景。",
-        "next_action": "用户发出确认问题并把回复贴给 Codex。"
+        "judgment": "Codex 已把问题转成可执行沟通包；下一步必须由用户进行人际/内部协作确认。",
+        "next_action": "用户转发 OV 同学问题并贴回回复；Codex 再据此生成 Agent Harness/OpenViking integration TODO。"
+      }
+    },
+    {
+      "id": "todo-20260504-013",
+      "title": "修正 Codex TODO batch-plan 以本仓库为主",
+      "status": "completed",
+      "priority": "P2",
+      "assignee": "codex",
+      "feedback_required": false,
+      "created_at": "2026-05-04T18:47:27+0800",
+      "updated_at": "2026-05-04T18:47:27+0800",
+      "background": "用户校准：推进项目 / 推进 TODO 不应过多主动关注 agent-harness，默认关注 CS-Notes 本仓库 TODO 控制面。",
+      "definition_of_done": [
+        "AGENTS.md 明确推进项目默认以本仓库 TODO、文档、脚本、笔记为主。",
+        ".local/AGENTS.md 降级 agent-harness 扫描为按需触发。",
+        "Notes/snippets/codex_todo_triage.py 的 batch-plan 区分 Codex 可推进 active TODO 与用户动作队列。",
+        "batch-plan 空队列模板不再默认提示检查 agent-harness。"
+      ],
+      "progress": "✅ 已完成。batch-plan 现在在无 Codex-owned active TODO 时展示用户动作队列与本仓库可做 batch，不再把 user-blocked OV 任务当作 Codex 可推进任务，也不默认引导到 agent-harness。",
+      "links": [
+        "AGENTS.md",
+        ".local/AGENTS.md",
+        "Notes/snippets/codex_todo_triage.py"
+      ],
+      "codex_triage": {
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "本次修正让推进项目的控制面回到 CS-Notes 本仓库。",
+        "recommended_action": "后续推进项目先看 batch-plan 输出；只有本仓库 TODO 明确指向外部仓库时才扩展扫描。"
       }
     }
   ]

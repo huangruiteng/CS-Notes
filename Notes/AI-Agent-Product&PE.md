@@ -2281,6 +2281,28 @@ https://manus.im/app
         *   **分工与价值**：微软不用自己造 CPU（Intel），NV 不用亲自去无尘间操作光刻机（台积电）。Claude 也没涉足 IDE，但这不妨碍 Cursor 成为值得尊敬的公司。
         *   **核心**：商业模式的本质在于创造价值，而非必须全栈自研。
 
+### τ-bench / τ²-bench：Tool-use Agent 评测
+
+> 来源：[τ-bench 论文](https://arxiv.org/abs/2406.12045)、[τ²-bench 论文](https://arxiv.org/abs/2506.07982)、[tau2-bench GitHub](https://github.com/sierra-research/tau2-bench)、用户截图。
+
+**核心定位**：τ-bench 系列不是静态问答 benchmark，而是模拟真实 customer support 场景下的 tool-use agent 评测。Agent 需要在多轮对话中遵守 policy、调用领域 API，并让最终数据库状态满足任务目标。
+
+- **τ-bench**：用户由语言模型模拟，agent 拥有工具和 policy，评测主要看最终 DB state 是否和目标一致。它强调“真实业务规则 + 工具调用 + 多轮交互”。
+- **τ²-bench**：进一步引入 dual-control setting，用户也能通过工具改变共享环境状态。它更接近真实技术支持：agent 不只是自己调工具，还要和会操作设备/环境的用户协作。
+- **对 Agent Harness 的价值**：tau2 适合做 procedure memory / OpenViking context injection 的 eval substrate，因为它能观察 memory 是否改变了 tool sequence、DB diff、用户协作效率和最终 task outcome。
+
+**pass^k 指标**：
+
+- `pass^k` 不是“第 k 轮 repeat 的平均分”，也不是代码 benchmark 常见的 `pass@k`（k 次里至少一次成功）。它衡量的是：同一个 task 重复试验中，随机抽 k 次，这 k 次全部成功的概率。
+- 对单个 task，如果一共跑了 `n` 次 trial，其中 `c` 次 reward=1，则：
+
+$$
+\mathrm{pass}^{k}(\mathrm{task}) = \frac{\binom{c}{k}}{\binom{n}{k}}
+$$
+
+- 最终指标是对所有 task 的 `pass^k(task)` 取平均，再乘 100。若 `c < k`，该 task 的 `pass^k` 为 0。
+- 这个指标比 `pass@k` 更严格：`pass@k` 关心“多试几次总有一次成功”，`pass^k` 关心“同类任务反复出现时是否每次都稳定成功”。对 customer support / tool-use agent 来说，它更接近生产可靠性，而不只是单次能力上限。
+
 ### OpenViking：AI Agents 上下文数据库
 
 > 来源：[OpenViking 官网](https://openviking.ai/)、[OpenViking GitHub](https://github.com/volcengine/OpenViking)、[Golang 集成实践](https://blog.csdn.net/shaobingj126/article/details/157869295)、[多仓库代码语义检索实战](https://mp.weixin.qq.com/s/atv7FQON8X-qmsB0PnZlVw)。以下为基于公开文档和开源代码的分析，不包含内部设计文档链接。

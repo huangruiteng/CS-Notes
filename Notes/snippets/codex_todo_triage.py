@@ -213,6 +213,15 @@ def active_todos(todos: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [t for t in todos if t.get("status") in {"pending", "in-progress", "--progress"}]
 
 
+def codex_active_todos(todos: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        t
+        for t in active_todos(todos)
+        if not t.get("feedback_required")
+        and str(t.get("assignee", "")).lower() not in {"user", "human"}
+    ]
+
+
 def empty_queue_lines() -> list[str]:
     return [
         "当前没有 pending / in-progress / user-blocked TODO。",
@@ -221,7 +230,7 @@ def empty_queue_lines() -> list[str]:
         "",
         "1. 复盘最近 3-5 条 completed TODO，沉淀流程、脚本或 AGENTS.md 规则。",
         "2. 查看 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的当前建议阅读顺序，把已读/待读材料转成可执行小任务。",
-        "3. 查看 agent-harness 主控是否需要转发 steering、schema、benchmark 或实验设计。",
+        "3. 查看 `.trae/documents/Codex-TODO-User-Action-Queue.md` 是否有用户动作需要提醒或压缩。",
         "4. 只在发现明确小切口时新增 TODO；否则明确回复“队列为空，下一步应由材料/项目状态触发”。",
     ]
 
@@ -385,8 +394,9 @@ def render_next_action(data: dict[str, Any]) -> str:
 
 def render_batch_plan(data: dict[str, Any]) -> str:
     lines = ["# TODO 批推进建议", ""]
+    todos = data.get("todos", [])
     active = sorted(
-        active_todos(data.get("todos", [])),
+        codex_active_todos(todos),
         key=lambda t: (
             priority_rank(t.get("priority")),
             str(t.get("created_at", "")),
@@ -402,8 +412,26 @@ def render_batch_plan(data: dict[str, Any]) -> str:
         lines.append("")
         lines.append("1. 主任务是否可拆成 3-5 个低风险小切口。")
         lines.append("2. 是否需要同步更新 AGENTS.md / `.local` 指令 / v2 文档 / triage 脚本。")
-        lines.append("3. 是否有值得发给 agent-harness 主控的转发稿。")
+        lines.append("3. 是否需要同步更新用户动作队列、材料队列或本仓库流程文档。")
         lines.append("4. 完成后是否能刷新 `.local/CODEX_TODO_TRIAGE_INDEX.md` 并回写 progress。")
+        return "\n".join(lines)
+
+    user_actions = sorted_user_action_todos(data)
+    if user_actions:
+        lines.append("当前没有 Codex 可独立推进的 active TODO；存在用户动作队列：")
+        lines.append("")
+        for todo in user_actions[:5]:
+            lines.append(f"- `{todo.get('id')}` [{todo.get('priority')}] {todo.get('title')}")
+            next_action = todo.get("user_next_action")
+            if isinstance(next_action, str) and next_action.strip():
+                lines.append(f"  - 用户下一步：{next_action.strip()}")
+        lines.append("")
+        lines.append("Codex 本轮可做的 batch：")
+        lines.append("")
+        lines.append("1. 压缩/更新用户动作队列，确保下一步话术可直接复制。")
+        lines.append("2. 检查本仓库流程文档、脚本和索引是否与用户最新规则一致。")
+        lines.append("3. 从材料队列或最近 completed TODO 中找一个 Codex-owned 小切口。")
+        lines.append("4. 刷新 `.local/CODEX_TODO_TRIAGE_INDEX.md`，但不越权推进用户动作。")
         return "\n".join(lines)
 
     lines.extend(empty_queue_lines())
@@ -425,7 +453,7 @@ def render_batch_plan(data: dict[str, Any]) -> str:
     lines.append("")
     lines.append("- 流程沉淀 batch：从最近 completed 中抽 1 条经验，更新 AGENTS.md / v2 文档 / 脚本输出。")
     lines.append("- 材料转行动 batch：从当前阅读顺序选 1 篇，生成精读导读、读后模板、agent-harness steering 占位。")
-    lines.append("- 项目同步 batch：检查 agent-harness / CS-Notes 状态，产出 1 段转发稿或 1 个 schema/TODO 草案。")
+    lines.append("- 项目同步 batch：检查 CS-Notes 本仓库状态，产出 1 个流程修正、索引更新或 TODO 草案。")
     return "\n".join(lines)
 
 

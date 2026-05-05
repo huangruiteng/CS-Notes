@@ -12,9 +12,40 @@
 - 公司项目融合暂不考虑，并继续保证不上 git。
 - Trae CLI / proactive 内部调研优先级不高，后续默认优先使用 Codex CLI。
 
-用户已完成 `gh auth login`，当前没有 pending 且 `feedback_required=true` 的阻塞任务。
+用户已完成 `gh auth login`。当前新增两条用户动作，均服务 Agent Harness / OpenViking 主线。
 
-## 1. GitHub 搜索授权（已完成）
+## 1. 当前用户动作
+
+### 1.1 和 OpenViking 同学确认 session / trajectory 边界
+
+对应 TODO：`todo-20260504-012`
+
+Codex 已准备：
+
+- `.trae/documents/OpenViking-Session-Trajectory-Alignment.md`
+
+用户动作：
+
+1. 把文档中“可直接发给 OV 同学的话”发给 OpenViking 同学。
+2. 把回复贴回 Codex。
+3. Codex 再根据回复生成 Agent Harness / OpenViking integration TODO。
+
+判断：这是外部协作确认，Codex 不能替用户完成，但已经把问题压缩成可转发材料。
+
+### 1.2 选择是否同步 Agent Harness 主控 steering
+
+Codex 已准备：
+
+- `.trae/documents/Agent-Harness-Post-S15-Steering.md`
+
+用户动作：
+
+1. 如果要推动 agent-harness 主控收敛下一步，把文档中“给 Agent Harness 主控的转发稿”发给主控 agent。
+2. 如果主控已在推进同方向，则不必打扰，只把该文档作为本侧职业/项目判断留档。
+
+判断：S15 已经是 negative diagnostic，下一步不应继续堆 family rerank，而应转向 confirmation / write timing、argument grounding、applicability boundary 和 paired simulator variance 默认化。
+
+## 2. GitHub 搜索授权（已完成）
 
 对应 TODO：`todo-20260225-016`
 
@@ -33,7 +64,7 @@ Notes/snippets/github-search.sh repos "agent memory llm" 3
 
 成功标准：返回合法 JSON。该 TODO 已关闭。
 
-## 2. 已归档旧阻塞项
+## 3. 已归档旧阻塞项
 
 以下 TODO 已按用户最新判断归档，不再进入用户动作队列：
 
@@ -43,7 +74,7 @@ Notes/snippets/github-search.sh repos "agent memory llm" 3
 - `todo-20260223-034039`：公司内部 coding bash CLI 调研。
 - `todo-20260225-001`：Trae proactive / CLI 能力调研。
 
-## 3. Trae CLI / proactive 内部调研留档
+## 4. Trae CLI / proactive 内部调研留档
 
 对应 TODO：
 
@@ -78,4 +109,6 @@ Notes/snippets/github-search.sh repos "agent memory llm" 3
 
 ## 建议解除阻塞顺序
 
-当前无用户阻塞动作。下一轮 `推进TODO` 应先生成新的候选任务，或从近期职业主线中挑一个明确小切口。
+1. 先发 OpenViking session / trajectory 问题，解除 `todo-20260504-012`。
+2. 再视情况把 Post-S15 steering 发给 agent-harness 主控；如果主控已有同方向计划，则不必重复。
+3. 用户贴回任一回复后，Codex 负责把它转成下一批 integration / eval TODO。

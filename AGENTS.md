@@ -91,6 +91,8 @@ open -a Typora <file.md>
 ### C. Todo 驱动执行
 
 - 单一数据源：`.trae/todos/todos.json`
+- 用户说 `推进项目` / `推进TODO` / `推进todo` 时，默认优先关注 **本仓库** 的 TODO、文档、脚本和笔记工作流；不要主动把重心滑到 `agent-harness` 仓库。
+- 只有当本仓库 TODO 明确指向 `agent-harness`、用户明确要求查看 `agent-harness`、或需要生成给 `agent-harness` 主控的转发稿时，才读取/引用 `agent-harness` 状态。
 - 新增 todo：优先使用 `todo-adder`
 - 执行 todo：优先走 `priority-task-reader`
 - 真正开工前，先把任务改成 `in-progress` 并写入 `started_at`
