@@ -27,11 +27,9 @@ class BloggerMonitorImproved:
         
         # 手动添加的 RSS feed 链接映射
         self.manual_rss_feeds = {
-            "马可奥勒留": "https://juejin.cn/rss/user/1955412097653256",
-            "tigerhood": "https://www.thetigerhood.com/feed",
-            "FAI Seminar": "https://www.fai-seminar.ac.cn/feed.xml",
-            "火山引擎 V-Moment": "https://www.volcengine.com/feed",
+            "苏剑林": "https://www.kexue.fm/feed",
             "李新野": "https://sinyalee.com/blog/feed",
+            "Lilian Wang": "https://lilianweng.github.io/feed.xml",
         }
         
         # 支持的平台
