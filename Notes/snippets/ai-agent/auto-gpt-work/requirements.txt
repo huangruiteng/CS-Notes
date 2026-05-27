@@ -1,5 +1,5 @@
 colorama==0.4.6
-langchain==0.3.10
+langchain==0.3.30
 langchain_experimental==0.0.58
 langchain_openai==0.1.6
 pandas==2.2.1
