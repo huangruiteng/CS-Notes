@@ -4,6 +4,7 @@
 tmp*
 .tmp/
 .local/
+.codepilot-uploads/
 # **/创作/**
 .trae/logs
 # 公司项目（保密项目，不push到git）
