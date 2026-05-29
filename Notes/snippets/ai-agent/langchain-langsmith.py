@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = "ls__44058e8374214bef8cf7eb0842718fe9"
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY", "YOUR_LANGSMITH_API_KEY")
 # 可选
 os.environ["LANGCHAIN_PROJECT"] = "hello-world-"+datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
