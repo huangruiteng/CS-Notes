@@ -3,4 +3,4 @@ version = 1
 name = "CS-Notes"
 
 [setup]
-script = ""
+script = "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH"

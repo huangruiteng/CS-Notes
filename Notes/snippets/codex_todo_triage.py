@@ -228,10 +228,11 @@ def empty_queue_lines() -> list[str]:
         "",
         "空队列时，`推进TODO` 不硬编旧任务，按这个顺序找下一批：",
         "",
-        "1. 复盘最近 3-5 条 completed TODO，沉淀流程、脚本或 AGENTS.md 规则。",
-        "2. 查看 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的当前建议阅读顺序，把已读/待读材料转成可执行小任务。",
-        "3. 查看 `.trae/documents/Codex-TODO-User-Action-Queue.md` 是否有用户动作需要提醒或压缩。",
-        "4. 只在发现明确小切口时新增 TODO；否则明确回复“队列为空，下一步应由材料/项目状态触发”。",
+        "1. 复盘最近 3-5 条 completed TODO，沉淀流程、脚本、AGENTS.md 规则或索引生成逻辑。",
+        "2. 检查 `.trae/`、`Notes/snippets/`、`.codex/skills/`、`.openclaw-memory/` 中是否有可提升效率的机制小切口。",
+        "3. 检查素材探索能力本身：trusted sources、读取工具、候选库治理、Unread/fallback 规则，而不是默认消费材料队列。",
+        "4. 查看 `.trae/documents/Codex-TODO-User-Action-Queue.md` 是否有用户动作需要提醒或压缩。",
+        "5. 只在发现明确小切口时新增 TODO；否则明确回复“队列为空”，不制造伪进展。",
     ]
 
 
@@ -283,6 +284,26 @@ def current_reading_queue(limit: int = 5) -> list[dict[str, str]]:
     if current and len(items) < limit:
         items.append(current)
     return items[:limit]
+
+
+def render_material_queue_suggestions(limit: int = 5) -> list[str]:
+    queue = current_reading_queue(limit=limit)
+    lines: list[str] = []
+    if not queue:
+        return lines
+
+    lines.append("当前材料队列可转成 Codex-owned 小切口：")
+    lines.append("")
+    for index, item in enumerate(queue, 1):
+        material_id = item.get("id") or "material"
+        title = item.get("title") or ""
+        lines.append(f"{index}. `{material_id}` {title}")
+        if item.get("why"):
+            lines.append(f"   - 为什么现在：{item['why']}")
+        if item.get("output"):
+            lines.append(f"   - 可验证产物：{item['output']}")
+    lines.append("")
+    return lines
 
 
 def priority_rank(value: Any) -> int:
@@ -429,30 +450,20 @@ def render_batch_plan(data: dict[str, Any]) -> str:
         lines.append("Codex 本轮可做的 batch：")
         lines.append("")
         lines.append("1. 压缩/更新用户动作队列，确保下一步话术可直接复制。")
-        lines.append("2. 检查本仓库流程文档、脚本和索引是否与用户最新规则一致。")
-        lines.append("3. 从材料队列或最近 completed TODO 中找一个 Codex-owned 小切口。")
+        lines.append("2. 检查本仓库流程文档、脚本、索引和技能是否与用户最新规则一致。")
+        lines.append("3. 从最近 completed TODO 中找流程沉淀、机制优化、效率优化或笔记结构小切口。")
         lines.append("4. 刷新 `.local/CODEX_TODO_TRIAGE_INDEX.md`，但不越权推进用户动作。")
+        lines.append("")
+        lines.append("注意：不要把 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的阅读队列默认转成私有材料卡；只有用户明确说 `素材：`、`精读`、`读完`、`调研` 时才消费具体材料。")
         return "\n".join(lines)
 
     lines.extend(empty_queue_lines())
     lines.append("")
-    queue = current_reading_queue(limit=5)
-    if queue:
-        lines.append("当前材料队列可转成 TODO 的前几项：")
-        lines.append("")
-        for index, item in enumerate(queue, 1):
-            material_id = item.get("id") or "material"
-            title = item.get("title") or ""
-            lines.append(f"{index}. `{material_id}` {title}")
-            if item.get("why"):
-                lines.append(f"   - 为什么现在：{item['why']}")
-            if item.get("output"):
-                lines.append(f"   - 可验证产物：{item['output']}")
-        lines.append("")
     lines.append("推荐空队列 batch 模板：")
     lines.append("")
     lines.append("- 流程沉淀 batch：从最近 completed 中抽 1 条经验，更新 AGENTS.md / v2 文档 / 脚本输出。")
-    lines.append("- 材料转行动 batch：从当前阅读顺序选 1 篇，生成精读导读、读后模板、agent-harness steering 占位。")
+    lines.append("- 机制优化 batch：改进 triage 脚本、候选库治理、trusted source 扫描、skill 指令或索引刷新逻辑。")
+    lines.append("- 笔记结构 batch：检查近期新增笔记是否有重复入口、标题污染、资源目录或 TOC 结构问题。")
     lines.append("- 项目同步 batch：检查 CS-Notes 本仓库状态，产出 1 个流程修正、索引更新或 TODO 草案。")
     return "\n".join(lines)
 
