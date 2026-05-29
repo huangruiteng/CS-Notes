@@ -62,7 +62,9 @@
 
 > 来源：[Commands - Codex app](https://developers.openai.com/codex/app/commands)
 
+* 双击左右 `Command`：Appshots，把当前 Mac 前台窗口及可用文本作为附件发给 Codex thread；如果 60 秒内和某个 thread 互动过，会优先追加到最近 thread。
 * `Cmd + J`：切换 Terminal / Shell
+* Opt + N: 唤起侧边对话
 * `Cmd + Shift + P` 或 `Cmd + K`：打开命令面板
 * `Cmd + B`：切换侧边栏
 * `Cmd + Option + B`：切换 Diff 面板

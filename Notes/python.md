@@ -1418,6 +1418,52 @@ while True:
 
 ```
 
+##### CUDA 初始化与 fork 的坑
+
+在 GPU 程序里，`multiprocessing` 最危险的模式是：主进程已经触发 CUDA runtime / driver 初始化之后，再用默认 `fork` 启动子进程。`fork` 会复制父进程的用户态内存，但不会把 CUDA driver 内部线程、锁、上下文、句柄等状态完整变成一个可安全继续使用的新运行时。表现可能是：
+
+- 子进程报 `Cannot re-initialize CUDA in forked subprocess`；
+- 子进程卡死、随机失败，或在 H2D / D2H / profiler trace 上出现很难解释的异常；
+- 父进程里看似只是创建 `Queue` / `Manager` / 后台 writer，实际已经隐式 fork 了子进程。
+
+更稳的写法是显式拿一个非 `fork` 的 multiprocessing context，并让相关 primitives 都从同一个 context 创建：
+
+```python
+import multiprocessing as mp
+
+mp_ctx = mp.get_context("forkserver")
+manager = mp_ctx.Manager()
+
+finished = manager.Value("finished", False)
+disk_write_queue = mp_ctx.Queue(maxsize=max_queue_size)
+disk_write_process = mp_ctx.Process(
+    target=periodic_disk_write,
+    name="disk_write_process",
+    args=(finished,),
+    daemon=True,
+)
+disk_write_process.start()
+```
+
+`forkserver` 是 Python `multiprocessing` 的一种 start method。第一次使用时，Python 会启动一个专门的 fork server 进程；后续新子进程不是从业务主进程直接 `fork`，而是由这个 server 进程来 `fork`。由于 fork server 通常更早、更干净，没有承载主进程里复杂的线程池、CUDA runtime、网络连接和全局锁状态，所以子进程继承到的脏状态更少。
+
+可以简单理解三种 start method 的取舍：
+
+- `fork`：最快，直接复制当前主进程；但会继承主进程的线程、锁、CUDA runtime 等复杂状态，GPU / 多线程场景风险最高。
+- `spawn`：最干净，像重新启动一个 Python 解释器再 import 入口模块；安全但启动慢，对可序列化和模块导入要求更严格。
+- `forkserver`：折中方案，由干净 server 负责 fork；通常比 `spawn` 快，比默认 `fork` 更适合 CUDA / 多线程 / 复杂 runtime。
+
+这里的关键不是 `Manager` 本身，而是把 `Manager` / `Queue` / `Process` 都绑定到 `forkserver` context。`forkserver` 会通过一个相对干净的 server process 去 fork 子进程，避免直接从已经初始化 CUDA 的主进程 fork。相比 `spawn`，它通常启动成本低一些；相比默认 `fork`，它更适合 CUDA / 多线程 / 复杂 runtime 场景。
+
+但它不是魔法，仍有几个边界：
+
+- 必须尽量在 CUDA 初始化之前创建 / 启动 `forkserver` 相关子进程；如果 forkserver 自己已经导入或初始化了 CUDA，收益会打折。
+- 不要混用 `mp.Queue()` 和 `mp_ctx.Process()`；跨 context 的锁、队列、manager proxy 可能引入新问题。
+- 子进程 target、参数和被引用对象仍要满足可序列化 / 可导入约束，尤其是 `spawn` / `forkserver` 都不能依赖 fork 继承全部父进程状态。
+- 如果子进程需要使用 CUDA，最稳原则是让它在自己的进程生命周期内初始化 CUDA，而不是继承父进程的 CUDA 状态。
+
+经验规则：GPU 程序中一旦有后台进程、DataLoader worker、异步 writer、profile helper，就显式声明 start method / context；不要把默认 `fork` 留给运行时猜。
+
 #### 多线程编程 - concurrent
 
 * from concurrent.futures import ThreadPoolExecutor, Future
@@ -1856,4 +1902,3 @@ ignore_missing_imports = True
 #### 坑
 
 * the interactive Python is the only place (I'm aware of) to not have `__file__`.
-

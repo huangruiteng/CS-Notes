@@ -4135,7 +4135,9 @@ https://instagram-engineering.com/core-modeling-at-instagram-a51e0158aa48
   * Loss function and inverse propensity weighting
     * When the ranked list of items doesn’t have a human-generatable ideal relevant ranking (unlike most information theory cases), most pipelines default to point-wise models instead of Learning-To-Rank framework.
     * For instance, one might rank the Instagram stories by computing P[tapping on the story] for each available medias and sorting by the probability. This works pretty well, albeit the loss function becomes an issue, because in most ranking use-cases the top items are much more impactful than the rest.
-    * inverse propensity weighting: weight training examples by their positions
+    * **inverse propensity weighting**: weight training examples by their positions
+      * IPS 的思想
+      * 更一般的 counterfactual evaluation / IPS / DR 公式见 `Reinforcement-Learning.md` 的 `Counterfactual evaluation / Off-policy evaluation`。这里的 position 可以理解成 logged policy 造成的 exposure propensity：排在更靠下的位置，被看到/点击的概率更低，因此训练或评估时要校正 position-induced selection bias。
   * Position Bias: 最简单的方法，training时加position feature，serving用默认值全零，会有离在线不一致
 
 #### A Hitchhiker's Guide On Distributed Training Of Deep Neural Networks, JPDC 18

@@ -2254,6 +2254,11 @@ https://developer.download.nvidia.com/video/gputechconf/gtc/2019/presentation/s9
   * One large transfer much better than many small ones
   * Overlap memory transfer with computation
 
+* TensorFlow 执行器的设备选择容易放大 H2D 成本：
+  * 典型策略是贪心式 device placement：如果一个 op 有 GPU kernel，就倾向把它放到 GPU 上执行，并把输入从 host 拷到 device；如果 op 没有 GPU kernel，就只能留在 CPU 上算。
+  * 这个决策不一定看全局数据所在位置。前一个 op 的输出如果在 CPU，而下一个 op 支持 GPU，执行器可能仍然无条件触发 H2D 再算；再下一个 op 如果不支持 GPU，又会 D2H 回 CPU。
+  * 性能问题通常不是某个 kernel 慢，而是 CPU/GPU 之间被隐式插入了很多小拷贝。排查时要看 op placement 和 H2D/D2H trace，不要只看 GPU utilization。
+
 #### kernel fusion
 
 * --> 「LLM-MLSys」-「POD-Attention」-「现有kernel fusion技术的局限性」

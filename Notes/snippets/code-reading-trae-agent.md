@@ -148,7 +148,7 @@ mcp_servers:
 
 **配置优先级**：命令行参数 > 配置文件 > 环境变量 > 默认值
 
-**传统 JSON 配置**：如果使用旧的 JSON 格式，请参阅 [docs/legacy_config.md](docs/legacy_config.md)。我们建议迁移到 YAML。
+**传统 JSON 配置**：如果使用旧的 JSON 格式，请参阅仓库内的 `docs/legacy_config.md`。我们建议迁移到 YAML。
 
 ## 📖 使用方法
 
