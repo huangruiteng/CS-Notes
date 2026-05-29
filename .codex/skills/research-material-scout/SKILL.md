@@ -1,6 +1,6 @@
 ---
 name: research-material-scout
-description: Use when the user asks Codex to research, find learning materials, process "素材：" links, "精读" a material, build a material radar, or use SenSight-like broad information retrieval for career learning and Agent infra tracking.
+description: Use when the user asks Codex to research, find learning materials, process "素材：" links, "请你读" / "精读" a material, build a material radar, or use SenSight-like broad information retrieval for career learning and Agent infra tracking.
 ---
 
 # Research Material Scout
@@ -44,6 +44,22 @@ Codex remains responsible for verification, ranking, summarization, and local pe
 
 Use ordinary web search, platform-specific readers, and Agent-Reach-like local tools as fallback or source-level readers, not as the primary discovery layer.
 
+### Implementation-First Catalogs
+
+For Agent Harness / agent infra exploration, use implementation-first catalogs as a source-discovery layer before broad web search when available.
+
+Current primary catalog:
+
+- `Agent Harness Engineering implementation-first catalog`: `https://github.com/Picrew/awesome-agent-harness`
+
+Use it as an index, not as evidence by itself:
+
+1. Pick the relevant ETCLOVG layer first: execution, tooling, context, lifecycle, observability, verification, or governance.
+2. Inspect the candidate repo's README, docs, releases, issues, or paper before ranking it.
+3. Prefer implementation entries that can change the user's artifacts: sandbox boundary, tool registry/schema, state/context contract, handoff/workflow loop, trace/eval schema, policy/audit layer.
+4. Do not dump many frameworks into Top30. Write only high-signal projects into `.local/LEARNING_MATERIAL_CANDIDATES.md`, with read status and concrete artifact deltas.
+5. Treat stars and catalog summaries as recall/ranking hints, not truth.
+
 ### arXiv / Paper Reading Route
 
 For arXiv papers, do not jump straight to PDF extraction unless HTML is unavailable.
@@ -60,14 +76,33 @@ Resolution order:
    - if only bare id is known, inspect the abs page for the current version, then try `https://arxiv.org/html/<id>v<version>`;
    - also try `https://arxiv.org/html/<id>` if versioned HTML is not obvious.
 3. Use the abs page for metadata, title, authors, abstract, version history, and links.
-4. Fall back to PDF only when HTML is missing, blocked, malformed, or lacks the needed figures/tables.
-5. If using PDF fallback, extract text into `.local/paper-cache/` and explicitly say that the read path was PDF fallback.
+4. For `精读`, method-heavy papers, or cases where HTML lacks needed appendix, math, algorithm, prompt, or caption detail, try the arXiv TeX source before PDF fallback:
+   - download `https://arxiv.org/src/<id>` into `.local/paper-cache/<id>-src.tar.gz`;
+   - unpack into `.local/paper-cache/<id>-src/`;
+   - locate the entry `.tex` file, usually `main.tex` or the file containing `\documentclass`;
+   - recursively inspect included `.tex`, `.bib`, figure captions, tables, algorithm blocks, appendices, and prompt/templates.
+5. Fall back to PDF only when HTML/source is missing, blocked, malformed, or lacks the needed figures/tables.
+6. If using PDF fallback, extract text into `.local/paper-cache/` and explicitly say that the read path was PDF fallback.
 
 Why this matters:
 
 - arXiv HTML preserves section anchors, table/figure order, equation context, and is easier for user-side parallel reading.
-- PDF extraction can lose figures, captions, math, and table structure; it is acceptable for quick scanning but weaker for `精读`.
-- For `精读`, always provide the user-facing HTML link when it exists, even if Codex also used the PDF for extraction.
+- arXiv TeX source often preserves appendices, captions, algorithms, prompts, and bibliography context better than PDF text extraction.
+- PDF extraction can lose figures, captions, math, and table structure; it is acceptable for quick scanning but weaker for `请你读` / `精读`.
+- For `请你读` / `精读`, always provide the user-facing HTML link when it exists, even if Codex also used the PDF for extraction.
+
+### Paper / Research Reading Protocol
+
+For papers, research reports, benchmark papers, method repos, arXiv / OpenReview links, and paper collections, `请你读` / `精读` must use the protocol in `references/paper-reading-protocol.md`.
+
+Use it as a progressive-disclosure reference rather than copying it into every answer. It synthesizes Keshav's three-pass method, CMU 11-785's paper-reading recitation, and academic / PhD / AI research lenses into a concrete output contract, plus selected ideas from a local scan of research-related skills.
+
+Operational defaults:
+
+- `请你读` = read first, then answer with Keshav pass 1 plus targeted pass 2 on decision-relevant sections; escalate selected parts to pass 3 only when the material is high-value.
+- `精读` = same output schema, but default to pass 2 plus selective pass 3: virtually reimplement the method, challenge assumptions, and produce artifact deltas.
+- For paper radars or collections, first triage all visible papers with pass 1, then deep-read only the highest-leverage subset.
+- Always state what was actually read: HTML, TeX source, PDF, repo paths, figures/tables, appendix, code, or only metadata.
 
 ## SenSight Backend
 
@@ -93,8 +128,8 @@ references/daily-pulse-filters.md
 Before using SenSight, check that the directory exists. If missing, install it into the private cache, not global OpenClaw:
 
 ```bash
-npx -y --registry https://bnpm.byted.org @tiktok-fe/skills add zengduju/skills \
-  --skill sensight --source local --dir /Users/bytedance/CS-Notes/.local/sensight-skill-source
+# Use an approved private skill source, then install into the ignored local cache.
+<private-skill-installer> --skill sensight --dir /Users/bytedance/CS-Notes/.local/sensight-skill-source
 ```
 
 Run SenSight commands from its source directory:
@@ -182,11 +217,13 @@ Directive convention:
 
 - `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and write to the candidate library.
 - `调研：<question/topic>` means active research. Use broad recall plus source verification, then write high-signal candidates and recommendations.
+- `请你读：<material id/link/title>` means Codex reads first, then returns both a mechanism-first summary and a reader map for the user. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output requirements, but defaults to deeper pass-3 reconstruction when the material warrants it.
 - `继续调研` means continue the latest active-research theme, but only if adding new sources or a new decision-relevant synthesis.
 
 For each user-provided material:
 
 1. Preserve the original link in the final note title.
+   - If the URL contains disposable login tokens, access tokens, auth codes, session IDs, or other sensitive query parameters, use them only for reading and persist only the stable URL with those parameters stripped. Note that the original link was sanitized.
 2. Try the best reader first:
    - 微信公众号 -> `wechat-article-reader`
    - 小红书 -> `xiaohongshu-reader`
@@ -233,7 +270,9 @@ Before reporting that a research task is done:
    - why it matters to the user's 70/20/10 career plan,
    - next action.
 4. Run a local search to confirm the candidate entry exists in `.local/LEARNING_MATERIAL_CANDIDATES.md`.
-5. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
+5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when the material is a paper or research artifact, and contains a concrete "用户本人还需要读什么" reader map. If the answer is "不用读原文", still say which sections were inspected and why they are skippable, and provide a richer substitute-quality digest so the user does not lose meaningful value by skipping the original.
+6. For tool / standard / API / framework bundles, check that the answer starts with background and workflow introduction: why this thing exists, what pain it solves, what breaks without it, and how each component is positioned. Then explain each component as a standalone material before mapping to Agent Harness / OpenViking. Do not start directly from jargon, fields, or claim maps, and do not let the project mapping crowd out the source-content explanation.
+7. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
 
 ## Quality Bar
 
@@ -254,14 +293,19 @@ When writing into `Notes/`:
 - Do not put formulas in ```text code fences; reserve code fences for schemas, field lists, commands, and pseudocode.
 - If a figure from the source or user-provided material is essential to understanding the mechanism, save it into the target note's relative asset folder (for example `Notes/AI-Applied-Algorithms/`) and link it with a relative Markdown path. Prefer primary-source figures when available.
 
-For `精读`, use a mechanism-first guide rather than a broad reading plan:
+For `请你读` / `精读`, Codex should read first and then provide a mechanism-first guide rather than a broad reading plan. Because personal original-reading recommendations are conservative, `Codex-summary-enough` answers must be more detailed, not thinner: include enough background, source-content explanation, core design, fields/schemas, evidence, artifact mapping, and caveats to substitute for the user's first-pass read. Use a two-focus structure: first explain the material itself, then map it to the user's current artifact. For papers / research artifacts, load `references/paper-reading-protocol.md`; the short form below is the minimum answer shape:
 
 1. 一句话判断.
-2. 核心机制: 3-6 numbered mechanisms, each with "what the author does/proves" and "how the user should interpret it".
-3. 对用户 artifact 的直接改造: schema, feedback signal, benchmark variant, TODO, steering, or interview/deep-dive line.
-4. 边读边核验的问题: 3-6 sharp checks, especially leakage, counterfactual reliability, metric validity, transferability to Agent Harness / TAU2.
-5. 阅读路径 only if needed; do not default to a 30/60/90 plan.
-6. Do not archive during `精读`; archive only after the user says `读完`.
+2. 背景和工作流介绍: why this material exists, what pain it solves, and where it sits in the broader ecosystem.
+3. 我实际读了什么: HTML/PDF/repo/code/figures/tables/appendix, plus unread parts.
+4. 原材料内容卡: for each paper/tool/standard/repo in the bundle, explain its standalone purpose, core abstraction, important fields/APIs, common usage, and limits.
+5. Claim map: main claims, evidence, confidence, and what would make each claim false.
+6. 精要内容和核心设计: problem, boundary, input/output, data/interface format, workflow, metrics, baselines, main results, limitations, and key figure/table/code path.
+7. 核心机制: 3-6 numbered mechanisms, each with "what the author does/proves" and "how the user should interpret it".
+8. 对用户 artifact 的直接改造: schema, feedback signal, benchmark variant, TODO, steering, or interview/deep-dive line.
+9. 用户本人还需要读什么: mandatory reader map with concrete original sections, figures, tables, code paths, and a decision for each: `must-read`, `optional`, or `skippable`. Do not only say "读摘要即可"; name the exact parts that justify that decision.
+10. 边读边核验的问题: 3-6 sharp checks, especially leakage, counterfactual reliability, metric validity, transferability to Agent Harness / TAU2.
+11. Do not archive during `请你读` / `精读`; archive only after the user says `读完`.
 
 For high-value materials, include the next concrete action, such as:
 
