@@ -1,7 +1,7 @@
 colorama==0.4.6
 langchain==0.3.10
 langchain_experimental==0.0.58
-langchain_openai==0.1.6
+langchain_openai==1.1.14
 pandas==2.2.1
 pydantic==1.10.13
 python-dotenv==1.0.1
