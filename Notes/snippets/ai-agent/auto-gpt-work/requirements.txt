@@ -4,7 +4,7 @@ langchain_experimental==0.0.58
 langchain_openai==0.1.6
 pandas==2.2.1
 pydantic==1.10.13
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 chroma-hnswlib==0.7.2
 chromadb==0.4.5
 tiktoken==0.7.0
