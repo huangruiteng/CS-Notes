@@ -97,14 +97,15 @@
 
 ## 空队列协议
 
-当 `.trae/todos/todos.json` 中没有 `pending` / `in-progress` / `--progress` 任务，且没有 `feedback_required=true` 的用户动作时，`推进TODO` 不应为了维持仪式感硬编旧任务。
+当 `.trae/todos/todos.json` 中没有 Codex 可独立推进的 active 任务时，`推进TODO` 不应为了维持仪式感硬编旧任务。即使仍有 `feedback_required=true` 的用户动作，Codex 也可以从流程优化、机制优化、效率优化、素材探索能力、笔记重构、脚本/skill 改进、索引治理或最近 completed TODO 中找一个安全的小切口推进；用户动作只作为阻塞提醒，不应永久卡住 Codex-owned 批次。
 
 空队列时按这个顺序找下一批：
 
 1. **复盘近期 completed TODO**：优先看最近 3-5 条完成项，判断是否需要沉淀到 AGENTS.md、skill、脚本、oncall 文档或材料流程。
-2. **回到材料/项目状态触发**：查看 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的当前建议阅读顺序、agent-harness 主控反馈、近期笔记状态，找能转成小产物的下一步。
-3. **只新增明确小切口**：新 TODO 必须有可验证产物，例如 schema、脚本、文档、转发稿、实验设计或笔记落点；不要新增“继续优化系统”这类空任务。
-4. **允许明确报告队列为空**：如果没有真实小切口，应直接告诉用户当前 TODO 队列为空，并给出最小触发条件，例如“读完 S16 后再触发 `读完`”或“agent-harness 有新回复后再推进”。
+2. **优化本仓库工作系统**：检查 `.trae/`、`Notes/snippets/`、`.codex/skills/`、`.openclaw-memory/`、`.local` 索引和近期笔记结构，找能降低后续摩擦的小改动。
+3. **只优化素材探索机制，不默认消费材料**：可以改进 trusted sources、读取工具、候选库治理、Unread/fallback 规则；不要把 `.local/LEARNING_MATERIAL_CANDIDATES.md` 当前阅读队列里的具体材料默认转成私有卡片。
+4. **只新增明确小切口**：新 TODO 必须有可验证产物，例如 schema、脚本、文档、转发稿、实验设计或笔记落点；不要新增“继续优化系统”这类空任务。
+5. **允许明确报告队列为空**：如果没有真实小切口，应直接告诉用户当前 TODO 队列为空，并给出最小触发条件，例如“读完某材料后再触发 `读完`”或“agent-harness 有新回复后再推进”。
 
 这条协议的目标是保护 `推进TODO` 的信用：每次推进要么产生真实产物，要么诚实说明没有可推进任务。
 
@@ -114,7 +115,7 @@
   - `python3 Notes/snippets/codex_todo_triage.py`：刷新 `.local/CODEX_TODO_TRIAGE_INDEX.md`。
   - `python3 Notes/snippets/codex_todo_triage.py --user-actions`：只打印当前 pending 阻塞任务的用户动作队列。
   - `python3 Notes/snippets/codex_todo_triage.py --next-action`：只打印当前最推荐的一个用户动作，并附带轻量 blocker 检查结果。
-  - `python3 Notes/snippets/codex_todo_triage.py --batch-plan`：输出下一轮 `推进TODO` 的推荐批次；如果 active 队列为空，则读取 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的“当前建议阅读顺序”，把前几项材料转成可验证小产物建议。
+  - `python3 Notes/snippets/codex_todo_triage.py --batch-plan`：输出下一轮 `推进TODO` 的推荐批次；如果没有 Codex-owned active TODO，即使仍有 user-blocked 项，也优先建议流程沉淀、机制优化、效率优化、素材探索能力、笔记重构、脚本/skill 改进和索引治理，不默认消费具体材料队列。
   - `python3 Notes/snippets/codex_todo_triage.py --check-blockers`：对已知阻塞项做轻量本机检查，例如 `gh auth status`、`trae` CLI、`ssh`、搜索脚本是否可用。
 - `.local/CODEX_TODO_TRIAGE_INDEX.md`：本地私有索引，不提交、不公开。
 - `.trae/documents/Codex-TODO-User-Action-Queue.md`：剩余 user-blocked TODO 的用户动作队列，把每个阻塞任务压缩成一个命令、一个问题或一个明确选择。

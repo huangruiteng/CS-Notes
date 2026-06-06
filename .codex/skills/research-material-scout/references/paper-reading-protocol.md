@@ -31,7 +31,7 @@ No reliable dedicated generated skill was found for the exact combination of S. 
 - Default depth: Keshav pass 1 + targeted pass 2 on sections that determine the user's decision.
 - If the material is high-value for the current Agent infra / OpenViking / RL runner / serving line, escalate selected parts to pass 3.
 - Return a reader map only after applying the personal-reading value gate below, so the user knows what they personally still need to read and why.
-- Because personal-reading recommendations are intentionally conservative, the user-facing digest must be richer when the conclusion is `Codex-summary-enough`: include enough mechanism detail, field/schema detail, key evidence, transfer mapping, and risk boundaries that the user can make progress without opening the original.
+- Because personal-reading recommendations are intentionally conservative, the user-facing digest must be richer when the conclusion is `Codex-summary-enough`: include enough mechanism detail, field/schema detail, key evidence, transfer mapping, and risk boundaries that the user can make progress without opening the original. The digest should compensate for the user not doing a first-pass read; do not stop at the reading recommendation plus a few artifact deltas.
 - For tool/standard/framework bundles, start with a **background primer** before claim maps: what problem this family solves, what the user would observe without it, what each component owns in the end-to-end workflow, and why the bundle matters for Agent Harness / OpenViking now. Do not assume the user already knows the observability/eval/runtime ecosystem.
 - Keep a **two-focus balance**: first explain the material on its own terms, then map it to the user's current project. The material summary should not collapse into Agent Harness-specific schema too early. For bundles, each component needs a concrete standalone explanation: what it is, what it records/does, what abstractions it introduces, what it does not cover, and one simple example.
 
@@ -81,6 +81,7 @@ When recommending personal reading, include an explicit reason in the form: `rea
 
 When deciding `Codex-summary-enough`, compensate with a **substitute-quality digest**:
 
+- Treat this as a replacement for the user's first-pass read, not a teaser. If the user later says the summary felt incomplete, the default correction is to expand mechanism, evidence, schema, failure boundaries, and transfer notes immediately.
 - Extract the original's core design in enough detail to replace a first-pass user read: modules, data flow, action space, labels/rewards, prompt/tool/API shape, schemas, and lifecycle.
 - For a bundle of multiple tools/standards, give each item its own mini-card before synthesis: problem, core abstraction, important fields/APIs, normal usage, limitations, and relation to the other items.
 - Include concrete identifiers from the source: section names, figure/table numbers, metric names, field names, repo paths, config names, or API names when available.

@@ -460,6 +460,45 @@ g.V().has("id", C.id).has("type", C.type)
 * 多版本并发控制(Multiversion concurrency control, MCC 或 **MVCC**)
   * 是数据库管理系统常用的一种并发控制，也用于程序设计语言实现事务内存。MVCC意图解决读写锁造成的多个、长时间的读操作饿死写操作问题。每个事务读到的数据项都是一个历史快照（snapshot)并依赖于实现的隔离级别。写操作不覆盖已有数据项，而是创建一个新的版本，直至所在操作提交时才变为可见。快照隔离使得事物看到它启动时的数据状态
 
+#### Optimistic Concurrency Control：乐观并发控制
+
+> 来源：H. T. Kung and John T. Robinson, [On Optimistic Methods for Concurrency Control](https://doi.org/10.1145/319566.319567), ACM TODS 1981。工程系统 / agent memory 类比见 [Software-Engineering.md](Software-Engineering.md#optimistic-concurrency-control提交前验证的并发控制)。
+
+OCC 的核心是：先不加锁地并发执行，提交前做 validation；验证通过才原子写回，失败则 abort / retry。
+
+```text
+read phase:
+  读全局状态；写操作只写本地 copy
+
+validation phase:
+  检查本次 transaction 是否可串行化
+
+write phase:
+  validation 通过后，把本地 copy 原子写回全局
+```
+
+正确性目标是 serial equivalence：并发事务的最终结果必须等价于某个串行顺序。
+
+$$
+d_{\text{final}}
+=
+T_{\pi(n)} \circ \cdots \circ T_{\pi(1)}(d_{\text{initial}})
+$$
+
+最关键的 validation 直觉是 read set / write set 不冲突。记 `R(T)` 为事务读集合，`W(T)` 为事务写集合。对准备提交的 `T_j`，如果更早事务 `T_i` 写过 `T_j` 已经读到的对象，就可能破坏 `T_j` 的决策依据：
+
+$$
+W(T_i) \cap R(T_j) = \varnothing
+$$
+
+更强的安全条件还要求 `T_i` 的写集合不和 `T_j` 的读写集合相交：
+
+$$
+W(T_i) \cap \bigl(R(T_j) \cup W(T_j)\bigr) = \varnothing
+$$
+
+直觉：OCC 把冲突处理从“读写时阻塞”推迟到“提交前验证”。它适合冲突率低、读多写少、希望减少锁等待的场景；如果冲突率高，重试成本会迅速吞掉收益。
+
 
 
 ### Hive

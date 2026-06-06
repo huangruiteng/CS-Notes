@@ -68,6 +68,18 @@ log4j.appender.Access.layout.ConversionPattern=%p %d{yyyy-MM-dd HH:mm:ss} %F:%L 
 
 见【code-reading笔记】
 
+#### ProtoJSON 的 64 位整数
+
+- 当业务对象的 `to_json()` 先用 `MessageToDict()` 把 Protobuf message 转成
+  `dict` 时，输出遵循 ProtoJSON 映射，而不是普通 Python `dict` 的直觉。
+- 关键坑：`int64`、`uint64`、`fixed64` 等 64 位整数在 ProtoJSON 中会转成
+  十进制字符串，例如 `"123"`。这是为了避免 JSON number 在 JavaScript 等环境里
+  丢失整数精度。
+- 排查配置 / 特征导出问题时，不要先假设类型被业务代码改坏；先确认这是不是
+  Protobuf JSON 规范导致的类型变化。需要数值计算时，在消费端显式转回整数。
+- 来源：Protocol Buffers 官方 ProtoJSON mapping：
+  https://protobuf.dev/programming-guides/json/
+
 ### grafana
 
 * 如何在同一个panel中使用不同的纵轴
@@ -222,6 +234,5 @@ def _merge_conf(custom_conf: dict, default_conf: dict):
             new_conf[k] = type(new_conf[k])(custom_v)
     return new_conf
 ```
-
 
 

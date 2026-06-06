@@ -71,6 +71,7 @@
 * `Cmd + N`（或 `Cmd + Shift + O`）：新建线程
 * `Cmd + F`：当前线程内查找
 * `Cmd + Shift + [` / `Cmd + Shift + ]`：上一个 / 下一个线程
+* `Cmd + 数字`：按编号快速切换 Codex session / thread
 * `Cmd + [` / `Cmd + ]`：后退 / 前进
 * `Ctrl + L`：清空 Terminal
 * `shift + tab`: plan mode

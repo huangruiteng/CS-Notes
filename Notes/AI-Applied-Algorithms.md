@@ -4,15 +4,35 @@
 
 
 
-## RAG
+## 文件结构导航
 
-### Intro
+这份笔记目前按“检索基础 -> Agent 机制 -> Context / Memory / Runtime -> 持续学习 -> 搜索业务 -> 多模态与垂类”的顺序组织。后续新增内容优先落到现有模块，不再把单篇 paper 直接堆成新的顶层章节。
 
-#### 为什么需要
+| 模块 | 覆盖内容 | 适合查什么 |
+| --- | --- | --- |
+| RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
+| Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、Deep Research、CUA、Workflow agent、trace-first eval | Agent benchmark、工具使用、工作流、安全评估和观测基建 |
+| Agent Harness / Agent Infra：总框架 | ETCLOVG、rollout、trace-native eval、governance、session boot、clean-state handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
+| Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
+| Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
+| Online Learning、持续学习与反馈优化 | Online learning、in-context vs in-weights、算力挑战 | 从反馈信号走向持续改进 / 个性化 agent |
+| 多模态 Search / Agent | 多模态检索、视觉 backbone、image rerank、M3-Agent | 多模态搜索和多模态 agent |
+| AI Search：搜索、Query 理解与生成式排序 | 召回融合、AI Search 推理链路、Query 理解、Query Rewrite、NL2SQL | 搜索业务与 LLM ranking / generation 的结合 |
+| CRS：对话式搜推 | Conversational Recommender System、RecLLM、InteRecAgent | 对话式推荐 / 搜推系统 |
+| 自动驾驶：感知、规划与评估 | BEV、端到端、自动驾驶评估 | 垂类 agent / embodied decision-making 类比 |
+
+## RAG 与知识检索
+
+### RAG 基础链路
+
+#### Intro
+
+##### 为什么需要
 
 ![image-20251003023430624](./AI-Applied-Algorithms/image-20251003023430624.png)
 
-#### Context Engineering的概念
+##### Context Engineering的概念
 
 > Chroma访谈 「RAG真是一个糟糕的概念」 https://mp.weixin.qq.com/s/D5MXQKMffdGS_gTMHE4LIQ
 
@@ -26,7 +46,7 @@
 * 代码检索的场景
   * **Claude Code  的同学提到过，他们不会对代码库做 Embedding 或索引，而是直接提供工具，用工具来做代码搜索**
 
-#### RAG的未来
+##### RAG的未来
 
 * 未来的检索系统可能会有几个特点：
   * 第一，它们会一直停留在潜在空间里，而不是再回到自然语言。
@@ -34,7 +54,7 @@
     * RAGAR
 * Cartridge，soft-prompt外挂kv-cachehttps://hazyresearch.stanford.edu/blog/2025-06-08-cartridges
 
-### 业务场景
+#### 业务场景
 
 * 场景一：合作伙伴评估
   - “哪些企业最适合成为我们的战略合作伙伴？”
@@ -52,11 +72,13 @@
   - 知识图谱 --> 领域招投标项目数量增长趋势、政策法规、行业动态
   - 为用户提供潜在项目清单
 
-### 检索
+### Embedding / Retrieval / Rerank：基础检索链路
+
+#### 检索
 
 ![image-20251003024127433](./AI-Applied-Algorithms/image-20251003024127433.png)
 
-#### 基础流程
+##### 基础流程
 
 * RAG（Retrieval Augmented Generation）顾名思义，通过***\*检索\****的方法来增强***\*生成模型\****的能力。
 
@@ -81,7 +103,7 @@
   5. 用最终获得的 Prompt 调用 LLM
   6. 由 LLM 生成回复
 
-##### Retrieval-in-context LM: 验证了相比LLM内在知识有正向价值
+###### Retrieval-in-context LM: 验证了相比LLM内在知识有正向价值
 
 * Paper
   * In-context RAG
@@ -93,7 +115,7 @@
 
 ![image-20251003031257325](./AI-Applied-Algorithms/image-20251003031257325.png)
 
-#### 关键字检索
+##### 关键字检索
 
 * Elastic Search
   * Elasticsearch（简称ES）是一个广泛应用的开源搜索引擎: https://www.elastic.co/
@@ -102,7 +124,7 @@
 * **关键字检索的局限性**
   * 同一个语义，用词不同，可能导致检索不到有效的结果
 
-#### 向量库和向量检索
+##### 向量库和向量检索
 
 * Text Embeddings
 
@@ -137,7 +159,7 @@
 
 ![vectordb](./AI-Applied-Algorithms/vectordb.png)
 
-##### 产品 Intro
+###### 产品 Intro
 
 ![image-20250617211754493](./AI-Applied-Algorithms/image-20250617211754493.png)
 
@@ -160,7 +182,7 @@
   * 原生支持正则搜索，因为它对代码搜索特别好用。我们还专门做了索引优化，让正则搜索在大数据量下也能跑得很快。
   * “forking”功能，可以在一百毫秒内复制一个已有索引
 
-#### 高级检索机制：ColBERT 与 PLAID
+##### 高级检索机制：ColBERT 与 PLAID
 
 *   **ColBERT (Contextualized Late Interaction over BERT)**
     *   **Late Interaction (晚期交互)**: 传统的双塔模型 (Dual Encoder) 将 Query 和 Document 分别压缩为单个向量，丢失了细粒度信息；Cross Encoder 保留了全部交互但计算昂贵。ColBERT 采用 Late Interaction，将 Query 和 Document 编码为**多向量 (Bag of Vectors)**，即每个 Token 一个向量。
@@ -199,23 +221,25 @@
         3.  **Serving优化**: serving时建的是倒排索引，即key是词，value是一个doc的list，按词频之类的倒排，query也直接用词频向量表示，query每个词去查倒排对应的doc list，再merge起来。
     *   **来源**: [LightRetriever: A LLM-based Text Retrieval Architecture with Extremely Faster Query Inference](https://arxiv.org/abs/2505.12260)
 
-### 难点
+#### 难点
 
-#### 企业内部数据混乱
+##### 企业内部数据混乱
 
 * 过去两年，我们有很多To B智能体项目的实践经验，比如用RAG模式搭建客服系统，过程中往往发现很多企业内部数据混乱，需要企业先投入做数据治理。在企业场景下，数据治理是比较耗时的工作。 （腾讯CSIG经验）
   * 如果内部文档有矛盾，就必须梳理清楚，定义好不同信息来源的权威性；
   * 如果文档有新、老版本，召回逻辑必须考虑时效性
 
-#### 向量化召回的算法缺陷 [DeepMind]
+##### 向量化召回的算法缺陷 [DeepMind]
 
 >  [[EP-23\] Deepmind: 单向量召回的根本缺陷_哔哩哔哩_bilibili](https://b23.tv/FZKVfnd)
 
 
 
-### Literature Review
+### GraphRAG / KGQA：综述与知识图谱路线
 
-#### RAG的几个关键问题
+#### Literature Review
+
+##### RAG的几个关键问题
 
 ![image-20251003222558778](./AI-Applied-Algorithms/image-20251003222558778.png)
 
@@ -223,7 +247,7 @@
 
 > LightRAG 5.2
 
-#### LLM + Graphs
+##### LLM + Graphs
 
 * GNNs as Prefix：
   * (GNNs) are utilized as the initial processing layer for graph data, generating structure-aware tokens that LLMs can use during inference
@@ -236,7 +260,7 @@
 
 > HybridRAG
 
-#### KG
+##### KG
 
 * knowledge extraction
   * The main tasks in this step are entity recognition, relationship extraction, and co-reference resolution. 
@@ -250,7 +274,7 @@
 
 > Retrieval-Augmented Generation with Knowledge Graphs for Customer Service Question Answering: Related Work
 
-#### KGQA: Question answering (QA) with knowledge graphs (KGs)
+##### KGQA: Question answering (QA) with knowledge graphs (KGs)
 
 * retrieval-based
   * utilize relation extraction [19] or distributed representations [5] to derive answers from KGs, but they face difficulties with questions involving multi- ple entities.
@@ -267,7 +291,7 @@
     * NDCG@K appraises the rank quality by considering both position and pertinence of items.
   * For question-answering performance, we juxtaposed the "golden" solutions against the generated responses, utilizing metrics such as BLEU [11], ROUGE [9], and METEOR [3] scores.
 
-#### LLM4KGQA
+##### LLM4KGQA
 
 * [7] provide a comprehensive review of this integration, categorizing the roles of LLMs as Predictors, Encoders, and Aligners
 * For graph-based reasoning, Think-on-Graph [15] and Reasoning-on-Graph [10] enhance LLMs’ reasoning abilities by integrating KGs. 
@@ -276,7 +300,7 @@
 
 > MindMap
 
-#### LLM + KG
+##### LLM + KG
 
 > MindMap
 
@@ -308,16 +332,18 @@
     * complex reasoning across multiple evidence graphs grounded on KGs
       * MindMap
 
-### Embedding 模型
+### Embedding / Retrieval / Rerank：模型与算法细节
 
-#### 训练原理
+#### Embedding 模型
+
+##### 训练原理
 
 * 向量模型怎么训练：
   * 构建相关（正例）与不相关（负例）的句子对儿样本
   * 训练双塔式模型，让正例间的距离小，负例间的距离大
   * https://www.sbert.net/
 
-#### 典型模型
+##### 典型模型
 
 * **OpenAI Embeddings**
   * text-embedding-3-large、text-embedding-3-small
@@ -356,7 +382,7 @@
     * **架构**: 在输入序列末尾添加 `[EOS]`，取其 hidden state 作为 embedding。
     * ![image-20250708163208666](./AI-Applied-Algorithms/image-20250708163208666.png)
 
-#### 多模态 Embedding (Multimodal Embeddings)
+##### 多模态 Embedding (Multimodal Embeddings)
 
 * **Visualized BGE (Bootstrapped Grid Embedding)**
     * **原理**:
@@ -382,9 +408,9 @@
     * **优势**: 能理解 "inside view of", "different angle" 等语义指令，支持自然语言表达的复杂搜索意图。
     * ![MagicLens](./AI-Applied-Algorithms/ZlUMrMOnFObZ7sRbqFe7d8QYZcI.png)
 
-#### 进阶技术
+##### 进阶技术
 
-##### **Instruction-Tuned & Task-Aware Retrieval**
+###### **Instruction-Tuned & Task-Aware Retrieval**
 
 * 传统 Embedding 模型通常只能处理语义相似度，缺乏对用户意图的显式建模。
 * **TART (Task-aware Retrieval with Instructions)**:
@@ -397,7 +423,7 @@
     * ![image-20241210014430460](./AI-Applied-Algorithms/image-20241210014430460.png)
     * [Ref: TART GitHub](https://github.com/facebookresearch/tart)
 
-#### 开源工具
+##### 开源工具
 
 * 开源库：
   * https://github.com/FlagOpen/FlagEmbedding
@@ -405,9 +431,9 @@
 * Note：
   * 可能支持跨语言
 
-### 算法细节
+#### 算法细节
 
-#### document分割
+##### document分割
 
 *  文本分割的粒度
    * 缺陷
@@ -416,7 +442,7 @@
      * 问题的答案可能跨越两个片段
    * 改进: 按一定粒度，部分重叠式的切割文本，使上下文更完整
 
-#### Rerank
+##### Rerank
 
 *  检索后排序
    * 问题: 有时，最合适的答案不一定排在检索的最前面
@@ -429,17 +455,17 @@
 
 ![sbert-rerank](./AI-Applied-Algorithms/sbert-rerank.png)
 
-#### RAG Fusion
+##### RAG Fusion
 
 ![rag-fusion](./AI-Applied-Algorithms/rag-fusion.jpeg)
 
-#### query相关：长度等
+##### query相关：长度等
 
 *  [query rewriting and query expansion](https://www.google.com/search/howsearchworks/how-search-works/ranking-results/#meaning)
 *  query长度
    *  ![image-20251003030946197](./AI-Applied-Algorithms/image-20251003030946197.png)
 
-#### PDF中的表格如何处理
+##### PDF中的表格如何处理
 
 * TableTransformer模型 + GPT-4V
   * TableTransformer找到表格
@@ -459,9 +485,9 @@
 
 
 
-### Rank
+#### Rank
 
-#### Literature Review
+##### Literature Review
 
 * rank
   * encoders of T5-based instruction-following pretrained mod-
@@ -476,7 +502,9 @@
     use their encoders only to reduce parameters and
     improve inference-time efficiency [Task-aware Retrieval with Instructions]
 
-### GraphRAG
+### GraphRAG / KGQA：典型系统与论文
+
+#### GraphRAG
 
 > [Graph Retrieval-Augmented Generation: A Survey 论文解读](https://mp.weixin.qq.com/s/Dx8pYhmbrhtRMXNez_GOmw)
 
@@ -559,7 +587,7 @@
 
 
 
-### LightRAG
+#### LightRAG
 
 > https://github.com/HKUDS/LightRAG
 >
@@ -646,7 +674,7 @@
 
 
 
-### LLM4KGQA
+### GraphRAG / KGQA：LLM4KGQA 典型系统
 
 > KGQA: Knowledge Graph Question Answering
 
@@ -841,13 +869,15 @@ response = openai.ChatCompletion.create( messages=[ model="gpt-4", {"role": "use
 response_of_comparation = response.choices[0].message.content return response_of_comparation
 ```
 
-### REALM: 检索增强的新预训练方法
+### 检索增强 LM 与软上下文机制
+
+#### REALM: 检索增强的新预训练方法
 
 ![image-20251003025641241](./AI-Applied-Algorithms/image-20251003025641241.png)
 
 ![image-20251003030210411](./AI-Applied-Algorithms/image-20251003030210411.png)
 
-### RETRO：检索信息注入LLM中间层
+#### RETRO：检索信息注入LLM中间层
 
 ![image-20251003221612123](./AI-Applied-Algorithms/image-20251003221612123.png)
 
@@ -863,7 +893,7 @@ response_of_comparation = response.choices[0].message.content return response_of
 
 
 
-### KNN-LM: 从LLM生成机制入手，加权两个概率分布
+#### KNN-LM: 从LLM生成机制入手，加权两个概率分布
 
 * 相比普通LLM，会考虑外部信息中的全部tokens
 
@@ -881,15 +911,15 @@ response_of_comparation = response.choices[0].message.content return response_of
 
 
 
-### Soft Prompt
+#### Soft Prompt
 
-#### Cartridge: soft-prompt外挂kv-cache
+##### Cartridge: soft-prompt外挂kv-cache
 
 [LLM无限上下文了，RAG（Retrieval Augmented Generation）还有意义吗？ - Crim的回答 - 知乎](https://www.zhihu.com/question/653424464/answer/1925241113582768305)
 
 https://hazyresearch.stanford.edu/blog/2025-06-08-cartridges
 
-#### [Meta] REFRAG: Rethinking RAG based Decoding
+##### [Meta] REFRAG: Rethinking RAG based Decoding
 
 > 本质上是对RAG做性能优化
 >
@@ -933,11 +963,11 @@ https://hazyresearch.stanford.edu/blog/2025-06-08-cartridges
 
 ![image-20241007224527684](./AI-Applied-Algorithms/pai-rag.png)
 
-## Agent Overview
+## Agent 基础与经典范式
 
 > 【InfiniTensor】清华大学系列训练营-大模型与人工智能系统训练营 大模型前沿技术（五）自主智能体 https://www.bilibili.com/video/BV14sPkehEGg
 >
-> [llm agent 的快速入门方式](https://www.xiaohongshu.com/explore/68e3bec5000000000700ed01?app_platform=ios&app_version=8.86&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CBfQmFcoc4M6mGAUGRJluHv66k2gE1CdeNtrSkdPT8pG8=&author_share=1&xhsshare=CopyLink&shareRedId=N0lEN0Y6Rk82NzUyOTgwNjc5OTg2NUpP&apptime=1759854383&share_id=5cd45c0cb7834338adbcdc7590eb78a6)
+> [llm agent 的快速入门方式](https://www.xiaohongshu.com/explore/68e3bec5000000000700ed01)
 >
 > Todo: a survey of self-evolving agents
 
@@ -1082,7 +1112,7 @@ def pal_execute(question):
 
 <img src="./AI-Applied-Algorithms/image-20251027022725724.png" alt="image-20251027022725724" style="zoom:50%;" />
 
-### 
+### 经典推理框架对比
 
 | 框架类别   | 代表框架                 | 核心特点   | 计算复杂度 | 适用场景     |
 | ---------- | ------------------------ | ---------- | ---------- | ------------ |
@@ -1194,11 +1224,11 @@ Thought:{agent_scratchpad}
 
 ![agent-flowchart](./AI-Applied-Algorithms/agent-flowchart.png)
 
-#### Agentic RAG
+#### Agentic RAG 示例
 
 * ![image-20250227201733347](./AI-Applied-Algorithms/image-20250227201733347.png)
 
-#### Coding Agent
+#### Coding Agent 示例
 
 - A coding Agent to resolve [SWE-bench tasks](https://www.anthropic.com/research/swe-bench-sonnet), which involve edits to many files based on a task description;
   - ![image-20250226015736553](./AI-Applied-Algorithms/image-20250226015736553.png)
@@ -1220,7 +1250,7 @@ Thought:{agent_scratchpad}
 
 
 
-## Agent 推理框架
+## Agent 框架、评估与工作流
 
 ### 算法理论
 
@@ -1228,7 +1258,7 @@ Thought:{agent_scratchpad}
   * 基座模型的复杂推理能力不够强
 
     * 通过基座模型Plan把一个复杂任务分解为10个步骤，哪怕单个步骤的正确率高达95%，要想最后把任务做对，10个环节的准确率连乘下来，最终的正确率只有59%
-* [专访Pokee CEO朱哲清](https://www.xiaohongshu.com/explore/688cba190000000023038da5?app_platform=ios&app_version=8.86&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CBmLxP7tTpVSUcvw4pq6ugGZ5IA8aKu780DUkpud8d5ck=&author_share=1&xhsshare=CopyLink&shareRedId=N0lEN0Y6Rk82NzUyOTgwNjc5OTg2NUpP&apptime=1755577736&share_id=ed67514d0f084d5e93e2177cce5b2489&exSource=)，谈agentic experience
+* [专访Pokee CEO朱哲清](https://www.xiaohongshu.com/explore/688cba190000000023038da5)，谈agentic experience
   * multi-step reasoning和multi-step execution的重要性
     * creative&design类agent的一个瓶颈是，一步做完，用户没法改了，比如无法导入AE并保留图层，或者导入Figma
   * RL的重要性
@@ -1269,6 +1299,8 @@ Thought:{agent_scratchpad}
 
 ### Agent 评估与安全
 
+这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再看 GAIA、MLE-bench、GDPval、AppWorld、BFCL-v3 等具体 benchmark。前者回答“agent eval 应该如何建模、分层和持续维护”，后者回答“不同任务世界如何构造 case、环境和 grader”。
+
 #### GAIA: A Benchmark for General AI Assistants ([arxiv](https://arxiv.org/abs/2311.12983), NeurIPS 2023)
 
 Meta / HuggingFace / AutoGPT 等。466 个真实世界问题，要求推理、多模态处理、网页浏览和工具使用。问题对人类简单（92% 准确率），但对 AI 极难（GPT-4 + plugins 仅 15%）。按难度分 3 级：Level 1（基本工具）、Level 2（多步推理 + 工具链）、Level 3（复杂长程任务，需要自主规划与多工具协同）。
@@ -1294,6 +1326,317 @@ OpenAI。基于 75 个 Kaggle 竞赛构建 benchmark，覆盖数据准备、训�
 OSU NLP Group。构建 hybrid sandbox（OSWorld VM + Docker 化 WebArena/TheAgentCompany），提出 Decoupled Eval：将 agent 直接放到注入点附近，避免导航能力不足掩盖真实风险。RTC-Bench 含 864 个测试用例。结果：Claude 3.7 Sonnet CUA 的 ASR 达 42.9%，最安全的 Operator 仍有 7.6% ASR。
 
 关键洞察：不能因为 agent 没走到注入点就误判其"更安全"，能力与安全必须分离评估。benchmark 应显式拆分导航失败、工具失败、推理失败、安全失败。
+
+#### Agent Evaluation：把 agent eval 做成自动化测试系统
+
+> 来源：[Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)。用户 2026-05-27 读完。
+
+这篇更适合作为 **agent 评估方法论基石**，而不是只作为单篇文章记录。核心判断是：让 agent 有用的能力（多轮行动、工具调用、状态修改、灵活规划）也让 agent 难评估；有效 eval 不能只套 single-turn LLM eval，而要把 task、environment、trajectory、outcome、grader、suite 和 harness 组合起来。
+
+**图1：Single-turn eval vs Agent eval**
+
+![Comparison: Single-Turn vs Agent Evaluations](./AI-Applied-Algorithms/anthropic-agent-eval-single-turn-vs-agent.png)
+
+一句话：single-turn eval 主要评“答案”；agent eval 必须评“行动后世界是否变成正确状态”。所以 coding agent 修 MCP server 时，不能只看它说“我完成了”，而要跑测试确认 server 真能工作。
+
+**图2：Agent eval 的对象模型**
+
+![Components of Evaluations for Agents](./AI-Applied-Algorithms/anthropic-agent-eval-components.png)
+
+这组定义很重要：task 定义输入和成功标准；trial 是一次执行；trajectory / transcript 是完整过程记录；outcome 是最终环境状态；grader 对 trajectory 和 outcome 打分；evaluation harness 负责运行、记录、评分和聚合；agent harness / scaffold 是被评估对象的一部分。当我们说“评估 agent”，实际评的是 **model + agent harness**，而不是裸模型。prompt、tool schema、memory、sandbox、orchestration loop、permission policy 都会改变结果。
+
+**两类 eval suite**
+
+| 类型 | 问什么 | 好 suite 的形态 | 何时使用 |
+| --- | --- | --- | --- |
+| Capability eval / quality eval | agent 能不能做更难的新事情 | 初始通过率不必高，要给系统 hill-climb 空间 | 新能力探索、模型升级、scaffold 改造 |
+| Regression eval | 以前会做的事情有没有退化 | 稳定、便宜、持续跑，通过率应接近 100% | CI gate、版本发布、线上风险控制 |
+
+一个 suite 如果已经饱和，应从 capability eval 毕业成 regression eval；然后再构造更难的 capability suite。否则所有任务混在一个总分里，会看不出系统是在探索能力上限，还是在守住已知能力。
+
+**三种 grader**
+
+| Grader | 适合检查 | 优点 | 风险 |
+| --- | --- | --- | --- |
+| Code-based grader | string / regex、unit tests、static analysis、state check、tool call check、token / turn metrics | 快、便宜、客观、可复现、易 debug | 对合法变体脆弱，难评主观质量 |
+| Model-based grader | rubric scoring、natural-language assertion、pairwise comparison、reference-based eval、multi-judge consensus | 灵活、可扩展、能评开放输出和细腻质量 | 非确定、成本更高，需要人类校准，可能有 judge bias |
+| Human grader | SME review、众包、spot check、A/B、inter-annotator agreement | 最贴近真实专家 / 用户判断，可校准 LLM judge | 慢、贵、难规模化，专业领域需要专家 |
+
+实际系统通常是 layered grader：先用 deterministic / state check 过滤客观正确性，再用 model rubric 评语义和质量，最后用 human audit 校准高风险或歧义 case。不要把 LLM judge 当 oracle；grader 本身也需要被评估。
+
+**pass@k vs pass^k**
+
+- `pass@k`：k 次尝试里至少一次成功。适合 coding agent、多候选 patch、搜索式任务、允许挑最好结果的场景。
+- `pass^k`：k 次尝试全部成功。适合用户面 agent、客服 agent、生产执行 agent，因为用户期待每次都可靠。
+
+所以 `pass@10` 很高不等于系统可托付，它只说明“多试几次可能能成”。如果 `pass@10` 高但 `pass^3` 低，这个 agent 更像研究 demo，而不是生产系统。
+
+**不同 agent 类型的 eval 重心**
+
+| Agent 类型 | 更适合的 grader | 重点 |
+| --- | --- | --- |
+| Coding agent | tests、static analysis、patch correctness、repo state、tool-call audit | outcome 比 path 更重要；同一修复可能有多条合法路径 |
+| Conversational agent | state check + rubric + simulated user + human calibration | 目标完成、轮数、语气、合规、是否 grounded in tools |
+| Research agent | groundedness、coverage、source quality、claim verification、human / expert calibration | reference answer 不唯一，不能只看最终答案，要看 evidence quality |
+| Computer-use agent | UI / filesystem / browser / app state check + transcript audit | 最终状态正确也可能误打误撞；失败要区分视觉 grounding、权限、环境 reset、工具和规划问题 |
+
+**两个产品化例子**
+
+- Claude Code：早期靠 Anthropic 员工和外部用户反馈快速迭代；后来先加 concision、file edits 等窄 eval，再加 over-engineering 等复杂行为 eval。eval 帮助定位问题、指导改进，并让 research / product collaboration 更聚焦。它还需要 production monitoring、A/B test、user research 一起补全信号。
+- Descript video editing agent：围绕视频编辑工作流定义三条成功标准：don’t break things、do what I asked、do it well。后来形成两套常跑 suite：quality benchmarking 和 regression testing。这个例子说明：好的 agent eval 往往来自产品工作流本身，而不是抽象能力榜单。
+
+**从 0 到 1 建 agent eval**
+
+1. 不等上百个 case，先用 20-50 个真实失败 / 高频手测任务起步。
+2. 从 bug tracker、support queue、手动 QA、用户反馈里抽 task。
+3. 每个 task 要无歧义，两个专家应该能独立判定 pass/fail。
+4. 同时放正例和反例，比如应该 search 的 case 与不该 search 的 case。
+5. eval environment 要稳定隔离，每个 trial 从 clean state 开始。
+6. grader 分层：deterministic first，LLM judge 处理语义，human 做校准。
+7. 一定要读 transcript；否则不知道是 agent 失败、grader 失败，还是 harness 约束不合理。
+8. eval suite 要有人维护，像 unit tests 一样长期演化；capability suite 饱和后转 regression suite。
+
+一个可复用 task schema 可以长这样：
+
+```yaml
+task:
+  id: "fix-auth-bypass_1"
+  desc: "Fix authentication bypass when password field is empty and ..."
+  graders:
+    - type: deterministic_tests
+      required: [test_empty_pw_rejected.py, test_null_pw_rejected.py]
+    - type: llm_rubric
+      rubric: prompts/code_quality.md
+    - type: static_analysis
+      commands: [ruff, mypy, bandit]
+    - type: state_check
+      expect:
+        security_logs: {event_type: "auth_blocked"}
+    - type: tool_calls
+      required:
+        - {tool: read_file, params: {path: "src/auth/*"}}
+        - {tool: edit_file}
+        - {tool: run_tests}
+  tracked_metrics:
+    - type: transcript
+      metrics:
+        - n_turns
+        - n_toolcalls
+        - n_total_tokens
+    - type: latency
+      metrics:
+        - time_to_first_token
+        - output_tokens_per_sec
+        - time_to_last_token
+```
+
+对 Agent Harness / Vaka 的直接启发：不要把 eval 做成“一个强 judge 看最终答案”。更稳的是 `L0 deterministic outcome/state gate -> L1 cheap model rubric -> L2 strong judge on uncertain slices -> L3 trajectory audit sample -> L4 human-calibrated gold set`。每层都记录 cost、latency、confidence、false-pass / false-fail，并把真实失败转成 regression case。
+
+**Cursor 的生产反馈信号。** Cursor 的 agent harness 复盘补了一条很重要的产品化 eval 线：offline eval / public benchmark / CursorBench 之外，还要跑 online A/B 和真实使用信号。延迟、token efficiency、tool call count、cache hit rate 是方向性指标；更接近质量的是两类反馈：
+
+| 信号 | 定义 | 解释 |
+| --- | --- | --- |
+| Keep Rate | agent 生成的代码在固定时间后仍保留在用户代码库中的比例 | 如果用户很快手改、回滚或要求 agent 继续修，说明初次输出质量不足。 |
+| User-response judge | 用模型读取用户对 agent 初次输出后的反馈，判断用户是否满意 | 用户继续做下一个 feature 是强正信号；粘贴 stack trace 或报错是强负信号。 |
+
+这说明 agent eval 不能只看 benchmark 分数。真实产品里的改动应同时看 `offline controlled eval -> online experiment -> usage-derived regression signal`，并把失败样本回流成 regression suite。
+
+#### GDPval / ClawWork：真实工作交付物与经济压力型 agent benchmark
+
+> 来源：[OpenAI GDPval](https://openai.com/index/gdpval/)、[ClawWork GitHub](https://github.com/HKUDS/ClawWork)。
+
+GDPval 的定位是把 agent / model benchmark 从“答题”推进到“真实知识工作交付物”。OpenAI 从美国 GDP 贡献较高的 9 个行业中选取 44 个知识工作职业，构造 1,320 个专业任务，其中 gold open-source set 为 220 个任务。每个任务都来自有经验专业人士设计和审核，平均专业经验超过 14 年；交付物不是一句答案，而可能是法律 brief、工程设计说明、护理计划、Excel、PPT、PDF、图表或多媒体材料。
+
+GDPval 的评测方式也更接近工作场景：模型和人类专家都产出 deliverable，再由同职业专家盲评比较，判断模型产物相对专家产物是更好、相当还是更差。它的价值在于衡量“能否交付可用工作产品”，而不是只看工具调用是否正确。
+
+但 GDPval 当前仍有明确边界：它主要是 one-shot evaluation，不评估多轮澄清、客户反馈、长期上下文积累、反复修改和真实工作流集成。因此它更像“高真实性的 deliverable benchmark”，还不是完整 agent workflow benchmark。
+
+ClawWork 可以看成 GDPval 的经济压力包装层。它复用 GDPval 220 个真实职业任务，把 agent 放进一个“AI coworker 经济系统”里：agent 初始只有少量余额，每次 token / tool use 都消耗成本，只有提交质量足够高的工作才获得收入。它额外引入的指标包括：
+
+| 维度 | GDPval | ClawWork |
+| --- | --- | --- |
+| 任务来源 | 专业人士构造的真实工作任务 | GDPval gold set |
+| 核心产物 | 文档、表格、PPT、PDF、设计 / 分析报告等 deliverable | 同样的专业 deliverable |
+| 评分 | 专家盲评 / 自动 grader 近似专家偏好 | LLM evaluator + 行业 rubric + payment |
+| 主要问题 | 模型产物是否接近专业人士 | agent 能否在成本约束下持续赚钱 |
+| 关键指标 | win / tie / lose vs human expert | survival days、final balance、income、profit margin、quality、token efficiency、work / learn mix |
+
+ClawWork 的有趣点不在于“赚了多少钱”的宣传数字，而在于把 benchmark 目标从单题质量扩展到 **质量、成本、策略与长期生存**：agent 不只要做对，还要决定什么时候工作、什么时候学习、是否值得搜索、是否值得多花 token 打磨。这比普通 benchmark 更贴近生产 agent 的真实约束。
+
+对 Agent Harness 的启发：
+
+- GDPval 提醒我们：高质量 agent benchmark 不应只问 final answer，还应要求结构化 deliverable，并让 evaluator 评估可用性、完整性和专业性。
+- ClawWork 提醒我们：agent runtime 的指标不能只有 success rate；还要有 token cost、tool cost、time cost、quality-adjusted reward、survival / budget pressure。
+- 这类 benchmark 适合支撑“AI coworker / professional agent”叙事，但不能直接替代 TAU2 / AppWorld / BFCL 这类可执行环境 benchmark，因为它对 tool trajectory、状态变更和 action attribution 的约束较弱。
+- 如果迁移到 Agent Harness，可以抽象为 `task_value × quality_score - runtime_cost` 的 outcome，并把 deliverable quality、trace evidence、cost 和 regression 一起纳入评估。
+
+#### AppWorld / BFCL-v3：从可执行 App 世界到 function calling 专项评测
+
+> 来源：[AppWorld paper](https://arxiv.org/abs/2407.18901)、[AppWorld GitHub](https://github.com/StonyBrookNLP/appworld)、[AppWorld terminal agents guide](https://github.com/StonyBrookNLP/appworld/blob/main/guides/evaluating_terminal_agents.md)、[BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard)、[BFCL GitHub](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard)、[BFCL-v3 blog](https://gorilla.cs.berkeley.edu/blogs/13_bfcl_v3_multi_turn.html)。用户 2026-05-22 读完。
+
+AppWorld 和 BFCL-v3 都是 tool-use / agent benchmark，但层次不同：AppWorld 更像“给 agent 一个可执行 App 世界，让它真的办事”；BFCL-v3 更像“把 function calling 拆成专项考试”。
+
+| 维度 | AppWorld | BFCL-v3 |
+| --- | --- | --- |
+| 核心对象 | 可执行 app world / sandbox | function calling benchmark |
+| 任务形态 | 多 app、多 API、交互式写代码 | 单轮 / 多轮 function call |
+| 状态 | 真实 DB state，可 reset / save / diff | 部分类别有 state-based eval |
+| 评估 | DB-state unit tests，检查目标完成与 collateral damage | AST matching、execution response、state / response-based checks |
+| 对 Agent Harness 价值 | 更适合产出 replay / trace / ranker row | 更适合补 tool-call taxonomy / error categories |
+
+AppWorld 的设计是：9 个日常 app、457 个 API、100+ DB tables、约 100 个虚拟用户，构成一个可控世界。Benchmark 有 750 个任务，来自 250 个 scenarios，每个 scenario 3 个 variants。任务不是“调用某个 API”，而是“帮用户完成一个跨 app 的真实流程”，例如查消息、读邮件、下单、更新 playlist。
+
+它最有价值的地方是 state-based evaluation：每个任务有初始 DB state，agent 执行后产生最终 DB state。评估不是比对固定 action sequence，而是用 unit tests 检查：
+
+```text
+expected state changes must happen
+unexpected collateral changes must not happen
+answer must match when task is QA-style
+```
+
+这天然能产出 `task_id / instruction / initial_state / api_docs / trajectory / api_calls / environment_io / db_diff / assertion_trace / task_success / scenario_success`。其中 Figure 3 的任务构造流程也很值得借鉴：先从 scenario template 生成 task variants，再用 base DB / base date time 构造初始状态，要求任务 well-defined、有 hurdles、有 distractors，并形成 contrast set；最后用 validation solution 验证可解，再用 state assertions 做评估。
+
+![AppWorld task generator](./AI-Applied-Algorithms/appworld-task-generator-figure3.png)
+
+三个直观 case：
+
+- SimpleNote + Spotify：从笔记里读取今天 workout 时长，再选择能覆盖该时长的 playlist / songs 并播放。它测跨 app 找信息、循环累加和中间结果决策。
+- Venmo：批准本月来自室友的付款请求。它测关系推理、状态过滤和写操作边界，关键是该批准的都批准、不该动的不能动。
+- Amazon：复购上次买过的衣服，尺码相同，优先换成偏好颜色；如果偏好颜色没货，再买原颜色。它测历史状态读取、条件判断、库存检查和订单写入。
+
+BFCL-v3 的核心目标是评估模型“能不能正确调用函数”。它的分类覆盖 simple / multiple / parallel / irrelevance / live categories，以及 `multi_turn_base`、`multi_turn_miss_func`、`multi_turn_miss_param`、`multi_turn_long_context` 等多轮类别。评估方法也分层：
+
+```text
+AST matching:
+  解析函数名和参数，适合大规模离线评估。
+
+execution response matching:
+  执行函数并比对返回结果。
+
+state-based evaluation:
+  检查多轮执行后的系统状态。
+
+response-based evaluation:
+  检查必要调用路径，尤其适合 read-only 场景。
+```
+
+三个直观 case：
+
+- 单轮查询：例如查 Berkeley 今天的天气。模型要把自然语言映射到正确函数和参数，BFCL 可用 AST / execution matching 检查函数名与参数。
+- 多步订票：订机票前需要先调用 `get_flight_cost` 获取票价，再把结果传给 `book_flight`，不能胡填中间参数。它测 tool chaining。
+- 多轮 stateful 文件系统：初始目录已经是 `alex`，用户说“我是 Alex，进入以我名字命名的目录并列出内容”。正确模型应理解当前状态，避免重复 `cd("alex")` 进入 `alex/alex`。它测模型是否会先利用环境状态，而不是机械套用字面指令。
+
+对 Agent Harness 的迁移应克制。最小可先只保留：
+
+```text
+benchmark
+task_id
+task_type
+split
+instruction
+available_tools
+trajectory_ref
+outcome
+failure_bucket
+cost
+```
+
+只有在便宜且可稳定导出时，再补 `state_diff_ref / assertion_trace_ref / tool_call_trace_ref`。AppWorld 的 terminal-agent 评估方式可以作为仿真环境选项，但不宜一上来用高成本 Codex 批量跑；更合理的路线是先用便宜模型跑 batch，Codex 只做 canary / case debugging。数据切分也应按 `task_type / scenario` 做 stratified train-test split：train 负责抽经验，test 才用于 held-out claim，避免同类任务全进训练集后高估 memory utility。
+
+#### Agent Observability：OpenTelemetry GenAI / OpenInference / agentevals
+
+> 来源：[OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)、[GenAI spans](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/)、[OpenInference Semantic Conventions](https://arize-ai.github.io/openinference/spec/semantic_conventions.html)、[agentevals](https://github.com/agentevals-dev/agentevals)。用户 2026-05-22 读完。
+
+传统服务 observability 主要记录 request、latency、error、DB query、RPC call。Agent 系统更复杂：一次任务里可能有 LLM call、retrieval、rerank、prompt render、tool call、tool observation、guardrail、evaluator，而且每次运行成本高、结果不稳定。因此 agent 运行需要被拆成 trace：
+
+```text
+trace = 一次完整任务
+span  = 任务中的一个步骤，例如 LLM call / retrieval / tool call / eval
+event = span 内的输入输出、streaming chunk、异常等
+attributes = span 上的结构化字段，例如 model、token、tool name、document score
+```
+
+这组三件套对应三层：
+
+```text
+OpenTelemetry GenAI:
+  通用观测标准，定义 GenAI / Agent 相关 span、metric、event 字段
+
+OpenInference:
+  LLM 应用级语义约定，定义 LLM / Retriever / Reranker / Tool / Evaluator 等 span kind
+
+agentevals:
+  trace 消费端，基于已有 OTel trace 做 agent eval
+```
+
+**OpenTelemetry GenAI** 解决“怎么用行业通用方式记录 GenAI / Agent 操作”。它覆盖输入输出事件、异常、metrics、model spans、agent spans、provider-specific conventions。Model span 里比较有用的字段包括：
+
+```text
+gen_ai.operation.name
+gen_ai.provider.name
+gen_ai.conversation.id
+gen_ai.request.model
+gen_ai.response.model
+gen_ai.request.stream
+gen_ai.response.time_to_first_chunk
+gen_ai.usage.input_tokens
+gen_ai.usage.output_tokens
+gen_ai.usage.cache_read.input_tokens
+gen_ai.usage.cache_creation.input_tokens
+gen_ai.usage.reasoning.output_tokens
+error.type
+```
+
+**OpenInference** 更像 LLM 应用内部步骤分类层。它要求 OpenInference span 带 `openinference.span.kind`，常见类型包括：
+
+```text
+LLM
+EMBEDDING
+CHAIN
+RETRIEVER
+RERANKER
+TOOL
+AGENT
+GUARDRAIL
+EVALUATOR
+PROMPT
+```
+
+这比只记录模型调用更贴近 agent 系统：retrieval、rerank、prompt render、tool call、evaluator 都应该是独立 span，否则 trace 只能看到“大模型慢/贵/错”，看不到 agent 链路哪里错。
+
+**agentevals** 解决“trace 已经有了，怎么离线评估”。它的核心思路是：agent 行为已经被 trace 记录下来后，不应每次为了 eval 重新跑一遍 agent。流程是：
+
+```text
+existing OTel trace
+-> eval set
+-> evaluator
+-> score / pass-fail
+-> CI gate / regression report
+```
+
+典型 evaluator 包括：
+
+```text
+tool_trajectory_avg_score  # 工具调用轨迹是否匹配
+response_match_score       # 最终回答是否匹配
+```
+
+关键判断：OpenTelemetry / OpenInference 是 **record layer**，agentevals 是 **consume layer**。Agent Harness / OpenViking 这类系统不应只存最终 success/fail，而应把每次运行记录成可复用 trace：同一条 trace 后续可以被成本分析、tool correctness、memory attribution、regression gate、LLM judge 多次消费。
+
+需要注意边界：这些标准能记录 GenAI / LLM app 链路，但没有原生表达完整的 memory learning loop。Agent memory 还需要额外字段：
+
+```text
+memory_candidate_id
+retrieved
+reranked
+injected
+cited_or_followed
+caused_action
+outcome_delta
+lifecycle_update
+```
+
+因此更合理的系统分层是：标准字段用 `gen_ai.*` / `openinference.*` 对齐行业生态，自定义 memory / eval / replay 字段用业务命名空间扩展。
 
 ### Coding Agent
 
@@ -1458,6 +1801,54 @@ https://github.com/OpenBMB/XAgent
 
 ### Agent + Workflow
 
+#### AEvo / Harnessing Agentic Evolution：把进化从 candidate search 提升到 mechanism search ([arxiv](https://arxiv.org/abs/2605.13821))
+
+![AEvo architecture](./AI-Applied-Algorithms/aevo-architecture-figure2.png)
+
+AEvo 不是 RL training。它借用了 `state / action / evaluator / reward` 这套语言，但核心是 training-free meta-optimization：用强 coding agent 在外层观察历史候选、失败、成本、trace 和评测记录，然后编辑“未来如何搜索”的机制。
+
+传统 evolution 多数是在搜候选答案：
+
+```text
+agent -> candidate -> evaluator -> feedback -> next candidate
+```
+
+AEvo 把层次抬高到机制搜索：
+
+```text
+meta-agent -> edit mechanism / workspace / procedure
+           -> evolution segment produces many candidates
+           -> protected evaluator scores
+           -> evidence accumulates
+           -> next meta-edit
+```
+
+这里最重要的不是跑分，而是一套 harness 语言：`candidates / logs / traces / eval records / cost / provenance / meta notes` 被稳定记录，evaluator 被隔离，agent 只能提交 candidate，不能看隐藏评估、不能直接写官方分数、不能绕过 gateway。`protected evaluator` 是 AEvo claim 的核心，否则系统会退化成 reward hacking。
+
+Procedure-based AEvo 搜的是“生成候选解的 procedure”。meta-edit 可以改 selection、sampling、local verifier、feedback injection、retry horizon、diversity control、stale feedback cleanup。ARC case 里真正起作用的是 `Pass@K + local scoring + failure feedback refinement + fresh exploration`：缓存训练样例，多采样候选，用本地 verifier 评分，失败时喂失败样例继续 refine，卡住时切 fresh exploration。
+
+Agent-based AEvo 搜的是“长期 workspace 中的 agent operating context”。meta-edit 可以改 skill、session goal、notes、eval accounting、candidate family map、validator workflow，让内层 coding agent 更稳定地产出和筛选代码 candidate。Kernel case 里最终被评分的是代码，但提升来自 workspace 级搜索纪律：记录实现家族、控制 eval budget、沉淀 validators / tools / notes，让低层优化能跨 session 累积。
+
+Meta-agent skill 的最小可迁移形态可以压成：
+
+```text
+Core loop:
+Read -> Attribute -> Choose Action -> Run Inner-Agent -> Record
+
+Choose exactly one action:
+A. goal change:
+   edit sessions/_next_goal.md
+B. harness change:
+   edit skill/evolve_skill.md, shared/validators/, shared/tools/, shared/notes/
+
+Allowed:
+   write next goal, edit evolve skill, launch inner-agent through gateway
+Forbidden:
+   edit candidates/, call evaluator directly, bypass gateway, write official score
+```
+
+对 Agent Harness 的启发：AEvo 更适合作为外围 harnessing 能力建设，而不是直接照搬成复杂 RL 系统。先把 evaluator 隔离、candidate / eval / trace 版本化、meta-edit 只能改 skill / strategy / validator / notes 这几条边界做清楚，再考虑是否让它自动为某类任务自迭代出更好的 skill。
+
 #### AFlow: Automating Agentic Workflow Generation ([arxiv](https://arxiv.org/abs/2410.10762), ICLR 2025)
 
 MetaGPT 团队（港科大广州 + DeepWisdom）。核心贡献：将 workflow 优化重构为搜索问题——workflow 表达为代码化工作流图（LLM 调用节点 + 边），用 MCTS 在此空间中搜索最优 workflow。引入 Operator 概念（Review、Vote、Generate 等预定义节点组合）简化搜索空间。6 个 benchmark 上平均提升 5.7%，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o。
@@ -1476,7 +1867,7 @@ Stanford / TAMU / UCSD。将系统拆为 planner、executor、verifier、generat
 
 ![image-20251003224435434](./AI-Applied-Algorithms/image-20251003224435434.png)
 
-### 
+### 其他 Agent 工作流材料
 
 
 
@@ -1526,35 +1917,694 @@ Stanford / TAMU / UCSD。将系统拆为 planner、executor、verifier、generat
     * 任何安装了此类 Agent（及 AdbKeyBoard）的手机，其输入内容都暴露在被所有 App 监听和篡改的风险下。
     * AutoGLM 请求 ADB 权限本身也带来了巨大的攻击面（自动获得大量敏感权限）。
 
-## Context-Engineering、记忆与个性化
+## Agent Harness / Agent Infra：总框架
 
-#### MemAgent: Reshaping Long-Context LLM with Multi-Conv RL-based Memory Agent ([arxiv](https://arxiv.org/abs/2507.02259), ICLR 2026)
+> 来源：[Agent Harness Engineering: A Survey](https://openreview.net/pdf?id=eONq7FdiHa)、[project page](https://picrew.github.io/LLM-Harness/)、[implementation-first catalog](https://github.com/Picrew/awesome-agent-harness)。用户 2026-05-25 读完。
 
-字节 Seed + 清华 AIR。核心洞察：长上下文的本质不是更大窗口，而是"读、记、忘"的 memory policy——session memory 不能只是 append-only transcript，应支持压缩、重写、保留与遗忘。
+### 体系位置：不是 memory 子领域，而是 agent infra 总框架
 
-**Workflow**：将长文档切为 K 个 chunk（每段 ≤C tokens），模型每步只看 `(当前 chunk + 固定长度 memory)`，处理完后 overwrite memory，全部 chunk 读完后基于最终 memory 生成答案。Memory 长度固定为 M，因此每步计算量 $$O(C+M)$$，总复杂度 $$O(N)$$。8K 上下文训练的模型在 3.5M token QA 上性能损失 <5%，512K RULER 准确率 95%+。
+Agent Harness Engineering 适合放在 `Agent Memory：领域理论框架` 的上层或相邻处，而不是塞进 memory 小节。一个稳妥的分工是：
 
-**建模：自回归分解 + 隐变量 memory**。标准 AR 模型 $$p(\mathbf{x}_{1:N}) = \prod p(x_n | \mathbf{x}_{1:n-1})$$ 假设全部历史在 context 中，导致 $$O(n^2)$$。MemAgent 引入固定长度 latent memory $$\mathbf{m}^{1:K-1}$$，将联合似然分解为 read path + write path：
+| 层次 | 解决的问题 | 本笔记中的位置 |
+| --- | --- | --- |
+| Agent 基础与经典范式 | 单次 reasoning / action pattern 怎么组织，例如 ReAct、Function Calling、Plan-and-Execute。 | `Agent 基础与经典范式` |
+| Agent 框架、评估与工作流 | 具体 benchmark、workflow、coding agent、computer-use agent 怎么做。 | `Agent 框架、评估与工作流` |
+| Agent Harness / Agent Infra | 模型如何在受控环境中持续行动、被观测、被评估、被治理。 | 本节 |
+| Context / Memory | agent 看见什么、记住什么、如何召回和注入。 | `Context Engineering、Agent Memory 与个性化`，属于 Harness 的 C 层深水区 |
+| Online Learning / RL | eval、reward、feedback 如何成为训练和持续优化信号。 | `Online Learning、持续学习与反馈优化` |
 
-$$p(\mathbf{x}_{1:N}) = \sum_{\mathbf{m}^{1:K-1}} \prod_{k=1}^{K} \underbrace{p(\mathbf{c}^k \mid \mathbf{m}^{k-1})}_{\text{read}} \cdot \underbrace{p(\mathbf{m}^k \mid \mathbf{c}^k, \mathbf{m}^{k-1})}_{\text{write}}$$
+因此，TIMG / SkillX / MemGovern 仍归在 `Agent Memory`，但它们在总框架中对应 C/V：从 trajectory 生成、治理和服务 experience。OpenTelemetry / OpenInference / agentevals 对应 O/V：记录 trace 并消费 trace。AEvo 对应 L/V/G：用 protected evaluator 和 meta-edit 改进 harness 机制。AppWorld、BFCL、TAU2、OpenViking 属于 V，但只有连接 E/T/C/L 才能解释结果。
 
-本质是把 Transformer 变成状态大小用户可控的 RNN。Memory 在 token space（离散、人类可读），而非 feature space（连续、隐式），因此 overwrite 是离散生成行为，梯度无法回传——**RL 不可替代**。RL 通过最终答案正确性作为 reward，直接奖励"好 memory"，bridge 了 explicit supervision（答案）和 implicit structure（好 memory）的 gap。消融实验证实：无 RL 的 memory 机制随长度仍退化，RL 后近乎无损外推。
+一句话：**Prompt engineering 解决“怎么说”，Context engineering 解决“给模型看什么”，Harness engineering 解决“模型如何在受控环境里持续行动、被观测、被评估、被治理”。**
 
-**训练：Multi-Conv DAPO**。一次推理产生多个 context-independent 对话（每个 chunk 一轮），标准 GRPO/DAPO 只处理单对话。核心设计：(1) 每个对话作为独立优化目标，不能简单 attention mask 拼接；(2) Reward 只来自最终对话（含答案），但 advantage 均匀传播到所有对话：$$\hat{A}_{i,j,t} = r_i - \text{mean}(\{R_i\}_{i=1}^G)$$；(3) Loss 维度从 (group, token) 扩展为 (group, conversation, token)，用 DAPO 非对称 clip。Reward 为 rule-based verifier（RLVR recipe），QA 用等价性检查，多值任务用召回率
+![Agent Harness timeline](./AI-Applied-Algorithms/agent-harness-engineering-timeline.png)
 
-> TODO 上下文工程Intro https://mp.weixin.qq.com/s/3t4PjpZcMVU1wCO0ThUs2A
->
-> TODO anthropic context engineering https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
->
-> TODO https://www.promptingguide.ai/guides/context-engineering-guide.en
->
-> TODO Context Engineering 2.0: The Context of Context Engineering https://arxiv.org/pdf/2510.26493
+![Prompt, context and harness engineering](./AI-Applied-Algorithms/agent-harness-engineering-figure1.png)
 
-![image-20250617211948454](./AI-Applied-Algorithms/image-20250617211948454.png)
+### ETCLOVG：Agent Harness 的七层主表
 
-### Agent Memory Recommendation / Routing：把记忆系统建模成推荐系统
+论文把 agent harness 定义为一个更窄的工程 wrapper：它不是“LLM 周围所有软件”，而是把模型调用变成有边界、有状态、可调用工具、可执行任务的系统层。这个 wrapper 通过 execution substrate、tool interface、context control、orchestration、observability、evaluation feedback 和 governance constraints 共同工作。它的核心目标可以压缩为：提升真实任务执行可靠性（real-world task execution reliability）。
 
-Agent memory 不只是 RAG，也不只是“把历史经验塞进上下文”。一旦 memory 会被检索、注入、遵循、带来收益或回归，它就可以被系统化地建模成一个推荐 / 路由问题。
+| 层 | 核心问题 | 主要对象 | 对已有材料的归位 |
+| --- | --- | --- | --- |
+| E - Execution Environment & Sandbox | agent 在哪里运行 | sandbox、browser、terminal、VM、container、local/cloud/hybrid | AppWorld、OSWorld、Terminal-Bench、OpenShell、SWE-ReX |
+| T - Tool Interface & Protocol | agent 怎么发现、描述、调用工具 | MCP、function calling、tool registry、tool schema、tool result | BFCL、Toolformer、Gorilla、ContextForge |
+| C - Context & Memory Management | agent 看见什么、记住什么 | 短上下文、session state、长期 memory、compaction、retrieval | Agent Memory 框架、SkillX、TIMG、MemGovern、A-MEM、Mem0 |
+| L - Lifecycle & Orchestration | agent 怎么跑完整流程 | single loop、多 agent、workflow、retry、handoff、issue/task control plane | AEvo、AFlow、AgentFlow、Symphony、Anthropic long-running harness |
+| O - Observability & Operations | 怎么看懂运行过程 | trace、span、token、cost、latency、exception、failure signal | OpenTelemetry GenAI、OpenInference、agentevals、Langfuse、AgentTrace |
+| V - Verification & Evaluation | 怎么判断做得对不对 | benchmark、replay、trace-native eval、grader、failure attribution | AppWorld、BFCL、Claw-Eval、GDPval、R2E-Gym、verifiers |
+| G - Governance & Security | 怎么限制权力 | permission、identity、policy、audit、human approval、security boundary | CaMeL、Contextual Agent Security、Agent Governance Toolkit、protected evaluator |
+
+![Agent Harness taxonomy](./AI-Applied-Algorithms/agent-harness-engineering-taxonomy.png)
+
+Figure 4 可以压缩成一张工程主表：C 不是单独的 memory 论文集合，O/V/G 也不是“附属功能”。一旦 agent 能调用工具、写文件、访问浏览器、提交 PR 或长期运行，observability、verification 和 governance 就必须和 E/T/C/L 同时设计。
+
+### 三个 cross-layer 结论
+
+**Cost-Quality-Speed Trilemma**：更强 sandbox、更丰富 memory、更深 eval 都能提升质量，但会增加 latency、token 和 infra 成本。Agent harness 不应只追 success rate，而要看 `success-cost-latency frontier`。
+
+**Capability-Control Tradeoff**：工具越多、权限越大、memory 越持久，agent 越有能力，也越难控制。治理不是安全附录，而是和 tool schema、context policy、runtime permission、identity、audit log、human approval 绑在一起的设计轴。
+
+**Harness Coupling Problem**：prompt、tool、memory、sandbox、verifier、monitor 任一局部变化都会改变整体行为。因此 agent 评测应该评估 `model-harness pair`，而不是假装只测 model。
+
+Cursor 的 agent harness 复盘可以作为一个生产案例来看：agent quality 不是模型单变量，而是多层系统函数。
+
+$$
+\mathrm{agent\ quality}
+= f(\mathrm{model},\mathrm{harness},\mathrm{context\ policy},\mathrm{tool\ interface},\mathrm{eval\ signal},\mathrm{online\ usage})
+$$
+
+> 生产案例来源：[Cursor: Continually improving our agent harness](https://cursor.com/blog/continually-improving-agent-harness)。用户 2026-05-31 读完。
+
+| 机制 | 对应层 | 关键判断 |
+| --- | --- | --- |
+| 静态 context 减少，动态 context 增加 | C / T | 强模型时代，harness 的价值不是预先塞满上下文，而是提供可靠的 context 获取接口和状态边界。 |
+| offline eval + online A/B | V / O | public benchmark / CursorBench 只能近似真实使用；还需要 Keep Rate、用户后续反馈、延迟、token、tool count、cache hit 等线上信号。 |
+| tool error 分类与告警 | T / O | tool error 会留在上下文里，浪费 token 并造成 context rot；unknown error 应按 harness bug 处理，expected error 也要按 tool / model 建 baseline。 |
+| model-specific harness | T / L | 抽象可以 model-agnostic，但 prompt、tool shape、edit format、tool-error baseline 和 provider cache 策略应按模型定制。 |
+| mid-chat model switching | C / L | 切模型不是简单换 backend，而是一次状态迁移：旧模型生成的历史上下文、旧 tool 形状和 provider cache 都会影响新模型接手。 |
+
+一个具体例子是代码编辑格式。**Patch-based edit** 让模型输出结构化 diff / patch，由 harness 按文件、上下文 hunk 和变更块应用；优点是事务性、可审计、适合较大范围修改，但要求模型稳定遵守 patch grammar。**String replacement** 让模型给出精确旧字符串和新字符串，由 harness 做局部替换；优点是简单直观、适合局部编辑，但对旧文本精确匹配和重复片段更敏感。Cursor 复盘里的启发是：不同模型对同一种工具形状的熟悉程度不同，OpenAI 系模型可能更适应 patch-style edits，Anthropic 系模型可能更适应 string replacement；harness 不应假设“一个编辑工具格式适配所有模型”。
+
+### Rollout、Trace 与 Eval Loop
+
+Rollout 是 agent evaluation 的基本单位。一个 controlled rollout 至少应包含：task、model config、harness config、action sequence、intermediate observations、final state、grading result。为了减少偶然波动，还要固定 environment state、tool availability、timeout、budget、permission policy 和 evaluator version。
+
+对 harness engineering 来说，trace 不是辅助 debug artifact，而是 primary evaluation data。最终 pass/fail 不够，因为失败可能来自 model reasoning、tool schema、context manager、execution environment、orchestration loop、benchmark spec 或 evaluator 本身。
+
+Agent eval 的通用对象模型、grader 分层、capability / regression suite 与 `pass@k` / `pass^k` 区分，见上文 **Agent Evaluation：把 agent eval 做成自动化测试系统**。本节只保留 harness-level 视角：rollout 如何被受控执行、trace 如何被捕获、judgement 如何回流成 failure attribution 和 regression feedback。
+
+![Task-to-feedback lifecycle](./AI-Applied-Algorithms/agent-harness-engineering-figure12-page-33.png)
+
+Figure 12 的五阶段可以直接变成 harness eval checklist：
+
+| 阶段 | 问题 | 对应产物 |
+| --- | --- | --- |
+| Task and Benchmark Grounding | 到底评什么 | task spec、environment spec、allowed tools、success criteria |
+| Pre-execution Readiness Validation | setup 是否可跑 | sandbox / dependency / tool / permission / grader readiness check |
+| Controlled Execution and Trace Capture | 实际发生了什么 | trace、tool call、state change、error、retry、cost、latency |
+| Multi-level Judgement and Failure Attribution | 为什么成功或失败 | outcome score、trajectory quality、policy compliance、evaluator reliability、failure bucket |
+| Continuous Regression and Deployment Feedback | 怎么持续改进 | regression suite、monitoring signal、prompt/tool/context/harness revision |
+
+Multi-level judgement 至少有三层：最终结果是否正确、trajectory 是否高效且符合 policy、evaluator 是否可靠。Evaluator-level evaluation 不是可选项：如果 grader flaky、test nondeterministic 或 LLM judge 有 bias，噪声就会被误归因到 agent / model。更稳的做法是 layered grader：客观状态变更优先 deterministic check，语义 / 轨迹级判断用 LLM judge，高风险或歧义 case 加 human audit。
+
+LLM-as-Judge 不能被当成天然 oracle。G-Eval 证明 LLM evaluator 可更贴近人类 NLG 判断，但也暴露对 LLM 生成文本的偏好；MT-Bench / Chatbot Arena 系统讨论了 position bias、verbosity bias、self-enhancement bias 和有限推理能力。放到 agent harness 里，这意味着 evaluator 本身也要被测试：需要 bias mitigation、consistency check、meta-evaluation 和必要的人审抽样。
+
+### Eval 从指标变成训练和搜索信号
+
+传统 eval 是 post-hoc measurement；新的方向是把 evaluator / verifier / environment feedback 作为 reward、validation signal 或 scaffold-selection signal。R2E-Gym、verifiers 这类 RL-style agent gym 把环境反馈接到训练和策略改进；Meta-Harness 进一步把 harness design 本身当成自动搜索对象，搜索 prompting strategy、tool interface、control loop 或 scaffold 结构。
+
+这对 Agent Harness / OpenViking 的含义是：evaluation 不应停在报告层，而要变成 `trace -> judgement -> attribution -> regression case / reward / memory update / scaffold choice` 的反馈回路。也就是：eval 不是 pipeline 终点，而是 harness 继续变好的信号源。
+
+### Anthropic long-running harness：跨 session 的控制面
+
+> 来源：[Anthropic: Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)。配套实现：[autonomous-coding README](https://github.com/anthropics/claude-quickstarts/tree/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding)、[initializer_prompt.md](https://github.com/anthropics/claude-quickstarts/blob/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding/prompts/initializer_prompt.md)、[coding_prompt.md](https://github.com/anthropics/claude-quickstarts/blob/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding/prompts/coding_prompt.md)、[agent.py](https://github.com/anthropics/claude-quickstarts/blob/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding/agent.py)、[client.py](https://github.com/anthropics/claude-quickstarts/blob/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding/client.py)、[security.py](https://github.com/anthropics/claude-quickstarts/blob/f37f1685e256d61b2982b8ae69c857b51efe11bf/autonomous-coding/security.py)。用户 2026-06-04 读完。
+
+这篇文章的表述需要加一层边界：长程 agent 不一定天然是“每个新 session 都完全无记忆”。例如 Codex 更倾向在长 session 内持续工作，并通过 context compaction 延长同一工作流。但在复杂项目里，真正难的问题更大：多 feature 并行、不同 agent / thread / context window 接力、旧 session 中断、用户临时切换主线、项目状态散落在 git / TODO / logs / chat / runtime 中。此时，问题不是“模型有没有记忆”，而是 **work state 是否有外部 durable control plane**。
+
+Anthropic 的解法可以压缩成两类 agent prompt，而不是两个本质不同的系统 agent：
+
+| 角色 | 负责的状态 | 对 Goal Harness 的映射 |
+| --- | --- | --- |
+| Initializer agent | 首轮搭环境：`init.sh`、`claude-progress.txt`、初始 git commit、完整 feature list。 | 项目接入时生成 registry、active state、run/validation 入口、priority feature surface。 |
+| Coding agent | 后续每轮只做增量进展，验证后更新结构化状态。 | heartbeat / thread 每轮做一个 bounded segment，并写回 artifact、validation、next action。 |
+
+配套开源 quickstart `anthropics/claude-quickstarts/autonomous-coding` 把这个分工落成了一个很朴素的状态机：项目目录里没有 `feature_list.json` 就走 initializer prompt；一旦存在，就永远走 coding prompt。runner 每轮创建 fresh Claude SDK client，工作目录固定到项目目录，自动继续下一轮；实际进度只从 `feature_list.json` 里统计 passing / total，而不是信任 agent 自述。
+
+initializer prompt 的关键不是“让 agent 先计划一下”，而是强制生成外部 feature surface：从 `app_spec.txt` 写出 200 个端到端测试，功能 / 样式都覆盖，全部 `passes=false`，并要求未来 session 只能把 `passes` 改成 `true`，不能删 feature、改描述、改步骤或重排。它还要求创建 `init.sh`、初始化 git、提交初始结构、最后写 `claude-progress.txt`。这套设计把需求、启动方式、恢复点和进度账本一次性外置。
+
+coding prompt 则是一个严格的 per-session operating procedure：先 `pwd / ls / read app_spec / read feature_list head / read progress / git log / count remaining`，再跑 `init.sh`；新开发前必须验证 1-2 个已经 passing 的核心 feature。如果旧 passing feature 失效，要立刻把它标回 false 并先修 baseline。真正实现时只选最高优先级的一个 failing feature，必须用浏览器自动化按真人路径验证，截图、查 console error、看视觉表现；只有验证后才能改 `passes`，然后 commit、更新 progress、确保无未提交变更。
+
+它的 security layer 也值得抄思想而不是抄实现：文件权限限定到项目目录，Bash 经过 allowlist 和 pre-tool hook，Puppeteer 是显式工具，`pkill` / `chmod` / `init.sh` 这类危险边缘命令还有二次校验。对 Goal Harness 来说，这意味着新项目接入协议不应只写“读 registry 和 active state”，还要声明工具权限、workspace 边界、可执行脚本、禁止修改的 feature surface、以及 session 结束时的 clean-state 条件。
+
+两类 failure pattern 要分开治：
+
+1. **One-shot failure**：agent 试图一次做完整应用，context 中途耗尽，留下半实现、无文档、不可恢复的断点；下一轮只能猜发生了什么，还要先修 basic app。
+2. **Premature done failure**：项目已有一些进展后，后续 agent 看见“好像差不多了”，直接宣布完成，而没有对照完整 feature surface 和端到端验收。
+
+对应的 harness contract 是：
+
+| 机制 | 解决的问题 | 设计要点 |
+| --- | --- | --- |
+| `feature_list.json` | 防止 one-shot 和 premature done | feature 初始全为 failing；coding agent 只能把 `passes` 改成 true/false，不能删改测试描述。 |
+| `claude-progress.txt` + git history | 防止跨 session 猜状态 | 每轮结束写明做了什么、验证了什么、下一轮入口；git commit / diff summary 是恢复点。 |
+| `init.sh` | 防止每轮重新摸索启动方式 | 新 session 先按固定脚本启动环境，而不是从 README / shell history 里猜。 |
+| basic E2E smoke | 防止在坏 baseline 上继续开发 | 开工前先像用户一样跑核心流程；若 baseline 已坏，先修复旧问题。 |
+| clean-state exit | 防止把烂摊子留给下一轮 | 退出时应接近可合入 main：无重大 bug、代码有序、进度写回、验证可追溯。 |
+
+典型 session boot protocol 可以作为 Goal Harness / Agent Harness 的通用上手顺序：
+
+```text
+pwd
+read progress / active state
+read feature or goal list
+git log --oneline -20
+run init / preflight
+run basic E2E or targeted smoke
+if baseline broken: repair first
+else choose highest-priority unfinished feature
+```
+
+这和 Goal Harness 的启发不是“每轮必须更小”，而是每轮必须有 **可恢复状态 + 可验证增量 + 干净退出**。如果连续小步只是在写 downstream surface，而没有推进 primary outcome，就会落入另一种退化：看起来每轮都 clean，实际目标没有前进。因此 Goal Harness 还需要 outcome floor / batch scale / handoff contract 来约束“增量”的粒度。
+
+这篇也给 multi-agent vs single long-session 一个更准确的讨论框架：单长 session 适合保持工作记忆，减少重新上手成本；多 session / multi-agent 适合隔离 feature、测试、QA、cleanup、review 等专业化子任务，但必须把 progress、feature state、validation 和权限边界外置，否则多 agent 只会放大状态漂移。未来和 RL 的连接点也在这里：不是训练模型“更会聊天”，而是把 `feature attempt -> trace -> E2E result -> progress update -> clean/dirty exit` 变成可学习的 trajectory 与 reward。
+
+### LangGraph Persistence / Interrupts：human gate 的 checkpointed decision
+
+> 来源：[LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[LangGraph Interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Use time-travel](https://docs.langchain.com/oss/python/langgraph/use-time-travel)、[Fault tolerance](https://docs.langchain.com/oss/python/langgraph/fault-tolerance)。用户 2026-06-04 读完。
+
+LangGraph 这里最值得 Goal Harness 借的不是框架本身，而是一套 human gate 语义：人类介入不应只是聊天里的一句“你确认吗”，而应是一个有状态快照、gate id、可恢复输入和审计记录的暂停点。
+
+普通聊天式 gate 的问题在于，下一轮 agent 可能只看到一段对话摘要，不知道当时的 repo 状态、quota、下一步、验证条件、哪些副作用已经发生。checkpointed interrupt 的做法是先保存执行状态，再发出结构化暂停点：
+
+```yaml
+gate_id: start_eval_17
+goal_id: example_eval_goal
+run_id: 2026-06-04-xxx
+created_state:
+  quota_remaining: 2
+  dirty_files: 0
+  next_action: launch_eval
+interrupt_payload:
+  question: 是否启动这轮 eval？
+  choices: [approve, reject, edit_params]
+```
+
+人的确认因此不是一段散文，而是对 `gate_id` 的输入。LangGraph 的 `interrupt(payload)` 会暂停 graph execution，把 JSON-serializable payload 暴露给外部，保存状态并等待；恢复时用同一个 `thread_id` 传入 `Command(resume=...)`，让人的输入成为 `interrupt()` 的返回值。Persistence 文档里的 `StateSnapshot` 还把当前 values、next nodes、config、metadata、parent checkpoint 和 pending tasks / interrupts 显式化，说明系统保存的不是“上次说到哪”，而是“执行到哪个状态、下一步是什么、这一步从哪里来”。
+
+但 Goal Harness 不能照搬“恢复旧 checkpoint 原样执行”。Goal Harness 自身的规则、quota、项目优先级、repo dirty state 和 registry 都在持续演进；旧 checkpoint 对它更适合作为 **审计锚点**，而不是回滚点。更稳的语义是：
+
+```yaml
+resume_intent:
+  gate_id: start_eval_17
+  decision: approve
+apply_mode: rebase_on_latest_state
+```
+
+也就是说，恢复不是继续聊，也不是回到旧 checkpoint 直接执行，而是把人的决定绑定到一个可审计的 gate event，再读取最新 registry、ACTIVE_GOAL_STATE、quota、repo state、policy/schema 和 run status，重新校验 precondition。如果 gate 仍新鲜、前置条件仍成立、最新规则仍允许，才把 `approve` 重放成下一步动作；如果不兼容，就把 gate 标成 stale，重新生成 gate 或降级为 read-only monitor。
+
+这个区别可以沉淀成 Goal Harness 的 `operator_gate_resume_contract_v0`：
+
+```yaml
+goal_id:
+run_id:
+gate_id:
+created_state_ref:
+created_policy_version:
+interrupt_payload:
+allowed_decisions:
+operator_decision:
+latest_state_ref:
+freshness_check:
+precondition_check:
+migration_or_rebase_result:
+resulting_action:
+validation_after_resume:
+```
+
+LangGraph 还提醒了一个很工程化的副作用边界：resume 时包含 `interrupt()` 的 node 会从头重跑，因此 interrupt 前的副作用必须幂等，或者放到 interrupt 后。映射到 Goal Harness，`spend quota`、启动 eval / 实验、写生产状态、发送外部消息这类副作用都应放在人类 gate resume 之后；gate 前只写可重复、可覆盖、可审计的 pending state。
+
+这能同时解释 `operator gate`、`human reward` 和 `dashboard review`：
+
+| Goal Harness 对象 | LangGraph 语义映射 | 关键约束 |
+| --- | --- | --- |
+| `operator gate` | checkpointed interrupt | gate 有 id、payload、created state；resume 时 rebase 到最新状态。 |
+| `human reward` | run-bound resume signal | 人的反馈不是普通聊天评论，而是绑定 run / gate / outcome 的状态输入。 |
+| `dashboard review` | interrupt payload rendering | UI 显示为一个问题，但 durable truth 是 gate event 与后续 resume result。 |
+| `external_evidence wait` | suspended checkpoint observation | `should_run=false` 时允许 bounded read-only poll；新证据出现才写回并 spend。 |
+
+短期不需要引入 LangGraph 作为依赖。Goal Harness 应借的是 checkpointed decision、thread-level audit、resume intent 和 latest-state rebase，而不是把本地 durable control plane 改造成 graph runtime。
+
+### Temporal Durable Execution：event history as source of truth
+
+> 来源：[Temporal docs](https://docs.temporal.io/)、[What is Temporal?](https://docs.temporal.io/temporal)、[Temporal Workflow](https://docs.temporal.io/workflows)、[Event History](https://docs.temporal.io/encyclopedia/event-history)、[Activities](https://docs.temporal.io/activities)、[Workers](https://docs.temporal.io/workers)、[Task Queues](https://docs.temporal.io/task-queue)。用户 2026-06-05 读完。
+
+Temporal 的核心主张是 Durable Execution：业务逻辑可以执行几秒、几天甚至几年，中间 worker 崩溃、网络断、机器重启，都不应该丢失进度。它靠的不是保存一大坨进程内存快照，而是 **Workflow code + Event History**。Event History 才是每个 Workflow Execution 的 source of truth。
+
+Event History 是完整、持久、按序的事件日志。Workflow 走到“调 Activity / 启 Timer / 收 Signal”等位置时，不应直接依赖进程内记忆继续，而是把 command 交给 Temporal Service；Temporal Service 生成 event 并持久化。恢复时 worker 可以从头重跑 workflow code，用 Event History 把状态重建到崩溃前；已经完成的 Activity 结果直接复用，不重新执行。
+
+这个模型对长期 agent 更通用的启发是：**执行进程、对话上下文、任务真相** 必须分层。agent 可以在一个很长的 session 里工作，也可以跨很多短 session 继续；但一旦任务进入多 feature、多实验、多 agent、多审批并行，聊天历史就不应该是唯一 source of truth。
+
+| Temporal 语义 | 长期 agent / harness 抽象 | 关键边界 |
+| --- | --- | --- |
+| `Workflow Execution` | 一个长期任务实例 | 不是一次对话，而是一条可持续推进、可审计的执行线。 |
+| `Event History` | append-only task ledger | 选择、动作、产物、验证、等待、审批、失败、外部证据都应成为事件。 |
+| `Worker Process` | ephemeral executor | 具体 agent / thread / runner 可以替换；任务状态不应只存在于 worker 记忆里。 |
+| `Activity` | side-effect boundary | 文件写入、测试、实验启动、外部 API、通知、状态查询都要能识别是否已执行。 |
+| `Task Queue` | dispatch / scheduling surface | 调度入口可以换，但下一步任务应来自 durable state，而不是 prompt 里越堆越长的说明。 |
+
+因此，通用原则不是“给 agent 更长上下文”，而是把聊天 thread 降级为 **execution context**，把长期任务的事实沉淀到 durable control plane。最小 schema 可以是：
+
+```yaml
+durable_agent_event_history_v0:
+  event_id:
+  task_id:
+  run_id:
+  event_type: state_observed | action_selected | activity_started | activity_completed | artifact_written | validation | gate | evidence | blocker
+  actor: agent | subagent | tool | user | monitor
+  policy_version:
+  executor_version:
+  precondition:
+  payload:
+  result:
+  timestamp:
+  idempotency_key:
+```
+
+和它配套的 `agent_activity_idempotency_contract_v0` 是：
+
+```yaml
+activity:
+  kind: file_edit | validation | experiment_launch | status_poll | external_message | payment_or_budget_charge
+  idempotency_key:
+  before_state_ref:
+  command_or_intent:
+  side_effect_boundary:
+  retry_policy:
+  result_event_id:
+  replay_behavior: reuse_result | poll_again | regenerate_gate | fail_closed
+```
+
+这套语义能推广到很多长程 agent failure：
+
+1. **“我做过了”不能只靠聊天自述**：任何会影响外部世界、预算、实验、代码或用户通知的动作，都应有 precondition、artifact / validation ref、idempotency key 和 result event。
+2. **等待外部证据不是空转**：CI、eval、部署、审批、数据落盘这类状态可以被 bounded read-only poll；无新证据不推进，有新证据才写 evidence event 并更新 canonical state。
+3. **human gate 接 A318 的 checkpointed decision**：gate 前只写 pending / interrupt event；人的 `approve / reject / edit_params` 是 resume event；执行前仍要在最新状态上重新校验。
+4. **系统规则本身会演进**：长期 agent 的 prompt、policy、tool schema、runner 版本都可能升级。事件里应带 `policy_version / executor_version`，让新 worker 能区分“旧规则下的事实”和“新规则下的下一步”。
+
+Temporal 的 replay 是 deterministic code replay；长期 agent harness 不一定能、也不一定应该按旧 prompt 原样从头重放。更通用的迁移是 **event-history driven re-evaluation**：旧 event history 提供事实与审计锚点，新一轮 executor 读取最新 policy、工具、项目状态和外部证据后，选择下一条合法 transition。也就是说，长期任务的 source of truth 不是 growing transcript，而是一条能被新 worker 读懂、校验和继续写入的事件历史。
+
+映射到具体系统时，Goal Harness 只是其中一个实例：它的 registry、ACTIVE_GOAL_STATE、run history、quota ledger、gate event 和 evidence ledger 可以作为这个 durable control plane 的本地实现；但这套语言本身适用于 coding agent、research agent、实验调度 agent、CI / deploy monitor、workflow automation 和 multi-agent project manager。
+
+### Long-running agent 的 open problems
+
+**Execution environment**：runtime substrate 正在变成安全、扩展性和可移植性的交汇点。SandboxEscapeBench 这类工作说明 frontier model 可能利用 sandbox 弱点；SWE-World 这类方向则尝试用 Docker-free surrogate environment 降低大规模并行轨迹的 reset / replay 成本。未来 harness 需要能比较 container、microVM、OS permission boundary、desktop VM、browser environment、learned surrogate 等执行底座的安全性、成本和可复现性，而不是把 sandbox 当产品偏好。
+
+**Reliable state**：长期 agent 的 context 问题不是“多塞 token”，而是如何保持 agent 的 working state 与真实 task state 对齐。Anthropic context management、prompt-cache-aware ordering、tool-result clearing、compaction、retrieval、externalization 都是实用机制，但 Context Rot 和 memory benchmark 都提醒：更长上下文和更大 memory store 不自动等于更好的 task-state tracking。因此 context management 应被看作 state estimation：要估计每次压缩、检索、遗忘造成了多少任务信息损失，并给 remembered facts 加 provenance、staleness、contradiction handling 和 recovery procedure。Temporal Durable Execution 进一步补上一层：durable truth 应是 append-only event history，而不是聊天 thread 或某次压缩摘要。
+
+**Trace-native diagnosis**：未来 eval 应从 trace 直接计算 outcome score、trajectory quality、failure attribution 和 regression tests。诊断对象不只是 model，还包括 tool interface、context manager、execution environment、orchestration loop、benchmark spec 和 evaluator。Observability 记录“发生了什么”，verification 判断“对不对”，二者不能断开。
+
+**Standard handoff**：planner、executor、subagent、tool、sandbox、evaluator、human 之间不能只传一句文本 summary。更标准的 handoff 应包含 intent、constraints、permission、artifact、provenance、budget state、risk level、trace history 和 unresolved decisions。人类审批也是 handoff 的一种，至少应保留 `created_state_ref / latest_state_ref / gate_id / resume_intent / precondition_check`。OpenAI Symphony、Anthropic long-running harness、LangGraph interrupts 和 Temporal Durable Execution 共同指向同一件事：issue / repo / durable progress artifact / gate event / run event history 才是 agent work 的 control plane。
+
+因此，中心问题会从“怎么 build 一个 agent”转向“怎么 operate 一组长期 agent，使它们的行动能被持续检查、追溯和回滚”。
+
+
+
+## Context Engineering 与 Agent Runtime
+
+### Agent Runtime：上下文状态与 API substrate
+
+#### 火山方舟 Context API：把 context 变成 runtime resource
+
+[火山方舟 Context API](https://www.volcengine.com/docs/82379/1396491) 将上下文缓存拆成 `Session 缓存` 与 `前缀缓存`：前者复用多轮会话状态，后者复用稳定 prompt / 长前缀。关键启发是：context 不只是 prompt 文本，而是可创建、可调用、可过期、可滚动裁剪的 runtime resource；agent runtime 需要把它和 memory injection、tool pause、prefix stability、KV cache cost 一起调度。
+
+#### 火山方舟 Responses API：比 Chat API 更适合 agent runtime
+
+[迁移至 Responses API](https://www.volcengine.com/docs/82379/1585128?lang=zh) 的重点不是换 endpoint，而是把一次模型调用从无状态 `message` 升级为带 `response_id` 的可存储交互对象，更适合 agent runtime。
+
+| 维度 | Chat API | Responses API 的优势 |
+| --- | --- | --- |
+| 输入输出 | 依赖 `messages` 数组，返回 `message` | 输入可为字符串 / 数组，输出是带 ID 的 `response` 对象 |
+| 多轮上下文 | 调用方手动拼全量历史 | 通过 `previous_response_id` 接续，降低上下文管理复杂度 |
+| 缓存 | 需要额外 Context API 编排 | 缓存可按 ID 粒度使用和变更 |
+| 工具能力 | 不支持方舟内置工具 / 云部署 MCP | 统一接入联网搜索、图像处理、私域知识库、云部署 MCP 等工具 |
+
+边界：TPM 保障包、精调后模型在线推理、智能模型路由、在线推理模型版本切换暂不支持。
+
+## Agent Memory：领域理论框架
+
+这几篇 paper 正在共同把 `agent memory` 从普通 RAG、聊天历史摘要和长上下文技巧中拆出来。一个更合适的定义是：**agent memory 是从 trajectory 中构建、在任务状态下被选择性曝光、并通过后续 outcome 反馈迭代的外部状态系统**。
+
+当前 V0 框架可以按十二个问题组织：
+
+| 问题 | 关键判断 | 代表材料 |
+| --- | --- | --- |
+| `What is memory?` | Memory 不是 dialogue transcript，而是从 agent-environment trajectory 中构建出的外部状态。 | AMA-Bench、MemAgent |
+| `What should memory preserve?` | 需要保留结构化机器表示、因果状态、客观证据和适用边界，而不只是自然语言相似片段。 | AMA-Bench |
+| `Where does experience come from?` | 没有反馈的 benchmark task / trajectory 可以通过 oracle、evaluator 或 user simulator 转成 feedback experience log。 | MemoryBench |
+| `What forms should memory take?` | Raw trajectory、trajectory-derived procedure view、coarse plan experience 和 atomic experience 是不同系统职责，不应混成一种 memory。 | SkillX、TIMG、OpenViking 验证线 |
+| `What should future architecture optimize?` | 未来不是单一 memory bank，而是海量 evidence memory 与少量 / 中量高凝练 memory 的双层系统：前者靠 routing / context engineering 服务，后者靠受控更新、版本化和回归验证演进。 | Useful Memories Become Faulty When Continuously Updated by LLMs、MemGovern、Cursor harness |
+| `When should memory be consolidated?` | 每轮任务结束后自动 summary / merge 不是 harmless；consolidation 是一次有损 state mutation，应默认保留 raw episode，并通过 skip / promote / regression gate 控制。 | Useful Memories Become Faulty When Continuously Updated by LLMs |
+| `When should memory be used?` | Retrieval 不应只是固定 RAG 步骤，而应成为 policy action：何时检索、用什么 query、选哪类 memory。 | ProactAgent |
+| `How should memory be called?` | Memory 调用主要有两种范式：系统侧直接注入上下文，或把 memory 做成 agent 可主动搜索 / 浏览的工具。二者不是替代关系，而是适用于不同粒度、置信度和成本约束。 | MemGovern、TIMG、SkillX、ProactAgent |
+| `How should memory be served?` | 高质量经验不应一次性全塞上下文；更稳的 serving 形态是先用 index 做广召回，再按需 browse resolution / evidence。 | MemGovern |
+| `How to learn routing signals?` | Agent trajectory 本身可以提供消费、拒绝和使用后推理信号；typed tip、subtask scope 和 metadata 也可以成为 retrieval / ranking 特征。 | LRAT、TIMG |
+| `How to score memory utility?` | 不能只看 recall / similarity；要分层看过程消费信号和最终 outcome delta，并扣除 token cost 和 regression。 | LRAT、experience-following、ProactAgent |
+| `How to manage lifecycle?` | Add / rewrite / bury / delete 应基于 source quality、applicability 和 post-exposure feedback。 | ReMe、experience-following、A-MEM 方向 |
+
+因此 agent memory 系统至少包含六层：
+
+1. **Trajectory layer**：记录 task instruction、action、observation、tool state、environment state、reward / evaluator delta。
+2. **Memory construction layer**：从轨迹中抽取 factual / episodic / procedural / failure / comparative memory，保留证据引用和状态依赖。
+3. **Routing layer**：判断当前状态是否需要 memory、生成 query、选择 memory type 和具体 item。
+4. **Exposure layer**：把 memory 注入上下文，记录它是否改变 plan、tool call、argument grounding 或 user interaction。
+5. **Trajectory feedback layer**：记录 memory 被曝光后是否被消费、忽略、引用、触发后续 reasoning 或改变 action。
+6. **Outcome / lifecycle layer**：用 paired replay、DB/action correctness、token cost、regression signal 更新 memory 的优先级、适用边界和生命周期。
+
+这个框架的关键立场是：**memory 的价值不在“存得多”，而在“何时、为何、以什么形式影响未来行动，并且这种影响能被过程信号和最终 outcome 共同校准”。** 所以 Agent Harness / OpenViking 的主线不应只是做一个更好的向量库，而是要构建 `trajectory -> memory item -> exposure -> consumption/rejection -> outcome delta -> lifecycle update` 的闭环。
+
+### Trace substrate：memory learning loop 需要可复用观测层
+
+OpenTelemetry GenAI / OpenInference / agentevals 不属于 memory 方法本身，更适合放在上层 `Agent Observability`。但 agent memory 要复用这层基建：retrieval、rerank、prompt render、tool call、evaluator 都应被记录成 trace span / event，memory 系统只在其上增加自己的 lifecycle 字段。
+
+一个较稳的分层是：OTel / OpenInference 负责通用 trace 语言，例如 `LLM / RETRIEVER / RERANKER / TOOL / EVALUATOR` span、model、token、cache、error、conversation id；Agent Harness 再扩展 `memory_candidate_id`、`retrieved`、`reranked`、`injected`、`cited_or_followed`、`caused_action`、`outcome_delta`、`lifecycle_update`。这样 memory learning loop 既能接入行业 observability，又不会把内部 memory 语义硬塞进 `gen_ai.*`。
+
+### Agent memory 调用的两种范式
+
+agent memory 不只有“检索 top-k 然后塞进 prompt”这一种调用方式。更通用的拆法是两种范式：
+
+| 范式 | 典型流程 | 适合什么 | 主要风险 |
+| --- | --- | --- | --- |
+| **直接注入式 memory** | 系统或 reranker 在某个 decision node 前选出 memory，并写入 system prompt、developer prompt、guidelines 或 action 前上下文。 | 短、小、高置信、边界清楚的经验；例如 procedure card、typed tip、atomic pre-write guard、tool schema hint。 | 容易污染上下文、增加 token cost、诱导 agent 过度服从旧经验；必须配 `applicability_boundary`、`do_not_inject` 和 exposure trace。 |
+| **工具化访问式 memory** | agent 先 `search` 得到候选 preview，再按需 `browse / read` 某条 memory 的 resolution / evidence；必要时继续 query rewrite、decomposition、follow-up search。 | 大规模 memory corpus、长 resolution、低置信或需要证据迁移的经验；例如 GitHub repair card、复杂 procedure、跨任务 failure pattern。 | 多 tool round 会增加时延和成本；agent 可能不知道何时搜索，或搜索后不消费；必须记录 query、preview、browse、引用 / 遵循和 outcome。 |
+
+这两种范式的本质区别不是“是否用向量检索”，而是 **memory 的选择权在系统侧还是 agent 侧**。
+
+直接注入式 memory 更像推荐系统里的 pre-ranking / slate serving：系统根据当前任务、阶段、工具状态和历史反馈，提前把少量高置信经验放进上下文。它的优势是低时延、稳定、容易接入现有 prompt；缺点是只要召回错了，agent 往往会把无关经验当成先验，尤其在 `first-user` 或早期 planning 阶段更容易产生负迁移。TIMG 的实验也提示了这一点：subtask-level / atomic experience 命中时收益高，但更依赖 LLM-guided retrieval 或强 rerank；否则不同 scenario variants 会拿到不同局部 tip 组合，行为方差反而变大。
+
+工具化访问式 memory 更像把 memory 做成 agent 的外部资料库和 evidence browser。MemGovern 的 `Search + Browse` 是代表：`Search` 只看 Index Layer，返回 problem summary / signals / preview；`Browse` 才读取 root cause、fix strategy、patch digest 和 verification。这让 agent 可以先用当前 issue、stack trace、失败测试、模块名做宽召回，再选择少数候选深入读取。它的收益不是“多了一次 RAG”，而是把候选发现和证据消费拆开，并让模型在中间多做一层 filter / rerank。
+
+Cursor 的 context window 演进是一个很好的工程例子。早期 coding agent 会预塞大量静态上下文，例如目录结构、语义匹配代码片段、用户附加文件压缩版，并加上很多 guardrail，例如 edit 后自动暴露 lint / type error、重写过窄的 file read、限制单轮 tool call 数量。Cursor 复盘里说这些大多已经撤掉：现在只保留操作系统、git status、当前和最近浏览文件这类基础静态信号，更多上下文交给 agent 在工作中动态拉取。
+
+这对 memory 调用范式的含义是：强模型时代，不要默认把 memory / context 全部前置注入。更稳的设计是 **少量稳定环境状态 + 可发现、可审计、可按需读取的 context / memory tool**。基础静态信号可以用于路径、shell、仓库状态等 compatibility；复杂经验、长证据、失败模式和外部资料则更适合 Search + Browse，并记录 query、preview、browse、引用 / 忽略和 outcome。
+
+这两种方式应该组合，而不是二选一：
+
+```text
+task intake / initial plan:
+  注入少量高置信 strategy / procedure memory
+
+tool planning / uncertain branch:
+  允许 agent search memory，读取候选 preview
+
+pre-write / validator:
+  注入 atomic constraint、parameter provenance、negative boundary
+
+failure recovery:
+  用 Search + Browse 查 recovery tip、failure pattern 和 verified fix
+
+post-run:
+  用 outcome、引用、忽略、修正信号更新 memory lifecycle
+```
+
+前沿文献大致正在把这条链路往三个方向推：
+
+- **从固定召回到 policy action**：ProactAgent 把 retrieval timing、query 和 memory type 变成 agent action space 的一部分。也就是说，`should_retrieve` 本身就是一个要学习的策略，而不是工程师固定写死的步骤。
+- **从相似度到消费信号**：LRAT 表明 agent trajectory 里的 `exposed but ignored`、`browsed and used`、`post-browse reasoning` 可以转成 retriever / ranker 的训练信号。这比只用 query-document 相似度更贴 agent 需求。
+- **从 append-only 到 lifecycle**：ReMe、experience-following、A-MEM 方向都在说明 memory pool 不能只加不删。一次 memory 调用后的 adoption、harm、staleness、regression 和 token cost，都应该回写到 promote / rewrite / bury / delete。
+
+MEMENTO 这类工作则更像另一层 substrate：它教模型把长 reasoning trace 切成 block、压缩成 memento，并减少 KV cache / context 成本。它能降低长程状态携带成本，但不能替代 memory routing。换句话说，MEMENTO 回答的是“模型如何更便宜地携带自身中间状态”，而上述两种调用范式回答的是“外部经验库里的哪条经验，应在什么时候、以什么方式影响下一步行动”。
+
+一个稳妥的工程判断是：**高置信、短粒度、强边界的 memory 适合直接注入；低置信、长 resolution、需要证据迁移的 memory 适合 Search + Browse；两者都必须进入 trace 和 lifecycle。** 如果没有 trace，系统只能知道 memory 被召回过；有了 trace，才可能判断它是否被读、是否被信、是否改变 action、是否改善 outcome。
+
+### 未来形态：大规模证据库与小规模凝练层
+
+agent memory 的未来不太像“一个越写越大的长期记忆文件”，而更像两类 memory 的组合。
+
+第一类是**海量、有一定质量的 evidence memory**：raw episode、trace、tool call、DB diff、failure recovery、issue / patch / benchmark case、用户反馈片段都应该先进入这一层。它的瓶颈不是“能不能存下”，而是 serving：如何在当前 task state 下召回、预览、browse、rerank、引用、丢弃，并记录它是否真的改变 action / outcome。因此这一层主要靠 context engineering、memory routing、Search + Browse、trace feedback 和 lifecycle ranking 解决。
+
+第二类是**少量 / 中量、高度凝练的 schema / procedure memory**：例如跨任务稳定成立的 procedure card、pre-write guard、tool argument rule、failure recovery policy、user preference policy。它的瓶颈不是召回量，而是 correctness：是否保留了适用条件，是否覆盖了反例，是否会污染邻近任务，是否比 raw episode baseline 更稳。`Useful Memories Become Faulty When Continuously Updated by LLMs` 提醒这里不能默认每轮自动总结更新；凝练层应是 promotion 后的慢变量，而不是 heartbeat 后的自动 rewrite。
+
+这里的 `LLM + update state` 可以理解为：LLM 不只是写一段 summary，而是在受控 schema 上做一次 memory transaction。它要读取 source episodes 和旧 memory，输出 `retain / merge / rewrite / bury / delete` 这类操作，附带 read set、write set、provenance、applicability、negative scope 和 rollback handle；随后由 evaluator / replay / human audit 决定是否 promote。未来更强的 LLM 能力应该体现在更可靠的 **state editor / memory curator** 上，而不是把 consolidation prompt 写得更长。
+
+Zep / Graphiti 的 [temporal context graph](https://arxiv.org/abs/2501.13956) 和 [provenance blog](https://blog.getzep.com/context-you-can-trace-filter-and-trust/) 给这个分层一个生产化参照：底层 `episode` 是非有损证据流，中层 entity / fact 是可服务的派生语义层，上层 community subgraph 更像对经验图生成的 wiki view。关键不是做完整 GraphRAG，而是让 derived fact / experience 通过双向索引反连 source episode，并让 episode metadata 投影到派生对象上；这样 retrieval 可以先按 `source / domain / verified / sensitivity / outcome` 过滤，再进入 rerank 和 constructor。
+
+这条 serving pipeline 可以拆成 `search -> rerank -> constructor`：search 混合 semantic similarity、BM25 full-text 和 graph traversal；rerank 再用 relevance、RRF / MMR、episode mention frequency、graph distance 或 cross-encoder 做排序；constructor 最后把 fact date range、entity summary、source metadata 和边界组装成 agent 可读 context。Graphiti 还区分 event time 与 ingest time：前者表示事实何时在世界中成立，后者表示系统何时知道它。对 agent memory 来说，temporal invalidation 不像 user memory 那样总是刚需，因为很多 procedural memory 更贴近操作真理或 policy boundary；但在工具版本、业务规则、domain state 或 evidence 被更强来源 supersede 时，`event_valid_from / event_valid_to / ingest_time / supersedes` 仍比直接覆盖旧经验更可审计。论文的 DMR / LongMemEval benchmark 只作低权重参考，真正该吸收的是 provenance-aware retrieval 和 constructor 机制，而不是分数本身。
+
+所以更稳的系统形态是：
+
+```text
+large evidence memory:
+  raw episodes / traces / patches / feedback
+  -> search / browse / rerank / outcome attribution
+
+distilled memory layer:
+  promoted procedure / guard / preference / policy
+  -> versioned update / regression gate / rollback
+
+runtime context:
+  stable environment state + selected memory + active task state
+  -> agent action
+```
+
+这也解释了两条技术路线的分工：大规模 memory 侧更接近推荐 / 搜索 / context engineering，目标是把候选证据在正确时刻送到 agent 面前；凝练 memory 侧更接近配置变更 / policy patch / knowledge curation，目标是让少量高价值记忆长期稳定地影响行为，同时能被验证和回滚。
+
+### 概念框架：memory 形态与系统边界
+
+#### Existing approaches 的局限：为什么需要 trajectory-derived experience
+
+> 来源：[Trajectory-Informed Memory Generation for Self-Improving Agent Systems](https://arxiv.org/html/2603.10600)。
+
+TIMG 对现有路线的批评可以作为 agent memory 的上层综述：只保存 raw trajectory 或做普通 RAG，容易把经验变成冗长、噪声高、缺少 action boundary 的上下文；只做 summary / reflection，又容易丢失 tool call、参数来源、失败恢复和状态约束；直接依赖 RL 虽然可以从 reward 中学习策略，但对 agent memory 这个问题也有几个现实短板。
+
+RL 的问题不是“不重要”，而是当前阶段不够经济、可解释性也不足：它需要大量训练数据，而 agent failure 往往低频但高后果；训练和更新成本高，不适合持续演化的 agent 系统；学到的 policy 对“为什么这条经验改善了结果”解释弱；同时 RL 通常优化整体 reward，不天然区分 `strategy pattern`、`recovery sequence` 和 `optimization opportunity`。因此，在可回放、可审计、需要快速迭代的 Agent Harness 语境里，更实际的路线往往是先把 trajectory 转成 typed experience，再用 retrieval / rerank / feedback event 做可解释的局部策略学习。
+
+#### Agent memory 的四类系统形态
+
+在 OpenViking / TAU-2 的验证语境里，`memory` 至少应拆成四种形态。它们都来自 trajectory / experience，但系统职责不同：
+
+| 形态 | 粒度 | 主要用途 | 是否适合直接注入 |
+| --- | --- | --- | --- |
+| `raw trajectory` | 完整对话、tool call、tool observation、成功 / 失败结果 | provenance、replay、audit、派生 view 的来源 | 通常不直接注入，只在 debug / replay / evidence tracing 中使用 |
+| `trajectory-derived procedure view` | 任务模式级：trigger、evidence、precondition、procedure、anti-pattern、applicability boundary | 当前最可验证的 procedure memory；用于检索、category rerank、pre-write 注入 | 适合注入，但必须带适用边界和反例 |
+| `coarse plan experience` | plan / workflow 级，一条经验覆盖多个相似流程 | memory native baseline，可作为 first-user 粗注入或高层提示 | 可注入但风险较高，容易粒度粗、注入早、applicability 不足 |
+| `atomic experience` | action / constraint / parameter provenance 级 | 未来更细的执行约束：某个 write action 前必须从当前 tool observation / catalog / state scope 取参数 | 适合在 action 前或 validator 中注入，尤其适合 pre-write guard |
+
+这个拆分的关键是区分 **source evidence** 和 **serving artifact**：raw trajectory 是证据层，`traj_view` 是从证据层派生出的可服务视图，atomic experience 则更像 action 前的局部约束或参数 provenance guard。它也解释了为什么当前验证先做 `traj_view`：它比 raw trajectory 干净，比 coarse plan experience 更有边界，又比 atomic experience 更容易从成功轨迹中稳定抽取。
+
+### Trajectory-derived experience：从轨迹到可检索经验
+
+#### SkillX：从 trajectory 自动构建 Skill KB
+
+> 来源：[SkillX arXiv](https://arxiv.org/abs/2604.04804)、[GitHub](https://github.com/zjunlp/SkillX)。用户 2026-05-13 读完。
+
+SkillX 的核心价值是把 `trajectory -> reusable skill` 做成自动 pipeline。它不是简单保存 raw trajectory，也不是让 agent 每次重新 reflection，而是把成功轨迹蒸馏成三层 skill knowledge base：
+
+| Skill 类型 | 粒度 | 内容 | 对 Agent Harness 的映射 |
+| --- | --- | --- | --- |
+| Planning Skill | 任务级 | 针对特定任务类型的分步骤执行计划 | procedure / workflow card；也可作为检索 Functional / Atomic Skill 的中间 query |
+| Functional Skill | 子程序级 | 包含多工具调用的可复用子程序，带输入、输出、使用说明和实现片段 | multi-tool subroutine / trajectory-derived procedure view |
+| Atomic Skill | 单工具级 | 单个 API / tool 的参数说明、调用示例、约束和注意事项 | tool usage hint、argument grounding、precondition / anti-pattern |
+
+其中 `Planning Skill` 不一定要直接注入执行上下文；更稳的用法是把它当成一种 **pseudo-plan query**：先生成任务级伪计划，再用这个中间表示检索更细粒度的 `Functional / Atomic Skill`，从而把“我要做什么”转成“该取哪些工具级经验”。
+
+它的构建流程可以概括为：
+
+```text
+Rollout
+-> Plan Extraction
+-> Skill Extraction
+-> Clustering
+-> Merge
+-> Two-Stage Filter
+-> Library Update
+-> Exploratory Expansion
+-> next iteration
+```
+
+具体机制上，SkillX 先让 agent 在训练任务上多次 rollout，并从成功轨迹中选择更短、更干净的执行路径进入提取流程。失败轨迹不会直接产出 skill，但并非完全浪费：它可以在 Atomic Skill 提取时作为成功 / 失败 API 使用差异的对照，也可以在 expansion 阶段帮助识别失败或未覆盖 API。
+
+不同 benchmark 使用不同提取路由：AppWorld / BFCL-v3 这类复杂多工具场景更适合 Functional Skill，`tau2-Bench` 这类工具 API 边界更强的场景更适合 Atomic Skill。这一点对 TAU-2 / OpenViking 很重要：如果目标是修正写操作前的参数、状态、scope 和 tool precondition，atomic experience / atomic skill 可能比粗 plan experience 更直接。
+
+Two-Stage Filter 是一个务实的 memory 质量门：先用通用质量过滤判断 correctness、completeness、reusability、clarity、consistency，再用 tool schema filter 检查参数名、参数类型、调用依赖和注释-功能一致性。抽象到 Agent Harness，就是 memory / skill 生成后不能 add-all，至少要经过一次“反思 + schema 校验 + 可复用性判断”，否则很容易把 hallucinated procedure 或过度特化经验写入库。
+
+Exploratory Expansion 则把 skill acquisition 从“只消费已有成功轨迹”推进到“主动补 coverage”。它先分析历史轨迹，把 API 分成成功调用过、导致失败、从未调用三类；再让 explorer agent 优先探索失败 / 未覆盖 API，并从探索轨迹中合成新训练任务。这个机制和反馈信号学习互补：反馈学习更像利用已有曝光和 outcome 做排序 / 生命周期治理，exploration expansion 更像推荐系统冷启动，用 coverage gap 主动造可学习经验。
+
+对 Agent Harness / OpenViking 的启发：
+
+- `raw trajectory` 和 `derived skill/procedure` 应分层建模：前者保留 evidence，后者服务 retrieval / injection。
+- 成功轨迹可以先走 `shortest_successful_path -> procedure / atomic skill extraction`；失败轨迹不应丢弃，可总结为 bad-action taxonomy、negative boundary 和 failure-prone tool coverage。
+- TAU-2 里不一定只追求更完整 procedure card；一些 case 更需要 atomic experience：工具参数从哪里取、当前 order / reservation / catalog / profile scope 是否匹配、write tool 前必须验证什么。
+- Skill extraction 后应有独立质量门：LLM reflection + tool schema validator + applicability boundary check。
+- AppWorld、BFCL-v3 可作为候选相邻 benchmark，用来验证 Functional Skill / multi-tool subroutine；TAU-2 更适合作为 Atomic Skill / action-boundary 诊断。
+
+#### TIMG：把 trajectory 转成 atomic experience / typed tips
+
+> 来源：[Trajectory-Informed Memory Generation for Self-Improving Agent Systems](https://arxiv.org/html/2603.10600)。用户 2026-05-15 读完。
+
+TIMG 是一篇典型的 `atomic experience` 论文：它不把整条 trajectory 原样塞进 memory，也不只做任务级 summary，而是从 agent 执行轨迹中抽取带来源、类别、适用范围和检索 metadata 的 actionable tips。
+
+核心流程是 `Trajectory Analysis and Tips Extraction`：
+
+```text
+raw trajectory
+-> reasoning / behavior pattern analysis
+-> decision attribution
+-> task-level or subtask-level tip generation
+-> storage / clustering / consolidation
+-> runtime retrieval and injection
+```
+
+它先分析 trajectory 中的 reasoning / action pattern，再做 decision attribution：把失败、恢复、低效成功、干净成功追溯到具体 reasoning / action。最后生成三类 tips：
+
+| Tip 类型 | 来源片段 | 含义 |
+| --- | --- | --- |
+| `strategy` | 干净成功片段 | 这个任务里值得复用的稳定做法 |
+| `recovery` | 失败后恢复片段 | 发现走错后如何诊断、回滚或换路径 |
+| `optimization` | 成功但低效片段 | 虽然最终成功，但哪些步骤可以更快、更少 tool call / token |
+
+这三类不是展示标签，而是后续 memory curation / retrieval 的结构化特征。论文的 storage 表示中，每条 memory 同时有 embedding 和 structured metadata，包括 `tip category`、`priority`、`application context`、`task category`、`source trajectory IDs`、`timestamp`。在 clustering / consolidation 阶段，系统会先做 subtask description generalization，再聚类、合并、去重和冲突解决；冲突时会参考 tip category、priority、source trajectory 是成功还是失败，以及 recovery tip 是否来自已验证修正路径。一个重要实践是：成功轨迹来源的 tips 优先于失败轨迹来源的 tips，proven recovery tips 优先于 speculative prevention strategies。
+
+TIMG 的 subtask-level tip 可以理解为 `operation-family level atomicity`，而不是“一条 tip = 一个 API call”。它的约束来自：先把轨迹切到单一 logical phase，再对每个 subtask 单独抽 2-4 条 tips；随后把 subtask description 做 entity abstraction、action normalization、context removal，用泛化后的 subtask key 聚类，但 tip 内容仍保留具体 API pattern 和可执行步骤。这样做的效果是：index key 泛化，execution advice 保真。
+
+一个反直觉但很重要的实验结论是：**subtask-level / atomic experience 比 task-level tips 更依赖排序和路由**。在 AppWorld held-out 配置里，`subtask-level + cosine` 的 TGC 高，说明局部经验命中时能提高单题成功率；但它的 SGC 低于 `task-level + cosine`，说明跨 scenario variants 的行为一致性更差。`subtask-level + LLM-guided retrieval` 才拿到最佳 SGC，因为 LLM reranker 能根据 app context、task category、tip category 和 metadata 选出更一致的 tips。
+
+因此：
+
+```text
+task-level tips ~= procedure / workflow card
+subtask-level tips ~= atomic experience / local action guidance
+```
+
+task-level 更像完整路线图，容易保持同一类任务的执行风格稳定；subtask-level 更像一组局部补丁，单条更精准，但候选数量和组合空间更大，误召回成本也更高。经验越 atomic，系统成功率越从“有没有经验”转向“能否在正确时机选择正确经验”。
+
+对 Agent Harness / OpenViking 的启发：
+
+- `tip_type = strategy | recovery | optimization` 可以作为 category feature，后续甚至可以做 id embedding / categorical feature 学习；`boundary` 更适合放在 applicability / negative-boundary 侧，不并入 TIMG 的 typed tip category。
+- `source trajectory IDs`、`source_step_range`、`attribution_reason`、`trigger_condition`、`application_context`、`task_category` 适合补进 OV 的 experience metadata。
+- retrieval 不应只有 cosine；LLM-guided retrieval 本质上是 LLM-as-reranker，可作为高成本 oracle 或 teacher，之后再蒸馏成轻量 ranker。
+- atomic experience 不应盲目注入，必须配套 `applicability_boundary`、`do_not_inject / low_confidence_skip` 和 exposure utility label。
+
+一个可执行的路由抽象：
+
+```python
+if stage == "initial_plan":
+    prefer("strategy")
+
+if anomaly_detected or retrying:
+    prefer("recovery")
+
+if success_likely and cost_budget_tight:
+    prefer("optimization")
+```
+
+#### MemGovern：把 GitHub Issue / PR / Patch 治理成可搜索经验卡
+
+> 来源：[MemGovern: Enhancing Code Agents through Learning from Governed Human Experiences](https://arxiv.org/abs/2601.06789)、[GitHub](https://github.com/QuantaAlpha/MemGovern)。用户 2026-05-18 读完。
+
+MemGovern 的关键不是“又做了一个代码 RAG”，而是选了 GitHub Issue / PR / Patch 这个高价值窄域，把人类修 bug 经验治理成 agent-friendly experience cards，再通过 `Search + Browse` 工具让 SWE-Agent 使用。它对 Agent Harness 的启发是：**source unit 不能直接等于 memory item；必须先治理成可检索、可浏览、可验证的 serving artifact。**
+
+![MemGovern architecture](./AI-Applied-Algorithms/memgovern-architecture-figure3.png)
+
+MemGovern 的 pipeline 可以拆成三段：
+
+```text
+Hierarchical Experience Selection
+-> Experience Standardization
+-> Experiential Memory Search
+```
+
+第一段是经验来源选择。它从 GitHub repos、issues、PRs、patches 中筛选闭环修复记录，并用 `technical-content ratio` 过滤低信号讨论。`technical-content ratio` 可以理解为一段 issue / PR 讨论里真正有技术信息的占比：错误现象、stack trace、复现步骤、root cause、patch 解释、测试方式属于技术内容；寒暄、bot 通知、review 流水账和无关流程信息属于噪声。论文中低于 `τ = 0.2` 的讨论会被丢弃，直觉是：技术含量少于约 20% 的协作流水账不适合作为经验库来源。
+
+第二段是 experience standardization，核心是 **index 和 context 分离**，也就是把“检索语义”和“修复逻辑”拆开：
+
+| Layer | 字段 | 作用 |
+| --- | --- | --- |
+| Index Layer | `Problem Summary`、`Signals` | 用 symptom / signal 找相似问题，只承担召回语义 |
+| Resolution Layer | `Root Cause`、`Fix Strategy`、`Patch Digest`、`Verification` | 给 agent 做迁移：为什么错、怎么修、如何验证 |
+
+这个拆分非常实用：如果把完整 fix strategy / patch digest 也混进检索文本，召回会被仓库特定实现细节污染；如果只检索 problem / signal，再按需读取 resolution，agent 更容易先找到相似症状，再迁移 root cause / fix strategy / verification。
+
+第三段是 `Agentic Experience Search`。执行器不再是一次性 RAG 注入，而是多轮 agentic search：
+
+```text
+Searching(query, top_k)
+-> returns id, score, content_preview, bug_description
+
+Browsing(id)
+-> returns bug_description, fix_experience, repo, issue_id
+```
+
+`Searching` 只查 Index Layer，返回候选 preview；`Browsing` 对选中的 card 读取 Resolution Layer。Agent 可以基于当前 issue、stack trace、失败测试、模块名做 query decomposition、query rewrite、follow-up search，而不是把 top-k 经验一次性塞进上下文。这个机制本质上有两层收益：
+
+- **LLM-as-reranker / filter**：Search 之后由 agent 自己再筛一道，决定哪些候选值得 browse。
+- **breadth / depth 解耦**：Search 可以看更宽的候选池，Browse 只消费少数高价值 resolution，降低 context overload。
+
+Table 2 的结论支持这个判断：同样使用 experience，`Agentic Search` 优于静态 RAG 和 Agentic RAG。比如 DeepSeek-V3.1T 上 `RAG 64.4 -> Agentic Search 65.8`，Qwen3-Coder 上 `46.8 -> 51.4`，GPT-4o 上 `31.2 -> 32.6`。这里不要过度解读为“agentic search 魔法更强”，更稳的解释是：**多了一层 agent-controlled rerank / filter，并且把候选发现和证据消费拆开了。**
+
+MemGovern 的 claim map 可以压缩成四条：
+
+| Claim | 证据 / 机制 | 边界 |
+| --- | --- | --- |
+| GitHub human repair records 可转成 agent memory | 150K Issue-PR-Patch triplets -> 135K governed cards | 依赖 source quality；存在 SWE-bench 近邻泄漏风险，需要按 issue/repo/time 去重 |
+| Governed card 优于 raw PR+Patch | 去掉社交噪声、冗余 diff 和无关讨论，只保留 root cause / strategy / verification | checklist-based QC 仍是 LLM 自检，不能完全防 hallucination |
+| Search + Browse 优于一次性 RAG | Table 2 中 Agentic Search 在多个 backbone 上优于 RAG / Agentic RAG | 收益可能部分来自更多 token / tool rounds，需要 attribution log 校准 |
+| Index / Resolution 分离提升迁移性 | Index 用 symptom / signal 召回，Resolution 放 repair logic | 对非代码任务要重新定义 source unit 和 resolution field |
+
+工程上有两个“刷分但务实”的技巧：
+
+1. `Search + Browse` 优于一次性 RAG 注入，本质是让 agent 做了一层 rerank / filter，避免弱相关经验直接污染上下文。
+2. checklist-based quality control 做 refine loop，最多 3 轮：生成 card 后用 LLM 按 checklist 打分，不合格就只重写有问题的字段。这不是完美质量保证，但比 add-all 强很多。
+
+对 Agent Harness / OpenViking 的价值：
+
+- `index/context` 分离值得尝试，但要看 OV 是否容易实现。对于 TAU-2 / OV，Index 可先放 `task symptom / domain / tool / state key / failure signal / category`，Resolution 才放 `precondition / action constraint / argument provenance / verification / negative boundary`。
+- `raw trajectory -> governed traj_view / atomic experience` 的路线比直接存 raw trajectory 更合理。raw trajectory 保留为 provenance / replay；serving artifact 应是治理后的 card。
+- 非代码任务里的 `Issue / PR / Patch` 可映射为：`task instruction / trajectory slice / tool observation or state diff / outcome oracle / corrected action or argument`。
+- 后续如果做 `experience_search_tools_v0`，可以直接参考 `/search` 与 `/get_experience` 两级接口：前者返回 compact preview，后者返回 full resolution，并在 trace 中记录 `retrieved -> browsed -> injected/followed -> action/outcome delta`。
+
+#### ReMe：procedure memory 的生命周期治理
+
+> 来源：[ReMe: Remember Me, Refine Me](https://arxiv.org/abs/2512.10696)、[GitHub](https://github.com/agentscope-ai/ReMe)。用户 2026-06-03 读完。
+
+ReMe 的核心价值不是再做一个 memory toolkit，而是把 high-quality procedure memory 从“存储问题”改写成 **生命周期治理问题**：抽关键点、按适用场景检索、注入前改写、成功后晋升、低效后删除。
+
+```text
+past trajectories
+-> experience acquisition
+-> structured experience pool
+-> retrieval / rerank / rewrite
+-> experience-guided execution
+-> selective add / failure-aware reflection / utility-based deletion
+```
+
+agent memory 里最容易犯的错是把历史轨迹、总结、偏好、失败日志都塞进一个向量库，然后只按相似度召回。这样看似有记忆，但轨迹太粗，agent 不知道真正要复用哪个 decision point；迁移太硬，旧经验被原样贴到新任务会误导；池子也会变脏，append-only memory 会累积过时、重复、低效甚至有害的经验。
+
+ReMe 把一条 experience 定义为：
+
+```text
+E = <omega, e, kappa, c, tau>
+```
+
+其中 `omega` 是 usage scenario / when to use，表示什么时候该用这条经验；`e` 是 experience content；`kappa` 是 keywords；`c` 是 confidence；`tau` 是 tools used。这个定义的重点是：procedure memory 的检索 key 应该是 applicability condition，而不是用户 query 原文。
+
+Experience Acquisition 阶段对同一训练任务采样多条轨迹，论文主设置是 `N=8`，再从三类信号抽 keypoint-level experience：从成功轨迹抽 success pattern，从失败轨迹抽 failure trigger / prevention lesson，从高低分轨迹对比中抽 comparative insight。抽完后过 LLM-as-judge validation，检查 experience 是否 actionable、accurate、relevant、clear、unique，再做 similarity-based dedup。这不是普通 trajectory summary，而是先把轨迹压成 keypoint-level procedure item 再入库。
+
+Experience Reuse 阶段先基于 usage scenario 检索 top-K，主实验里 `K=5`，再做 rerank 和 rewrite：rerank 判断哪些经验真正贴当前任务约束，rewrite 把多条经验重写成一段 task-specific guidance，而不是机械拼贴 tips。这个设计对应 Agent Harness 里的 constructor / adapter 层：`memory retrieved` 和 `memory actually usable in prompt` 之间必须有筛选、整合和场景化改写。
+
+Experience Refinement 是 ReMe 最值得吸收的部分。它比较 `full addition` 和 `selective addition`，实验显示只把成功轨迹抽成长期经验更强，因为单次失败轨迹信息不足，直接总结失败经验容易写出误导 rule。失败不是不用，而是走 `failed attempt -> failure-aware reflection -> retry`：如果反思后重试成功，lesson 才晋升为 memory；如果还是失败，就丢弃，最多反思 3 次。
+
+删除机制是：
+
+$$
+\phi_{\text{remove}}(E) =
+\begin{cases}
+1\left[\frac{u(E)}{f(E)} \le \beta\right], & f(E) \ge \alpha \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+其中 `f(E)` 是经验被召回次数，`u(E)` 是召回后任务成功次数。论文设置 `alpha=5, beta=0.5`。这个公式的亮点是把淘汰变成 post-exposure utility，而不是只看 memory 文本质量；但它仍然偏粗。更细的做法应该用相似题目 / 相似轨迹的平均成功率作对比基线：如果某条 memory 的 `u/f` 低于相似任务无该 memory 或同类任务 baseline success rate，才更能说明它真的低效，而不是任务本身更难。在 OpenViking / Agent Harness 里，这一步也许可以先把题目理解成 trajectory，用相似 trajectory 检索后统计成功 / 失败比例，作为 `beta` 的动态参照。
+
+几组实验结论可以直接变成设计规则：
+
+- `dynamic > fixed`：动态更新 / 淘汰 memory pool 比固定 memory pool 更强。
+- deletion 把 BFCL-V3 ablation 的 `Pass@4` 从 `64.66` 拉到 `68.00`，说明淘汰低效经验能提升多次尝试下摸到成功路径的概率。
+- selective addition 是主要增益来源，不能 add-all。
+- keypoint-level experience 强于 trajectory-level experience。
+- usage scenario 是更稳的 retrieval key：它表达“这条经验适用于什么情境”，比原始 query 更接近 procedure memory 的适用边界。
+
+对 Agent Harness / OpenViking 的直接启发：
+
+- 对比成功和失败轨迹，抽 `comparative_insight`：到底哪一步决策导致高低分差异。
+- 经验淘汰应做成相对 utility，而不是固定 `u/f <= beta`：用相似题目 / 相似轨迹成功率作基线会更准。
+- 召回经验后要结合当前场景做筛选和整合，即 `search -> rerank -> constructor/rewrite -> inject`，这是比单纯向量召回更通用的 serving 思路。
+
+### Memory routing / ranking：从召回到决策
+
+#### Memory Routing：把记忆曝光建模成状态条件决策
+
+Agent memory 不只是 RAG，也不只是“把历史经验塞进上下文”。一旦 memory 会被检索、注入、遵循、带来收益或回归，它就应该被系统化地建模成一个状态条件下的路由 / 曝光决策问题。
 
 核心抽象：
 
@@ -1586,67 +2636,474 @@ reward(memory, task)
 - `post_exposure_utility`：memory 被曝光后是否真正提升 outcome。
 - `lifecycle`：长期低效 memory 应该 bury、delete、merge 或 rewrite。
 
-这给 Agent Harness / OpenViking 的长期切口是：从 trace / replay 中构建 `memory_routing_dataset`，用 paired replay、DB/action correctness、token cost 和 regression signal 估计 memory 的 future utility。推荐系统经验可以迁移到这里：candidate generation、ranking、calibration、negative feedback、delayed feedback、exploration、cold start、item lifecycle、contextual bandit / RL。
+Fine-Mem、ProactAgent 和 LRAT 可以放在这个框架的三个相邻位置：Fine-Mem 更像在解决 **source-to-corpus lifecycle**，即一个 source chunk / trajectory fragment 进入 memory corpus 时应该 `upsert / skip / retire`，以及这次操作如何归因；ProactAgent 更像在解决 **corpus-to-context exposure decision**，即已有 memory 是否应该 retrieve / inject；LRAT 则补上 **trajectory-to-ranking supervision**，即从 agent 的消费、拒绝和 post-use reasoning 中学习 retrieval / ranking 信号。
+
+| 子问题 | 推荐系统类比 | Agent memory 版本 | 代表启发 |
+| --- | --- | --- | --- |
+| source admission | item candidate generation / quality gate | 哪些经验片段值得进入 memory corpus | Fine-Mem 的 CSR 用 chunk-level QA 给局部保真弱监督 |
+| experience construction | item log generation / interaction synthesis | 如何把 no-feedback task / trajectory 变成可学习 experience log | MemoryBench 的 user simulator 把 benchmark supervision 转成 explicit / implicit feedback |
+| memory operation attribution | item update attribution | 哪次 INSERT / UPDATE / DELETE / SKIP 影响了最终表现 | Fine-Mem 的 EARA 把 global reward 回分到证据相关步骤 |
+| exposure routing | item ranking / slate selection | 哪些 memory 在当前 state 下应该被检索和注入 | ProactAgent 的 paired-branch retrieval reward |
+| trajectory-derived supervision | click / dwell / skip logs | memory 被曝光后是否被消费、忽略、引用、推动 reasoning/action | LRAT 的 browse、unbrowsed、post-browse reasoning、utility weight |
+| lifecycle governance | item lifecycle / demotion | memory 何时合并、降权、退休或删除 | post-exposure utility、regression signal、history-based deletion |
+
+这给 Agent Harness / OpenViking 的长期切口是：从 trace / replay 中构建 `memory_routing_dataset`，同时估计两类信号：
+
+- `source_quality_reward`：这条经验是否忠实、可复用、能保留 source 中对后续任务有用的关键状态 / 因果 / procedure。
+- `trajectory_consumption_reward`：这条 memory 被曝光后是否被 agent 消费、忽略、引用、推动 reasoning 或改变 action。
+- `post_exposure_utility_reward`：这条 memory 被检索并注入后，是否真的带来 task success、DB/action correctness、token cost 或 regression 的净收益。
+
+推荐系统经验可以迁移到这里：candidate generation、ranking、calibration、negative feedback、delayed feedback、exploration、cold start、item lifecycle、contextual bandit / RL。
+
+关键边界：**推荐模型是 memory update / retrieve 的内层策略，不是整个 agent 的目标函数。** 更精确地说，memory routing 不会被 RL 替代；它会先以 ranker / contextual bandit 的形态解决局部曝光决策，长期则成为 agent policy 里的一个 `memory-action head` 或 `option policy`。RL 的位置是外层优化框架：在完整 trajectory 上把 delayed outcome credit 回分给“是否检索、检索什么、如何注入、是否更新/退休 memory”等 routing / lifecycle 决策。
+
+Agent Harness 的长期问题更像一个外层 RL 链路：
+
+```text
+agent state
+-> choose whether/how to update or retrieve memory
+-> assemble context
+-> choose tool / response action
+-> environment or DB state changes
+-> task outcome / regression / token cost
+-> credit assignment back to memory exposure and lifecycle decision
+```
+
+在这条链路里，推荐系统模型适合先解决内层的候选选择和排序：
+
+- `update` 侧：哪些 trajectory fragment 值得写入、改写、跳过或退休。
+- `retrieve` 侧：哪些 memory 在当前 domain / phase / tool state 下值得召回和注入。
+- `rank` 侧：在 token budget 下如何平衡 utility、coverage、risk 和 cost。
+
+但它不能替代 RL 问题本身。因为 memory 被注入后，真正重要的不是它相似不相似、有没有被召回，而是它是否改变了后续 action，并最终改善了 task outcome。这个反馈经常是 delayed、sparse、counterfactual 的：第 3 步注入的 procedure memory 可能在第 8 步避免一次错误工具调用，也可能在另一个 domain 造成 negative transfer。
+
+因此 V0 不应急着端到端训 RL。更稳的顺序是：
+
+1. 先把 memory 当 recommendation item，补齐 `source_step_id / experience_key / memory_id / memory_version / lifecycle_action / exposure log`。
+2. 用规则、GBDT、two-tower 或轻量 ranker 做 `update / retrieve / inject` 的 offline policy。
+3. 用 LRAT-like trajectory consumption signal 训练 retrieval / rerank / memory utility 的弱监督模型。
+4. 用 CSR-like source QA、EARA-like evidence attribution 和 paired replay 同时估计 `source_quality_reward` 与 `with_memory - without_memory` outcome delta。
+5. 等 attribution 稳定后，再把高价值决策点升级成 contextual bandit / RL policy。
+
+一句话：**推荐系统给 Agent Harness 提供 memory item 的召回、排序和生命周期治理方法；LRAT 补上 trajectory-derived consumption / rejection 反馈；Fine-Mem 补上 memory update 的局部 reward / evidence attribution；RL 给它提供长链路 action credit assignment 和最终优化目标。** 它们不是替代关系，而是从 item admission、exposure routing、trajectory feedback 到 end-to-end policy 的递进关系。
 
 未来可继续填充的方向：
 
-- **数据 schema**：memory item 的 id、来源轨迹、precondition、domain、tool state、反例、`retrieval_query`、`query_intent`、`trigger_state`、曝光日志、utility 统计。
+- **数据 schema**：memory item 的 id、来源轨迹、`source_step_id`、`experience_key`、`memory_version`、`lifecycle_action`、precondition、domain、tool state、反例、`retrieval_query`、`query_intent`、`trigger_state`、曝光日志、`exposed_to_agent`、`ignored_after_exposure`、`followed_or_cited`、`post_use_reasoning_span_id`、`source_quality_reward`、`post_exposure_reward_delta`、utility 统计。
 - **模型形态**：rule / logistic / GBDT / two-tower / sequence model / query generator / contextual bandit / RL policy。
-- **反馈信号**：paired no-memory replay、strict selective addition、history-based deletion、ProactAgent paired-branch retrieval reward。
+- **反馈信号**：LRAT-like consumption/rejection/post-use reasoning signal、CSR-like source-quality weak label、EARA-like evidence attribution、paired no-memory replay、strict selective addition、history-based deletion、ProactAgent paired-branch retrieval reward。
 - **评估指标**：task success delta、DB diff、wrong-tool rate、token cost、regression rate、coverage、memory churn。
 - **工程风险**：label leakage、simulator variance、misaligned replay、context overload、stale memory、过度个性化。
 
-#### A89: Agent Memory 管理：experience-following、错误传播与错配回放
+### Feedback-driven personalization：PAHF 与显式偏好更新
 
-> 来源：[How Memory Management Impacts LLM Agents: An Empirical Study of Experience-Following Behavior](https://arxiv.org/abs/2505.16067)，用户 2026-05-03 精读。
+> 来源：[PAHF: Personalized Agents from Human Feedback](https://arxiv.org/abs/2602.16173)、小红书解读“Meta最新研究：让AI真正读懂你的心”（http://xhslink.com/o/6la6P9x5WsL）。
 
-Agent memory 先分层：短期记忆是任务内 working memory；长期记忆可分为三类：semantic memory 保存世界知识和环境理解，procedural memory 保存规则、流程和操作策略，episodic memory 保存具体任务经历。A89 关注的是 episodic memory：把过去的 query-execution pair 存下来，后续相似任务检索出来当 demonstration。
+PAHF 更适合放在 `Agent Memory / 个性化`，而不是泛 Online Learning。它关心的不是连续训练模型参数，而是 agent 在和用户交互时，如何通过 **pre-action clarification** 和 **post-action feedback** 更新显式用户偏好。
 
-论文最关键的现象是 **experience-following**：当前任务输入与被召回 memory 的输入越相似，agent 输出越倾向于复刻历史输出。这个性质本身是双刃剑：正确经验被复用时会自我增强；错误经验被复用时会形成 error propagation；源任务看似正确但和目标任务前提不一致时，会形成 misaligned experience replay。
+核心问题有两个：
 
-这给 memory 系统一个很强的约束：相似度不是充分条件。Memory item 需要同时具备来源质量、适用边界和后续效用信号，否则 memory bank 越大，越容易把“看起来相似但前提不同”的经验注入上下文。
+- 新用户冷启动：没有历史偏好时，agent 不应假装知道，而应在关键行动前询问。
+- 偏好漂移：用户偏好变化后，agent 需要用纠正反馈覆盖旧记忆，而不是长期复用 stale preference。
 
-```text
-memory utility
-= coverage gain
-- noise propagation
-- token cost
-- regression risk
-```
-
-因此 memory_size 本身不是坏事，它提供 coverage；真正的问题是 memory_noise 和 misalignment。更像推荐系统：候选池变大后，系统不应简单限制 item 数，而是要做质量估计、曝光反馈、降权、删除和重写。
-
-**Strict selective addition 的边界**：
-
-- 论文中的 strict addition 本质是用强 evaluator 判断源轨迹是否可写入；部分实验用 human/oracle 近似，AgentDriver 等设置会比较生成结果与 ground truth。
-- 这适合作为 upper bound 和设计启发，但不能直接当作线上策略，否则会把 label / gold execution 泄漏到 memory admission。
-- 工程可落地的版本应拆成三层：`source_quality_gate` 判断源轨迹能否写入，`applicability_gate` 判断当前任务能否使用，`post_exposure_utility` 判断注入后是否真的提升结果。
-
-**Deletion 也不应只按时间或频次**。论文提出 history-based deletion：一条 memory 被多次召回后，如果平均 future utility 低，就删除。这比 LRU 更接近“曝光后反馈”：不是看 memory 本身像不像，而是看它被曝光以后有没有提升 outcome。
-
-这件事可以抽象成 agent memory 的推荐系统；上面的 `Agent Memory Recommendation / Routing` 是后续持续填充这个领域的 canonical section。A89 在这里提供的是第一个关键 empirical foundation：为什么相似度召回会产生 behavior prior，以及为什么 memory lifecycle 必须基于 outcome feedback。
-
-| RecSys 概念 | Agent memory 概念 |
-| --- | --- |
-| user / context | worker、task、domain、runtime state |
-| item | experience、procedure memory、trajectory fragment |
-| exposure | memory 被检索并注入上下文 |
-| click / convert | agent 遵循 memory，改变工具调用或行动 |
-| reward | paired outcome delta |
-| negative feedback | regression、wrong tool、DB diff worsened |
-| delete / bury | history-based deletion、utility-based pruning |
+PAHF 的循环可以压成：
 
 ```text
-reward(memory, task)
-= outcome_with_memory
-- outcome_without_memory
-- token_cost_penalty
-- regression_penalty
+pre-action clarification
+-> action with current explicit memory
+-> post-action human feedback
+-> update / override user preference memory
 ```
 
-对 Agent Harness / OpenViking 的直接启发：memory 不是“向量召回的文本块”，而是带稳定 id、来源轨迹、前提条件、适用范围、反例、曝光反馈和 lifecycle 的 experience item。评估也不能只看 recall 命中率，而要看 paired replay 后 task outcome、DB/action correctness、token cost 和 regression。
+它的价值不在“让 agent 更会聊天”，而在于把用户反馈变成可更新的 memory state：什么时候该问、什么时候该执行、什么时候该覆盖旧偏好。对 Agent Harness / OpenViking 更可迁移的是这组字段：
 
-#### S16: ProactAgent：把 retrieval 从 passive RAG 升级成 policy action
+```text
+preference_key
+old_value
+new_value
+feedback_source
+update_reason
+confidence
+supersedes_memory_id
+last_confirmed_at
+```
+
+边界也要说清楚：PAHF 偏 user preference memory，不等价于 procedure memory。它能启发 `conflict / override / confirmation` 的 lifecycle 设计，但不能直接证明经验 memory 会改善工具调用、DB/action outcome 或 workflow policy。
+
+### User memory / benchmark：哪些 benchmark 测的是用户记忆
+
+一个容易被低估的评估风险是：agent memory 对 benchmark 的影响不只来自“记住经验后把任务做对”。它也可能学到 **user preference / evaluator preference**，从而间接提高分数。
+
+这不一定是作弊。严谨实验会拆 train / eval，避免同一题、同一轨迹或同一答案泄漏。但只要 train 和 eval 来自同一类用户、同一种任务描述风格、同一个 LLM judge / rubric 或同一批人类标注习惯，memory 仍可能学到“这个用户/裁判喜欢什么样的回答、解释、格式、风险偏好”。这类收益应和真正的 task execution improvement 分开看。
+
+一个更精确的拆法是：
+
+| 增益来源 | 表现 | 评估风险 |
+| --- | --- | --- |
+| Task-execution memory | 少走弯路、选对工具、参数更准、最终环境状态更正确 | 这是希望 benchmark 捕捉的核心能力 |
+| User-preference memory | 更符合用户偏好、语气、格式、澄清/执行边界 | 可能提升用户满意度，但不等价于任务能力变强 |
+| Evaluator-preference memory | 更贴合 rubric、LLM judge 或人类裁判的偏好 | 可能形成 evaluator overfitting，导致分数高估泛化能力 |
+
+所以 memory benchmark 最好同时报告：held-out task success、held-out user / domain 泛化、judge / rubric 变体、trajectory-level correctness 和 final outcome correctness。否则“memory 有用”可能混合了三件事：真的会做任务、会讨好用户、会讨好裁判。
+
+#### User-memory benchmark：MemoryAgentBench 的能力拆解
+
+> 来源：[MemoryAgentBench arXiv](https://arxiv.org/abs/2507.05257)、[GitHub](https://github.com/HUST-AI-HYZ/MemoryAgentBench)、[Hugging Face dataset](https://huggingface.co/datasets/ai-hyz/MemoryAgentBench)。用户 2026-05-09 读完。
+
+MemoryAgentBench 更偏 **user / conversation memory**，和 LoCoMo 同属长期交互记忆大类。它关心的是信息在多轮交互中如何被记住、更新、抽象和应用，而不是 memory 是否改善工具调用、DB/action outcome 或 workflow policy。更准确地说，它是把长上下文、QA、分类、推荐、摘要和冲突更新包装成 simulated user-assistant dialogue，用来测 memory agent 的通用信息记忆能力。
+
+核心 benchmark 定义是：
+
+```text
+context chunks: c1, c2, ..., cn
+questions: q1, q2, ..., qm
+answers: a1, a2, ..., am
+
+memory construction:
+  sequentially inject c1..cn as simulated User-Assistant dialogue
+
+query execution:
+  ask qj
+  answer based on constructed memory
+  evaluate against aj
+```
+
+这里最值得记住的工程细节是：**wrap all input chunks within a simulated User-Assistant dialogue to explicitly trigger the agent's memory mechanism**。它不是把原始长文一次性塞进上下文，而是把每个 chunk 包装成“请记住这段内容，后面会问你”的多轮交互，逼 memory agent 走自己的 memory construction / update 机制。许多样本还采用 `inject once, query multiple times`：一次长 context 注入后，对同一 memory state 发多个 query，提高评测效率。
+
+四类任务可以整理成：
+
+| 能力 | 问题定义 | 典型数据集 / 任务 | 对 Agent Harness 的可迁移部分 | 边界 |
+| --- | --- | --- | --- | --- |
+| Accurate Retrieval (AR) | 从长历史中定位关键事实，支持单跳 / 多跳 retrieval。 | Document QA、LongMemEval、EventQA。 | `source_unit -> query -> answer evidence` 的 retrieval diagnostic。 | 主要测找信息，不测信息是否改善未来行动。 |
+| Test-Time Learning (TTL) | 在交互中学会新任务或偏好，并在后续 query 中应用。 | Multi-class classification、movie recommendation。 | “历史样例 / 用户偏好 -> 后续任务表现”的 learning signal；可启发 experience-to-policy 的弱形式。 | 推荐任务的 answer 是 ReDial movie/entity id，如 `7008`，不是 procedure action。 |
+| Long-Range Understanding (LRU) | 对长文本 / 长对话形成整体理解，而非局部事实召回。 | Novel summarization、DetectiveQA。 | 区分 local retrieval 和 global understanding。 | 对当前 tool-use / DB outcome 主线迁移较弱。 |
+| Selective Forgetting / Conflict Resolution (SF/CR) | 新事实覆盖旧事实，按最终 memory state 回答。 | FactConsolidation，基于 MQUAKE counterfactual edit pairs。 | `retire / override / supersede / conflict_resolution` 这类 memory lifecycle policy。 | 它处理事实冲突，不等价于 procedure memory 的适用边界和负迁移。 |
+
+TTL 里的 recommendation 子任务尤其容易误读。Hugging Face 的 `Test_Time_Learning` split 中，`answers` 里出现的 `7008`、`4611`、`23561` 等数字是 ReDial 电影推荐数据集里的 movie / entity id，不是分数也不是类别 label。MemoryAgentBench 把推荐包装成 test-time learning：context 是大量历史推荐对话，questions 是新的推荐对话 prompt，answers 是 ground-truth relevant movie ids，用 Recall@5 等推荐指标评估命中。
+
+因此 MemoryAgentBench 对 Agent Harness 的用法应保持克制：
+
+- 可以借 **ability taxonomy**：AR / TTL / LRU / SF。
+- 可以借 **dataset shape**：`context + questions + answers + metadata`，尤其 `qa_pair_ids / question_types / source`。
+- 可以借 **lifecycle 语言**：SF 对应 retire / supersede / conflict resolution。
+- 不能把它当作 procedure-memory 的充分背书，因为它不能证明 memory 会让 agent 少错工具、少走弯路或提升 task success。
+
+#### AMA-Bench：Agent memory 不是 dialogue memory
+
+> 来源：[AMA-Bench arXiv](https://arxiv.org/abs/2602.22769)、[GitHub](https://github.com/AMA-Bench/AMA-Bench)、[Hugging Face dataset](https://huggingface.co/datasets/AMA-bench/AMA-bench)、[Leaderboard](https://huggingface.co/spaces/AMA-bench/AMA-bench-Leaderboard)。用户 2026-05-05 读完。
+
+AMA-Bench 的关键价值不是又多了一个问答集，而是把 **long-horizon agent memory** 从 dialogue memory 里拆出来：agent 轨迹主要由工具调用、HTML / JSON / SQL / code / ASCII table、环境状态转移和客观机器信息构成，不是闲聊里的冗余自然语言。它的标题 `Agent Memory with Any length` 也在强调同一件事：memory benchmark 应该面向任意长度的 agent-environment interaction，而不是只测短上下文 recall。
+
+形式上，agent-environment interaction 可以看作一个 POMDP-like 过程：
+
+$$
+\mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{O}, P, r)
+$$
+
+每个时刻有隐藏状态 $$s_t$$、动作 $$a_t$$ 和观察 $$o_t$$；给定任务指令 $$x$$，可见轨迹历史是：
+
+$$
+h_t = (x, a_1, o_1, \ldots, a_t, o_t)
+$$
+
+Memory system 则拆成两阶段：
+
+$$
+\mathrm{Build}: \mathcal{H} \rightarrow \mathcal{M}_{mem}, \quad
+m_t = \mathrm{Build}(h_t)
+$$
+
+$$
+\mathrm{Retrieve}(m_t, q_t) \rightarrow c_t, \quad
+a_t \sim \pi(\cdot \mid q_t, c_t)
+$$
+
+这个抽象比“把历史切 chunk 做向量召回”更适合作为 Agent Memory 的高层定义：memory construction 负责把轨迹转成外部记忆状态，memory retrieval 负责在 query 下取回可用上下文，最终影响 agent 的后续行动。
+
+AMA-Bench 把能力维度分成三类机制、四类能力：
+
+| 机制 | 能力 | 对 Agent Harness 的解释 |
+| --- | --- | --- |
+| Memory Retrieval | Recall | 找到时间、顺序、具体 step / turn 的信息 |
+| Memory Retrieval | Causal Inference | 判断 action 前提、状态依赖和因果约束 |
+| Memory Evolution | State Updating | 跟踪显式观察与隐藏状态的更新 |
+| Memory Condensation | State Abstraction | 从高密度轨迹里过滤冗余，抽取关键状态 |
+
+论文最有价值的批评是：现有 memory 系统弱，不只是因为 context 不够长，而是因为它们容易丢三类信息：
+
+- **representation type**：agent 轨迹里有大量机器生成表示，不只是自然语言段落。
+- **causality**：每个 action 会改变 latent environment state，后续 observation 受前置状态约束。
+- **sparse objective information**：轨迹信息密度高、闲聊少，压缩和相似度召回一旦丢错 token，就会直接丢 evidence。
+
+Empirical motivation 也支持这个判断：很多 memory method 在 AMA-Bench 上落后 long-context baseline；一些方法 construction 后已经丢信息，端到端 retrieval 又进一步掉分。这说明 memory 设计瓶颈不只在 LLM 推理能力，还在 `memory object` 是否保留因果状态、客观证据和可追溯 turn。
+
+官方实现的 benchmark interface 很干净：
+
+```python
+memory_construction(traj_text: str, task: str = "") -> Any
+memory_retrieve(memory: Any, question: str) -> str
+```
+
+方法实现上：
+
+- `longcontext`：memory 就是完整轨迹文本；超窗时保留头部约 70% 和尾部约 30%。
+- `bm25`：按 step / turn 切文档，BM25 top-k。
+- `embedding`：按 turn 切文档，embedding + FAISS / cosine top-k。
+- `ama_agent`：construction 阶段压缩 `state_mem`，可选建 causality graph 和 turn embeddings；retrieve 阶段先相似召回，再由 LLM 判断 `SUFFICIENT / NEED_GRAPH / NEED_CODE`，必要时通过图邻域、turn range 或 Python 脚本在原始 trajectory JSON 上查证据。
+
+对 Agent Harness / OpenViking 的判断要更克制：AMA-Bench 的 **trajectory 数据很有价值**，适合作为 memory construction、evidence retrieval、state tracking 的诊断语料；但它的 QA pair 多数仍是“读轨迹回答问题”，不等价于“memory 是否改善未来 action / task outcome”。因此它不应替代 tau2 / OpenViking replay 这类 outcome benchmark，更适合做三件事：
+
+1. **Adapter smoke**：读取 `dataset/test/open_end_qa_set.jsonl`，跑通 trajectory schema、memory construction、memory retrieval、evidence trace 和 judge 输出。
+2. **Memory backend 体检**：用真实 agent trajectories 检查 memory 是否保留 structured representation、causal state 和 objective evidence。
+3. **Benchmark scouting seed**：沿 AMA-Bench 的 domain（web、software、Text2SQL、embodied AI、game、open-world tool QA）继续找能评估 future action / outcome delta 的 benchmark。
+
+这条线和 `Memory Routing` 的关系是：AMA-Bench 可以提供 high-fidelity trajectory item 和 state/evidence QA diagnostic；真正的 `reward(memory, task)` 仍要回到 paired replay、DB/action correctness、token cost 与 regression。
+
+#### MemoryBench：把 no-feedback benchmark 转成 experience log
+
+> 来源：[MemoryBench arXiv](https://arxiv.org/abs/2510.17281)、[GitHub](https://github.com/LittleDinoC/MemoryBench/)、[Hugging Face dataset](https://huggingface.co/datasets/THUIR/MemoryBench)、[OpenReview](https://openreview.net/forum?id=wU4Tjlzg3h)。用户 2026-05-08 读完。
+
+MemoryBench 的核心问题不是“模型能不能从长上下文里找答案”，而是：一个 LLM 系统在服务用户过程中，能不能把历史用户反馈变成 **procedural memory**，并在未来任务上持续改进。它把 memory benchmark 从 context recall 推向 `feedback utilization / continual learning`。
+
+它的 memory taxonomy 很关键：
+
+- **Declarative memory**：事实性信息，包括 semantic memory 和 episodic memory。
+- **Procedural memory**：非事实性、任务执行相关经验，例如 workflow、过去答案好坏、什么策略有效。
+- **关键立场**：用户反馈日志不是普通文本知识，而是 procedural memory 的原料。
+
+Feedback taxonomy 则把用户反馈分成两类：
+
+- **Explicit feedback**：用户明确评价，包括 verbal critique、like / dislike。
+- **Implicit feedback**：用户行为信号，例如 copy、关闭会话、重新提问。
+
+![MemoryBench memory and feedback taxonomy](./AI-Applied-Algorithms/memorybench-memory-feedback-types.png)
+
+Benchmark architecture 可以看成三段：
+
+| 组件 | 职责 | 对 memory benchmark 的意义 |
+| --- | --- | --- |
+| Task Provider | 提供 query、context / corpus、evaluation metadata、train / test split | 把原始 benchmark 组织成可生成反馈的任务源 |
+| User Simulator | 在 train split 上模拟用户反馈，既可基于 objective metric，也可用 LLM-as-user 模拟开放任务反馈 | 把静态监督信号转成 feedback experience log |
+| Performance Monitor | 只在 test split 上评估系统是否因历史反馈而变好 | 避免最直接的 label leakage，测 future task improvement |
+
+系统链路可以写成：
+
+```text
+training query + evaluation metadata / ground truth
+        ↓
+LLM 先答一版
+        ↓
+User Simulator 根据标准/答案批评或打分
+        ↓
+形成 feedback log：原问题、模型回答、用户反馈、可能的后续对话/动作
+        ↓
+memory/RAG 系统把这些 feedback logs 存起来
+        ↓
+test query 到来时，检索相似 feedback logs
+        ↓
+LLM 看到“过去类似任务哪里错、该怎么改、用户偏好什么”
+        ↓
+未来任务表现提升
+```
+
+因此 MemoryBench 需要 user simulator 的最核心原因，是**规模化造经验**：把原本 `query / context / reference answer / evaluation metadata` 这种静态 benchmark supervision，转成可被 memory 系统存储、检索、更新、复用的 `response-feedback session`。它模拟的不是“真实用户闲聊”，而是把 answer key / evaluator / preference 标准转译成用户反馈形态。
+
+这可以总结成：
+
+```text
+no-feedback task / trajectory
++ evaluator / oracle / user simulator
+= experience log
+```
+
+更细地说，simulator 提供三类信号：
+
+1. **错误定位信号**：哪里没满足任务要求、哪里不准确、哪里偏题。
+2. **评价准则信号**：这个任务到底奖励什么，例如准确性、覆盖度、可读性、法律 reasoning、创造性。
+3. **修正方向信号**：下次类似任务应该怎么答，哪些错法要避免。
+
+MemoryBench 的数据覆盖 11 个公开数据源、三类 domain（Open-Domain、Legal、Academic&Knowledge）和四类输入输出形态（Long-Short、Long-Long、Short-Long、Short-Short）。Hugging Face 数据中能看到 `dialog_*`、`implicit_feedback_*` 等列，说明它不是只保存最终答案，而是把不同 baseline 和用户反馈模拟结果都组织成 memory system 可消费的历史记录。
+
+反馈模拟路径也有两类：
+
+- **客观任务**：用 F1、accuracy 等 metric 评估回答，再映射成 verbal / action feedback。
+- **开放式主观任务**：用 LLM-as-user 根据 persona、domain expertise、evaluation criteria 生成 critique、后续对话、满意度或 action。
+
+论文中 `Usefulness of simulated user feedback` 的真实收益来源，主要不是“模拟用户像不像人”，而是它把评价标准、ground truth 和失败原因转译成了可被 LLM 利用的过程监督信号。收益可能来自两层：
+
+- **同一问题的 iterative refinement**：with feedback 的多轮交互会像老师当场批改一样提升回答质量，这能证明 feedback 非纯噪声，但不完全等价于长期 memory 学习。
+- **跨任务的 procedural memory / demonstration retrieval**：off-policy 设置中，系统把 train feedback sessions 存成 memory；test 时检索相似 feedback logs，让模型看到过去类似任务的错误、偏好和修正方向。这更接近 Agent Harness 关心的 experience reuse。
+
+关键实验结论要克制理解：
+
+- simulated feedback 多数情况下能提升同一问题上的回答质量，说明 feedback 有有效信号。
+- 现有 memory system 不能稳定超过朴素 RAG，跨 domain / task format 泛化不强。
+- A-Mem / Mem0 / MemoryOS 等系统容易把 feedback logs 当 declarative text 处理，没有真正建模 procedural memory，因此面对“历史反馈如何改善未来任务”时效果和效率都不够稳定。
+- On-policy / off-policy setting 本身比较 trivial；真正有价值的是 benchmark construction 方式，而不是这些 baseline 的绝对数值。
+
+对 Agent Harness 的启发是：如果未来要做 `memory_feedback_event_v0`，不一定全靠人工标注。可以先用 replay outcome、DB diff、tool/action correctness、argument grounding、regression delta 生成 objective feedback，再让 LLM 负责解释、归纳和转写成 procedural memory 候选。
+
+但边界也要明确：MemoryBench 的 experience 是由 ground truth / evaluator 蒸馏出来的模拟经验，不是自然线上用户反馈。因此它验证的是 **memory 系统能否利用结构化 feedback experience**，而不是验证真实用户反馈采集链路本身。对 Agent Harness 来说，更该吸收的是：
+
+```text
+feedback_event
+-> experience item
+-> memory update / retrieve / injection
+-> future outcome delta
+```
+
+而不是照搬 user simulator。真正重要的是 feedback event 如何被归因、选择、检索、注入，以及注入后是否带来 outcome delta。
+
+### Feedback / credit assignment：如何从反馈中学 memory
+
+#### Fine-Mem：memory update 的 step-level credit assignment
+
+> 来源：[Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory Management](https://arxiv.org/abs/2601.08435)，用户 2026-05-07 读完。
+
+Fine-Mem 关注的不是“何时检索 memory”，而是 **memory manager 如何更新 memory，以及如何把最终任务结果归因回每一步 memory operation**。它把 memory management 建成流式顺序决策：输入按 chunk 到来，Memory Manager 在每个 step 根据当前 chunk 和旧 memory state 输出 memory operation，最后 Reasoning Agent 用最终 memory state 回答全局 QA。
+
+论文里的 action space 很朴素：
+
+```text
+INSERT
+UPDATE
+DELETE
+SKIP
+```
+
+这恰好说明 V0 不必先追复杂 memory graph 或多层 hierarchy。更重要的是先保证每条 memory 有稳定来源、版本和后续曝光反馈。迁移到 Agent Harness / OpenViking 的 schema 时，不一定照搬四个动作，但至少要覆盖：
+
+```text
+source-to-corpus lifecycle:
+  upsert | skip | retire
+
+corpus-to-context exposure funnel:
+  retrieved -> injected -> followed_or_cited -> outcome_delta
+```
+
+Fine-Mem 的核心训练设计有两块。
+
+![image-20260507010348814](./AI-Applied-Algorithms/image-20260507010348814.png)
+
+**Chunk-level Step Reward (CSR)** 解决 reward sparsity。做法是先对每个 chunk 用强模型生成 factoid QA，再让 verifier 只看当前 chunk 回答，过滤掉不能由 chunk 支撑的问题，训练时用当前 memory state 回答该 chunk 的 QA，得到 step-level reward。它的价值是：如果某一步把 chunk 里的关键事实丢了，不必等最终任务失败才知道。
+
+CSR 的边界也很明显：它容易奖励“保留更多局部事实”。论文 ablation 也显示，只加 CSR 会提升性能但 memory length 变长。对 agent memory 系统来说，CSR 更像 `source_quality_gate` 的弱监督，而不是最终价值函数：它判断 memory 是否忠实保留了 source trace 的关键事实，但不能证明这条 memory 会改善未来行动。
+
+**Evidence-Anchored Reward Attribution (EARA)** 解决 credit assignment。它维护 memory item 到 source step 的反向映射；当全局 QA 得分产生后，只把 reward 分配给被检索为 evidence 的 memory item 所对应的 update step，同时保留一部分 uniform participation credit。形式上可以理解为：
+
+$$
+r^{(t)}_{\mathrm{EARA}}
+=
+(1-\beta)\frac{r_{\mathrm{global}}}{T}
++ \beta N_t
+$$
+
+其中 $$N_t$$ 是第 $$t$$ 个 update step 通过被检索 memory 对全局 QA 得分产生的 normalized evidence contribution。这个机制最值得迁移的不是公式，而是三个约束：
+
+1. memory item 必须能追溯到 `source_step_id`。
+2. reward 不能只记 task-level pass/fail，要落到被检索、被注入、被引用的 memory item 上。
+3. 归因不能过强；一次正向 evidence 不应立刻变成 durable lifecycle 决策。
+
+这和 ProactAgent 互补：ProactAgent 把 retrieval 变成 policy action，回答“该不该检索、何时检索、用什么 query”；Fine-Mem 则回答“信息进入 memory 后，哪一步 update 对后续 QA / reasoning 有贡献”。前者更偏 retrieval policy，后者更偏 memory construction / lifecycle policy。
+
+对 Agent Harness 的更重要判断是：**agent memory 本质上更接近世界知识 / procedure knowledge 的外部状态，当前难点往往不是大模型不会生成 memory，而是哪些 experience 应该进入 memory、何时曝光、曝光后是否带来 outcome delta。** 大模型吸收和改写知识的能力已经足够强，选取、排序、归因和生命周期治理反而更重要。因此 Fine-Mem 对我们的价值主要是 schema / attribution 方法线索，不是 Agent Harness procedure-memory 的充分 benchmark 背书。
+
+Memalpha 和 MemoryAgentBench 也要放在这个边界下理解。MemoryAgentBench 更偏 user / conversation memory：它评估 Accurate Retrieval、Test-Time Learning、Long-Range Understanding、Selective Forgetting / Conflict Resolution，很多样本被包装成显式“请记住用户信息”的多轮交互。Memalpha 稍复杂，数据来自 QA、分类、摘要等任务，被包装成 conversation chunks，并有 core / episodic / semantic memory，但 core memory 仍偏用户事实、偏好、角色和目标。它们能证明 Fine-Mem 的 memory update 训练有用，但不能直接证明 Agent Harness 的 procedure memory 会改善工具调用和 DB/action outcome。
+
+因此 Agent Harness 的最小闭环应拆得更细：
+
+```text
+source_step_id
+experience_key
+memory_id
+memory_version
+lifecycle_action = upsert | skip | retire
+retrieved
+injected
+followed_or_cited
+outcome_delta
+```
+
+演进路线可以是：
+
+```text
+V0:
+  same-prefix paired replay
+  suppressed retrieval branch
+  event-level outcome delta
+  attribution fields
+
+V1:
+  rule / logistic / GBDT ranker
+  source_quality + exposure_utility feature ablation
+
+V2:
+  contextual bandit / OPE
+  retrieval action and lifecycle action
+
+V3:
+  RL runner bridge / GRPO-style training
+```
+
+这个顺序比一上来训练 memory manager 更稳：先把 `source-to-corpus lifecycle` 和 `corpus-to-context exposure funnel` 的事件链打通，再考虑学习 policy。
+
+#### Continuous consolidation：有用经验如何被写坏
+
+> 来源：[arXiv](https://arxiv.org/abs/2605.12978)、[Project page](https://dylanzsz.github.io/faulty-memory/)。用户 2026-05-31 读完。
+
+`Useful Memories Become Faulty When Continuously Updated by LLMs` 不是反对 agent memory，而是在打一个常见默认假设：`episode -> summary -> overwrite memory` 不是无害整理，而是一次有损重写。Raw trajectory 是证据，LLM consolidation 是从证据到派生状态的压缩；如果系统每轮任务后都自动更新长期 memory，长期跑下去可能不是自我进化，而是把原本有用的经验写坏。
+
+最重要的对照是 `Static-Group > Static-All > Stream`。`Static-Group` 先按 task family 分组再抽象，给 consolidator 最干净的结构边界；`Static-All` 把异构经验一次性混在一起，已经会把 unrelated procedures 合成泛化但不准确的 lesson；`Stream` 则进一步把早期抽象当成后续 rewrite 的输入，小错误会被当成事实继续压缩，形成 drift。论文在 ARC-AGI Stream 上的 sanity check 很锋利：一组此前无 memory 可 100% 解出的 19 个题，在 streaming consolidation 后降到约 54% / 52.6%。问题不在 trajectory 无用，而在 consolidation loop 把可靠证据改写成了误导性状态。
+
+三类 failure mode 可以压成：
+
+| failure mode | 机制 | 对 agent memory 的含义 |
+| --- | --- | --- |
+| `misgrouping` | consolidation 前把不共享底层结构的 episodes 放进同一组。 | 写入系统不能只靠语义近邻合并；需要 task family、tool/action type、state predicate、negative scope 等 grouping guard。 |
+| `interference / overgeneralization` | 抽象时剥掉 applicability condition，把局部 workflow 写成泛化 lesson。 | Memory item 必须保存适用边界、反例和 do-not-inject 条件；否则会污染邻近任务。 |
+| `overfit` | 窄分布 stream 被反复 rewrite，lesson 变成 seen instance 的表面描述。 | 同一类经验越多，不一定越该增量改写；可能更该保留 raw links 并触发离线 re-extract。 |
+
+工程上这篇给出的约束比“换个更强 prompt 做总结”更硬：
+
+1. Raw trajectory / raw episode 必须是一等证据，不能在 summary 成功后被覆盖或丢弃。
+2. Consolidated memory 应是慢变量：先写入候选 summary，再经过 promotion criteria、utility regression、rollback handle 才进入 serving 层。
+3. Update 操作除了 `create / update / merge / delete`，还要有 `skip`：WebShop W8 case 说明看似正确的 workflow 也可能伤害效果，低价值或负迁移的经验应允许不写。
+4. 如果同一条 experience 新增 linked trajectories 超过阈值，不应继续沿当前 summary 增量 rewrite；更稳的是回到 raw trajectory 集合重新 extract，并比较 old summary / new summary / raw-episode baseline 的 utility。
+5. Stream 如果不可避免，batch 必须尽量 homogeneous；heterogeneous batch 会把 incompatible lessons 在同一次 update 内合并，加速 erosion。
+
+对 Agent Harness / OpenViking 的直接产物应是 `memory_consolidation_gate_v0`：
+
+```text
+raw_episode_refs
+candidate_summary
+summary_diff
+grouping_basis
+applicability_boundary
+negative_scope
+promotion_criteria
+skip_reason
+utility_regression
+rollback_artifact
+reextract_trigger
+```
+
+一句话：**memory 写入是 state mutation，不是笔记美化。** 真正稳的 agent memory 系统应把 raw evidence、abstract store、serving layer 和 eval / regression layer 分开，并默认把 consolidation 视为需要验证的 promote 行为，而不是每次任务结束后的自动清理动作。
+
+#### MemAgent: Reshaping Long-Context LLM with Multi-Conv RL-based Memory Agent ([arxiv](https://arxiv.org/abs/2507.02259), ICLR 2026)
+
+字节 Seed + 清华 AIR。核心洞察：长上下文的本质不是更大窗口，而是"读、记、忘"的 memory policy——session memory 不能只是 append-only transcript，应支持压缩、重写、保留与遗忘。
+
+**Workflow**：将长文档切为 K 个 chunk（每段 ≤C tokens），模型每步只看 `(当前 chunk + 固定长度 memory)`，处理完后 overwrite memory，全部 chunk 读完后基于最终 memory 生成答案。Memory 长度固定为 M，因此每步计算量 $$O(C+M)$$，总复杂度 $$O(N)$$。8K 上下文训练的模型在 3.5M token QA 上性能损失 <5%，512K RULER 准确率 95%+。
+
+**建模：自回归分解 + 隐变量 memory**。标准 AR 模型 $$p(\mathbf{x}_{1:N}) = \prod p(x_n | \mathbf{x}_{1:n-1})$$ 假设全部历史在 context 中，导致 $$O(n^2)$$。MemAgent 引入固定长度 latent memory $$\mathbf{m}^{1:K-1}$$，将联合似然分解为 read path + write path：
+
+$$p(\mathbf{x}_{1:N}) = \sum_{\mathbf{m}^{1:K-1}} \prod_{k=1}^{K} \underbrace{p(\mathbf{c}^k \mid \mathbf{m}^{k-1})}_{\text{read}} \cdot \underbrace{p(\mathbf{m}^k \mid \mathbf{c}^k, \mathbf{m}^{k-1})}_{\text{write}}$$
+
+本质是把 Transformer 变成状态大小用户可控的 RNN。Memory 在 token space（离散、人类可读），而非 feature space（连续、隐式），因此 overwrite 是离散生成行为，梯度无法回传——**RL 不可替代**。RL 通过最终答案正确性作为 reward，直接奖励"好 memory"，bridge 了 explicit supervision（答案）和 implicit structure（好 memory）的 gap。消融实验证实：无 RL 的 memory 机制随长度仍退化，RL 后近乎无损外推。
+
+**训练：Multi-Conv DAPO**。一次推理产生多个 context-independent 对话（每个 chunk 一轮），标准 GRPO/DAPO 只处理单对话。核心设计：(1) 每个对话作为独立优化目标，不能简单 attention mask 拼接；(2) Reward 只来自最终对话（含答案），但 advantage 均匀传播到所有对话：$$\hat{A}_{i,j,t} = r_i - \text{mean}(\{R_i\}_{i=1}^G)$$；(3) Loss 维度从 (group, token) 扩展为 (group, conversation, token)，用 DAPO 非对称 clip。Reward 为 rule-based verifier（RLVR recipe），QA 用等价性检查，多值任务用召回率
+
+#### ProactAgent：把 retrieval 从 passive RAG 升级成 policy action
 
 > 来源：[Ask Only When Needed / ProactAgent](https://arxiv.org/abs/2604.20572)，用户 2026-05-04 精读。
 
@@ -1713,37 +3170,177 @@ $$
 3. **V2：再考虑 policy / contextual bandit**。任务阶段差异不要做成多套策略，而是作为同一个 policy / ranker 的 context feature，例如 `planning`、`before_tool_call`、`after_tool_error`、`recovery`、`final_check`。
 4. ProactAgent 的五类 schema 可作为 experience base 的候选结构，但 Agent Harness V0 不必一次做满；可以先把 tau2 轨迹分成 factual / episodic / success / failure，再等 paired replay 稳定后生成 comparative skill。
 
-这篇和 A89 正好互补：A89 说明 memory 会成为强 behavior prior，因此要治理错误传播和错配回放；ProactAgent 则说明 retrieval 本身是可学习 action，因此要记录 trigger/query/state，并用 paired replay 给 retrieval decision 分配 credit。
+ProactAgent 和 experience-following 这篇正好互补：后者说明 memory 会成为强 behavior prior，因此要治理错误传播和错配回放；前者说明 retrieval 本身是可学习 action，因此要记录 trigger/query/state，并用 paired replay 给 retrieval decision 分配 credit。
 
-### File System as Meta Tool
+#### LRAT：从 agent trajectory 中学习 retrieval / memory ranking
 
-> File System as Meta Tool：AI Agent 基础设施新思路 https://mp.weixin.qq.com/s/seaRW3uKwNfX0pnis8g0Rw
+> 来源：[LRAT: Learning to Retrieve from Agent Trajectories](https://arxiv.org/abs/2604.04949)，用户 2026-05-07 读完。Codex 已读取 arXiv abs、PDF 正文、[project page](https://yuqi-zhou.github.io/LRAT-homepage/)、[GitHub](https://github.com/Yuqi-Zhou/LRAT) 与 [Hugging Face paper page](https://huggingface.co/papers/2604.04949)。
 
-* **File System for Agent Context**:
-  * 最近，文件系统作为 AI Agent 的核心架构正在被重新审视。
-  * Manus、Claude Code、Anthropic Skill 系统等实践都指向文件系统在 AI Agent 架构中的价值。
-* **Unix 哲学：Everything is a file**:
-  * AGFS (Aggregated File System) 项目理念：Everything is a file system。队列、数据库、天气 API 都可以是文件系统。
-  * 这是对 Plan 9 操作系统 "用文件系统做一切事情" 理念的致敬。
-  * 目标：将工具通过文件系统接口提供，可以直接串联到 bash 上，以最小的代价组合出最多的可能性。
-* **Context, Context File System, Memory 的关系**:
-  * 当前 AI Agent 基础设施 (APIs + Containers + Local FS) 存在调试困难、协作依赖网络、可观测性差等问题。
-  * 数据库擅长数据存取，但不擅长控制流（if-else, for loop）。Agent 需要的是编程能力 + 数据访问能力的结合。
-  * **Context File System** 可作为承载 Context 和组织 Memory 的 **Meta Tool**。
-* **传统文件系统的缺陷**:
-  * 只适合非结构化数据。
-  * 难以支持 Agent 间的消息投递。
-* **解决方案**:
-  * 针对不同场景实现不同的文件系统，再串联到一个大平台上。
-  * Memory 可以通过文件夹（如 long_term, short_term）来组织。
-  * 消息传递用 QueueFS
-  `cat context.txt | llm > output.txt && exec action.sh`
+LRAT 的核心观点是：retriever 应该从 agent trajectories 学，而不是继续套 human search logs。传统 IR / LTR 依赖 click、dwell time、人工 relevance label；但 agentic search 中的 query 是长程任务里的中间行动，retrieval 的消费者是 agent policy，而不是人。因此 retrieval 的训练目标也应来自 agent 后续是否消费、如何消费、是否推进任务。
 
-### 火山引擎 MineContext
+论文把 deep research agent 的轨迹写成：
 
+```text
+Think -> Search(query) -> top-k documents/snippets
+-> Browse(document) -> post-browse reasoning
+-> next Search / Browse / Answer
+```
 
+然后从这个轨迹里挖四类监督信号：
 
-## Online Learning、持续学习
+| 轨迹信号 | LRAT 中的含义 | Agent memory 迁移 |
+| --- | --- | --- |
+| `Browse` | 被 agent 打开的 document 是 naive positive | 被 agent 选择消费的 memory 才接近正反馈 |
+| `Unbrowsed` | 同批候选中未被打开的 document 是 negative | 只有 exposed-but-ignored memory 才能当负例 |
+| `Post-browse reasoning` | 打开后 reasoning 是否真的使用该 document | memory 被注入后是否影响 reasoning/action chain |
+| `Reasoning length` | 作为 relevance intensity / utility weight | 可做 utility proxy，但不能单独当 reward |
+
+模型设计上，LRAT 本质不是新 agent 架构，而是一个 **从 agent trajectory 自动挖监督信号来训练 dense retriever / memory ranker** 的框架。它不训练 agent policy，而是把 deep research agent 的 `Search -> Browse -> post-browse reasoning` 轨迹转成 query-doc 正负样本和 utility weight，最后训练 bi-encoder retriever。
+
+更具体地说，它分四步：
+
+1. **Naive relevance mining**：agent 对 query `q_t` 发起 `Search` 后，会拿到候选文档集合 `D_t`。如果下一步 agent `Browse(d)`，这个被打开的文档先当 naive positive；同一批 top-k 里没被打开的文档当 negative。这里的关键边界是：negative 是“已经暴露给 agent 但没被用”的候选，不是没召回的全库文档。
+2. **Reasoning-aware positive filtering**：`Browse` 也可能是误点，所以 LRAT 继续看打开文档后的 post-browse reasoning，用 LLM judge 判断后续推理是否真的使用了这个文档。`browsed-but-useless` 会被过滤掉，减少 false positive。
+3. **Intensity / utility weighting**：如果一个文档打开后触发了更长、更实质的 reasoning，LRAT 认为它对任务推进更有用。它用 post-browse reasoning length 估计 relevance intensity，并经过饱和函数映射成权重 `w`。直觉类似搜索里的 dwell time：不是所有 positive 都一样重要。
+4. **Weighted contrastive learning**：最后训练标准 bi-encoder dense retriever：`e_q = Encoder(q)`，`e_d = Encoder(d)`，`score = sim(e_q, e_d)`。loss 是加权 InfoNCE：positive 是过滤后的 useful browsed doc，negatives 是同批 unbrowsed docs + in-batch negatives，weight 是 reasoning-length-derived utility weight。
+
+整体流程可以压缩成：
+
+```text
+Deep research agent trajectories
+-> Search(query) 得到 top-k docs
+-> Browse(doc)
+-> Post-browse reasoning
+-> 挖出 query-doc 正负样本和 utility weight
+-> 训练 bi-encoder dense retriever
+```
+
+也就是让 query embedding 更接近真正被 agent 消费并用于推理的 document，远离同批被忽略的 candidate，同时让高 utility 样本的梯度更大。
+
+对 Agent Harness 更重要的是 reward 分层。长程任务里的 reward 至少有两类：
+
+```text
+process signals:
+  exposed / injected / browsed / followed_or_cited
+  post_use_reasoning_span
+  caused_tool_action
+  intermediate error recovery
+
+final signals:
+  task_success
+  DB/action correctness
+  final answer quality
+  regression on old tasks
+  token/step/cost efficiency
+```
+
+process signals 密集、便宜、可用于训练 retrieval / rerank / memory utility model；final signals 稀疏、昂贵、但决定方向是否正确。两者不能互相替代：只用过程信号容易学到“看起来被消费”的 memory；只用最终 reward 又太稀疏，难以给具体 memory item 分配 credit。
+
+一个更合理的两层建模是：
+
+```text
+Layer 1: exposure utility model
+  input: state, query, candidate_memory, rank, source features
+  label: injected / followed / cited / post-use reasoning / caused action
+  model: rule -> logistic/GBDT -> reranker/two-tower
+
+Layer 2: outcome calibration model
+  input: memory exposure event + trajectory outcome
+  label: outcome_delta / regression_delta / cost_delta
+  method: paired replay, OPE, contextual bandit, eventually RL
+```
+
+这样可以同时容纳两条路线：
+
+1. **LLM / reranker 路线**：基于 memory 内容、task state、reasoning span，让 LLM 或 cross-encoder 判断候选是否应注入。优点是启动快、语义强；缺点是贵、难服务化、容易把 judge 偏好当真 reward。
+2. **RecSys / RL 路线**：把 memory 抽象成 experience item，用 exposure log、utility weight、outcome delta 学 ranker / bandit。优点是可迭代、可校准、可做负反馈和 lifecycle；缺点是需要稳定 schema 和足够 trace 数据。
+
+V0 应先做第二条路线的日志与弱监督数据，不急着端到端 RL。最小字段应包括：
+
+```text
+query_or_state_id
+candidate_memory_id
+rank_position
+retrieved
+exposed_to_agent
+injected
+ignored_after_exposure
+followed_or_cited
+post_use_reasoning_span_id
+post_use_reasoning_len
+caused_tool_action
+utility_weight
+trajectory_success
+outcome_delta
+regression_delta
+policy_version
+```
+
+其中 `unbrowsed` 的迁移边界尤其重要：没有进入 agent 视野的 memory 不能当负例。只有 candidate 已经被展示 / 可选择，但 agent 未使用，才是 `ignored_after_exposure`。如果让 LLM 对每条素材打 `1/0`，它更像 judge label，而不是 agent behavior label；可以作为冷启动弱监督，但最终仍要被 trajectory feedback 校准。
+
+把 LRAT 迁移到 Agent Harness / memory ranker 时，可以直接对应成：
+
+```text
+retrieved memory != positive
+exposed but ignored memory = useful negative
+injected / cited / caused action = stronger positive
+post-use reasoning span = utility signal
+final outcome delta = calibration signal
+```
+
+一句话：**LRAT 给 Agent Harness 的启发不是“照搬 weighted contrastive learning”，而是把 trace 中的消费行为、拒绝行为、使用后 reasoning 和最终 outcome 组织成 memory ranker 的训练数据。** 这会把 memory system 从静态 RAG 检索器推进到 agent-feedback-driven recommendation system。
+
+#### Agent Memory 管理：experience-following、错误传播与错配回放
+
+> 来源：[How Memory Management Impacts LLM Agents: An Empirical Study of Experience-Following Behavior](https://arxiv.org/abs/2505.16067)，用户 2026-05-03 精读。
+
+Agent memory 先分层：短期记忆是任务内 working memory；长期记忆可分为三类：semantic memory 保存世界知识和环境理解，procedural memory 保存规则、流程和操作策略，episodic memory 保存具体任务经历。这篇关注的是 episodic memory：把过去的 query-execution pair 存下来，后续相似任务检索出来当 demonstration。
+
+论文最关键的现象是 **experience-following**：当前任务输入与被召回 memory 的输入越相似，agent 输出越倾向于复刻历史输出。这个性质本身是双刃剑：正确经验被复用时会自我增强；错误经验被复用时会形成 error propagation；源任务看似正确但和目标任务前提不一致时，会形成 misaligned experience replay。
+
+这给 memory 系统一个很强的约束：相似度不是充分条件。Memory item 需要同时具备来源质量、适用边界和后续效用信号，否则 memory bank 越大，越容易把“看起来相似但前提不同”的经验注入上下文。
+
+```text
+memory utility
+= coverage gain
+- noise propagation
+- token cost
+- regression risk
+```
+
+因此 memory_size 本身不是坏事，它提供 coverage；真正的问题是 memory_noise 和 misalignment。更像推荐系统：候选池变大后，系统不应简单限制 item 数，而是要做质量估计、曝光反馈、降权、删除和重写。
+
+**Strict selective addition 的边界**：
+
+- 论文中的 strict addition 本质是用强 evaluator 判断源轨迹是否可写入；部分实验用 human/oracle 近似，AgentDriver 等设置会比较生成结果与 ground truth。
+- 这适合作为 upper bound 和设计启发，但不能直接当作线上策略，否则会把 label / gold execution 泄漏到 memory admission。
+- 工程可落地的版本应拆成三层：`source_quality_gate` 判断源轨迹能否写入，`applicability_gate` 判断当前任务能否使用，`post_exposure_utility` 判断注入后是否真的提升结果。
+
+**Deletion 也不应只按时间或频次**。论文提出 history-based deletion：一条 memory 被多次召回后，如果平均 future utility 低，就删除。这比 LRU 更接近“曝光后反馈”：不是看 memory 本身像不像，而是看它被曝光以后有没有提升 outcome。
+
+这件事可以抽象成 agent memory 的 routing / exposure 问题；上面的 `Memory Routing` 是后续持续填充这个领域的 canonical section。这篇提供的是第一个关键 empirical foundation：为什么相似度召回会产生 behavior prior，以及为什么 memory lifecycle 必须基于 outcome feedback。
+
+| RecSys 概念 | Agent memory 概念 |
+| --- | --- |
+| user / context | worker、task、domain、runtime state |
+| item | experience、procedure memory、trajectory fragment |
+| exposure | memory 被检索并注入上下文 |
+| click / convert | agent 遵循 memory，改变工具调用或行动 |
+| reward | paired outcome delta |
+| negative feedback | regression、wrong tool、DB diff worsened |
+| delete / bury | history-based deletion、utility-based pruning |
+
+```text
+reward(memory, task)
+= outcome_with_memory
+- outcome_without_memory
+- token_cost_penalty
+- regression_penalty
+```
+
+对 Agent Harness / OpenViking 的直接启发：memory 不是“向量召回的文本块”，而是带稳定 id、来源轨迹、前提条件、适用范围、反例、曝光反馈和 lifecycle 的 experience item。评估也不能只看 recall 命中率，而要看 paired replay 后 task outcome、DB/action correctness、token cost 和 regression。
+
+## Online Learning、持续学习与反馈优化
 
 > [深度讨论 Online Learning ：99 条思考读懂 LLM 下一个核心范式｜Best Ideas](https://mp.weixin.qq.com/s/K4eROyUU97QZY4uTacMtRw)
 
@@ -1887,50 +3484,9 @@ $$
 
 **•** 如果是需要模型实现对动态环境适应、更 personalized 学习，例如探索每个个体的偏好（涉及人类偏好、实时新闻或个性化需求的任务中），这种时候模型面对的数据分布差异很大，因为模型要和每个个体交互，而每个个体给出的反馈数据差异极大，这种场景/需求下 online learning 更能够效益最大化。
 
-### PAHF (Personalized Agents from Human Feedback) - Meta & 普林斯顿最新研究
+### 如何做 Online Learning
 
-> 来源：小红书文章 "Meta最新研究：让AI真正读懂你的心" http://xhslink.com/o/6la6P9x5WsL
-
-**核心痛点**
-
-现在的AI智能体虽然聪明，但往往不懂用户。主要问题有两个：
-1. 遇到新用户时，因为没有历史数据，AI不知道该怎么做
-2. 用户的喜好是会变的（比如以前爱喝可乐，现在爱喝茶），但AI往往只记住了旧习惯，无法适应变化
-
-**PAHF框架**
-
-Meta和普林斯顿等机构提出了一种新框架：**PAHF（Personalized Agents from Human Feedback）**。它不再依赖死板的历史数据，而是像人一样，在互动中"持续学习"。
-
-**三步循环机制**
-
-PAHF通过一个"三步循环"来通过反馈不断进化：
-
-1. **行动前询问（Pre-Action）**
-   - 如果AI发现指令模糊或不确定你的喜好，它会先开口问（例如："你想要哪种饮料？"）
-   - 这解决了"新用户"没有数据的问题
-
-2. **执行行动（Action）**
-   - 结合你的回答和它记忆库里的信息，去执行任务
-
-3. **行动后反馈（Post-Action）**
-   - 这是最关键的一步
-   - 如果AI做错了（比如它以为你还喜欢可乐，但其实你现在喜欢茶），用户给出纠正反馈
-   - AI会立刻更新自己的"显式记忆"，覆盖掉旧的喜好
-   - 这解决了"喜好变迁"的问题
-
-**为什么这个框架厉害？**
-
-研究证明，单纯靠"行动前问"或"行动后改"都不够完美：
-- 只靠问：一旦AI觉得自己懂了（哪怕是旧知识），它就不问了，导致一直做错
-- 只靠改：前期试错成本太高，总得做错一次才能学会
-
-PAHF把两者结合，既能快速上手新用户，又能灵敏捕捉用户的喜好变化。未来的AI助理不会再是一个固执的机器，而是一个能听懂纠正、能记住你最新习惯的"养成系"伙伴。
-
-
-
-#### 如何做 Online Learning
-
-##### **怎么才能做好 Online Learning？**
+#### **怎么才能做好 Online Learning？**
 
 **5 类 AI 系统对比**
 
@@ -1952,7 +3508,7 @@ PAHF把两者结合，既能快速上手新用户，又能灵敏捕捉用户的�
 
 
 
-##### **核心瓶颈 ：Reward 信号的获取**
+#### **核心瓶颈：Reward 信号的获取**
 
 **41.** 今天要做好 online learning 有两大核心瓶颈：
 
@@ -1986,7 +3542,7 @@ PAHF把两者结合，既能快速上手新用户，又能灵敏捕捉用户的�
 
 **49.** 也有观点认为，虽然 Online Learning 具体实现形式尚不清晰，但研究方向已经较为明确，也就是**通过交互、探索（exploration）和奖励的自我收集（reward self-collection），让模型能够不断改进自身能力**。
 
-##### **案例：推荐系统中的延迟反馈与生存分析**
+#### **案例：推荐系统中的延迟反馈与生存分析**
 
 **问题背景：延迟反馈 (Delayed Feedback)**
 在推荐系统（尤其是广告 CVR 预估）中，用户点击广告后，可能不会立即发生转化（Conversion），而是经过一段时间（几分钟到几天）才转化。
@@ -2017,7 +3573,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 通过优化该 Loss，模型可以同时学习 CVR（是否转化）和 CTCVR（何时转化），从而无偏地利用实时流数据。
 
 
-##### **Memory 是重要组成部分**
+#### **Memory 是重要组成部分**
 
 **66.** 从实用主义角度出发，优化 memory 是比全参数角度更好的路径。
 
@@ -2075,7 +3631,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 **99.** Memory 与 agent 的使用方式也必须被重新纳入测试与优化的环节。
 
-#### 几种路线
+### 几种路线
 
 * meta-learning：能力上的变革，核心是【快速】影响模型表现。
   * 模型实现（Parametric Learning）
@@ -2090,7 +3646,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
   * 思路1：更充分的语义化，才能在稠密的模型中共享信息增益
   * 思路2：通过系统赋予模型学习能力，如AlphaGo
 
-##### **2 种机制选择： in-context learning 还是 in-weights learning？**
+#### **2 种机制选择： in-context learning 还是 in-weights learning？**
 
 **50.** Online Learning 的目标场景可以分成两类：
 
@@ -2148,7 +3704,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 **65.** 从硬件角度来看，Training 意味着存在反向传递的计算，而 in-context learning 是 依赖前向推理过程，虽然没有涉及权重更新，但同样能够实现部分 Online Learning 的功能。目前对于 in-context learning 的极限究竟在哪里，还没有明确答案。
 
-##### MoE-CL：大模型持续学习，Task Experts/Classifier
+#### MoE-CL：大模型持续学习，Task Experts/Classifier
 
 > todo：复习GAN
 
@@ -2217,7 +3773,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 
 
-## Multi-modal Search/Agent
+## 多模态 Search / Agent
 
 ### Intro
 
@@ -2501,11 +4057,11 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 
 
-## AI Search
+## AI Search：搜索、Query 理解与生成式排序
 
 ### Intro
 
-###  搜索算法
+### 搜索算法：召回、融合与排序
 
 #### Hybrid Search (多路召回与融合检索)
 
@@ -2592,7 +4148,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 * RL
   * ![image-20250822163935761](./AI-Applied-Algorithms/image-20250822163935761.png)
 
-### AI Search 中的推理
+### AI Search 推理链路：Planner / Ranker / Writer
 
 > [搜索新范式！AI Search Paradigm重新定义复杂信息需求的智能搜索范式](https://zhuanlan.zhihu.com/p/1931375587781501201)
 >
@@ -2677,7 +4233,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 ![image-20251105175043353](./AI-Applied-Algorithms/image-20251105175043353.png)
 
-### LLM4电商搜索
+### LLM4电商搜索：离线语义增强
 
 #### Picnic: LLM 增强电商搜索
 
@@ -2697,7 +4253,7 @@ $$ L = - \sum_{i \in \text{observed}} \log(h(y_i) S(y_i)) - \sum_{j \in \text{ce
 
 
 
-### Query理解和分析
+### Query 理解：实体、意图、预处理与纠错
 
 > [电商搜索全链路（PART II）Query理解](https://mp.weixin.qq.com/s/GrMItUHW8Szghmveejn9XA)
 
@@ -2790,7 +4346,7 @@ values = [token.word for token in jieba.posseg.cut(query)
     - 利用丰富的行为数据，结合无监督词向量，来挖掘语义相似词；
     - 通过深度匹配模型、文本生成模型seq2seq等先挖掘出语义表达相近的query-query、item-item或query-item短语对，然后再将语义相近的query/item短语对进行语义对齐；
 
-### Query Rewrite
+### Query Rewrite：查询扩展与优化
 
 #### Intro
 
@@ -2850,7 +4406,7 @@ Query扩展：根据粒度的不同分为Term粒度和Query粒度两种
 * 检索sparse：重复5遍再相连
 * 检索dense：用[SEP]相连
 
-### NL2Sql
+### NL2SQL：企业数据查询工作流
 
 #### Spider 2.0: Evaluating Language Models on Real-World Enterprise Text-to-SQL Workflows ([arxiv](https://arxiv.org/abs/2411.07763), ICLR 2025 Oral)
 
@@ -2974,7 +4530,7 @@ Query扩展：根据粒度的不同分为Term粒度和Query粒度两种
 
 
 
-## CRS 对话式搜推
+## CRS：对话式搜推
 
 
 
@@ -3208,7 +4764,7 @@ Query扩展：根据粒度的不同分为Term粒度和Query粒度两种
 
   * 大模型做推荐：C9、C10
 
-## 自动驾驶
+## 自动驾驶：感知、规划与评估
 
 > 期望对 LLM + 搜广推应用有所借鉴价值
 

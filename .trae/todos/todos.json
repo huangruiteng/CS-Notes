@@ -1,7 +1,142 @@
 {
   "version": "1.0.0",
-  "updated_at": "2026-05-04T14:28:12+0800",
+  "updated_at": "2026-05-07T10:40:00+0800",
   "todos": [
+    {
+      "id": "todo-20260507-014",
+      "title": "校准 推进TODO 默认不消费 material 队列",
+      "status": "completed",
+      "priority": "P1",
+      "assignee": "codex",
+      "feedback_required": false,
+      "created_at": "2026-05-07T10:25:00+0800",
+      "started_at": "2026-05-07T10:25:00+0800",
+      "updated_at": "2026-05-07T10:40:00+0800",
+      "completed_at": "2026-05-07T10:30:00+0800",
+      "background": "用户明确校准：推进todo 不是让 Codex 消费材料队列、把 material 转成私有材料卡，而是从流程优化、机制优化、效率优化、探索素材能力、笔记重构等角度让本仓库更好。需要回退上一轮 material 消费，并修正 batch-plan / AGENTS / v2 文档。",
+      "links": [
+        "AGENTS.md",
+        ".local/AGENTS.md",
+        "Notes/snippets/codex_todo_triage.py",
+        ".trae/documents/Codex-TODO-System-v2.md",
+        ".trae/documents/Codex-TODO-User-Action-Queue.md",
+        ".local/LEARNING_MATERIAL_CANDIDATES.md",
+        ".local/CODEX_TODO_TRIAGE_INDEX.md"
+      ],
+      "definition_of_done": [
+        "删除上一轮新增的 A17/S14/S8 私有材料卡。",
+        "删除更早由推进TODO 默认消费材料队列产生的 A68/B20/A100/S20/A92/S19/S17/A101 私有材料卡。",
+        "从 .trae/todos/todos.json 中移除所有 material 转卡片完成项 todo-20260507-003 到 todo-20260507-013。",
+        "恢复 .local/LEARNING_MATERIAL_CANDIDATES.md 中 A68/B20/A100/S20/A92/S19/S17/A101/A17/S14/S8 的当前阅读队列状态。",
+        "修正 codex_todo_triage.py --batch-plan，不再默认把材料队列转成 Codex-owned 小切口。",
+        "同步 AGENTS.md、.local/AGENTS.md、Codex-TODO-System-v2.md 与用户动作队列的推进TODO 语义。",
+        "刷新 .local/CODEX_TODO_TRIAGE_INDEX.md 并验证 batch-plan 输出。"
+      ],
+      "progress": "✅ 已完成。已回退所有由 `推进TODO` 默认消费 material 队列产生的转译产物：删除 A68/B20/A100/S20/A92/S19/S17/A101/A17/S14/S8 对应私有卡片，从 `.trae/todos/todos.json` 移除 todo-20260507-003 到 todo-20260507-013，并恢复候选库阅读队列。`推进TODO` 协议已改为默认优化本仓库工作系统，包括流程、机制、效率、素材探索能力、笔记重构、脚本/skill 和索引治理。`--batch-plan` 现在明确提示：只有用户说 `素材：`、`精读`、`读完`、`调研` 或点名材料时才消费具体 material。",
+      "changed_files": [
+        "AGENTS.md",
+        ".local/AGENTS.md",
+        "Notes/snippets/codex_todo_triage.py",
+        ".trae/documents/Codex-TODO-System-v2.md",
+        ".trae/documents/Codex-TODO-User-Action-Queue.md",
+        ".local/LEARNING_MATERIAL_CANDIDATES.md",
+        ".local/CODEX_TODO_TRIAGE_INDEX.md",
+        ".trae/todos/todos.json"
+      ],
+      "codex_triage": {
+        "triaged_at": "2026-05-07",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed",
+        "judgment": "推进TODO 的默认语义应是改进 CS-Notes 工作系统，而不是处理材料队列。材料处理必须由素材/调研/精读/读完等显式指令触发。",
+        "recommended_action": "后续连续推进 TODO 时，优先找流程机制、脚本索引、笔记结构、素材探索能力和用户动作队列治理的小切口。"
+      }
+    },
+    {
+      "id": "todo-20260507-002",
+      "title": "修正仅剩用户阻塞项时的 Codex TODO 批推进",
+      "status": "completed",
+      "priority": "P2",
+      "assignee": "codex",
+      "feedback_required": false,
+      "created_at": "2026-05-07T02:40:00+0800",
+      "started_at": "2026-05-07T02:40:00+0800",
+      "updated_at": "2026-05-07T03:00:00+0800",
+      "completed_at": "2026-05-07T03:00:00+0800",
+      "links": [
+        "Notes/snippets/codex_todo_triage.py",
+        ".trae/documents/Codex-TODO-System-v2.md",
+        ".trae/documents/Codex-TODO-User-Action-Queue.md"
+      ],
+      "definition_of_done": [
+        "当没有 Codex-owned active TODO、但仍存在 user-blocked TODO 时，batch-plan 不能只停在用户动作提醒。",
+        "batch-plan 应继续展示材料队列中可转成 Codex-owned 小切口的候选。",
+        "流程文档同步说明：用户阻塞项不应永久卡住 Codex-owned 批推进。",
+        "刷新 triage index 并验证脚本输出。"
+      ],
+      "progress": "✅ 已完成。`codex_todo_triage.py --batch-plan` 现在在只有 user-blocked TODO 时，也会展示 `.local/LEARNING_MATERIAL_CANDIDATES.md` 当前阅读顺序中的 Codex-owned 小切口；新增 `render_material_queue_suggestions()` 复用空队列/用户阻塞两种场景。已同步更新 `Codex-TODO-System-v2.md` 与 `Codex-TODO-User-Action-Queue.md`，明确用户阻塞项只作为提醒，不应永久卡住 Codex 批推进。",
+      "changed_files": [
+        "Notes/snippets/codex_todo_triage.py",
+        ".trae/documents/Codex-TODO-System-v2.md",
+        ".trae/documents/Codex-TODO-User-Action-Queue.md",
+        ".local/CODEX_TODO_TRIAGE_INDEX.md",
+        ".trae/todos/todos.json"
+      ],
+      "codex_triage": {
+        "triaged_at": "2026-05-07",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed",
+        "judgment": "已修正连续推进 TODO 时被 user-blocked 项反复卡住的问题。",
+        "recommended_action": "后续若仍只有用户动作项，Codex 可从 batch-plan 的材料队列建议中选择一个小切口新建并完成 TODO。"
+      }
+    },
+    {
+      "id": "todo-20260507-001",
+      "title": "将非技术知识中的长期关注博主纳入材料探索雷达",
+      "status": "completed",
+      "priority": "P2",
+      "assignee": "ai",
+      "feedback_required": false,
+      "created_at": "2026-05-07T00:00:00+0800",
+      "updated_at": "2026-05-07T02:05:00+0800",
+      "links": [
+        "Notes/非技术知识.md#持续关注",
+        "Notes/snippets/blog_monitor.py",
+        "Notes/snippets/blogger_monitor.py",
+        ".local/LEARNING_MATERIAL_CANDIDATES.md"
+      ],
+      "user_requirements": [
+        "我的「非技术知识」笔记的开头有一些我长期关注的高质量博主，你在为我探索materials时，可以扫一下他们的文章，这可能需要你有各平台的文章阅读能力，读到他们的所有文章，因此你先记作todo，可慢慢推进。"
+      ],
+      "definition_of_done": [
+        "从 Notes/非技术知识.md 的「持续关注」section 解析长期关注博主/来源，形成 canonical source list",
+        "按平台补齐阅读能力矩阵：RSS/博客/GitHub/YouTube/B站/知乎/小红书/公众号/掘金等，明确可自动读取、需登录、需用户补正文、不可读取的边界",
+        "优先覆盖用户近期材料探索主线相关来源：MLSys、ML 算法、AI 产品、AI 编程与效率工具",
+        "探索 materials 时把这些来源作为 trusted source layer，定期扫新文章/历史高价值文章，并把命中内容写入 .local/LEARNING_MATERIAL_CANDIDATES.md，保留原始链接与读取状态",
+        "对读不到的平台只记录 Unread / fallback，不假装读过；必要时提示用户补正文、截图或导出",
+        "复用或重构现有 blog_monitor.py / blogger_monitor.py，避免只做一次性手工扫描"
+      ],
+      "progress": "✅ 2026-05-07 已完成。四批推进合并收敛：1) 从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`；2) 明确平台访问矩阵和读取边界，公众号/小红书/视频类均保留 Unread / transcript / user-export 规则；3) 抽样扫描 Lilian Weng、ezyang、GPU MODE、PyTorch Dev Discuss，并把 A129/A130/B29/B30 写入候选库；4) 新增 `Notes/snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`，后续主动调研可复用 scan plan -> actual read -> candidates writeback 流程。剩余的具体平台读取问题不再挂在本 TODO 下，后续遇到材料时按素材管线处理。",
+      "codex_triage": {
+        "triaged_at": "2026-05-07",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed",
+        "judgment": "trusted source layer 已从来源解析推进到可复用 scan helper 和候选库写回样例，达到当前 TODO 的合理完成边界。",
+        "recommended_action": "后续不要长期挂 TODO；主动调研时直接运行 `trusted_source_scan.py`，遇到读不到的平台按素材管线标 Unread 或让用户补正文。"
+      },
+      "started_at": "2026-05-07T00:20:00+0800",
+      "completed_at": "2026-05-07T02:05:00+0800",
+      "changed_files": [
+        "Notes/snippets/extract_trusted_material_sources.py",
+        "Notes/snippets/trusted_source_scan.py",
+        ".local/TRUSTED_MATERIAL_SOURCE_RADAR.md",
+        ".local/TRUSTED_MATERIAL_SOURCES.json",
+        ".local/TRUSTED_SOURCE_SCAN_20260507.md",
+        ".local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md",
+        ".local/LEARNING_MATERIAL_CANDIDATES.md",
+        ".local/CODEX_TODO_TRIAGE_INDEX.md",
+        ".trae/todos/todos.json"
+      ]
+    },
     {
       "id": "todo-20260504-005",
       "title": "吸收 agent-harness 主控反馈：RL methods for agent experience systems",
@@ -2525,7 +2660,7 @@
       "links": [
         "Notes/snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
-        ".trae/documents/Fine-Mem-Reading-Guide.md",
+        ".trae/documents/Fine-Mem-Deep-Read.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
         ".local/CODEX_TODO_TRIAGE_INDEX.md",
         "https://arxiv.org/abs/2601.08435"
@@ -2540,13 +2675,13 @@
       "user_requirements": [
         "推进仓库todo（你应该batch推进吧）"
       ],
-      "progress": "✅ 已完成本轮 batch 推进。1) `codex_todo_triage.py --batch-plan` 现在会在空队列时读取 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的“当前建议阅读顺序”，输出 S18/A63/S17/A90/A68 及其可验证产物；2) `Codex-TODO-System-v2.md` 同步更新该行为；3) 新增 `.trae/documents/Fine-Mem-Reading-Guide.md`，按精读协议给出一句话判断、5 个核心机制、对 `memory_ranking_dataset_v0` 的 schema 改造、边读边核验问题和阅读路径；4) S18 候选条目已记录导读路径；5) 已通过 `py_compile`、Markdown TOC 和 `--batch-plan` 输出验证。",
+      "progress": "✅ 已完成本轮 batch 推进。1) `codex_todo_triage.py --batch-plan` 现在会在空队列时读取 `.local/LEARNING_MATERIAL_CANDIDATES.md` 的“当前建议阅读顺序”，输出 S18/A63/S17/A90/A68 及其可验证产物；2) `Codex-TODO-System-v2.md` 同步更新该行为；3) 新增 Fine-Mem 精读入口，后续已合并为 `.trae/documents/Fine-Mem-Deep-Read.md`，按精读协议给出一句话判断、核心机制、对 `memory_ranking_dataset_v0` 的 schema 改造、边读边核验问题和阅读路径；4) S18 候选条目已记录导读路径；5) 已通过 `py_compile`、Markdown TOC 和 `--batch-plan` 输出验证。",
       "commit_hash": "",
       "changed_files": [
         ".trae/todos/todos.json",
         "Notes/snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
-        ".trae/documents/Fine-Mem-Reading-Guide.md",
+        ".trae/documents/Fine-Mem-Deep-Read.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
@@ -2617,27 +2752,28 @@
       "assignee": "user",
       "feedback_required": true,
       "created_at": "2026-05-04T14:28:12+0800",
-      "updated_at": "2026-05-04T18:10:05+0800",
+      "updated_at": "2026-05-07T02:35:00+0800",
       "background": "OpenViking 公开 session 设计更偏会话级归档和 memory extraction，但可能可以把一次 agent task run / episode 映射成一个 session，作为 Agent Harness 与 OpenViking 对齐的 coarse trajectory container。需要向 OV 同学确认推荐用法和 schema 边界。",
       "links": [
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/08-session.md",
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/05-storage.md",
         "https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/07-retrieval.md",
         "Notes/AI-Agent-Product&PE.md",
-        ".trae/documents/OpenViking-Session-Trajectory-Alignment.md"
+        ".trae/documents/OpenViking-Session-Trajectory-Alignment.md",
+        ".trae/documents/Codex-TODO-User-Action-Queue.md"
       ],
-      "user_next_action": "把 .trae/documents/OpenViking-Session-Trajectory-Alignment.md 中“可直接发给 OV 同学的话”发给 OV 同学，并把回复贴回 Codex；若想同步 agent-harness 主控，可转发同文档里的“Agent Harness 主控转发稿”。",
+      "user_next_action": "打开 .trae/documents/Codex-TODO-User-Action-Queue.md，复制“30 秒可复制版本”发给 OV 同学；拿到回复后按“需要带回给 Codex 的回复格式”贴回本线程。",
       "definition_of_done": [
         "拿到 OV 同学对 session-as-trajectory 是否推荐的明确反馈。",
         "确认是否需要 OpenViking 原生 step/tool/context usage 字段，或由 Agent Harness 外部维护细粒度 trace。",
         "确认当前开源实现中的 unified context collection + context_type/URI routing 是否是长期方向，还是未来会拆成 memory/resource/skill 独立 collection。",
         "把反馈交给 Codex，转成下一步 Agent Harness/OpenViking integration TODO。"
       ],
-      "progress": "Codex 已准备脱敏沟通包 .trae/documents/OpenViking-Session-Trajectory-Alignment.md：包含 OV 同学确认问题、session/trajectory 边界、Agent Harness 主控转发稿和后续分支动作。当前仍等待用户发给 OV 同学并贴回反馈。",
+      "progress": "Codex 已准备脱敏沟通包 .trae/documents/OpenViking-Session-Trajectory-Alignment.md，并在 .trae/documents/Codex-TODO-User-Action-Queue.md 中压缩成 30 秒可复制消息、回复回填格式和后续分支动作。当前仍等待用户发给 OV 同学并贴回反馈。",
       "codex_triage": {
         "category": "user_blocked",
         "judgment": "Codex 已把问题转成可执行沟通包；下一步必须由用户进行人际/内部协作确认。",
-        "next_action": "用户转发 OV 同学问题并贴回回复；Codex 再据此生成 Agent Harness/OpenViking integration TODO。"
+        "next_action": "用户复制 .trae/documents/Codex-TODO-User-Action-Queue.md 中的 30 秒版本发给 OV 同学，并把回复按模板贴回；Codex 再据此生成 Agent Harness/OpenViking integration TODO。"
       }
     },
     {

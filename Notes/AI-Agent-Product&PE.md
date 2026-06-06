@@ -1948,6 +1948,23 @@ PUA Skill 表面是大厂黑话，真正有价值的是把 coding agent 的常�
 
 安装上可以试用，但不宜把原版作为默认全局行为。原版 `tanweai/pua` 的 Codex Skill 会广泛自动触发，容易污染日常语气；更稳妥的方式是安装成显式触发的实验 skill，只在调试卡死时手动调用。
 
+#### AI Coding 的过程约束：模型懂原则，不等于会稳定执行
+
+> 来源：用户 AI coding 使用体会，2026-05-09。
+
+强模型通常知道“过程拆细一点、中间产物留存、日志输出完整”这些做法，GPT-5.5 平时也经常能主动这样做。问题不在于模型不知道，而在于这些原则没有硬约束时，执行会漂。
+
+鑫哲说的 `fail-fast`、`KISS`、`DRY` 很典型：它们看起来都是工程共识，但如果不强调、不校验，代码和流程就经常不会按这些共识写。模型也一样。它对“好工程习惯”的贯彻更像一种软倾向，不是稳定 contract。
+
+更底层的解释是：如果训练主要面向结果 reward，而不是过程 reward，模型会有偷懒倾向。只要最后能给出一个看似完成的结果，它就可能省略中间验证、压缩日志、跳过复现、用复杂方案掩盖简单问题。过程质量没有被显式奖励，也没有被失败检测惩罚，就不会自然稳定。
+
+对 Agent Harness 的启发：
+
+- 把工程原则写成 **process contract**，而不是只写进 prompt：必须拆阶段、保留中间产物、输出关键日志、记录假设和验证结果。
+- 把 `fail-fast / KISS / DRY` 做成可检查项：是否先做最小复现，是否选择了最小可行改动，是否引入重复逻辑，是否在失败后换了本质不同的路径。
+- 对 coding agent 的评价不能只看 final diff / final answer，还要看 trace：有没有复现、有没有验证、有没有保留证据、有没有过早扩大改动面。
+- 如果没有过程约束，模型会把“工程原则”当成风格建议；只有变成 gate、lint、checklist、trace evaluator，才会从建议变成行为。
+
 #### Context Management 与 Token 效率
 
 > 来源：[Agent Token 的虚假繁荣：停止用消防水龙头浇花](https://zhuanlan.zhihu.com/p/2024430002955986777)
@@ -1987,6 +2004,31 @@ Anthropic 封锁第三方 harness（如 OpenClaw）使用 Claude 订阅，客观
 - 推理引擎理解 Agent 的 Session 语义，在 Cache 淘汰策略上做更智能的决策
 
 **市场判断**：GPU 算力的供给弹性远小于 DRAM，Token Efficiency 是决定谁能活下来的核心竞争力。
+
+#### Claude Code 降智复盘：Agent 工程层退化监控
+
+> 来源：[Anthropic April 23 postmortem](https://www.anthropic.com/engineering/april-23-postmortem)、[Claude adaptive thinking docs](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)、[Claude Code issue #42796](https://github.com/anthropics/claude-code/issues/42796)、[Z.ai Scaling Pain](https://z.ai/blog/scaling-pain)、[SGLang PR #22811](https://github.com/sgl-project/sglang/pull/22811)、[Margin Lab Claude Code tracker](https://marginlab.ai/trackers/claude-code/)
+> 整理时间：2026-05-06
+
+Claude Code 这次“变笨”最有价值的地方，不是证明某个模型权重下降，而是证明 Coding Agent 的质量是一个工程系统结果：effort 默认值、adaptive thinking、context cleanup、system prompt、prompt cache、public build、serving cache correctness 任一层出错，用户看到的都可能只是“模型降智”。
+
+Anthropic 复盘里三个问题都很典型：
+
+- **默认 effort 是产品策略，不是纯模型参数**：Claude Code 曾把默认 reasoning effort 从 `high` 改成 `medium` 以降低长尾延迟，后续因用户更偏好默认智能而回滚。这里的核心是：Fast / Smart / Cheap 的取舍取决于产品商业阶段和用户分层；对重度工程用户，沉默降 effort 比直接提供“快省模式 / 高正确性模式”更伤信任。
+- **context cleanup 是状态机，不是无害压缩**：idle session 的 thinking 清理本应只触发一次，但 bug 让后续每轮都继续清理，表现为健忘、重复、cache miss 和成本上升。长程 agent 的 context lifecycle 应该像分布式系统状态机一样有事件日志、触发条件、一次性标记和回放验证。
+- **system prompt 也是质量变更面**：减少 verbosity 的 prompt 约束在 broader ablation 中带来 coding quality drop。这说明 prompt policy 需要 version、diff、灰度、ablation 和回滚，而不是当作“文案小改”。
+
+Adaptive thinking 的难点在于：让模型自己判断“这个任务是否需要深度思考”，本身就是一个需要思考才能做对的判断。一个看起来普通的 bug fix，可能隐含跨文件状态机、异步时序、缓存一致性或历史约定；如果模型先误判简单，再跳过 thinking，后续 tool call 会从一开始偏航。因此 adaptive thinking 更适合做显式可观测策略，而不是对复杂工程任务隐藏生效的默认值。
+
+用户侧日志分析也给了一个很好的监控范式：Claude Code issue #42796 把本地 session JSONL 中的 thinking blocks、tool calls、read/edit 行为、stop hook、user interrupt 等转成趋势指标。它的意义是：agent 降智不必等官方 benchmark 才发现，power user 的本地 trace 可以成为早期 canary。
+
+Serving infra 层也有相同模式。Z.ai 的 Scaling Pain 把 GLM-5 在高并发、长上下文 Coding Agent 场景下的乱码、复读、生僻字定位到 KV cache correctness：PD 分离下的 KV cache 回收/复用竞态，以及 HiCache read-before-ready；对应修复之一提交到了 SGLang PR #22811。关键启发是：cache correctness 是质量问题，不只是性能问题。
+
+对 Agent Harness / agent runtime 的直接启发：
+
+- Benchmark 指标要有，但只是结果层；更早的中间指标包括 `thinking_blocks_count`、`thinking_depth_proxy`、`read_to_edit_ratio`、`edits_without_recent_read_rate`、`context_cleanup_event`、`cache_miss_reason`、`system_prompt_hash`、`public_build_id`。
+- failure bucket 应显式区分 `effort_policy_regression`、`adaptive_thinking_underallocation`、`context_cleanup_regression`、`prompt_constraint_regression`、`prompt_cache_reuse_regression`、`serving_cache_race`、`serving_cache_read_before_ready`。
+- 公开 tracker（如 Margin Lab 每日跑 Claude Code on SWE-Bench-Pro）适合监控端到端结果；私有 canary 更应该固定 commit / prompt / tool version，观察行为指标和 outcome delta，捕捉“分数还没显著跌，但行为已经变坏”的阶段。
 
 #### Agent Bucket：万亿级 Agent 原生存储桶
 
@@ -2322,6 +2364,13 @@ $$
 - `add_resource` 负责把 GitHub repo、本地目录、文档等外部资源接入 `viking://` 空间；`search` 负责语义召回；`ls` / `overview` 负责让 Agent 像浏览目录一样收窄范围；`read` 负责按需取 L2 细节。
 - `PutContext` / `GetContext` 的意义更大：它把“记忆写入/读取”做成显式 API，而不是隐藏在聊天历史或向量库副作用里。这为 session commit、memory extraction、diff update、回放评估提供了稳定边界。
 - 对 Agent 来说，这套 API 把上下文从“塞进 prompt 的文本”变成“可寻址、可导航、可增量更新的外部状态”。这是 OpenViking 比普通 RAG 更像 Agent runtime substrate 的地方。
+
+**版本化 memory 与 time-travel policy view**：
+
+- OpenViking discussion #2277 进一步把 memory 文件做成版本化状态：正文保存 latest content，`VERSION_HISTORY` 保存 reverse diff 链，`read/search(data_version=X)` 可以还原某个历史版本下的 memory view。
+- 这个设计的核心不是审计，而是避免 future knowledge 污染历史归因：一次 task 执行时看到的是当时的 `policy view`，而不是事后被更新过的 latest memory。
+- 一期方案采用最新向量索引召回，再把候选文件 materialize 到目标 `data_version`。这降低了多版本向量存储成本，但历史检索只是近似；若要严格复现过去某次 memory consumption，还需要记录当时的 query、candidate set、index version、score 和 injection trace。
+- 更通用的系统设计解释见 `Software-Engineering.md` 的 `Event Sourcing：用事件日志重建系统状态`。一句话：OpenViking 的 latest memory file 是 projection，版本链和 memory event 才是可回放、可归因的状态历史。
 
 **多仓库代码问答实战**：
 
@@ -4491,6 +4540,25 @@ for hat in queue:
 3. 用这种方法测试下来，在 Python 项目中，Codex 相比 Claude Code 的胜率大概接近 80%
 
 
+
+#### Codex 2026-05：从 coding assistant 到长期工作平台
+
+> 来源：[新智元微信文章](https://mp.weixin.qq.com/s/LZqKC7Kp1KRVtnKYEXst7g)，并用 OpenAI 官方 Codex docs 交叉核验：[Appshots](https://developers.openai.com/codex/appshots)、[Computer Use](https://developers.openai.com/codex/use-cases/use-your-computer-with-codex)、[/goal](https://developers.openai.com/codex/use-cases/follow-goals)、[Automations](https://developers.openai.com/codex/app/automations)。
+
+这次 Codex 更新的核心不是“又多了几个快捷功能”，而是把 Codex 推向三个方向：
+
+1. **screen context 进入工作流**：Appshots 可以把 Mac 前台窗口作为 Codex thread 附件，并读取窗口可用文本，包括可见文本和应用暴露的部分非可见区域文本。它让 context 输入从“用户手动描述 / 复制粘贴”变成“当前工作状态直接进入 thread”。
+2. **long-running objective 正式产品化**：`/goal` 让 Codex 围绕一个有明确停止条件和验证闭环的目标跨多轮持续工作，适合迁移、重构、实验、原型和长任务，不适合松散 backlog。
+3. **Computer Use 把本地 GUI 纳入 agent runtime**：Codex 可以在 macOS 上看见并操作桌面应用，适合跨窗口、跨浏览器、GUI-only bug 复现、设置修改和本地资料读取。但这也意味着权限、敏感信息和状态副作用都要更谨慎管理。
+
+产品判断：Codex 正在从“聊天式代码助手”转向“本地工作台 agent”。它的关键能力不只是写代码，而是把屏幕上下文、长期目标、Computer Use、Automations、Skills / Plugins 串成一个可持续运行的工作系统。
+
+对个人工作流的启发：
+
+- Appshots 适合减少“给 agent 补上下文”的手工成本，但遇到敏感页面、会议、聊天、公司内部文档时要谨慎。
+- `/goal` 最适合配合明确验收标准使用：目标、边界、验证命令、停止条件、进度日志都要写清楚。
+- Computer Use 的价值在于补 CLI / API 不能覆盖的 GUI 环节，但应优先用于 scope 小、可回滚、可检查的任务。
+- Automations 适合做 thread heartbeat 或独立后台任务；和 skill 配合时，关键是把任务描述、报告条件、停止条件写得足够 durable。
 
 ### AI Coding 的使用技巧
 

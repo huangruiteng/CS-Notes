@@ -1,0 +1,3 @@
+display_name: Codex Thread Heartbeat
+short_description: Guarded launchd heartbeats for idle Codex control threads.
+default_prompt: Install or manage guarded Codex thread heartbeats, then report the target thread, interval, idle guard, launchd status, and logs.

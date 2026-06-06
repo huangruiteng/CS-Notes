@@ -63,6 +63,112 @@
 
 ### 代码质量 code quality
 
+### 核心工程实践：从原则到 agent prompt
+
+这些原则不是口号，而是降低复杂度、缩小变更半径、提升可验证性的工程约束。对人类工程师如此，对 coding agent 更如此：agent 最容易犯的错不是“不会写代码”，而是过度改动、隐式假设、跳过验证、为了显得聪明而制造不必要结构。
+
+#### Fail-fast：尽早暴露错误
+
+Fail-fast 的核心是：错误一旦出现，应尽早、明确、带上下文地失败，而不是在远处以模糊副作用的形式爆炸。
+
+- **适用场景**：参数校验、配置加载、依赖不可用、状态不一致、数据格式不合法、权限或资源缺失。
+- **工程价值**：缩短 debug 路径，让调用方知道“哪里坏了、为什么坏、需要谁处理”。
+- **常见误用**：把 fail-fast 理解成“到处抛异常”。真正好的 fail-fast 需要错误信息可行动，并区分用户错误、系统错误、可重试错误和不可恢复错误。
+- **agent 要求**：修改代码前先识别输入边界和失败模式；新增逻辑时优先补清晰校验和可诊断错误；不要吞异常、不要只打印日志后继续运行。
+
+#### KISS：保持简单
+
+KISS（Keep It Simple, Stupid）的意思不是写“简陋代码”，而是让实现只承载当前问题的必要复杂度。
+
+- **适用场景**：新功能、bug fix、临时实验、代码重构、agent 自动生成代码。
+- **工程价值**：降低理解成本、测试成本和回滚成本。
+- **常见误用**：为了“简单”牺牲正确性，或者把必要的抽象全部摊平成重复逻辑。
+- **agent 要求**：优先复用现有模式；先做最小正确实现；只有当重复或复杂度真实出现时再抽象；不要新增框架、全局状态、复杂配置或宽泛 helper 来解决局部问题。
+
+#### DRY：不要重复知识
+
+DRY（Don’t Repeat Yourself）真正反对的是“同一份知识散落多处”，而不是机械地消灭所有长得像的代码。
+
+- **适用场景**：业务规则、字段含义、权限判断、序列化协议、状态流转、公共算法。
+- **工程价值**：同一规则只需改一处，避免行为漂移。
+- **常见误用**：过早抽象，把只是表面相似、变化原因不同的逻辑强行合并，最后得到一个参数爆炸的“万能函数”。
+- **agent 要求**：先判断重复的是“知识”还是“形状”。如果只是两段代码长得像，但业务语义和演化方向不同，可以暂不合并；如果重复的是协议、规则或状态机，必须收敛到单一来源。
+
+#### YAGNI：不要提前实现未来
+
+YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需求付当下复杂度成本。
+
+- **适用场景**：扩展点、配置项、策略接口、抽象层、缓存、异步化、多租户、多后端。
+- **工程价值**：避免系统在真实需求到来前就被“可能有用”的结构绑架。
+- **常见误用**：用 YAGNI 拒绝必要的边界设计。不会立刻实现未来功能，不等于可以忽略兼容性、数据模型演进和错误边界。
+- **agent 要求**：不要因为“以后可能需要”新增未被当前任务使用的代码、参数、文件、测试或文档；如果确实留下扩展点，要写明当前调用方和立即收益。
+
+#### SRP / Separation of Concerns：职责单一，关注点分离
+
+单一职责原则强调一个模块应该只有一个主要变化原因。关注点分离强调不同层次的问题不要混在一起。
+
+- **适用场景**：业务逻辑与 IO、策略与执行、解析与校验、状态更新与展示、数据访问与领域规则。
+- **工程价值**：让修改能被局部理解、局部测试、局部回滚。
+- **常见误用**：把职责单一变成“每三行代码一个函数”，导致调用链碎片化。
+- **agent 要求**：新增代码前先找现有边界；不要把 unrelated concerns 塞进已有函数；拆分时以“变化原因”和“测试边界”为准，而不是按行数机械拆分。
+
+#### Least Surprise：最小惊讶原则
+
+代码行为应符合调用方和维护者的合理预期。命名、默认值、错误处理、返回值语义都应减少意外。
+
+- **适用场景**：API 设计、配置默认值、CLI 参数、函数命名、状态迁移、feature flag。
+- **工程价值**：降低误用概率，减少隐形线上事故。
+- **常见误用**：过度追求“显得高级”的命名或控制流，让简单行为变得难猜。
+- **agent 要求**：遵循仓库既有命名、目录、错误处理和测试风格；不要引入和周围代码不一致的默认行为；如果必须改变语义，要同步文档和测试。
+
+#### Small, Reversible Changes：小步、可回滚
+
+高质量改动通常有清晰边界、较小 diff、可单独验证，失败时能快速回滚。
+
+- **适用场景**：线上系统、基础设施、共享库、数据迁移、agent 长程任务。
+- **工程价值**：降低 review 难度和事故半径。
+- **常见误用**：把一个原子变更拆得过碎，导致中间状态不可运行。
+- **agent 要求**：一次只解决一个明确问题；避免顺手重构；如果必须大改，先拆出机械改动、行为改动、验证改动；每一步都能解释“为什么现在必须改”。
+
+#### Make Invalid States Unrepresentable：让非法状态不可表达
+
+好的模型不只是处理错误状态，而是尽量不允许错误状态被构造出来。
+
+- **适用场景**：类型设计、枚举、状态机、配置 schema、数据库约束、任务生命周期。
+- **工程价值**：把运行时错误前移到编译期、构造期或校验期。
+- **常见误用**：为了追求类型完美而引入过重模型，使简单业务难以演进。
+- **agent 要求**：涉及状态流转时，先列合法状态和转移；优先用 enum / dataclass / schema / invariant 表达约束，而不是靠散落的 if 判断兜底。
+
+#### Tests, Observability, Documentation：验证闭环
+
+工程质量不是“代码看起来对”，而是能被测试、日志、指标和文档持续证明。
+
+- **测试**：覆盖核心行为、边界条件、回归 case；不要为了覆盖率给无分支 glue code 写脆弱测试。
+- **可观测性**：关键路径要能回答发生了什么、耗时多少、失败原因是什么、影响范围多大。
+- **文档**：记录非显然决策、接口契约、迁移步骤和运维假设；不要解释每一行显而易见的代码。
+- **agent 要求**：改代码后必须尽力运行最相关验证；跑不了要说明原因和替代检查；新增复杂逻辑时同步测试或最小可复现验证。
+
+#### Agent 工程质量 Prompt
+
+可以把下面这段作为 coding agent 的任务前置 prompt 或 code review checklist；独立 snippet 见 [agent-engineering-quality-prompt.md](snippets/agent-engineering-quality-prompt.md)。
+
+```text
+在本次工程任务中，请优先遵守以下软件工程原则：
+
+1. 先理解目标和现有边界，再修改代码。优先复用仓库已有模式、工具函数、测试风格和错误处理方式。
+2. Fail-fast：对非法输入、缺失配置、状态不一致和不可恢复错误，尽早给出清晰、可行动的失败信息；不要吞异常或静默降级。
+3. KISS：做最小正确改动。不要为了局部任务新增框架、复杂抽象、全局状态或未被使用的扩展点。
+4. DRY：消除重复的业务规则、协议和状态知识；但不要把只是表面相似、变化原因不同的代码强行抽象到一起。
+5. YAGNI：不要实现当前任务没有用到的未来功能、参数、配置或测试。保留扩展点时必须说明立即收益。
+6. SRP / 关注点分离：业务逻辑、IO、解析、校验、状态更新和展示尽量保持边界清晰；拆分以变化原因和可测试性为准。
+7. 最小惊讶：命名、默认值、返回值、错误语义和目录位置要符合现有代码习惯。改变行为时同步测试和文档。
+8. 小步可回滚：避免顺手重构和无关格式化。若任务较大，拆成机械改动、行为改动和验证改动。
+9. 让非法状态不可表达：涉及生命周期、状态机、schema 或配置时，显式列出合法状态和转移，优先用类型或 schema 固化约束。
+10. 验证闭环：改完后运行最相关测试、lint、类型检查或最小复现；无法运行时说明原因、风险和替代验证。
+
+输出时请说明：改了什么、为什么这样改、遵守了哪些原则、如何验证、剩余风险是什么。
+```
+
 
 
 ### 衡量 Measure technical quality
@@ -161,7 +267,7 @@
 
 * 阿里云云效
   * https://www.aliyun.com/product/yunxiao
-* [vivo自建](https://mp.weixin.qq.com/mp/wappoc_appmsgcaptcha?poc_token=HCbf5Gij-A3fYkuQVymNKQEvJbLry_qZo2HlMLcR&target_url=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzI4NjY4MTU5Nw%3D%3D%26mid%3D2247498843%26idx%3D1%26sn%3D314aff57db845b164d2e70d0d58ad12a%26token%3D789170263%26lang%3Dzh_CN%26scene%3D21#wechat_redirect)
+* [vivo自建](https://mp.weixin.qq.com/s?__biz=MzI4NjY4MTU5Nw==&mid=2247498843&idx=1&sn=314aff57db845b164d2e70d0d58ad12a&scene=21)
 
 #### Jenkins clusters
 
@@ -198,6 +304,315 @@
         *   **清理旧代码**: 迁移完成后，务必将旧代码和基础设施彻底移除。
 
 
+
+
+### Optimistic Concurrency Control：提交前验证的并发控制
+
+> 来源：H. T. Kung and John T. Robinson, [On Optimistic Methods for Concurrency Control](https://doi.org/10.1145/319566.319567), ACM TODS 1981。
+
+OCC 的核心不是“不处理冲突”，而是 **先不加锁地并发做，提交前做 validation**：验证通过才把本地修改原子写回全局状态；验证失败就 abort / retry。
+
+```text
+read phase:
+  读全局状态；写操作只写本地 copy
+
+validation phase:
+  检查这次 transaction 是否可串行化
+
+write phase:
+  validation 通过后，把本地 copy 原子写回全局
+```
+
+它适合冲突概率不高、读多写少、希望避免长时间持锁的系统。代价是：冲突会在提交前才暴露，失败事务需要重试；如果冲突率高，OCC 会把成本从“等待锁”转成“反复 abort / retry”。
+
+#### 正确性目标：serial equivalence
+
+并发事务的最终结果，必须等价于某个串行执行顺序。形式上，如果初始数据库状态为 `d_initial`，事务集合为 `T_1 ... T_n`，那么并发执行后的结果应等价于某个排列 `π` 的串行组合：
+
+$$
+d_{\text{final}}
+=
+T_{\pi(n)} \circ \cdots \circ T_{\pi(1)}(d_{\text{initial}})
+$$
+
+这个目标比“每个事务自己看起来没错”更强。并发系统真正要保证的是：虽然实际执行交错发生，但外部观察到的状态变化像是事务按某个顺序一个个完成。
+
+#### Validation 的直觉：read set / write set 不冲突
+
+对一个准备提交的新事务 `T_j`，validation 要检查所有在串行顺序上更早的事务 `T_i`。直觉是：更早事务的写入，不能破坏 `T_j` 已经读到的东西，也不能和 `T_j` 即将写入的东西产生不可串行化冲突。
+
+记：
+
+```text
+R(T) = transaction T 的 read set
+W(T) = transaction T 的 write set
+```
+
+典型安全条件可以这样理解：
+
+1. `T_i` 完全早于 `T_j`：`T_i` 写完后，`T_j` 才开始读。这等价于普通串行顺序，安全。
+2. `T_i` 与 `T_j` 读阶段重叠，但 `T_i` 写入的内容没有被 `T_j` 读过：
+
+$$
+W(T_i) \cap R(T_j) = \varnothing
+$$
+
+这表示 `T_j` 没有基于被 `T_i` 改写过的旧值做决策，因此可以把 `T_i` 排在 `T_j` 前面。
+
+3. 更强的安全条件是：`T_i` 写入的内容既不影响 `T_j` 读到的东西，也不和 `T_j` 即将写的东西相交：
+
+$$
+W(T_i) \cap \bigl(R(T_j) \cup W(T_j)\bigr) = \varnothing
+$$
+
+这说明两者虽然时间上重叠，但在数据依赖上互不干扰，可以安全并发。
+
+#### 和锁、Event Sourcing、CRDT 的关系
+
+| 机制 | 核心思路 | 适合场景 |
+| --- | --- | --- |
+| Pessimistic locking | 先加锁，再读写，提前阻止冲突 | 冲突率高、写入代价大、不能接受重试 |
+| OCC | 先并发执行，提交前验证，不通过就 retry | 冲突率低、读多写少、希望减少锁等待 |
+| Event Sourcing | 把状态变化记录成事件流，用 replay / projection 重建状态 | 需要审计、回放、历史状态、并行 read model |
+| CRDT | 让并发更新天然可合并，减少中心化冲突检测 | 分布式、离线、多副本协作编辑 |
+
+OCC 解决的是 **提交时能不能接受这次写入**；Event Sourcing 解决的是 **状态变化如何被记录、重放和审计**；CRDT 解决的是 **多个副本并发更新如何自动收敛**。它们不是互斥关系：一个系统可以用 OCC 做提交验证，用 event log 记录已通过的提交，再用 projection 服务读路径。
+
+**应用场景：versioned agent memory 提交协议。**
+
+Agent memory / experience 系统里也有类似事务问题：多个 session、heartbeat、goal tick 或 meta-agent 可能同时读旧 memory，然后生成 patch。不能因为大家都“想改进 memory”，就直接 append / overwrite。
+
+可以把一次 memory update 看成事务：
+
+```text
+read set:
+  当前任务读过的 memory ids / data_version / policy view
+
+local write:
+  生成的 memory patch、merge proposal、delete / bury decision
+
+validation:
+  检查 read set 是否仍是当前版本；检查 write set 是否和已提交 patch 冲突
+
+write:
+  apply patch，生成新的 data_version，并写入 event log
+```
+
+最小字段可以这样补到 versioned memory / eval 系统里：
+
+```text
+memory_patch_txn:
+  txn_id
+  source_run_id
+  read_data_version
+  read_set
+  write_set
+  generated_patch
+  validation_status: accepted | aborted | retry_required | manual_merge_required
+  committed_data_version
+```
+
+这能避免两类常见问题：
+
+- **lost update**：两个 agent 基于同一个旧版本生成 patch，后提交的覆盖先提交的。
+- **future leakage**：eval 时把某个 run 当时不可见的后续 memory patch 也算进 policy view。
+
+因此 OCC 和 Event Sourcing 是互补的：OCC 让 memory patch 在提交前验证依赖是否仍成立；Event Sourcing / versioning 让提交后的状态变化可追踪、可回放、可按 `data_version` 解释历史行为。
+
+
+
+### Event Sourcing：用事件日志重建系统状态
+
+> 来源：[Martin Fowler: Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)、[OpenViking discussion #2277: Memory Data Versioning](https://github.com/volcengine/OpenViking/discussions/2277)。
+
+Event Sourcing 的核心是：系统状态不是直接被覆盖保存，而是由一串事件推导出来。
+
+```text
+event log
+-> replay / projection
+-> current state
+```
+
+也就是说，系统不只保存“订单现在是什么状态”，而是记录：
+
+```text
+OrderSubmitted
+PriceChanged
+PaymentCaptured
+OrderShipped
+```
+
+再由 handler / projector 把事件流投影成当前状态。latest state 可以存成 cache / snapshot，但它不是唯一真相；真正可重建、可审计、可回放的是 event log。
+
+#### Event Sourcing 解决什么
+
+| 能力 | 含义 |
+| --- | --- |
+| Complete rebuild | 从 event log 重新构建当前状态，修复 projection bug 或迁移新模型 |
+| Temporal query | 查询某个历史时刻的状态，而不是只看 latest |
+| Event replay | 用旧事件流驱动新 handler / projection，验证新逻辑 |
+| Parallel model | 同一事件流可以投影出多个 read model / index / report |
+| Audit / debugging | 状态如何一步步变成现在这样，有可追踪依据 |
+
+这和普通“记录日志”不一样：日志经常只是观测副产物；Event Sourcing 里的 event 是系统状态变化的源事实。状态表、索引、报表、缓存只是 projection。
+
+#### 版本化 memory：latest projection + reverse diff history
+
+OpenViking 的 memory versioning 设计可以看作 Event Sourcing 的一个工程化变体：memory 文件正文保存最新版本，历史状态通过文件内 `VERSION_HISTORY` 的 reverse diff 链回退得到。
+
+```text
+latest memory file
++ VERSION_HISTORY(reverse diffs)
+-> materialize_memory_at_version(data_version)
+-> historical memory state
+```
+
+核心动机不是“想看历史”这么简单，而是让 memory / experience 系统具备按时间回到当时可见状态的能力：
+
+```text
+Task A consumes policy view(v1)
+Task A finishes -> MemoryPatchApplied(E1) -> data_version=v2
+Task B consumes policy view(v2)
+```
+
+如果事后只看 latest memory(v2)，就会把 Task A 解释成“明明知道 E1 还做错了”。但 Task A 当时的 policy view 其实是 v1，E1 尚未存在或尚未更新。版本化 memory 的价值，是让分析时能明确区分：
+
+```text
+generated_at_version
+applied_at_version
+consumed_at_version
+evaluated_at_version
+```
+
+这类字段能避免未来知识污染历史归因。
+
+#### search(data_version) 的近似语义
+
+OpenViking discussion #2277 采用一个低成本一期方案：
+
+```text
+search(query, data_version=X)
+-> 用最新向量索引召回候选文件
+-> 对每个候选文件 materialize 到 <= X 的最近版本
+-> 过滤当时不存在或当时已删除的文件
+-> 返回目标版本视角下的内容
+```
+
+这个设计的优点是不用为每个历史版本维护独立 embedding，存储和索引成本低；缺点也很明确：历史检索不是严格的 historical semantic retrieval，而是“latest recall + historical materialization”的近似。也就是说，它适合做可用的 time-travel read/search，但如果要严格复现过去某次检索结果，还需要记录当时的候选集、ranking score、query、index version 和注入结果。
+
+#### 事件日志、diff history 与 replay 的边界
+
+这组三者要分清：
+
+| 概念 | 关注点 | 在 memory 系统里的映射 |
+| --- | --- | --- |
+| Event log | 发生了什么状态变化 | `MemoryPatchGenerated`、`MemoryPatchApplied`、`MemoryDeleted`、`MemoryCompacted` |
+| Diff history | 如何从一个版本还原到另一个版本 | `VERSION_HISTORY.reverse_diff` |
+| Projection | 给读路径用的当前视图 | latest memory file、vector index、overview、summary |
+| Replay | 用历史事件或版本重建某个状态 | `materialize_memory_at_version`、rebuild index、offline eval |
+
+Event Sourcing 的长期价值，是让状态变化可以被重放；OpenViking 的版本化方案优先解决的是“按版本读取/检索 memory 文件”。如果未来要支持更强的 replay / eval，还需要把 memory patch 的来源、生成策略、apply 策略、merge 决策和消费证据也记录成事件。
+
+#### 对 memory event log / eval replay 的启发
+
+一个最小 schema 可以这样设计：
+
+```text
+memory_event_log_v0:
+  event_id
+  event_type: source_session_committed | patch_generated | patch_applied | merge_required | conflict_retry | memory_deleted | compacted
+  source_session_id
+  memory_uri
+  src_data_version
+  head_data_version
+  applied_data_version
+  patch_id
+  read_set
+  write_set
+  merge_path
+  evaluator_delta
+  consumed_by_run_id
+```
+
+这里的关键不是把所有东西都做复杂，而是把 latest memory 从“唯一事实”降级为一个 projection。真正用于归因的是：
+
+```text
+source trajectory
+-> memory event
+-> versioned policy view
+-> exposure / consumption
+-> outcome delta
+```
+
+这样才能回答几个重要问题：
+
+- 某次任务执行时，agent 实际可见的是哪个 memory state？
+- 一条经验是何时生成、何时 apply、何时第一次被消费的？
+- 任务变好是因为 memory update，还是因为随机性 / 环境变化 / evaluator 漂移？
+- 如果 memory 后来被改写，历史失败是否仍应按旧版本解释？
+
+#### 实用边界
+
+- Event Sourcing 不是说每次读取都必须从头 replay。生产系统通常会保存 latest projection / snapshot，只在审计、回放、迁移、debug 时回放事件。
+- `search(data_version)` 如果只用最新向量召回，就不是严格的历史检索，只是低成本近似。严格历史检索要额外保存 index version 或 retrieval trace。
+- diff history 只说明文本如何还原，不说明语义上为什么改。要做 memory learning，还需要记录 patch reason、source trace、evaluator signal 和消费证据。
+- 事件 replay 要压制外部副作用：重放时不能重新发消息、下单、调用外部写接口；只能重建状态或在 sandbox 中验证。
+
+
+### CRDT：让多副本并发更新最终收敛的数据类型
+
+> 来源：[Shapiro et al.: A comprehensive study of Convergent and Commutative Replicated Data Types](https://inria.hal.science/inria-00555588)。
+
+CRDT（Conflict-free Replicated Data Type）的核心是：把数据类型设计成多副本异步更新后，即使没有前台同步协调，也能最终收敛到同一个状态。
+
+它适合解决的是：对天然可交换、可合并的数据结构放宽同步要求，让副本先本地写入，再通过异步传播合并状态。代价是：并不是所有业务约束都能靠 CRDT 自动保证。
+
+#### State-based CRDT / CvRDT
+
+State-based CRDT 传播的是状态本身。状态集合需要构成 join-semilattice：
+
+$$
+(S, \le)
+$$
+
+merge 操作是 least upper bound：
+
+$$
+\operatorname{merge}(x, y) = x \sqcup y
+$$
+
+直觉上，`x \sqcup y` 是“刚好包含两个副本全部信息、且不多引入额外信息”的最小共同上界。只要每次本地 update 都让状态单调向上，并且 merge 满足下面三条性质，副本最终就会收敛：
+
+$$
+x \sqcup y = y \sqcup x
+$$
+
+$$
+(x \sqcup y) \sqcup z = x \sqcup (y \sqcup z)
+$$
+
+$$
+x \sqcup x = x
+$$
+
+典型例子：
+
+- **G-Set**：只增集合，`merge = union`。
+- **G-Counter**：每个 replica 一个 counter slot，`merge = component-wise max`，读值时求和。
+
+#### Operation-based CRDT / CmRDT
+
+Operation-based CRDT 传播的不是整个 state，而是 operation。只要所有副本最终收到操作，并且并发操作可以 commute，就能收敛。
+
+它通常还需要 causal delivery：如果一个操作依赖另一个操作，那么依赖项必须先送达。否则副本可能先看到后续操作，却缺少解释它的因果前提。
+
+#### 最重要的边界：CRDT 不自动保证全局 invariant
+
+CRDT 不是“无锁万能药”。它保证的是合并收敛，不等于保证所有业务约束都成立。
+
+典型问题是 non-negative counter：两个副本本地都看到余额为 `1`，同时执行 `decrement`，各自本地都合法；异步合并后，全局结果可能变成 `-1`。这类“不小于 0”“库存不能超卖”“权限不能被并发绕过”的全局 invariant，通常仍需要同步、escrow / reservation、中心化 validation，或把约束重新设计成可组合的局部配额。
+
+**应用场景。** 在 agent memory / eval 系统里，CRDT 更适合处理“天然可合并”的辅助状态，例如去重集合、计数器、tag 追加、观测事件集合；不适合直接处理需要全局排序、互斥决策、不可重复消费或严格版本边界的 memory patch 提交。后者更接近 OCC / Event Sourcing / versioned policy view 的问题。
 
 
 ## 代码质量
@@ -982,4 +1397,3 @@ class TrailingBucketCounter {
 };
 class ConveyorQueue;
 ```
-

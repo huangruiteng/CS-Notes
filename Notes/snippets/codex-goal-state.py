@@ -8,6 +8,8 @@ in-progress goal state do not leak into public notes or commits.
 from __future__ import annotations
 
 import argparse
+import fcntl
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -15,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / ".local" / "ACTIVE_GOAL_STATE.md"
+LOCK = ROOT / ".local" / "ACTIVE_GOAL_STATE.lock"
 TZ = ZoneInfo("Asia/Shanghai")
 
 
@@ -32,6 +35,17 @@ def read_state() -> str:
 def write_state(text: str) -> None:
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(text, encoding="utf-8")
+
+
+@contextmanager
+def state_lock():
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    with LOCK.open("w", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def ensure_state(objective: str | None = None) -> str:
@@ -137,33 +151,37 @@ def cmd_show(_: argparse.Namespace) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    if STATE.exists() and not args.force:
-        print(f"exists: {STATE}")
-        return 0
-    if STATE.exists():
-        STATE.unlink()
-    ensure_state(args.objective)
+    with state_lock():
+        if STATE.exists() and not args.force:
+            print(f"exists: {STATE}")
+            return 0
+        if STATE.exists():
+            STATE.unlink()
+        ensure_state(args.objective)
     print(f"initialized: {STATE}")
     return 0
 
 
 def cmd_feedback(args: argparse.Namespace) -> int:
-    text = append_to_section(ensure_state(), "Recent User Feedback", args.text)
-    write_state(text)
+    with state_lock():
+        text = append_to_section(ensure_state(), "Recent User Feedback", args.text)
+        write_state(text)
     print(f"feedback appended: {STATE}")
     return 0
 
 
 def cmd_progress(args: argparse.Namespace) -> int:
-    text = append_to_section(ensure_state(), "Progress Ledger", args.text)
-    write_state(text)
+    with state_lock():
+        text = append_to_section(ensure_state(), "Progress Ledger", args.text)
+        write_state(text)
     print(f"progress appended: {STATE}")
     return 0
 
 
 def cmd_next(args: argparse.Namespace) -> int:
-    text = replace_section(ensure_state(), "Next Action", f"- {args.text}")
-    write_state(text)
+    with state_lock():
+        text = replace_section(ensure_state(), "Next Action", f"- {args.text}")
+        write_state(text)
     print(f"next action updated: {STATE}")
     return 0
 

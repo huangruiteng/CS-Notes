@@ -32,6 +32,8 @@ Prefer primary sources for technical conclusions:
 
 Use social media, 微信公众号, 小红书, X/Twitter, 微博, and aggregators as discovery signals, not final truth.
 
+When extracting mechanisms from a repo, quickstart, prompt, or code file, include file-level links in the user-facing answer and persisted notes/archive. For GitHub sources, prefer commit-pinned permalinks and record the commit read; avoid writing only a repo name or bare filename when a concrete source file drove the claim.
+
 Use SenSight as the primary broad-recall backend when it is available:
 
 - recent AI/Agent/RL/serving dynamics,
@@ -103,6 +105,79 @@ Operational defaults:
 - `精读` = same output schema, but default to pass 2 plus selective pass 3: virtually reimplement the method, challenge assumptions, and produce artifact deltas.
 - For paper radars or collections, first triage all visible papers with pass 1, then deep-read only the highest-leverage subset.
 - Always state what was actually read: HTML, TeX source, PDF, repo paths, figures/tables, appendix, code, or only metadata.
+
+### Paper Radar Pattern
+
+For recurring or paper-heavy exploration, use `daily-paper-reader` as a design reference, not as a dependency to install. Its useful increment is the pipeline shape: intent profiles -> multi-lane recall -> fusion/rerank -> evidence scoring -> deep/quick/carryover selection.
+
+Adopt these patterns:
+
+1. Convert the user's current goal into 1-3 intent profiles. Each profile should have:
+   - a short tag,
+   - 3-6 atomic English keywords for exact/BM25-style recall,
+   - 1-4 semantic intent queries for embedding/web search,
+   - an explicit source lane such as arXiv, OpenReview, conference proceedings, domain preprint servers, GitHub, official docs, social, or implementation catalog.
+2. Run more than one lane when possible. Combine exact keywords, semantic queries, and source-specific searches instead of relying on one giant query.
+   - For AI / agent infra paper search, treat `arXiv`, `OpenReview`, and major venue lanes (`NeurIPS`, `ICLR`, `ICML`, `ACL`, `EMNLP`, `AAAI`) as high-value paper sources.
+   - For cross-domain or bio/chem/medical-adjacent topics, optionally add `bioRxiv`, `medRxiv`, and `ChemRxiv` as separate lanes.
+   - Do not sweep every source by default. Pick lanes that match the topic, then record which lane found each candidate.
+3. Fuse and rank qualitatively:
+   - keep at least one strong result from each active lane before global ranking,
+   - prefer candidates hit by multiple lanes,
+   - require an evidence sentence for every S/A candidate.
+4. Split results into `deep`, `quick`, `background`, and `carryover`:
+   - `deep`: user should personally read or Codex should deep-read next;
+   - `quick`: Codex summary is enough now;
+   - `background`: useful but not active;
+   - `carryover`: high-signal but not yet processed, keep it visible for the next exploration pass instead of letting daily freshness bury it.
+5. For papers where figures/tables are central, inspect HTML, TeX, PDF figures, tables, or repo assets before ranking when feasible.
+
+Do not copy these parts by default: GitHub Actions / Pages deployment, Supabase schema, remote public embedding/rerank services, front-end panels, API keys, or the exact prompt text. Keep the local skill lightweight and source-agnostic.
+
+### Multi-Source Paper Exploration Mesh
+
+For paper-heavy exploration, absorb `daily-paper-reader`'s paper data-source coverage rather than its hosted search/deployment stack. The key improvement is to search several paper-source lanes in parallel and then merge them with Codex's existing source stack.
+
+Default paper lanes:
+
+- `arXiv`: fast preprint and recent-paper recall.
+- `OpenReview`: ICLR / NeurIPS / ICML / AAAI submissions, public reviews, decisions, and withdrawn-public papers when visible.
+- Venue lanes: `NeurIPS`, `ICLR`, `ICML`, `ACL`, `EMNLP`, `AAAI`; use official venue pages, OpenReview, ACL Anthology, AAAI/OJS, proceedings pages, or targeted web search as appropriate.
+- Domain preprint lanes: `bioRxiv`, `medRxiv`, `ChemRxiv`; use only when the topic is bio / medical / chemistry / scientific-agent adjacent.
+
+Combine these with non-paper lanes:
+
+- GitHub repos, release notes, project pages, Papers with Code-style project pages when available;
+- official product or framework docs;
+- implementation-first catalogs for agent infra;
+- SenSight / social / aggregators as broad recall, never as final fact sources.
+
+Operational rule:
+
+1. For a focused paper search, choose at least 2 relevant paper lanes plus 1 implementation or docs lane when possible.
+2. For a broader paper radar, choose 3-6 lanes and keep per-lane coverage visible.
+3. Do not wait for a local database or hosted search service to exist. Use official source pages, platform APIs, source-specific search, ordinary web search, and available local readers in parallel.
+4. Rank by cross-lane agreement, primary-source quality, code/data availability, and direct artifact impact.
+5. Record which lane found each S/A candidate and which high-value lane was checked but produced no useful hit.
+
+If this skill has `scripts/multi_source_paper_explore.py`, use it as the first-pass paper-source recall helper for paper-heavy tasks:
+
+```bash
+python3 .codex/skills/research-material-scout/scripts/multi_source_paper_explore.py \
+  --query "<topic>" \
+  --query "<alternate wording or known title>" \
+  --sources arxiv,openreview,openalex,biorxiv,medrxiv,chemrxiv,venue-hints
+```
+
+Repeat `--query` for intent-query expansion. Narrow `--sources` to topic-fit lanes when domain preprint servers are likely irrelevant.
+
+Use a dual-track exploration flow for real paper-heavy work:
+
+1. Run the script for structured paper-lane recall and per-lane evidence.
+2. In parallel, run Codex's existing web / SenSight / GitHub / official-doc search for project pages, repos, social/aggregator leads, implementation evidence, and missed terminology.
+3. Merge the two result sets before ranking. Treat script-only hits as candidates to verify, and web-only hits as leads to trace back to primary papers / code / docs.
+
+The script is only a recall layer; it complements rather than replaces the older exploration stack.
 
 ## SenSight Backend
 
@@ -244,21 +319,26 @@ For each user-provided material:
 When proactively finding materials:
 
 1. Start from the user's current goals, not generic trends.
-2. Query across at least two source types when possible: paper/code/docs/social.
-3. Prefer fewer, higher-quality materials over broad dumps.
-4. For each candidate, capture:
+2. For paper-heavy or recurring themes, draft a small intent-profile plan first: tags, exact keywords, semantic queries, and source lanes. Include arXiv / OpenReview / venue lanes (`NeurIPS`, `ICLR`, `ICML`, `ACL`, `EMNLP`, `AAAI`) when relevant, and add domain preprint lanes (`bioRxiv`, `medRxiv`, `ChemRxiv`) only when the topic warrants them. Then query across at least two source types when possible: paper/code/docs/social.
+3. For paper-heavy tasks, run multiple selected paper-source lanes in parallel where possible, then merge them with code/docs/social/implementation lanes. Do not make a local database or hosted search service a prerequisite for exploration.
+4. Prefer fewer, higher-quality materials over broad dumps. Keep per-lane coverage visible so one popular source does not crowd out a strategically important niche source.
+5. For each candidate, capture:
    - title and original URL,
    - source type and read status,
+   - query/profile lane that found it,
    - one-paragraph summary,
+   - evidence sentence for the ranking,
    - why it matters to the user's career goal,
    - recommended action.
-5. If a social/aggregator item points to a paper or repo, follow the paper/repo before ranking.
+6. If a social/aggregator/source-search item points to a paper or repo, follow the paper/repo before ranking.
+7. End with a selection split: S/A/B/Unread plus `deep / quick / background / carryover`; carryover items must have a reason and a next trigger.
 
 ## Self-Verification
 
 Before reporting that a research task is done:
 
 1. Verify the retrieval backend state:
+   - paper-source lanes checked, skipped as not relevant, or unavailable;
    - SenSight result received, or
    - SenSight auth-blocked and fallback source path used, or
    - SenSight not relevant for this specific URL/material.
@@ -267,6 +347,8 @@ Before reporting that a research task is done:
    - original URL,
    - read status,
    - source type,
+   - query/profile lane,
+   - evidence sentence,
    - why it matters to the user's 70/20/10 career plan,
    - next action.
 4. Run a local search to confirm the candidate entry exists in `.local/LEARNING_MATERIAL_CANDIDATES.md`.
@@ -292,6 +374,7 @@ When writing into `Notes/`:
 - Use Typora-friendly block math for real equations: `$$...$$`.
 - Do not put formulas in ```text code fences; reserve code fences for schemas, field lists, commands, and pseudocode.
 - If a figure from the source or user-provided material is essential to understanding the mechanism, save it into the target note's relative asset folder (for example `Notes/AI-Applied-Algorithms/`) and link it with a relative Markdown path. Prefer primary-source figures when available.
+- For high-value cross-layer case studies, do not create a monolithic material section by default. First extract the general mechanism into the highest-level framework section, then add only small local deltas to existing eval / memory / runtime / tooling sections. Keep the source case as evidence, not as the organizing axis.
 
 For `请你读` / `精读`, Codex should read first and then provide a mechanism-first guide rather than a broad reading plan. Because personal original-reading recommendations are conservative, `Codex-summary-enough` answers must be more detailed, not thinner: include enough background, source-content explanation, core design, fields/schemas, evidence, artifact mapping, and caveats to substitute for the user's first-pass read. Use a two-focus structure: first explain the material itself, then map it to the user's current artifact. For papers / research artifacts, load `references/paper-reading-protocol.md`; the short form below is the minimum answer shape:
 

@@ -1,114 +1,52 @@
-# Codex TODO 用户动作队列
+# Codex TODO User Action Queue
 
 > 更新时间：2026-05-08
-> 目的：把剩余 `pending` TODO 中 Codex 不能替用户完成的部分，压缩成可执行的下一步动作。这个文件不替代 `.trae/todos/todos.json`，只作为 `推进TODO` 的阻塞面板。
+> 用途：当 `推进TODO` 发现没有 Codex 可独立推进的 active TODO 时，本文件作为用户动作队列入口。这里不替代 `.trae/todos/todos.json`，只作为 `推进TODO` 的阻塞面板，把用户下一步压缩成可执行、可复制、可回填的动作卡片。
 
-## 当前结论
+## 当前队列
 
-用户已确认三条旧线降噪：
+### 1. OpenViking session / Agent Harness trajectory 边界确认
 
-- OpenClaw Web Manager 不继续搞。
-- ECS SSH 随 OpenClaw Web Manager 旧链路归档。
-- 公司项目融合暂不考虑，并继续保证不上 git。
-- Trae CLI / proactive 内部调研优先级不高，后续默认优先使用 Codex CLI。
+- TODO：`todo-20260504-012`
+- 状态：等待用户向 OpenViking 同学确认。
+- 完整沟通包：[OpenViking-Session-Trajectory-Alignment.md](./OpenViking-Session-Trajectory-Alignment.md)
+- 公开参考：[OpenViking Session 文档](https://github.com/volcengine/OpenViking/blob/main/docs/zh/concepts/08-session.md)
 
-用户已完成 `gh auth login`。当前新增两条用户动作，均服务 Agent Harness / OpenViking 主线。
-
-## 1. 当前用户动作
-
-### 1.1 和 OpenViking 同学确认 session / trajectory 边界
-
-对应 TODO：`todo-20260504-012`
-
-Codex 已准备：
-
-- `.trae/documents/OpenViking-Session-Trajectory-Alignment.md`
-
-用户动作：
-
-1. 把文档中“可直接发给 OV 同学的话”发给 OpenViking 同学。
-2. 把回复贴回 Codex。
-3. Codex 再根据回复生成 Agent Harness / OpenViking integration TODO。
-
-判断：这是外部协作确认，Codex 不能替用户完成，但已经把问题压缩成可转发材料。
-
-### 1.2 选择是否同步 Agent Harness 主控 steering
-
-Codex 已准备：
-
-- `.trae/documents/Agent-Harness-Post-S15-Steering.md`
-
-用户动作：
-
-1. 如果要推动 agent-harness 主控收敛下一步，把文档中“给 Agent Harness 主控的转发稿”发给主控 agent。
-2. 如果主控已在推进同方向，则不必打扰，只把该文档作为本侧职业/项目判断留档。
-
-判断：S15 已经是 negative diagnostic，下一步不应继续堆 family rerank，而应转向 confirmation / write timing、argument grounding、applicability boundary 和 paired simulator variance 默认化。
-
-## 2. GitHub 搜索授权（已完成）
-
-对应 TODO：`todo-20260225-016`
-
-当前 Codex 已完成：
-
-- 安装 `gh 2.86.0`。
-- 新增 `Notes/snippets/github-search.sh`。
-- 新增 `.trae/documents/GitHub-Search-GH-Setup.md`。
-
-已验证命令：
-
-```bash
-Notes/snippets/github-search.sh status
-Notes/snippets/github-search.sh repos "agent memory llm" 3
-```
-
-成功标准：返回合法 JSON。该 TODO 已关闭。
-
-## 3. 已归档旧阻塞项
-
-以下 TODO 已按用户最新判断归档，不再进入用户动作队列：
-
-- `todo-20260219-004`：解决火山引擎 OpenClaw Web Manager 访问问题。
-- `todo-20260220-010`：节后解决 ECS 的 SSH 问题。
-- `todo-20260219-027`：公司项目 OpenClaw × AI 推荐融合，暂不考虑并保证不上 git。
-- `todo-20260223-034039`：公司内部 coding bash CLI 调研。
-- `todo-20260225-001`：Trae proactive / CLI 能力调研。
-
-## 4. Trae CLI / proactive 内部调研留档
-
-对应 TODO：
-
-- `todo-20260223-034039`
-- `todo-20260225-001`
-
-当前 Codex 已完成：
-
-- 确认本机 `trae` 是 Trae CN App CLI。
-- 确认存在 `trae chat --mode agent` 入口。
-- 产出 `.trae/documents/Trae-CLI-Proactive-Research-Brief.md`。
-
-当前状态：已归档为背景资料。后续默认优先使用 Codex CLI；除非未来要做 Trae adapter/eval，再重新启用。
-
-如果未来要重启，可把下面这段发给内部相关 owner / 群。
+#### 30 秒可复制版本
 
 ```text
-我想调研 Trae 是否有类似 Claude Code / Codex 的 bash/CLI agent 能力，尤其关注是否能被脚本编排、无人值守执行、并输出结构化轨迹。有没有内部文档或 owner 可以请教？
+我想确认一下 OpenViking session 能否作为一次 agent task run / episode 的 coarse trajectory 容器：把 task instruction / observation / response 写成 messages，把 tool call 写成 ToolPart，把 memory / resource / skill 注入写成 ContextPart 或 used()，任务结束后 commit() 形成 archive / overview / memory extraction。这个用法是否推荐？
 
-我主要想确认这些点：
-1. Trae CLI 的 `trae chat --mode agent <prompt>` 是否支持非交互执行到完成，并以 exit code 表示成功/失败？
-2. 是否支持 stdout JSON / streaming event / trajectory 文件 / tool trace / token usage / step summary？
-3. 是否能指定 cwd、模型、工具权限、MCP、workspace rules、AGENTS/CLAUDE 类 memory？
-4. 是否支持 resume session、session id、后台运行、超时控制、崩溃恢复？
-5. 是否有 proactive / daemon / scheduler / background task 能力？
-6. 是否支持类似 Claude Code 的 bash + edit + test loop，或更偏 IDE chat？
-7. 是否有内部推荐的 CLI agent benchmark 或最佳实践？
-8. 如果要把它接入 Agent Harness 做 trace/replay/eval，最稳定的 API/CLI 入口是什么？
+如果要支持 replay / eval，step_id、env state、tool correctness、DB diff、reward / evaluator delta、memory exposure id、paired replay branch 这些细粒度字段，你们建议扩展进 OpenViking session schema，还是由外部 Agent Harness 保存，只通过 session_id / context_uri / memory_exposure_id 对齐？
+
+另外想确认：当前公开实现里 memory / resource / skill 更像统一 context collection + context type / URI routing，这是否是长期方向？used(contexts, skill) 是否适合作为真实 exposure / usage 日志，并参与后续 priority / lifecycle / memory extraction？
 ```
 
-拿到答复后，Codex 再决定是否新增 `trae_worker_adapter` 设计 TODO。
+#### 需要带回给 Codex 的回复格式
 
-## 建议解除阻塞顺序
+```text
+OV 回复摘要：
+1. session-as-trajectory 是否推荐：
+2. 细粒度 replay/eval 字段归属：
+3. memory/resource/skill 是否长期统一 context collection：
+4. used(contexts, skill) 是否可作为 exposure / usage 日志：
+5. 他们建议的稳定 API / CLI / schema：
+6. 其他注意事项：
+```
 
-1. 先发 OpenViking session / trajectory 问题，解除 `todo-20260504-012`。
-2. 再视情况把 Post-S15 steering 发给 agent-harness 主控；如果主控已有同方向计划，则不必重复。
-3. 用户贴回任一回复后，Codex 负责把它转成下一批 integration / eval TODO。
+#### 回复后的 Codex 分支动作
+
+- 如果推荐 session-as-trajectory：新增 `OpenViking session bridge adapter` TODO，验收为一条 run 同时能追溯 OpenViking session archive 与 Agent Harness step-level trace。
+- 如果不推荐：新增 `external trace + OpenViking context-uri join` TODO，OpenViking 只负责 context database / session summary archive。
+- 如果边界仍不清楚：把问题继续收敛成最小 integration gate，不进入大规模实现。
+
+## 空队列规则
+
+如果只剩本文件里的用户动作，`推进TODO` 不应永久卡住。Codex 可以提醒用户动作，同时继续从流程优化、机制优化、效率优化、素材探索能力、笔记重构、脚本/skill 改进、索引治理或最近 completed TODO 中找一个安全小切口。
+
+如果本文件也没有待用户动作，`推进TODO` 更不应硬编历史任务。按顺序检查：
+
+1. 最近 completed TODO 是否有可沉淀的流程规则或脚本。
+2. 素材探索机制本身是否需要优化：trusted sources、读取工具、候选库治理、Unread/fallback 规则；不要默认消费具体材料队列。
+3. 是否有新材料、项目状态或用户反馈触发新的 Codex-owned TODO。
+4. 没有明确小切口时，直接回复“当前 TODO 队列为空”，不制造伪进展。
