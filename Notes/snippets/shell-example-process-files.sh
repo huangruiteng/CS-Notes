@@ -16,7 +16,7 @@ while IFS= read -r line; do
   # 检查 model_id 是否已经出现过
   if [[ ! "${seen_model_ids[@]}" =~ "${model_id}" ]]; then
     seen_model_ids+=("$model_id")
-    echo "$line" >> "$new_file_list"
+    echo "$line" >> "$unique_file"
   fi
 done < "$original_file"
 
