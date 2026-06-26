@@ -463,3 +463,7 @@ Check at the start of each session:
 ### Notes
 
 - Do not write to local files when LanceDB is available, to avoid duplicate storage
+
+## Multi Sub-agent Coordination
+
+- 多 sub-agent按完成集合来跟踪，避免漏汇总。

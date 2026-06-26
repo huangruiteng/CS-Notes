@@ -21,17 +21,16 @@ INBOX 文件: /root/.openclaw/workspace/CS-Notes/.trae/documents/INBOX.md
   - POST   /api/git/commit          - 提交 Git 更改
   - POST   /api/git/push            - 推送到远程仓库
   - POST   /api/git/pull            - 从远程仓库拉取
+  - GET    /api/codex/summary       - Codex TODO 摘要
+  - GET    /api/codex/next-action   - Codex 下一步
+  - GET    /api/codex/user-actions  - Codex 用户动作队列
+  - GET    /api/codex/check-blockers - Codex 阻塞检查
 ============================================================
-启动服务器: http://localhost:5000
+启动服务器: http://127.0.0.1:5000
+Debug 模式: False
 ============================================================
  * Serving Flask app 'server'
- * Debug mode: on
+ * Debug mode: off
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
- * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5000
- * Running on http://172.16.28.128:5000
 Press CTRL+C to quit
- * Restarting with stat
- * Debugger is active!
- * Debugger PIN: 140-747-854
-127.0.0.1 - - [07/Apr/2026 15:02:56] "POST /api/tasks HTTP/1.1" 200 -
