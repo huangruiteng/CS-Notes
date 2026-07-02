@@ -825,12 +825,151 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-* [代理，网关，隧道，有什么区别与联系？ - 知乎](https://www.zhihu.com/question/268204483/answer/334644846)
+#### Proxy / Tunnel / SSH Port Forwarding
 
+参考：[代理，网关，隧道，有什么区别与联系？ - 知乎](https://www.zhihu.com/question/268204483/answer/334644846)
 
+一次实战经验：远端 headless runtime 认证已经成功，但 `exec` 仍失败。最后发现问题不在 login，而在网络出口：远端能读本地 auth cache，却无法稳定访问运行时依赖的外部 endpoint。解决方式是本机启动 loopback HTTP CONNECT proxy，再用 SSH reverse tunnel 把远端 loopback 端口接到本机 proxy。
 
+这类问题要先分清三层：
 
-##### wireshark
+- **Proxy**：代理应用层请求。HTTP proxy 会理解 HTTP 请求；HTTPS 走 HTTP proxy 时通常用 `CONNECT host:443`，让 proxy 建立一条 TCP 隧道，之后 TLS 流量在隧道里透传。
+- **Tunnel**：改变网络可达性，本质是把一个连接封装进另一条连接里。隧道不一定理解上层协议，只负责转发字节流。
+- **Port forwarding**：端口级隧道。把一端的 `host:port` 映射到另一端的 `host:port`，SSH 只是最常见的安全承载层。
+
+常见 SSH 转发模式：
+
+```bash
+  # local forward：本机监听 18081，访问 remote 视角可达的 target:443。
+ssh -N -L 127.0.0.1:18081:target.example.com:443 user@remote
+
+  # reverse forward：remote 监听 18081，回连本机 18080。
+ssh -N -R 127.0.0.1:18081:127.0.0.1:18080 user@remote
+
+  # dynamic forward：本机启动 SOCKS 代理，目标地址由客户端请求动态决定。
+ssh -N -D 127.0.0.1:1080 user@remote
+```
+
+其中 `-R` 最容易想反。它是在 **remote 机器上开 listener**，但每次 remote 有连接进来，SSH 会把连接沿着已经建立的 SSH 会话带回本机，再连到本机侧的目标地址。
+
+本次拓扑可以抽象成：
+
+```text
+remote app
+  -> HTTP_PROXY=http://127.0.0.1:18081
+  -> remote loopback listener
+  -> SSH reverse tunnel
+  -> local 127.0.0.1:18080 CONNECT proxy
+  -> public internet / target endpoint
+```
+
+`127.0.0.1` 是关键安全边界。无论本机 proxy 还是 remote listener，默认都应绑定 loopback，而不是 `0.0.0.0`。前者避免把本机代理暴露给局域网或公网；后者避免把远端 tunnel 端口变成公开代理。
+
+实战命令骨架：
+
+```bash
+  # 1. 本机启动一个只监听 loopback 的 HTTP CONNECT proxy。
+  # 具体工具可替换，原则是 local 127.0.0.1:18080 提供 CONNECT 能力。
+
+  # 2. 建立 reverse tunnel：remote 18081 -> local 18080。
+ssh -N \
+  -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=3 \
+  -R 127.0.0.1:18081:127.0.0.1:18080 \
+  user@remote
+
+  # 3. remote runtime 注入 proxy env。
+export HTTP_PROXY=http://127.0.0.1:18081
+export HTTPS_PROXY=http://127.0.0.1:18081
+export ALL_PROXY=http://127.0.0.1:18081
+export NO_PROXY=localhost,127.0.0.1
+```
+
+端口最好区分 remote listener 和 local upstream，例如 `remote 18081 -> local 18080`，不要偷懒写成同号端口。不同端口让排障语义清楚：`18081` 是远端入口，`18080` 是本机代理；也能减少端口复用、自引用、旧进程残留带来的误判。
+
+验收要分层，不要只看“SSH 进程还在”：
+
+```bash
+  # remote：listener 是否真的存在。
+ss -ltnp | grep 18081
+
+  # local：proxy 是否真的在监听。
+lsof -nP -iTCP:18080 -sTCP:LISTEN
+
+  # remote：通过 proxy 访问外部 endpoint。
+HTTPS_PROXY=http://127.0.0.1:18081 \
+  curl -I --max-time 15 https://api.openai.com/v1/models
+
+  # 对照：不走 proxy 直连，判断是不是远端出口本身有问题。
+curl -I --max-time 15 https://api.openai.com/v1/models
+```
+
+排障时要注意：`401 Unauthorized` 可能是健康信号。对需要鉴权的 API endpoint 来说，`401` 说明 TCP、TLS、DNS、路由都已经打通，只是业务凭证没带；超时、DNS 失败、TLS handshake 卡住才更像网络面问题。
+
+这类远端 runtime 问题的通用 checklist：
+
+- 先拆 surface：auth、network、entrypoint、runtime，不要把所有失败都归因到 login。
+- 先探活 direct，再探活 proxy，比较错误形态。
+- 明确目标域名；很多工具不只访问 `api.*`，还会访问 Web app/backend API、WebSocket、MCP endpoint。
+- 确认工具是否真的读取 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY`；有些程序需要显式配置。
+- wrapper 可以注入 proxy env，但不要在 wrapper 里保存 token。
+- tunnel 只解决可达性，不解决账号权限、workspace policy、TLS 信任和业务鉴权。
+- 用 `ExitOnForwardFailure=yes` 防止 SSH 看似成功但端口没开；长连再配合 keepalive 或 supervisor。
+
+##### `ssh -R` 与 Unix socket reverse forward 的排障模型
+
+参考：[ssh(1)](https://man.openbsd.org/ssh.1)、[ssh_config(5)](https://man.openbsd.org/ssh_config)、[sshd_config(5)](https://man.openbsd.org/sshd_config)、[unix(4)](https://man.openbsd.org/unix.4)。
+
+一类常见故障：TCP reverse forward 单独可用，但 supervisor 同时拉起 TCP forward 和 Unix socket forward 时，`ssh -R` 直接以 `255` 退出，外层只看到 `tunnel exited`。这通常不是认证问题，而是某个 listener 没有 bind 成。
+
+`ssh -R` 的语义是 remote 侧开 listener，本机侧接 upstream：
+
+```bash
+  # TCP reverse forward: remote 127.0.0.1:18081 -> local 127.0.0.1:18080
+ssh -N -R 127.0.0.1:18081:127.0.0.1:18080 user@remote
+
+  # Unix socket reverse forward: remote socket path -> local socket path
+ssh -N -R /tmp/remote-bridge.sock:/tmp/local-bridge.sock user@remote
+```
+
+TCP port 和 Unix-domain socket 的生命周期不一样：
+
+- TCP listener 是内核里的 `ip:port` 绑定。进程退出后 listener 通常随之消失；残留问题更多表现为旧进程仍在监听、端口被占用、TIME_WAIT/复用策略干扰。
+- Unix-domain socket 的地址是文件系统路径。`bind()` 会在文件系统里创建 socket 文件；socket 关闭后这个路径不会自动删除，必须显式 `unlink`。所以一次失败 run 留下的 `/tmp/*.sock`，就可能让下一次 `ssh -R remote_socket:local_socket` 直接 bind 失败。
+- OpenSSH 有 `StreamLocalBindUnlink=yes`，用于创建 Unix-domain socket 前删除已有 socket 文件。但它不是可以无脑依赖的全局垃圾回收：客户端和服务端都有相关配置入口，实际是否生效取决于谁在创建这个 socket、命令是否经过跳板、多跳链路是否把 option 传到正确一端、远端权限是否允许删除。
+
+排查顺序要把层拆开：
+
+```text
+1. 先测 TCP reverse forward
+   如果 TCP 都不通，优先查 SSH 参数、跳板、GatewayPorts、remote bind address、端口占用。
+
+2. 再测 Unix socket reverse forward
+   如果 TCP 通而 socket 不通，优先查 remote socket path 是否残留、目录权限、StreamLocalBindUnlink 是否命中实际 bind 方。
+
+3. 最后复现 supervisor 的完整 tunnel command
+   如果单测都通而完整命令失败，再查 supervisor 是否并发创建多个 forward、是否复用旧 remote path、是否正确清理失败 run。
+```
+
+更好的工程修法：不要把 `rm -f /tmp/xxx.sock` 留给启动脚本或人工操作，而要让拥有 tunnel 生命周期的 supervisor 负责。
+
+```text
+tunnel supervisor invariant:
+  preflight:
+    - 远端 socket path 由 supervisor 生成和持有
+    - 启动 ssh -R remote_socket:local_socket 前，先通过 SSH 清理自己持有的旧 remote socket
+  start:
+    - 使用 ExitOnForwardFailure=yes，让 forward 没建成时立即失败
+    - 区分 TCP forward smoke 和 Unix socket forward smoke
+  observe:
+    - 私有日志记录真实 remote path 和 ssh stderr
+    - public payload 只暴露 cleanup succeeded/failed、tunnel exit code、smoke result
+```
+
+背后的通用知识点是：**长程 agent / benchmark runner 里的 tunnel、socket、lock file、pid file 都是有生命周期的资源，不是一次性命令字符串。** 谁拥有资源，谁就要负责 preflight cleanup、idempotent start、smoke test、失败证据和脱敏输出。否则一次失败 run 留下的状态会污染下一次 run，表现成“明明什么都没改，重跑又坏了”。
+
+#### wireshark
 [谈谈Linux中的TCP重传抓包分析](https://segmentfault.com/a/1190000019734707)
 
 ```

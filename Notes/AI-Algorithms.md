@@ -68,6 +68,26 @@
 - 火山引擎已上线豆包 2.0 系列模型 API 服务
 - 项目主页：https://seed.bytedance.com/zh/seed2
 
+### Claude Fable 5 / Mythos 5
+
+参考：[Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+
+**定位**：Anthropic 2026-06-09 发布的 Mythos-class 模型。Fable 5 是面向一般用户开放的版本；Mythos 5 是同一底层模型，但在部分高风险领域解除 safeguard、走 trusted access 的版本。这里更值得记录的是模型能力谱系，而不是产品权限设计。
+
+**LLM 模型能力**
+
+- **长程自主任务能力**：官方强调任务越长、越复杂，Fable 5 相对旧 Claude 模型优势越明显；早测案例包括大代码库迁移、长程 coding task、多 agent workflow 和复杂原型构建。
+- **更强 coding 与 token efficiency**：在 Cognition FrontierCode 这类高质量生产代码任务上，Fable 5 被描述为 frontier models 中领先；早测反馈集中在 fewer turns、medium effort 下仍有强表现、复杂工程任务能更稳定推进。
+- **复杂知识工作**：在金融、交易分析、文档推理、图表 / 表格理解、root-cause analysis、expected-value analysis 等任务上表现突出，说明能力不只是代码生成，而是长文档证据整合与结构化判断。
+- **原生视觉推理**：可以从科学图表中抽取精确数字、从截图重建 Web App 代码；官方还给出只依赖原始游戏画面的 Pokémon FireRed 案例，说明模型对视觉状态、导航和任务进展的理解减少了对外部 harness 的依赖。
+- **Memory / long-context 使用能力**：Fable 5 可以在数百万 token 的长程任务中保持聚焦，并利用自己写下的 notes 改进后续输出；在 Slay the Spire 测试中，persistent file-based memory 对 Fable 的增益显著高于 Opus 4.8。
+- **科学研究与生物推理**：Mythos 5 被用于 protein design、bioinformatics、分子生物学假设生成和 genomics research。这里体现的是模型能在工具辅助下完成“选目标、选工具、运行、失败恢复、形成假设”的科研闭环，而不是只回答已有知识。
+- **自我检查与反思**：早测反馈中多次提到 high effort 下模型会 reflect and validate its own work。这对应 inference-time scaling 的实际价值：额外 thinking token 不只是让答案更长，而是提高长程自主任务中的错误发现和路线修正能力。
+
+**模型能力设计判断**
+
+Fable / Mythos 这类模型的核心趋势是：LLM 能力正在从“语言、知识、代码”扩展成 `reasoning + coding + vision + memory + tool-use + scientific problem solving` 的组合能力。评估这类模型时，单一 benchmark 分数不够，要看任务长度、模态复杂度、是否需要外部工具、是否需要跨轮 memory、是否能自我纠错，以及能否在陌生工具 / 真实代码库 / 科研流程中维持稳定行动。
+
 ## 算法 Overview
 
 > [InfiniTensor 大模型概述](https://www.bilibili.com/video/BV1zxrUYyEg2)
@@ -3601,4 +3621,3 @@ AI for Science 是一个在大语言模型热潮之前便已开始的方向。�
 ### 深势科技的实践脉络
 
 深势科技的两位创始人张林峰与孙伟杰完整讲述了他们亲历的、用 AI 加速科学发现的发展脉络。这个领域在大语言模型热潮之前便已开始，深势的经历恰好涵盖了该领域的几种核心探索。
-

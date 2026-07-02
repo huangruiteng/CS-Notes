@@ -1787,6 +1787,48 @@ https://github.com/OpenBMB/XAgent
 
 #### Computer Use Agent
 
+##### CUA server：Computer-Use Agent 的执行中间层
+
+> 来源：[OpenAI Computer use docs](https://developers.openai.com/api/docs/guides/tools-computer-use)、[OpenAI testing-agent demo / cua-server](https://github.com/openai/openai-testing-agent-demo/blob/main/cua-server/README.md)、[Prime Intellect Browser Environments](https://docs.primeintellect.ai/guides/browser-environments)、[trycua/cua](https://github.com/trycua/cua)
+
+`CUA server` 不是一个已经完全标准化的协议名，但在 Computer-Use Agent 工程里已经形成了相对通用的说法：它指 **模型 / agent 与浏览器、桌面、VM、Playwright、CDP、VNC、MCP 等执行环境之间的中间服务层**。
+
+基本结构：
+
+```text
+model / agent policy
+  -> CUA server / harness
+  -> browser / desktop / sandbox / VM
+  -> screenshot / DOM / logs / trajectory
+  -> model / agent policy
+```
+
+它解决的是 CUA 的“手和眼”问题：
+
+- **观察**：截屏、DOM / accessibility tree、窗口状态、日志、轨迹。
+- **动作翻译**：把模型输出的 `click`、`type`、`scroll`、`keypress`、`drag` 等动作翻译成 Playwright / CDP / VNC / OS event。
+- **会话与环境管理**：启动浏览器或 VM、维护窗口尺寸、端口、鉴权、截图目录、沙箱状态。
+- **协议适配**：对外暴露 HTTP / WebSocket / Socket.IO / MCP 等接口，让 Python agent、前端或 IDE 能调用。
+- **安全与审计**：域名 / 动作 allowlist、human-in-the-loop、日志、截图、成本和失败恢复。
+
+几个具体形态：
+
+- OpenAI testing-agent demo 里的 `cua-server` 是 Node.js 服务，连接 CUA model，并向前端暴露 Socket.IO WebSocket API。
+- Prime Intellect 的 CUA mode 把 CUA server 定义成轻量 TypeScript HTTP 服务：接收坐标动作请求，翻译成 CDP 操作，再把截图返回给 agent。
+- `trycua/cua` 把 CUA 做成更完整的 computer-use infra：sandboxes、SDK、`cua-computer-server`、MCP server、benchmarks 和 VM 管理。
+
+边界：
+
+- CUA server 不是 CUA 模型本身；模型负责看图和决策，server 负责执行和回传环境状态。
+- CUA server 不是 MCP 本身；它可以暴露成 MCP server，但也可以是 REST / WebSocket / 本地进程。
+- CUA server 不是 Playwright/CDP 本身；它通常封装这些底层自动化能力，并补截图、状态、重试、安全和观测。
+
+产品/工程判断：
+
+- CUA server 是 Computer Use 从 demo 走向产品化的关键层。没有这层，模型只是“会看屏幕”；有这层，才有可复现的动作协议、隔离环境、日志、权限和失败恢复。
+- 设计 CUA server 时，不能只追求能点能打字；更重要的是 sandbox、allowlist、human gate、trace、screenshot retention、state reset 和可回放。
+- 对 agent benchmark 来说，比较单位不只是 `model`，而是 `model + CUA server / harness + environment`。
+
 ##### OSCAR: Operating System Control via State-Aware Reasoning and Re-Planning ([arxiv](https://arxiv.org/abs/2410.18963), ICLR 2025)
 
 将 agent 操作建模为状态机，基于 screen observation 做 state-aware reasoning，在执行过程中根据环境变化进行 task-driven re-planning。GAIA benchmark Level 3 成功率 13.5%（接近此前 SOTA 的两倍），OSWorld 和 AndroidWorld 上同样超越其他方法。
@@ -1954,6 +1996,20 @@ Agent Harness Engineering 适合放在 `Agent Memory：领域理论框架` 的�
 | O - Observability & Operations | 怎么看懂运行过程 | trace、span、token、cost、latency、exception、failure signal | OpenTelemetry GenAI、OpenInference、agentevals、Langfuse、AgentTrace |
 | V - Verification & Evaluation | 怎么判断做得对不对 | benchmark、replay、trace-native eval、grader、failure attribution | AppWorld、BFCL、Claw-Eval、GDPval、R2E-Gym、verifiers |
 | G - Governance & Security | 怎么限制权力 | permission、identity、policy、audit、human approval、security boundary | CaMeL、Contextual Agent Security、Agent Governance Toolkit、protected evaluator |
+
+Crabbox 可以作为 E/O/G 的工程案例：CLI 保留本地 repo 和命令体验，Coordinator 管 lease、provider credentials、expiry、cleanup、run records、telemetry、usage 和 cost guardrails，runner 只做短生命周期执行叶子。这个模式把 execution environment 从“一台机器”推进到可审计的 `lease + run + evidence` 记录；更详细的源码笔记见 [Crabbox：lease + sync + evidence 的远程执行控制面](./AI-Agent-Product&PE.md#crabboxlease--sync--evidence-的远程执行控制面)。
+
+LoopX 可以作为 C/L/O/V/G 的工程案例：registry / active goal state / run history / status queue / quota 把长程目标变成可恢复控制面，`quota should-run` 把 user gate、agent todo、capability gate、workspace guard、scheduler hint 合成下一轮是否该跑的机器判断；更详细的源码笔记见 [LoopX：长程 agent 的本地控制面](./AI-Agent-Product&PE.md#loopx长程-agent-的本地控制面)。
+
+Arbor 可以作为 L/V/O/G 的工程案例：Coordinator 维护 Hypothesis Tree，Executor 在独立 git worktree 中实现单个 idea，dev signal 负责迭代，held-out `eval_cmd_test` 负责合入门禁，protected paths / required outputs 约束实验污染。它把 agent loop 从“多试几次”推进到 `hypothesis lineage + branch + metric evidence + insight backprop + guarded merge`；更详细的源码笔记见 [Arbor：Hypothesis Tree 驱动的研究优化 runtime](./AI-Agent-Product&PE.md#arborhypothesis-tree-驱动的研究优化-runtime)。
+
+源码阅读后的主观工程评分，10 分最高：
+
+| 项目 | 定位清晰度 | 工程完整度 | 对 Agent Harness 迁移价值 | 证据/复盘纪律 | 治理与安全边界 | 复杂度可控性 | 总评 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Crabbox | 8.5 | 8.0 | 8.5 | 8.5 | 7.0 | 7.5 | 8.0：远程执行控制面很实，trust model 需另接强隔离 |
+| LoopX | 9.0 | 8.0 | 9.0 | 8.5 | 8.5 | 6.5 | 8.3：最贴长程 agent control plane，但概念密度和上手成本偏高 |
+| Arbor | 8.0 | 7.5 | 8.0 | 9.0 | 7.0 | 6.5 | 7.7：研究优化闭环很强，依赖可靠 eval 与 dev/held-out split |
 
 ![Agent Harness taxonomy](./AI-Applied-Algorithms/agent-harness-engineering-taxonomy.png)
 
@@ -2188,7 +2244,7 @@ activity:
 这套语义能推广到很多长程 agent failure：
 
 1. **“我做过了”不能只靠聊天自述**：任何会影响外部世界、预算、实验、代码或用户通知的动作，都应有 precondition、artifact / validation ref、idempotency key 和 result event。
-2. **等待外部证据不是空转**：CI、eval、部署、审批、数据落盘这类状态可以被 bounded read-only poll；无新证据不推进，有新证据才写 evidence event 并更新 canonical state。
+2. **等待外部证据不是空转**：CI、eval、部署、审批、数据落盘这类状态可以被 bounded read-only poll；无新证据不推进，有新证据才写 evidence event 并更新 canonical state。这里需要明确的工具层原语：non-blocking start、session handle、incremental output、exit status、kill / resume；否则上层就会被迫用 `/loop`、cron prompt 或临时 shell 脚本补洞。
 3. **human gate 接 A318 的 checkpointed decision**：gate 前只写 pending / interrupt event；人的 `approve / reject / edit_params` 是 resume event；执行前仍要在最新状态上重新校验。
 4. **系统规则本身会演进**：长期 agent 的 prompt、policy、tool schema、runner 版本都可能升级。事件里应带 `policy_version / executor_version`，让新 worker 能区分“旧规则下的事实”和“新规则下的下一步”。
 
@@ -2196,7 +2252,140 @@ Temporal 的 replay 是 deterministic code replay；长期 agent harness 不一�
 
 映射到具体系统时，Goal Harness 只是其中一个实例：它的 registry、ACTIVE_GOAL_STATE、run history、quota ledger、gate event 和 evidence ledger 可以作为这个 durable control plane 的本地实现；但这套语言本身适用于 coding agent、research agent、实验调度 agent、CI / deploy monitor、workflow automation 和 multi-agent project manager。
 
+### OpenAI Agents SDK：model-native harness 与 sandbox runtime substrate
+
+> 来源：[OpenAI: The next evolution of the Agents SDK](https://openai.com/index/the-next-evolution-of-the-agents-sdk/)、[Agents SDK docs](https://developers.openai.com/api/docs/guides/agents)、[Sandbox Agents](https://developers.openai.com/api/docs/guides/agents/sandboxes)、[Results and state](https://developers.openai.com/api/docs/guides/agents/results)、[Orchestration and handoffs](https://developers.openai.com/api/docs/guides/agents/orchestration)、[Guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)。用户 2026-06-20 读完。
+
+OpenAI 这组 Agents SDK 材料最重要的不是 Python API，而是把 **model-native harness / sandbox / Manifest / state externalization / memory artifacts / multi-agent composition** 变成官方 runtime substrate 语言。它说明：当应用要自己拥有 orchestration、tool execution、approvals 和 state 时，问题已经不是“一次模型调用”，而是如何把 agent loop、工具、工作区、审批、恢复和长期 artifact 组织成可运行系统。
+
+![OpenAI Agents SDK core figure](./AI-Applied-Algorithms/openai-agents-sdk-core-figure.png)
+
+这个图的核心是：裸用模型时，agent loop、tool integration、message handling、model interface、tool manager、context management 都要应用自己维护；Agents SDK 试图把这几层沉到 model-native harness 里，同时接入 MCP、skills、AGENTS.md、shell、apply_patch 等 frontier agent primitives。这里的优势不只是“省代码”，而是 **模型和 agent loop 协同**：工具形状、文件编辑、shell、memory、sandbox-aware orchestration 越贴近模型训练和产品形态，复杂任务可靠性越高。
+
+| 路线 | 应用拥有 | 优势 | 代价 / 风险 | 适用场景 |
+| --- | --- | --- | --- | --- |
+| Responses API / model-provider SDK | 单次模型调用、工具 schema、少量状态 | 简洁、低耦合、适合直接集成模型能力 | orchestration、tool manager、approval、state、trace 多数要自己搭 | 一次请求、轻量 tool use、无持久 workspace |
+| Agents SDK | agent definition、run config、local context、部分状态策略 | 贴近模型能力；内置 agent loop、handoff、tools、guardrails、state surface、sandbox 支持 | 仍要应用定义产品边界、权限、业务状态、持久化策略 | 应用要拥有编排、工具执行、审批和状态 |
+| Managed agent API / 托管 agent 产品 | 更少 infra，更多托管运行与部署 | 上手快，部署和运维负担低 | 运行位置、敏感数据访问、深度定制和调试可见性受限 | 标准化业务流程、低 infra 团队、低定制需求 |
+| Model-agnostic framework | 大部分 orchestration、provider adapter、tool runtime | 灵活、可混多模型 / 多 provider | 可能无法充分利用 frontier model 的原生 tool / memory / sandbox pattern | 多 provider、研究原型、平台中立需求 |
+| 自研 harness / Goal Harness 类控制面 | 目标状态、quota、gate、artifact、eval、worker dispatch | 可贴业务目标和长期控制面，能把隐性 protocol 固化 | 最容易状态膨胀；必须克制 hot path 字段 | 长程任务、多 agent 项目管理、实验调度、组织内控制面 |
+
+OpenAI 文档里的示例可以压缩成一个抽象代码形状：
+
+```python
+agent = SandboxAgent(
+    name="Dataroom Analyst",
+    model="gpt-5.4",
+    instructions="Answer using only files in data/. Cite source filenames.",
+    default_manifest=Manifest(entries={"data": LocalDir(src=dataroom)}),
+)
+
+result = await Runner.run(
+    agent,
+    "Compare FY2025 revenue, operating income, and operating cash flow with FY2024.",
+    run_config=RunConfig(
+        sandbox=SandboxRunConfig(client=UnixLocalSandboxClient()),
+    ),
+)
+```
+
+这段代码的抽象意义是：
+
+| 对象 | 语义 | 不能误解成 |
+| --- | --- | --- |
+| `SandboxAgent` | agent definition + sandbox defaults：模型、instructions、默认 workspace contract 绑定在一起。 | 不是“多一个 Agent 类”，而是执行边界也进入 agent 定义。 |
+| `Manifest` | fresh-session workspace contract：声明输入文件、repo、output dirs、storage mounts、env、users/groups 等。 | 不是 live workspace 的唯一真相，也不该被当作长期 goal state。 |
+| `SandboxRunConfig` | 本次 run 的 sandbox provider / session / snapshot 选择。 | 不是 agent 的永久属性；每轮运行环境可以变。 |
+| `RunState` / session state / snapshot | 三类恢复面：harness-side state、可重连 sandbox session、用于 fresh session seed 的 workspace snapshot。 | 不是聊天历史；也不是把旧容器原样冻住。 |
+
+![OpenAI Agents SDK state surfaces](./AI-Applied-Algorithms/openai-agents-sdk-state-surfaces.png)
+
+`Manifest` 最值得 Goal Harness 借鉴的地方，是把 workspace 入口显式化；但它也提醒我们，不要把动态执行环境塞进 durable goal state。更好的分层是：
+
+```yaml
+runtime_binding_ref:
+  kind: sandbox | local_cli | remote_worker | benchmark_runner
+  manifest_ref: optional_public_safe_pointer
+  snapshot_ref: optional_restore_seed
+
+required_capabilities:
+  - filesystem_write
+  - shell
+  - benchmark_runner
+  - network
+
+artifact_refs:
+  - input_data_ref
+  - output_dir_ref
+  - validation_ref
+```
+
+Goal Harness 只需要保存 **引用、需求和验证面**，不要拥有完整 `env / mounts / users / groups / raw memory layout`。否则会把看似静态、实际动态的执行面复制成第二套真相源。
+
+![OpenAI Agents SDK harness compute separation](./AI-Applied-Algorithms/openai-agents-sdk-harness-compute-separation.png)
+
+这张图是材料里最关键的产品判断：**harness 应运行在可信 infra，sandbox 负责 stateful execution**。原因有三层：
+
+1. **Security**：假设 prompt injection 和 exfiltration 一定会发生；credentials 不应进入 model-generated code 的执行环境。
+2. **Durability**：agent state externalized 后，sandbox container 丢失不等于 run 丢失；可以用 snapshot / rehydration 在新环境继续。
+3. **Scale**：一个 run 可以用一个或多个 sandbox，只在需要时启用 compute，把 subagent 路由到隔离环境，并行执行更重的工作。
+
+这和 Temporal / LangGraph 的启发连在一起：长期 agent 的 source of truth 不应该是某个容器、某次聊天历史或某个压缩摘要，而应该是 host-owned state + artifact + event / checkpoint projection。区别是，OpenAI 这里给的是 **agent runtime substrate**，Temporal 给的是 durable execution 语义，LangGraph 给的是 human gate / checkpointed interrupt 语义。
+
+Sandbox memory 也要单独记：它是 workspace artifact，不等于 SDK conversation session memory。默认布局类似：
+
+```text
+workspace/
+  sessions/
+    <rollout-id>.jsonl
+  memories/
+    memory_summary.md
+    MEMORY.md
+    raw_memories.md
+    phase_two_selection.json
+    raw_memories/
+      <rollout-id>.md
+    rollout_summaries/
+      <rollout-id>_<slug>.md
+    skills/
+```
+
+这对长期 agent 很关键：memory 应该是可持久化、可挂载、可 review 的 workspace artifact，而不是只靠 thread compaction。`MEMORY.md` / `memory_summary.md` 是 projection；raw rollout 和 raw memories 才更接近证据层。Goal Harness 如果接 memory，不应直接接管 raw memory store，而应记录 `memory_artifact_ref / freshness / promotion_gate / validation_ref`。
+
+Sandbox agents 还能组合：handoff 适合把某个分支的 ownership 交给 specialist；agents-as-tools 适合 manager 保持最终回复 ownership，只把 specialist 当 bounded capability。这给 subagent / new agent loop 集成提供了一种公共语言：每个 nested sandbox agent 都可以有自己的 manifest、provider、run config，但 top-level control plane 仍要明确谁拥有目标、状态、预算和最终验收。
+
+对 Goal Harness 的直接迁移结论：
+
+1. 不要把 `goal_manifest_v0 / capability_profile_v0 / run_restore_contract_v0 / memory_artifact_layout_v0` 四个大对象原样塞进 active state。
+2. 只抽最小控制字段：`required_capabilities`、`runtime_binding_ref`、`artifact_refs`、`memory_artifact_ref`，并让它们影响 quota / status / gate 决策。
+3. `Manifest` 是 fresh-session workspace contract，不是长期任务真相；长期真相仍应是 event history、active goal state、artifact refs、validation refs 和 human gate events。
+4. harness-compute separation 是安全、持久、扩展性的共同边界：Goal Harness 应更像可信控制面，runner / sandbox / worker 才是 stateful execution plane。
+
 ### Long-running agent 的 open problems
+
+**Multi-agent runtime governance**：Claude Code Agent Teams（见 [产品/系统设计笔记](./AI-Agent-Product&PE.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
+
+```yaml
+multi_agent_runtime_contract_v0:
+  team_id:
+  lead_session_ref:
+  teammate_sessions:
+    - agent_id:
+      role:
+      context_scope:
+      permission_lease_ref:
+      budget_ref:
+  task_ledger_ref:
+  mailbox_ref:
+  artifact_store_ref:
+  event_store_ref:
+  hook_gates:
+    - TaskCreated
+    - TaskCompleted
+    - TeammateIdle
+  display_surface:
+  human_approval_boundary:
+```
 
 **Execution environment**：runtime substrate 正在变成安全、扩展性和可移植性的交汇点。SandboxEscapeBench 这类工作说明 frontier model 可能利用 sandbox 弱点；SWE-World 这类方向则尝试用 Docker-free surrogate environment 降低大规模并行轨迹的 reset / replay 成本。未来 harness 需要能比较 container、microVM、OS permission boundary、desktop VM、browser environment、learned surrogate 等执行底座的安全性、成本和可复现性，而不是把 sandbox 当产品偏好。
 

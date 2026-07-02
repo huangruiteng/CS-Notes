@@ -103,6 +103,110 @@ RL 有个众所周知的问题：当 action space 变得极大、历史信息过
 
 ## 核心难点与理论抓手
 
+### MDP / POMDP
+
+RL 最常用的基础模型是 MDP（Markov Decision Process，马尔可夫决策过程）：
+
+$$
+\mathcal{M} = (\mathcal{S}, \mathcal{A}, P, R, \gamma)
+$$
+
+其中：
+
+| 符号 | 含义 |
+| --- | --- |
+| $$\mathcal{S}$$ | state space，状态空间 |
+| $$\mathcal{A}$$ | action space，动作空间 |
+| $$P(s' \mid s, a)$$ | transition probability，当前状态和动作决定下一状态分布 |
+| $$R(s, a, s')$$ | reward function，对一次转移的奖励 |
+| $$\gamma$$ | discount factor，未来回报折扣 |
+
+MDP 的关键假设是 Markov 性：
+
+$$
+P(s_{t+1} \mid s_{\le t}, a_{\le t}) = P(s_{t+1} \mid s_t, a_t)
+$$
+
+也就是说，当前 $$s_t$$ 已经是决策所需历史的充分统计量。只要知道当前 state 和当前 action，就不需要再回看完整历史。
+
+现实中很多任务不满足完全可观测，因此更接近 POMDP（Partially Observable MDP）：
+
+$$
+\mathcal{P} = (\mathcal{S}, \mathcal{A}, \mathcal{O}, P, O, R, \gamma)
+$$
+
+POMDP 比 MDP 多了 observation space 和 observation model：
+
+$$
+o_t \sim O(o \mid s_t)
+$$
+
+agent 看到的是 $$o_t$$，不是真实完整状态 $$s_t$$。因此它通常要用历史交互形成 belief state：
+
+$$
+b_t(s) = P(s_t = s \mid o_{\le t}, a_{<t}, r_{<t})
+$$
+
+belief 可以理解成“在当前已知信息下，真实 state 可能是什么”的后验分布。POMDP 中 policy 更自然地写成：
+
+$$
+a_t \sim \pi(a \mid b_t)
+$$
+
+粗略对比：
+
+| 模型 | agent 看到什么 | policy 输入 | 适用直觉 |
+| --- | --- | --- | --- |
+| MDP | 完整 state | $$s_t$$ | 棋盘、仿真器、明确定义的环境状态 |
+| POMDP | 局部 observation | history / belief $$b_t$$ | 对话、推荐、机器人、long-horizon agent |
+
+### State / Observation / Belief / Reward
+
+一个常见误解是把长程任务写成：
+
+```text
+reward_t = f(reward_{t-1}, env_t, event_t)
+```
+
+这个式子太简化。RL 里 reward 是评价信号，不是 agent 的主状态容器。更基础的拆法是：
+
+```text
+history h_t = (o_0, a_0, r_0, ..., o_t)
+belief/state estimate b_t = update(b_{t-1}, a_{t-1}, o_t, r_{t-1})
+action a_t ~ pi(a | b_t)
+reward r_t = R(s_t, a_t, s_{t+1})  或  R(h_t, a_t, o_{t+1})
+```
+
+在 MDP 里，如果 $$s_t$$ 已经包含决策所需的全部信息，就可以直接写：
+
+$$
+a_t \sim \pi(a \mid s_t), \quad r_t = R(s_t, a_t, s_{t+1})
+$$
+
+但很多真实任务更接近 POMDP：agent 看到的是 observation，而不是真实完整 state。此时需要维护 belief state：
+
+$$
+b_t(s) = P(s_t = s \mid o_{\le t}, a_{<t}, r_{<t})
+$$
+
+也就是说，历史事件、环境反馈、系统 prompt、长期记忆、人的约束、最近上下文，都更像是用来构造 $$b_t$$ 的证据；reward 则用于评价 action / transition / trajectory 是否好。
+
+对应关系可以记成：
+
+| 概念 | 作用 |
+| --- | --- |
+| `observation` | 当前能看到的局部信息 |
+| `event history` | 过去发生过什么，可用于重建 history / projection |
+| `state` | 若满足 Markov 性，是决策充分统计量 |
+| `belief state` | 在部分可观测场景下，对真实 state 的后验估计 |
+| `policy` | 基于 state / belief 选择 action |
+| `reward` | 对转移或轨迹的评价信号 |
+| `value` | 从当前 state / belief 出发的期望未来回报 |
+
+所以 replay event 的价值不是“直接重算 reward 然后决策”，而是帮助构造当前可行动的 state / belief。旧约束也不是永远作数；它应该带 scope、timestamp、validity condition 和 uncertainty，进入 belief 更新，再由 policy 决定是否继续遵守、忽略或重新询问人。
+
+这个区分对 long-horizon agent 很重要：如果 state construction 漏掉了关键上下文，policy 会在错误状态上做正确优化；后面再怎么调 reward，也很难补回丢失的决策信息。
+
 ### Credit assignment
 
 Credit assignment 是 RL 最核心的问题之一：最终成功或失败，到底该归因给前面哪些 action？
