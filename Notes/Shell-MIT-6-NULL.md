@@ -302,6 +302,31 @@ For tabular data, often presented in CSVs, the [pandas](https://pandas.pydata.or
 
 #### Lecture 5.Command-line Environment
 
+##### PTY：终端、shell 和 job control 的边界
+
+参考：[pty(7)](https://man7.org/linux/man-pages/man7/pty.7.html)、[Bash Job Control Basics](https://www.gnu.org/software/bash/manual/html_node/Job-Control-Basics.html)、[tcsetpgrp(3)](https://man7.org/linux/man-pages/man3/tcsetpgrp.3.html)。
+
+* PTY（pseudo-terminal）不是 shell，而是一对虚拟字符设备：master 端由终端模拟器、SSH、tmux、expect、script 等控制；slave 端表现得像真实终端，通常成为 bash / 程序的 `stdin/stdout/stderr`。
+
+```text
+键盘/窗口/SSH client/tmux pane
+  -> PTY master
+  -> kernel tty line discipline / termios
+  -> PTY slave (/dev/pts/N)
+  -> bash/readline/前台程序
+```
+
+* shell job control 依赖三层对象：
+  * session：一次登录或交互会话的进程集合，通常由登录 shell 作为 session leader。
+  * process group：一个 pipeline 通常被 bash 放进同一个进程组，也就是一个 job。
+  * controlling terminal：session 绑定的终端。终端里只有一个 foreground process group；`Ctrl-C` / `Ctrl-Z` 由内核终端驱动发给这个前台进程组，而不是只发给某个 PID。
+* `fg/bg/jobs` 的本质：bash 维护 job 表，并通过 `setpgid()` 划分 job、通过 `tcsetpgrp()` 把某个 job 的进程组切到终端前台。后台 job 读 controlling terminal 会收到 `SIGTTIN`；如果设置了 `stty tostop`，后台写终端也可能被 `SIGTTOU` 挂起。
+* pipe / redirect 只是字节流，不提供终端语义；PTY = 字节流 + 终端驱动 + termios 模式 + foreground process group + 窗口尺寸等状态。所以很多交互程序会用 `isatty()` 判断自己是否连着终端。
+* 常见现象：
+  * `bash -c`、普通脚本、CI、管道里默认没有 interactive job control；如果没有 controlling terminal 或不在前台，会看到 `cannot set terminal process group` / `no job control in this shell`。
+  * `ssh -t`、`docker exec -it`、`kubectl exec -it` 的 `-t` 就是在远端/容器侧分配 PTY；没有 `-t` 时适合跑非交互命令，但全屏 UI、readline、密码输入、`Ctrl-C` 语义可能不完整。
+  * tmux/screen 是 PTY broker：外层连接一个终端，内部每个 pane 再给 shell 一个 `/dev/pts/N`。detach 后 shell 不随外层终端关闭，是因为会话由 tmux server 持有。
+
 ##### Job Control
 杀进程
 * signals: software interrupts

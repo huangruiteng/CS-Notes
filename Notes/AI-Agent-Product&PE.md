@@ -669,6 +669,82 @@ AI 生成的代码不可信，必须在隔离环境中执行。Docker 容器共�
 - **Anthropic Claude Code + E2B**：官方合作，在 E2B Sandbox 中运行，减少权限提示
 - **Manus**：使用 E2B Sandbox 作为代码执行后端
 
+### Crabbox：lease + sync + evidence 的远程执行控制面
+
+> 来源：[README](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/README.md)、[How Crabbox Works](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/docs/how-it-works.md#L8-L20)、[`run.go`](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/internal/cli/run.go#L620-L760)、[`provider_backend.go`](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/internal/cli/provider_backend.go#L1244-L1294)、[`fleet.ts`](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/worker/src/fleet.ts#L1892-L1997)、[`usage.ts`](https://github.com/openclaw/crabbox/blob/399c94a8f7dcd61bb5ce111013a6b9fe460ef29d/worker/src/usage.ts#L86-L142)。读取 commit `399c94a`，整理时间：2026-06-27。
+
+**定位**：Crabbox 不是 CI，也不是 hostile multi-tenant sandbox，而是给开发者和 AI agent 用的远程执行控制面：本地保留编辑和命令体验，远端短生命周期 runner 负责测试、构建、桌面或浏览器等重活，中心服务管理租约、成本、证据和清理。
+
+核心设计是 **control plane / data plane 分离**：
+
+- **CLI 管热路径**：解析 config / profile，生成 per-lease SSH key，识别 git repo，同步 dirty checkout，SSH 执行命令，stream stdout/stderr，最后 release。
+- **Coordinator 管治理面**：保存 provider credentials、lease state、expiry、cleanup、run records、logs、events、telemetry、usage 和 spend caps。
+- **Runner 只做叶子节点**：被 provision、使用、删除，不持有 broker 长期密钥；源码同步和命令输出通过 CLI 直连 SSH / rsync，不穿过 coordinator。
+- **Provider 抽象管异构环境**：`ssh-lease`、`delegated-run`、`service-control` 三类 backend 覆盖云主机、托管 sandbox、本地/静态 SSH 和服务控制类场景。
+
+`crabbox run` 的源码热路径可以压成六步：
+
+1. **Plan**：加载 profile / flags / env / artifact / pool / keep 策略，确定 repo、workdir、provider 和执行参数。
+2. **Lease**：复用指定 lease，或新建 `cbx_...` lease；brokered 模式下由 coordinator 记录 owner、org、provider、target、TTL、idle timeout、cost estimate 和 SSH 公钥。
+3. **Sync**：等待 SSH ready，生成 manifest / excludes，计算 sync fingerprint；无变化则跳过，否则 git seed + rsync，Windows 走 archive sync。
+4. **Run**：通过 SSH 执行远端命令，stdout/stderr 同步回本地；brokered 模式下持续写 run events 和 telemetry。
+5. **Evidence**：收集 JUnit、artifact、download、proof、failure classification、blocked stage、retry likelihood、timing report。
+6. **Release**：默认释放 lease；`--keep`、失败保留和 `--stop-after` 控制是否留下环境用于复盘。
+
+对 Agent Harness / OpenClaw 的启发：执行环境不应只抽象成“给 agent 一台机器”。更稳定的 schema 是 `lease_id / provider / target / workdir / sync_fingerprint / run_id / blocked_stage / retry_likely / artifact_refs / estimated_cost / stop_command`。这样 agent 的一次尝试能被复盘、计费、回收和迁移，而不是只留下终端输出。
+
+边界也要写清：Crabbox 的 trust model 是 developer execution tool，不是强敌对隔离环境。它适合可信开发/agent 工作流里的 remote execution substrate；如果面对不可信租户或恶意代码，还需要 microVM、权限隔离、secret boundary 和更强 policy gate。
+
+### Arbor：Hypothesis Tree 驱动的研究优化 runtime
+
+> 来源：[README](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/README.md#L22-L27)、[How It Works](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/docs/how-it-works.md#L19-L25)、[`idea_tree.py`](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/src/coordinator/idea_tree.py#L28-L46)、[`orchestrator.py`](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/src/coordinator/orchestrator.py#L122-L128)、[`executor_run.py`](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/src/coordinator/tools/executor_run.py#L460-L680)、[`git_ops.py`](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/src/coordinator/tools/git_ops.py#L297-L305)、[`mcp/server.py`](https://github.com/RUC-NLPIR/Arbor/blob/7ad3c077a97fa86bb4da9af2110a68ea2d891323/src/mcp/server.py#L1-L16)。读取 commit `7ad3c07`，整理时间：2026-06-28。
+
+**定位**：Arbor 不是普通 coding agent，也不是单纯 benchmark runner，而是面向可评分研究任务的研究优化 runtime。它把一次长程优化任务拆成 `Hypothesis Tree -> isolated implementation -> metric evidence -> insight backprop -> guarded merge`，让 agent 的尝试不只留下聊天记录，而是形成可复盘、可继续、可剪枝的研究状态。
+
+核心机制：
+
+- **Coordinator / Executor 分工**：Coordinator 维护 Idea Tree、选择探索方向、决定 merge / prune；Executor 只拿一个 idea，在独立 git worktree 中实现、跑实验、返回 evidence。这个分工把“研究策略”和“一次实现”拆开，避免一个 agent 同时当 PI、工程师和评审。
+- **Idea Tree 作为 durable memory**：每个 node 保存 `hypothesis / status / insight / result / score / code_ref / related_work / grounding`。JSON 是 canonical state，Markdown 是人类投影；Coordinator 通过 TreeView 读当前约束、pruned lessons 和 validated findings，而不是从聊天历史重建上下文。
+- **Dev / held-out gate**：Executor 可以在 dev signal 上迭代，但 merge 前由 `GitMergeBranch` 在隔离 worktree 自动跑 `eval_cmd_test`；分数不优于当前 trunk / baseline 就拒绝合入。protected paths 与 required outputs 由 plugin 约束，tamper 会让 dev score 失效。
+- **Keyless harness integration**：MCP server 不调用 LLM，只暴露 tree / eval / worktree / merge / report 等 deterministic tools；Codex / Claude Code 等 host agent 负责推理，Arbor 负责 durable state 和研究 guardrail。
+
+对 Agent Harness / OpenClaw 的启发：可评分任务的 agent loop 不应只记录 `success/fail`，而要记录 hypothesis lineage、branch、dev score、held-out score、insight、pruned reason、merge evidence 和 protected-path integrity。Crabbox 解决“在哪台机器上安全执行”，Arbor 解决“执行过的研究尝试如何累积成可继续的搜索”。
+
+边界也要写清：Arbor 的强项建立在可运行 eval、稳定 metric、干净 dev / held-out split 之上。没有可靠评分器时，Hypothesis Tree 仍能做项目记忆，但 merge gate 会退化成弱证据；面对不可信代码，它也不是 sandbox，需要接 Crabbox / E2B / microVM 这类执行隔离层。
+
+### ego lite：把浏览器做成 agent / human 共享运行时
+
+> 来源：[官网](https://lite.ego.app/)、[Quick start](https://lite.ego.app/document/en/docs/quick-start)、[Snapshot docs](https://lite.ego.app/document/en/docs/snapshot)、[Skills docs](https://lite.ego.app/document/en/docs/skills)、[GitHub README](https://github.com/citrolabs/ego-lite)（读取 HEAD `55ef29c`）、[官方 blog](https://lite.ego.app/blog/browser-for-run-browser-automation-tasks-in-parallel)。整理时间：2026-06-25。
+
+**定位**：ego lite 不是又一个内置 agent 的 AI browser，也不是 Playwright / Puppeteer / browser-use 这类自动化框架，而是一个日常 Chromium 浏览器，加上 agent 专用 Space 和 `ego-browser` Skill。它解决的是 Codex、Claude Code 这类外部 agent 做浏览器任务时最常见的三件事：登录态搬不过去，人和 agent 抢同一个 Chrome，逐步 CLI / Playwright 调用的 token 和延迟太高。
+
+核心机制：
+
+- **Same browser, separate Space**：用户继续用自己的浏览器，agent 在独立 Space 里开 tab、登录、执行任务；这比“让 agent 接管用户当前窗口”更接近长期可用的 human-agent 协作界面。
+- **继承真实登录态**：onboarding 可迁移 Chrome 的 tabs、bookmarks、passwords、extensions、cookies、profiles。价值在于绕过大量 API / MCP 不存在、SSO / 2FA / captcha 卡住的 SaaS 和内部工具；风险也在这里，agent 获得的不是模拟环境，而是真账号能力。
+- **Snapshot 作为语义观测层**：Snapshot 从浏览器 accessibility tree 压缩页面，给可交互元素临时 `@N` ref。它不是 raw HTML，也不是截图坐标，而是“足够 agent 决策”的结构化页面视图；页面变化后 ref 会失效，需要重新 snapshot。
+- **Code base, not CLI base**：`ego-browser` 暴露 `snapshot / fill / click / wait / navigate / capture / js / cdp` 等 JS helper，让 agent 写一段 JavaScript 一次性完成多步动作，而不是每一步都 shell 调一次工具、等输出、再决定下一步。这个设计把浏览器操作从 tool-call loop 推向 small script execution。
+- **经验积累方向**：官方说后续会把成功操作蒸馏成可复用 tools / workflows，让相似任务少走试错路径。这和 procedure memory 很像，但更偏 per-site browser workflow，不应直接等同于通用 agent memory。
+
+产品判断：
+
+- ego lite 抓住的是 **browser as agent runtime**，不是“更聪明的浏览器助手”。ChatGPT Atlas / Perplexity Comet 更像内置 agent 的浏览器；ego lite 更像把真实浏览器变成 Codex / Claude Code / OpenClaw 可用的执行环境。
+- 它的关键差异不是能不能点网页，而是同时满足三件事：真实登录态、人与 agent 不互抢状态、agent 可用代码组织复杂交互。对企业内部工具、CRM、ATS、后台报表、社媒运营这类 GUI-only / API 缺失场景很有价值。
+- 但 benchmark 口径要谨慎：README 写对 Vercel agent-browser 最高 `2.5x`，官网 / blog 写最高 `3.45x`，Skills docs 又写内部测试 `20-50%` 更快。这说明它的效率优势方向可信，但具体倍数目前只能当产品方 benchmark，不是独立评测结论。
+
+对 Agent Harness / OpenClaw 的启发：
+
+- Browser runtime 应进入 execution environment 层，而不是被当成普通 tool。需要记录 `space_id / tab_id / snapshot_id / action_script / action_trace / confirmation_gate / sensitive_action`，否则 replay、审计和问题归因都很弱。
+- `Snapshot` 是 CUA server 的一个好抽象：它把浏览器观测从 DOM / screenshot 中间化成语义输入，适合和 accessibility tree、Playwright screenshot、CDP trace 一起进入 observation schema。
+- “JS 一次性执行多步动作”可以减少 tool-call 往返，但也更需要边界：支付、发布、删除、发信、改权限这类动作必须有 explicit pause / human confirmation。
+- 经验积累如果落地，最好不要只存“成功脚本”。更合理的是保存 site-specific procedure：适用场景、前置登录态、关键页面 ref / selector、失败触发、确认门禁、回放验证方式。
+
+待观察：
+
+- 目前主要支持 macOS，Windows / Linux 还在 roadmap。
+- repo 中 Skill / docs 开源，但 ego lite 浏览器本体是单独免费下载产品；企业可信度取决于本地数据边界、更新机制、权限审计和可关闭能力。
+- 高质量 Snapshot 是否真的稳定覆盖复杂 iframe、shadow DOM、第三方组件，需要用内部工具和真实 SaaS 页面长期试，而不是只看官网 demo。
+
 ## ToC 产品
 
 ### 模型能力
@@ -1876,7 +1952,121 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
 
 ### Agent 应用技术架构、系统设计
 
-**Workflow 显式化**：AFlow（ICLR 2025）证明 workflow 可以被搜索、比较与自动优化，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o；AgentFlow（ICLR 2026）证明系统级 in-the-flow RL 训练 planner 优于只替换更强模型。详见 [AI-Applied-Algorithms.md - Agent + Workflow](./AI-Applied-Algorithms.md)
+**Workflow 显式化**：AFlow（ICLR 2025）证明 workflow 可以被搜索、比较与自动优化，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o；AgentFlow（ICLR 2026）证明系统级 in-the-flow RL 训练 planner 优于只替换更强模型。工程侧的 Dynamic Workflow 则把 loop 的计划、状态、分支与验收显式化为可读脚本，避免每次都依赖模型运行时 instruction following。详见 [AI-Applied-Algorithms.md - Agent + Workflow](./AI-Applied-Algorithms.md)
+
+#### Dynamic Workflow：把 loop 编译成可重放脚本
+
+> 来源：[Addy Osmani - Loop Engineering](https://addyosmani.com/blog/loop-engineering/)、[Claude Code Dynamic workflows docs](https://code.claude.com/docs/en/workflows)、[Anthropic - Introducing dynamic workflows in Claude Code](https://claude.com/blog/introducing-dynamic-workflows-in-claude-code)
+
+Dynamic Workflow 的核心不是“多开 sub-agent”，而是把计划从模型运行时移到脚本里：模型可以生成或修改脚本，但执行时的阶段顺序、并行、分支、循环、状态保存由代码承载；模型只在显式 worker / evaluator 调用点贡献判断。它回答的问题是：复杂任务中，哪些结构应该由 deterministic runtime 管，哪些不确定性才交给 LLM。
+
+和 Skill 的边界：
+
+- **Skill 是 instruction artifact**：结构仍由模型读说明后即兴执行，适合探索、边界模糊、需要临场取舍的任务。
+- **Workflow 是 execution artifact**：path、state、branch / retry、resume、logging 进入脚本，适合阶段清晰、有验收标准、会重复执行或需要审计的任务。
+- 关键交易是“强模型生成一次，普通模型执行多次”：高智力用于生成 / 改写 workflow，实际 run 只在 worker / evaluator 点调用模型，降低运行时 instruction following 压力。
+
+一个成熟 loop 至少要想清楚六件事：Trigger 怎么启动；Planner 如何拆任务；State 是否外部化、可暂停恢复；Workers 负责哪些可并行子任务；Evaluator 是否把 worker 准出门和阶段间 gate 分开；Loop / Branch / Resume / Repeatability 是否能让差异追到某一次模型调用，而不是整条路径漂移。
+
+对 Agent Harness 的启发：长期运行 agent 的主战场不是写更长 prompt，而是把任务队列、脚本状态、phase/log、验证 gate、用户插手点和回放记录做成一等公民。loop 越自动，越要保留 human-in-the-loop 的两个接口：关键岔路主动问人，中途定期吸收用户 steering；否则无人值守只是在无人值守地犯错。
+
+#### Waiting primitive：yield_time_ms 与 /loop 的设计差异
+
+> 来源：用户整理；Claude Code 官方文档：[Commands](https://code.claude.com/docs/en/commands)、[Run prompts on a schedule](https://code.claude.com/docs/en/scheduled-tasks)，核验时间：2026-06-30。
+
+这组对比的重点不是“谁的 Bash 工具更烂”，而是 **runtime primitive 和产品工作流的边界**。
+
+`yield_time_ms` 这类 shell 执行能力属于底层原语：agent 可以启动长命令，先等待一小段时间返回；如果进程还没结束，就保留 session handle，后续继续 poll 增量输出和退出状态。它适合处理部署、测试、日志 tail、长 benchmark、依赖安装这类“等一会儿再看证据”的任务，agent 不需要临时写 `while sleep ...`、后台进程、临时 log 文件和 head/tail 拼装。
+
+Claude Code 的 `/loop` 属于上层工作流。官方文档把它定位为 session 内重复运行 prompt：可以写 `/loop 5m check if the deployment finished`，也可以省略 interval，让 Claude 每轮根据观察动态选择下一次唤醒时间；它还和 cron task、session scope、7 天过期、后台 session 等产品语义绑定。它解决的是“过一段时间重新唤醒 agent 做判断”，不等价于单次 shell 命令的非阻塞执行。
+
+更准确的判断：
+
+- **底层 wait primitive**：解决一个外部活动如何非阻塞启动、如何拿增量输出、如何判断完成、如何 kill / resume。
+- **上层 loop workflow**：解决 agent 何时重新醒来、用什么 prompt 重新检查、是否继续推进当前会话里的任务。
+- 二者相关但不等价。工具层越弱，产品层越容易长出 `/loop`、scheduler、cron prompt 这类补偿性抽象；工具层越强，很多等待场景可以自然地落在 process/session primitive 上。
+
+一个好的 agent runtime 至少要有：
+
+```yaml
+agent_process_wait_contract_v0:
+  command_id:
+  start_mode: foreground | background
+  initial_yield_ms:
+  poll:
+    output_mode: incremental | full_log | exit_status
+    timeout_ms:
+  control:
+    write_stdin:
+    kill:
+    extend_wait:
+  evidence_event:
+    stdout_ref:
+    stderr_ref:
+    exit_code:
+    observed_at:
+  resume_policy: poll_again | schedule_wakeup | ask_user | fail_closed
+```
+
+设计结论：等待不是一个小 UX 细节，而是 agent runtime 的核心能力。没有暂停、恢复、轮询、增量输出和证据事件，长任务就会退化成 prompt 层自我催眠；有了这些 primitive，`/loop` 这类上层工作流才能专注于“何时重新判断”，而不是替工具层补洞。
+
+#### LoopX：长程 agent 的本地控制面
+
+> 来源：[README](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L11-L29)、[What Is It](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L44-L69)、[Why Loop Engineering Needs A Control Plane](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L277-L307)、[Architecture](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/docs/architecture.md#L3-L13)、[`cli.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/cli.py#L114-L160)、[`quota.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/quota.py#L6559-L7010)、[`todos.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/todos.py#L635-L760)。读取 commit `afd6f7e`，整理时间：2026-06-28。
+
+**定位**：LoopX 不是新的 agent executor，也不是简单 todo list，而是把 Codex / Claude Code / Cursor 这类 bounded agent loop 接成可管理长程工作的 local control plane。runtime 负责执行一次 agent turn，LoopX 负责保存目标、gate、todo ownership、run history、quota、evidence、handoff 和 public/private boundary，让下一轮不靠聊天记忆续命。
+
+核心机制：
+
+- **七层控制面**：registry、goal state、adapter pre-tick、run log、run history、status / attention queue、compute quota。它把 lifetime goal 变成可恢复状态，而不是把一次聊天 thread 当成项目事实源。
+- **status / attention queue**：`loopx status` 聚合 registry、active state、run history 和 contract health，产出第一屏：谁该行动、当前 blocker、最新 evidence、next action 和 dashboard contract。
+- **quota should-run**：`build_quota_should_run` 不是单纯限流，而是把 user gate、agent todo、capability gate、workspace guard、self-repair、external evidence、scheduler hint 合成一个 `should_run / decision / interaction_contract`。这回答的是“这一轮该不该花 agent compute”。
+- **todo lifecycle as state machine**：todo 带 `task_class / required_write_scopes / required_capabilities / claimed_by / blocks_agent / resume_when / evidence` 等 metadata；side agent 完成工作时必须写 evidence 或生成 handoff todo，避免“我做完了”停在口头状态。
+
+设计动机很清楚：长程 agent 的失败不是单步不会做，而是跨 restart、跨人类反馈、跨 agent handoff 后状态漂移。LoopX 的价值在于把“当前目标是什么、谁被 gate、谁能继续、证据在哪里、下一轮是否允许跑”外部化成机器可读状态。它和 Dynamic Workflow 的关系是：Workflow 管一条可重放执行路径，LoopX 管多轮、多 agent、多 gate 的项目级 control plane。
+
+边界：LoopX 的抽象密度很高，早期用户需要理解 goal / gate / quota / todo / registry / runtime root 等概念；如果没有真实长程任务，它会显得比普通 agent workflow 重。它也不提供执行隔离和模型能力增强，必须和 Codex / Claude / sandbox / CI / benchmark runner 配合使用。
+
+#### Claude Code Agent Teams：从多开会话到可管理 runtime
+
+> 来源：[看完 Claude Code Agent Teams，我更确定接下来拼的是 Agent Runtime，技术拆解：Lead、Task List、Mailbox 和 Hooks 是什么东西](https://mp.weixin.qq.com/s/H28NkOwoyfb9AaCUykrx_Q)、[Claude Code Agent Teams](https://code.claude.com/docs/en/agent-teams)、[Tools Reference](https://code.claude.com/docs/en/tools-reference)、[Costs](https://code.claude.com/docs/en/costs)、[Agent View](https://code.claude.com/docs/en/agent-view)、[Subagents](https://docs.anthropic.com/en/docs/claude-code/sub-agents)。文章发布于 2026-05-22；官方文档核验至 2026-06-30，当前 Agent Teams 已要求 Claude Code v2.1.178+，部分工具名 / 启动细节和文章中的 v2.1.32 版本有差异，因此这里只沉淀 runtime 设计，不把旧工具名当稳定 API。
+
+**定位**：Agent Teams 的核心不是“多个 Claude 聊天”，而是把多 agent 协作做成本地 runtime：lead session、独立 teammate sessions、共享 task list、mailbox、hooks / gates、local state 和 display / observability。它把原来靠 prompt 角色扮演维持的协作，拆成可被 UI、文件状态、事件和权限系统管理的运行时对象。
+
+![Claude Code Agent Teams taxonomy](./AI-Agent-Product&PE/claude-agent-teams-taxonomy.jpg)
+
+三类能力需要拆开看：
+
+- **Subagent**：父会话把一个有边界的任务委托出去，子 agent 拥有自己的 context，最后把结果返回父会话；适合局部搜索、审查、测试、文档整理。
+- **Agent Teams**：多个独立 Claude Code 实例并行工作，每个 teammate 有自己的 context，可以 claim task、发消息、交付 artifact；适合跨模块并行、互相 review、长任务拆分。
+- **Agent View**：人类管理后台会话的控制台，不等于团队 runtime；它解决可见性和切换，不直接提供团队协作协议。
+
+![Claude Code Agent Teams runtime architecture](./AI-Agent-Product&PE/claude-agent-teams-runtime-architecture.jpg)
+
+关键 primitive：
+
+- **Lead** 负责 intake、拆解、分配、汇总和冲突处理；但 lead 不是人类 approval boundary，不能把 teammate 的高风险动作自动视为已获用户授权。
+- **Shared task list** 是团队事实源，不是 prompt 里的 todo。至少要有 `pending / in_progress / completion_requested / completed`，以及 owner、dependency、artifact refs、verifier、rejection reason。
+- **Mailbox** 是协调通道，不是共享上下文。消息应该传 `blocked`、`artifact_ready`、`need_review`、`decision_needed` 和 artifact pointer，不应该塞长日志、diff 或完整推理过程。
+- **Local state** 是 runtime-owned state。文章中提到的路径和工具名可以帮助理解机制，但实现层应抽象为 team config、task ledger、mailbox、event store 和 artifact store，而不是绑定具体文件路径。
+
+![Claude Code Agent Teams mailbox](./AI-Agent-Product&PE/claude-agent-teams-mailbox.jpg)
+
+Mailbox 的设计动机是防止“共享聊天记录”拖垮 context。teammate 不应该读 lead 的完整历史，也不应该彼此共享全部 token；它们只需要知道自己任务、项目约束、最新依赖状态和可追溯 artifact。这样牺牲了一点同步便利，但换来 context isolation、并行性和更清晰的责任边界。
+
+![Claude Code Agent Teams hooks gate](./AI-Agent-Product&PE/claude-agent-teams-hooks-gate.jpg)
+
+Hooks 是这套设计最值得借鉴的地方：`TaskCreated` 可以做任务准入，`TaskCompleted` 可以把“我做完了”拦在 `completion_requested`，由 verifier / lead / test gate 决定是否进入 `completed`；`TeammateIdle` 可以在 worker 空转时注入下一步建议或收敛指令。多 agent runtime 的质量控制点不应该只在最终答案，而要前移到任务创建、任务认领、完成请求和 idle recovery。
+
+![Claude Code Agent Teams hybrid architecture](./AI-Agent-Product&PE/claude-agent-teams-hybrid-architecture.jpg)
+
+对 LoopX / Agent Harness 的启发：
+
+- 需要一个 `multi_agent_runtime_contract_v0`：`team_id`、`lead_session_ref`、`teammate_sessions`、`task_ledger_ref`、`mailbox_ref`、`artifact_store_ref`、`event_store_ref`、`hook_gates`、`permission_lease_ref`、`budget_ledger_ref`、`display_surface`。
+- 默认路径不应是“能开团队就开团队”，而是 single agent → bounded subagent → dynamic team。只有并行搜索、跨模块开发、对抗性 review、长任务拆分这些场景，才值得付出 7x token 级别的协作成本。
+- permission 不能简单继承 lead，尤其不能让 teammate 继承 `--dangerously-skip-permissions` 这类全局能力。更稳的抽象是 capability lease：按 agent、task、目录、命令、时间窗和风险级别授予。
+- task completed 不是文本声明，而是 artifact refs + validation refs + event history。mailbox 只传协调消息，长期事实必须落在 ledger / event store / artifact store。
+- Agent Teams 更像高质量产品原型和设计样本，不是生产级 orchestration kernel。它仍暴露出 resume / rewind、状态延迟、关停、单 lead、不可嵌套、权限粒度、leader transfer 等边界；真正的长程 agent control plane 需要把这些能力外置成 durable state 和可回放 trace。
 
 #### 极简 Agent 架构：mini-SWE-agent 的启示
 
@@ -2121,13 +2311,66 @@ Serving infra 层也有相同模式。Z.ai 的 Scaling Pain 把 GLM-5 在高并�
 
 ## Agent ToB&ToC 产品
 
+### Raft（原 Slock）：human-agent 协作空间
+
+> 来源：[slock.ai](https://slock.ai/)（已跳转到 [raft.build](https://raft.build/)）、[Introducing Raft](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)、[Raft use cases](https://raft.build/resources/use-cases/)、第三方 setup guide [CodePick: Slock Setup Guide](https://codepick.dev/en/guides/slock-setup/)、npm 包 [`@slock-ai/daemon`](https://www.npmjs.com/package/%40slock-ai/daemon)（2026-06-15 `npm view` 显示已 renamed to `@botiverse/raft-daemon`）
+
+**定位**：Raft 不是模型，也不是 IDE，而是一个 Slack-like 的 human-agent collaboration workspace。它把人和 AI agent 放进同一个 server / channel / DM 里协作，产品口径是 “not as tools, as teammates”。官网给出的核心差异是：agent 有跨 session persistent memory，人和 agent 在同一条 conversation 中协作，agent 通过本机 lightweight daemon 跑在用户自己的电脑上。
+
+**基本工作流**：
+
+1. 创建 server。
+2. 连接电脑：`npx @slock-ai/daemon`。
+3. Spawn agents。
+4. 在 channel / DM 中协作。
+
+官网 use case 给了四类 team pattern：investment research team、engineering team、job-hunting team、growth team。这里最有代表性的是 engineering team：PM、engineer、reviewer 三个 agent 在一个 channel 里围绕同一个 change 合作。
+
+**产品洞察**：
+
+- **入口从 IDE 退到协作空间**：Raft 的核心不是把一个 agent 做得更强，而是把多 agent 协作的默认 UI 设成 channel / thread / DM。它竞争的不是 Claude Code / Codex CLI 本身，而是 agent host / task control plane。
+- **控制面和执行面分离**：web console 负责 server、channel、message、agent roster；本机 daemon 负责拉起本地 agent CLI。这个设计把代码和 credentials 尽量留在用户机器上，同时保留云端协作体验。
+- **agent identity 是产品原语**：blog 里说 one agent is one session，强调连续 identity 和长期共享 context。这比“每次新开一个 chat”更接近长期同事，但也要求 memory 写入、遗忘、权限、审计足够稳。
+- **协议约束优于口头提醒**：第三方 setup guide 提到 task claim 机制：agent 开工前先 claim task，冲突时后来的 agent back off。这个点比“让多个 agent 自觉别改同一处”靠谱，说明 multi-agent 产品需要 hard coordination primitive。
+- **local daemon 是信任与风险的同时来源**：优点是隐私和本地执行；风险是 daemon 能看到本机 PATH、agent CLI、项目目录和可能的 credential。产品要做大，需要权限边界、审计日志、最小授权、secret redaction 和 kill switch。
+
+**对 Agent Harness / OpenClaw 的启发**：
+
+- 可以把 `agent` 视为有名字、角色、memory、lease 的 workspace member，而不是一次性 worker。
+- 长程任务控制面不一定只靠 backlog / goal state，也可以有 channel/thread 作为“人和 agent 共同读写的运行界面”。
+- `task claim / lease / owner` 应该成为多 agent 并行的底层协议，避免靠 prompt 约束并发冲突。
+- 本地 daemon + 云端控制面是一个强模式：云端管 coordination，本地管 execution；但必须把 permission、audit、dirty workspace、secret boundary 做成一等公民。
+
+**待观察**：
+
+- 是否支持 self-host / enterprise deployment；目前看控制面更偏闭源 SaaS。
+- task claim 是否只是第三方 guide 描述，还是官方稳定 protocol；需要以后通过实际试用或官方文档核验。
+- memory 是普通 `MEMORY.md` 文件、产品内存储，还是和 channel history / task history 联动；这决定它是轻量协作工具，还是能成长为长期 agent organization。
+- brand 从 Slock 到 Raft 的迁移是否稳定；包名兼容说明仍在快速迭代期。
+
+### Flowith Matrix：从 agent workspace 到 agent company
+
+> 来源：[小红书：dereknee 预告 Matrix](http://xhslink.com/o/2elvcbajJUl)、[flowith X：from NEO to MATRIX](https://x.com/flowith/status/2069076821891780797)、[Flowith docs - About Agent Neo](https://doc.flowith.io/agent-mode-neo/about-agent-neo)、[Current Capabilities Supported by Neo](https://doc.flowith.io/agent-mode-neo/current-capabilities-supported-by-neo)
+
+Flowith 在 2026-06-23 预告 Matrix，把它定义为“0 人公司运行器”和 “agent company”：不是替代 Claude Code / Codex 的单点 coding agent，而是把多个 agents 组织起来长期运行，面向 solo founder 从创意到可交付项目 / 事业的闭环。已有 Neo 文档显示，flowith 的上一代底座强调 dynamic recipe、dispatcher / tool allocation、context & memory manager、self-correction；Matrix 更像是在 Neo 的“单 agent 动态执行”之上，再叠一层 company-level control plane。
+
+**产品洞察**：
+
+- **叙事从 AI worker 变成 agent organization**：用户不再只是 prompt operator 或 task owner，而被放在 CEO / allocator 的位置；产品卖点也从一次输出转向长期业务 outcome。
+- **和 Claude Code / Codex 互补，而不是替代**：如果 Matrix 能把 coding、research、content、growth 等 specialized agents 编排起来，它竞争的是 agent host / control plane；如果不能稳定调用外部 agent 和真实工具，就会退化成又一个封闭 general agent。
+- **agent company 需要硬协议**：至少要有 role / agent identity、task claim / lease / owner、按角色隔离的 memory / filesystem、共享 company state、budget / cost / audit / evaluation。否则“多 Agent 公司”只是多开几个会话。
+- **信任边界比普通 Agent 更重**：一旦进入公司运行器，产品会碰到域名、邮箱、支付、账号、客户数据、法律和财务动作。权限审批、secret boundary、action log、kill switch 必须是一等公民。
+
+**待观察**：小红书原帖提到 Matrix 仍处 Beta Preview，计划未来一周全量发布，并宣称 benchmark SOTA 与帮助多个 solo founder 起项目；这些属于产品方声明，后续需要用公开 demo、官方文档、benchmark 名称 / 结果、真实用户案例验证。
+
 
 
 ## Agent 领域概述
 
-从需求端观察，目前 Agent 领域存在两条明显主线：
+从需求端观察，目前 Agent 领域存在三条明显主线：
 1. **以 Coding 能力为核心支撑的 General Agent（通用智能体）**
 2. **垂类 Agent**
+3. **Agent organization / company runner**：把多个 agents 编成团队、部门或公司，核心竞争从单次模型能力转向 control plane、权限、记忆、预算、审计和结果交付。
 
 ICLR 2025/2026 Agent 方向论文的综合启示：Agent 系统设计应以 protocol/schema 为底座、以 workflow 和 benchmark 为驱动、以 artifact/memory/recover 为核心运行能力。优先收敛 workflow 显式定义、benchmark runner、schema/protocol 层、memory update policy，而非过早扩张复杂多 Agent 协作。
 
@@ -4499,6 +4742,8 @@ for hat in queue:
 
 ##### 模型厂商优势
 模型厂商 20 美元的订阅费，能提供超过 100 美元的 token 用量。这一点往往是 Cursor 等第三方厂商无法比拟的。
+
+2026-06 补充：SemiAnalysis 对 ChatGPT/Codex 与 Claude 订阅的压测显示，模型厂商订阅优势本质是“容量交叉补贴 + 限流分层”，不是传统 SaaS 毛利。按 API 标价 75% gross margin 假设，重度 long-horizon coding 用户可能让 $200 plan 进入负毛利；详见 [非技术知识 - 大模型产品的成本结构](./非技术知识.md#大模型产品的成本结构从软件经济到制造业经济)。
 
 #### Codex VS. Claude Code：顶尖产品对比
 
