@@ -1,6 +1,6 @@
 ---
 name: research-material-scout
-description: Use when the user asks Codex to research, find learning materials, process "素材：" links, "请你读" / "精读" a material, build a material radar, or use SenSight-like broad information retrieval for career learning and Agent infra tracking.
+description: Use when the user asks Codex to research, find learning materials, process "素材：" links, "请你读" / "精读" a material, build a material radar, or use SenSight-like broad information retrieval for career learning and Agent infra tracking. Do not use the career/Agent-infra routing bias for user-directed `整理笔记` into a named note.
 ---
 
 # Research Material Scout
@@ -12,6 +12,8 @@ Use this skill when the user asks for research, material discovery, learning-mat
 Build a high-signal learning and career material pipeline for the user.
 
 The material pipeline serves the user's broader career development goal, not a single artifact. The current north star is to position the user as an LLM / Agent infra engineer at the intersection of RecSys, ToB platform work, benchmark/eval, and agent memory-context-runtime systems.
+
+This career north star applies to `素材：`, `调研：`, material radar, Top30, and career-learning prioritization. It must not override user-directed note integration. When the user says `整理笔记`, names a note such as `AI-Algorithms`, or points to a specific section/theme, route by the user's target and the source material's primary domain before considering Agent infra / career mapping.
 
 The user's current priority stack:
 
@@ -253,6 +255,18 @@ python3 scripts/sensight.py search_author_posts \
 
 Known limitation from the downloaded version: the local source currently reports `version: 0.3.1`, while the user-provided article mentions `0.3.2` with direct social-link reading. If direct link reading is needed and unavailable, fall back to existing Codex readers (`wechat-article-reader`, `xiaohongshu-reader`, browser/web tools) and note the version gap.
 
+## Authenticated Social Link Reading
+
+For concrete X/Twitter links, use a layered route before marking the material unread:
+
+1. Try lightweight public metadata first:
+   - `https://publish.twitter.com/oembed?omit_script=1&url=<encoded-url>` for author, timestamp, and main post text.
+   - `https://cdn.syndication.twimg.com/tweet-result?id=<tweet-id>&lang=en` only as a best-effort fallback; it often returns `{}`.
+2. If public metadata is incomplete, use `ego-browser` because it can reuse the user's logged-in browser state. Open the original URL in a task space, run `snapshotText()` for accessible text, and then use one `js(String.raw\`...\`)` extraction over `document.querySelectorAll("article")` to capture visible post/reply text, links, and image nodes.
+3. For X images, the visible media may appear as a background image or as an image only on `/photo/1`. Use browser-side DOM inspection to find `pbs.twimg.com/media/...` URLs. If shell `curl` is reset, retry with Python `urllib` plus `User-Agent` and `Referer: https://x.com/`.
+4. Store screenshots/media only under ignored local cache paths such as `.local/source-cache/x-materials/`; do not put social screenshots into public `Notes/` unless the user explicitly asks and the content is safe to publish.
+5. Treat X content as social/product signal unless it points to a primary source. For technical claims, follow links to papers, repos, official docs, release notes, or author long-form posts before ranking as S/A.
+
 ## Agent-Reach Complement
 
 Agent-Reach (`https://github.com/Panniantong/Agent-Reach`) is useful as a complementary local scaffolding layer, especially when SenSight is unavailable, too aggregated, or lacks a channel.
@@ -292,10 +306,17 @@ Directive convention:
 
 - `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and write to the candidate library.
 - `调研：<question/topic>` means active research. Use broad recall plus source verification, then write high-signal candidates and recommendations.
+- `整理笔记：<link/text>` or "整理笔记 + named note/theme" means direct note integration. The output surface is `Notes/`, not the candidate library by default. Named target and source-domain taxonomy win over career priority.
 - `请你读：<material id/link/title>` means Codex reads first, then returns both a mechanism-first summary and a reader map for the user. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output requirements, but defaults to deeper pass-3 reconstruction when the material warrants it.
 - `继续调研` means continue the latest active-research theme, but only if adding new sources or a new decision-relevant synthesis.
 
 For each user-provided material:
+
+0. Classify the request intent before choosing tools or files:
+   - `整理笔记`: use the repository note-integration workflow. If the user named a file/section, inspect that target first; if not, classify the source's primary contribution such as model algorithm, training method, inference system, agent runtime, product strategy, or career signal, then find the matching note. Do not default to Agent infra just because the material is AI-related.
+   - `素材`: intake to `.local/LEARNING_MATERIAL_CANDIDATES.md`.
+   - `调研`: prioritize by the user's 70/20/10 career plan.
+   - `请你读 / 精读`: read first, then decide whether the result should be summarized only, integrated into notes, or later archived.
 
 1. Preserve the original link in the final note title.
    - If the URL contains disposable login tokens, access tokens, auth codes, session IDs, or other sensitive query parameters, use them only for reading and persist only the stable URL with those parameters stripped. Note that the original link was sanitized.
@@ -305,6 +326,7 @@ For each user-provided material:
    - 飞书 / Lark -> `lark-doc` / `lark-wiki`
    - arXiv / paper -> arXiv HTML route first, abs metadata second, PDF fallback last
    - GitHub -> GitHub tools or `gh`
+   - X/Twitter concrete link -> public oEmbed first, then `ego-browser` authenticated snapshot / DOM extraction if needed
    - Web pages -> official web search / browser / Playwright as needed
 3. If unreadable, mark as `Unread` and ask for pasted text, screenshot, export, or accessible copy.
 4. Classify into S/A/B/Unread:
