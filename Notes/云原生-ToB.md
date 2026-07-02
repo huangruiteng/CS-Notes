@@ -1031,6 +1031,7 @@ rclone copy README.txt tos:ABC --s3-no-head-object
 * https://www.volcengine.com/event/force-2506
   * 刊例价 70元/1000万 token
   * 16.4万亿 token 等于 1.15亿元
+* [晚点 LatePost：字节跳动的 AI 账本](https://mp.weixin.qq.com/s/Bp6k_ZzYA04ic87AhtsuYw) 补充了火山 MaaS / Seedance 商业化的成本侧视角：豆包 App 大规模免费使用带来持续推理成本，Seedance 则依靠企业 API、视频生产场景和更可摊薄的训练投入形成约 70% 毛利。火山 AI 的商业重心不只是“把豆包能力卖出去”，而是把模型、推理容量和生产力工作流打包成企业可计 ROI 的服务。
 
 ![image-20250616164911048](./%E4%BA%91%E5%8E%9F%E7%94%9F-ToB/image-20250616164911048.png)
 

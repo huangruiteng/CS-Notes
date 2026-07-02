@@ -518,6 +518,29 @@ set hive.cli.print.header=true; -- 设置显示表头
 select * from table_name where ds='20260408' limit 10;  -- 分区查询
 ```
 
+#### 常用查询模板
+
+**按用户统计当天行为次数 TopN**
+
+```sql
+SELECT
+  user_id,
+  COUNT(1) AS cnt
+FROM hive_base_bhv_table
+WHERE ds = '20260609'
+GROUP BY user_id
+ORDER BY cnt DESC
+LIMIT 100;
+```
+
+记忆点：
+
+- 这是最基础的数据排查 SQL：**分区过滤 -> 分组聚合 -> 排序截断**。
+- `WHERE ds = '20260609'` 先命中日期分区，避免扫全表。
+- `GROUP BY user_id` 把行为日志按用户聚合，`COUNT(1)` 统计每个用户当天行数。
+- `ORDER BY cnt DESC LIMIT 100` 看行为量最高的用户，常用于查异常活跃用户、数据倾斜、埋点重复、刷量或样本分布。
+- Hive 大表上 `ORDER BY` 是全局排序，成本比普通过滤/聚合高；做临时排查可以接受，常规任务要注意数据量、分区和资源。
+
 #### 与 MySQL 的差异
 
 - **特有函数**：`percentile(col, array(0.5, 0.9, 0.99))` 求分位数（MySQL 无此函数）
