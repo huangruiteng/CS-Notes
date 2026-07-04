@@ -74,7 +74,7 @@ trae chat [options] [prompt]
 - `.trae/documents/trae-agent-评估报告.md`
 - `.trae/documents/OpenClaw-vs-Trae-Agent-对比报告.md`
 - `.trae/documents/我和trae-agent公平对比报告.md`
-- `Notes/snippets/code-reading-trae-agent.md`
+- `snippets/code-reading-trae-agent.md`
 
 旧评估中的 `trae-agent` 与当前 Trae App CLI 不一定是同一个产品形态，但有两个判断仍然重要：
 

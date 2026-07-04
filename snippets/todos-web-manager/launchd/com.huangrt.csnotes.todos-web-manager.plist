@@ -9,7 +9,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>/Users/bytedance/CS-Notes/Notes/snippets/todos-web-manager/start.sh</string>
+    <string>/Users/bytedance/CS-Notes/snippets/todos-web-manager/start.sh</string>
   </array>
 
   <key>WorkingDirectory</key>

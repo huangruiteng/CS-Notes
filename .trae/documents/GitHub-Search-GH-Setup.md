@@ -6,7 +6,7 @@
 
 - `gh` 已通过 Homebrew 安装：`gh version 2.86.0`。
 - 用户已完成 `gh auth login`。
-- `Notes/snippets/github-search.sh status` 已验证登录成功。
+- `snippets/github-search.sh status` 已验证登录成功。
 - repo / issue 搜索已完成烟测并返回结构化 JSON。
 
 ## 一次性授权
@@ -24,7 +24,7 @@ gh auth login
 登录状态验证：
 
 ```bash
-Notes/snippets/github-search.sh status
+snippets/github-search.sh status
 ```
 
 ## Codex / 本仓库可用搜索入口
@@ -32,23 +32,23 @@ Notes/snippets/github-search.sh status
 封装脚本：
 
 ```bash
-Notes/snippets/github-search.sh
+snippets/github-search.sh
 ```
 
 示例：
 
 ```bash
 # 搜开源仓库
-Notes/snippets/github-search.sh repos "agent memory llm" 10
+snippets/github-search.sh repos "agent memory llm" 10
 
 # 在指定仓库里搜代码
-Notes/snippets/github-search.sh code "memory router" openai/codex 10
+snippets/github-search.sh code "memory router" openai/codex 10
 
 # 搜 issue
-Notes/snippets/github-search.sh issues "memory" openai/codex 10
+snippets/github-search.sh issues "memory" openai/codex 10
 
 # 搜 PR
-Notes/snippets/github-search.sh prs "eval" openai/codex 10
+snippets/github-search.sh prs "eval" openai/codex 10
 ```
 
 脚本行为：
@@ -70,8 +70,8 @@ Notes/snippets/github-search.sh prs "eval" openai/codex 10
 如果未来换机器、token 过期或搜索异常，重新执行：
 
 ```bash
-Notes/snippets/github-search.sh status
-Notes/snippets/github-search.sh repos "agent memory llm" 3
+snippets/github-search.sh status
+snippets/github-search.sh repos "agent memory llm" 3
 ```
 
 如果返回 JSON，说明 GitHub 搜索能力可用。

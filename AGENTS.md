@@ -12,7 +12,7 @@
 - `创作/`：写作与观点表达
 - `公司项目/`：公司相关 WIP，默认视为私密内容
 - `.trae/`：todo、规则、web 管理、执行控制面
-- `.openclaw-memory/`、`.trae/openclaw-skills/`、`Notes/snippets/`、`.codex/`：agent / workflow / skill 实验区
+- `.openclaw-memory/`、`.trae/openclaw-skills/`、`snippets/`、`prompts/`、`.codex/`：agent / workflow / skill 实验区
 
 工作时优先优化整个系统，而不是把文件当成彼此孤立的文档。
 
@@ -41,7 +41,7 @@ zsh -lc 'source ~/.zshrc; <command>'
 只有一串命令明确依赖共享 shell 状态、且反复加载 `~/.zshrc` 成本明显时，才使用：
 
 ```bash
-/Users/bytedance/CS-Notes/Notes/snippets/codex-persistent-shell.sh
+snippets/codex-persistent-shell.sh
 ```
 
 使用规则：
@@ -78,7 +78,7 @@ open -a Typora <file.md>
    - 只有当材料本身就是 agent harness、agent runtime、memory、eval、workflow，或用户明确要求映射到当前职业主线时，才优先找 Agent infra / runtime 落点。
    - 如果材料跨多个主题，拆分落点；如果主领域不确定，先给 1 个简短候选落点判断再写，不要带着单一路线硬落盘。
 2. 再在 `Notes/` 中广搜最佳落点，并优先比较用户点名目标与材料主领域是否一致。
-3. 修改 Markdown 前先看结构，优先用 `Notes/snippets/markdown_toc.py`。
+3. 修改 Markdown 前先看结构，优先用 `snippets/markdown_toc.py`。
 4. 优先插入现有 section；确实没有合适位置再新增小节。
 5. 语言尽量压缩，不为“更整洁”而删除用户原内容。
 6. 外部材料必须附来源链接。
@@ -120,7 +120,7 @@ open -a Typora <file.md>
 
 ### D. Tooling / agent / web-manager
 
-重点目录：`.trae/openclaw-skills/`、`.trae/web-manager/`、`.trae/web-manager/templates/`、`.openclaw-memory/`、`Notes/snippets/`、`.codex/`
+重点目录：`.trae/openclaw-skills/`、`.trae/web-manager/`、`.trae/web-manager/templates/`、`.openclaw-memory/`、`snippets/`、`prompts/`、`.codex/`
 
 处理这些目录时：
 
@@ -200,9 +200,9 @@ open -a Typora <file.md>
 
 优先使用：
 
-- `Notes/snippets/todo-pull.sh`
-- `Notes/snippets/todo-push.sh`
-- `Notes/snippets/todo-push-commit.sh`
+- `snippets/todo-pull.sh`
+- `snippets/todo-push.sh`
+- `snippets/todo-push-commit.sh`
 
 commit / push 前必须：
 

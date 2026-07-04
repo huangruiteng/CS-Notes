@@ -248,7 +248,7 @@ class IndexSelect(torch.autograd.Function):
       return grad_unique_values, None
     unique_ratio = num_indices / num_rows
     # heuristic for choosing the backward implementation
-    # Ref: https://bytedance.larkoffice.com/docx/FhAddVRQRofQCoxBZrIcoWxIn5c
+    # Ref: internal benchmark note; private document URL removed.
     threshold = None
     if unique_ratio <= 0.02:
       threshold = 400000

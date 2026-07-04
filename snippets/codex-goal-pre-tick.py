@@ -22,8 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 LOCAL = ROOT / ".local"
 GOAL_STATE_FILE = LOCAL / "ACTIVE_GOAL_STATE.md"
 CAPABILITY_BACKLOG_FILE = LOCAL / "CS_NOTES_CAPABILITY_BACKLOG.md"
-MATERIAL_HEALTHCHECK_SCRIPT = ROOT / "Notes/snippets/material-candidates-healthcheck.py"
-NOTE_SECTION_HEALTHCHECK_SCRIPT = ROOT / "Notes/snippets/note-section-healthcheck.py"
+MATERIAL_HEALTHCHECK_SCRIPT = ROOT / "snippets/material-candidates-healthcheck.py"
+NOTE_SECTION_HEALTHCHECK_SCRIPT = ROOT / "snippets/note-section-healthcheck.py"
 NOTE_STRUCTURE_HEALTH_TARGETS = [
     ROOT / "Notes/AI-Applied-Algorithms.md",
 ]

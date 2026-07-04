@@ -9,7 +9,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>/Users/bytedance/CS-Notes/Notes/snippets/generate-ai-hotspots-daily.sh</string>
+    <string>/Users/bytedance/CS-Notes/snippets/generate-ai-hotspots-daily.sh</string>
   </array>
 
   <key>WorkingDirectory</key>

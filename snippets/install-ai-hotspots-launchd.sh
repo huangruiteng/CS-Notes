@@ -3,12 +3,12 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-/Users/bytedance/CS-Notes}"
 LABEL="com.huangrt.csnotes.ai-hotspots"
-SRC_PLIST="$REPO_ROOT/Notes/snippets/launchd/$LABEL.plist"
+SRC_PLIST="$REPO_ROOT/snippets/launchd/$LABEL.plist"
 DST_PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 DOMAIN="gui/$(id -u)"
 
 mkdir -p "$HOME/Library/LaunchAgents" "$REPO_ROOT/.local/ai-hotspots/logs" "$REPO_ROOT/.local/ai-hotspots/reports"
-chmod +x "$REPO_ROOT/Notes/snippets/generate-ai-hotspots-daily.sh"
+chmod +x "$REPO_ROOT/snippets/generate-ai-hotspots-daily.sh"
 
 if [[ ! -f "$SRC_PLIST" ]]; then
   echo "Missing source plist: $SRC_PLIST"

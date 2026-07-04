@@ -3,12 +3,12 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-/Users/bytedance/CS-Notes}"
 LABEL="com.huangrt.csnotes.todos-web-manager"
-SRC_PLIST="$REPO_ROOT/Notes/snippets/todos-web-manager/launchd/$LABEL.plist"
+SRC_PLIST="$REPO_ROOT/snippets/todos-web-manager/launchd/$LABEL.plist"
 DST_PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 DOMAIN="gui/$(id -u)"
 
 mkdir -p "$HOME/Library/LaunchAgents" "$REPO_ROOT/.local/todos-web-manager/logs"
-chmod +x "$REPO_ROOT/Notes/snippets/todos-web-manager/start.sh"
+chmod +x "$REPO_ROOT/snippets/todos-web-manager/start.sh"
 
 if [[ ! -f "$SRC_PLIST" ]]; then
   echo "Missing source plist: $SRC_PLIST"

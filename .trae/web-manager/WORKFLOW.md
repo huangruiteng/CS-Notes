@@ -143,7 +143,7 @@ cd .trae/web-manager
 **原始文件（CS-Notes）：**
 ```markdown
 ### Git 操作 SOP
-- 使用 Notes/snippets/todo-push.sh 和 Notes/snippets/todo-pull.sh
+- 使用 snippets/todo-push.sh 和 snippets/todo-pull.sh
 - 白名单：Notes/、.trae/、创作/
 ```
 

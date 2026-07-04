@@ -229,7 +229,7 @@ def empty_queue_lines() -> list[str]:
         "空队列时，`推进TODO` 不硬编旧任务，按这个顺序找下一批：",
         "",
         "1. 复盘最近 3-5 条 completed TODO，沉淀流程、脚本、AGENTS.md 规则或索引生成逻辑。",
-        "2. 检查 `.trae/`、`Notes/snippets/`、`.codex/skills/`、`.openclaw-memory/` 中是否有可提升效率的机制小切口。",
+        "2. 检查 `.trae/`、`snippets/`、`.codex/skills/`、`.openclaw-memory/` 中是否有可提升效率的机制小切口。",
         "3. 检查素材探索能力本身：trusted sources、读取工具、候选库治理、Unread/fallback 规则，而不是默认消费材料队列。",
         "4. 查看 `.trae/documents/Codex-TODO-User-Action-Queue.md` 是否有用户动作需要提醒或压缩。",
         "5. 只在发现明确小切口时新增 TODO；否则明确回复“队列为空”，不制造伪进展。",
@@ -521,7 +521,7 @@ def blocker_checks(data: dict[str, Any]) -> list[tuple[str, str, str]]:
                 if search_script.exists() and search_script.stat().st_mode & 0o111:
                     checks.append(("todo-20260225-016", "maybe-unblocked", "`gh auth status` 已通过；可运行 github-search 验证 JSON 输出。"))
                 else:
-                    checks.append(("todo-20260225-016", "blocked", "`gh` 已登录，但 `Notes/snippets/github-search.sh` 不存在或不可执行。"))
+                    checks.append(("todo-20260225-016", "blocked", "`gh` 已登录，但 `snippets/github-search.sh` 不存在或不可执行。"))
             else:
                 checks.append(("todo-20260225-016", "blocked", f"`gh` 已安装但未登录：{message}"))
 

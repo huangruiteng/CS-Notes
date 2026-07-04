@@ -7,13 +7,13 @@
 已完成：
 
 ```bash
-Notes/snippets/github-search.sh status
-Notes/snippets/github-search.sh repos "agent memory llm" 3
-Notes/snippets/github-search.sh repos "llm agent" 3
-Notes/snippets/github-search.sh repos "agent memory eval" 10
-Notes/snippets/github-search.sh issues "memory" openai/codex 3
-Notes/snippets/github-search.sh issues "memory" mem0ai/mem0 5
-Notes/snippets/github-search.sh issues "memory" langchain-ai/langgraph 5
+snippets/github-search.sh status
+snippets/github-search.sh repos "agent memory llm" 3
+snippets/github-search.sh repos "llm agent" 3
+snippets/github-search.sh repos "agent memory eval" 10
+snippets/github-search.sh issues "memory" openai/codex 3
+snippets/github-search.sh issues "memory" mem0ai/mem0 5
+snippets/github-search.sh issues "memory" langchain-ai/langgraph 5
 ```
 
 结论：

@@ -209,7 +209,7 @@ python main.py "这是一条测试任务"
 
 #### todo-sync Skill
 
-**目标**: 调用 `Notes/snippets/todo-sync.sh`，从 Git 拉取最新代码并扫描新任务
+**目标**: 调用 `snippets/todo-sync.sh`，从 Git 拉取最新代码并扫描新任务
 
 **目录结构**:
 ```
@@ -221,15 +221,15 @@ cs-notes-todo-sync/
 
 #### todo-push Skill
 
-**目标**: 调用 `Notes/snippets/todo-push.sh` 和 `todo-push-commit.sh`，将本地更改推送到 Git
+**目标**: 调用 `snippets/todo-push.sh` 和 `todo-push-commit.sh`，将本地更改推送到 Git
 
 #### todo-prompt Skill
 
-**目标**: 调用 `Notes/snippets/todo-prompt.py`，生成任务执行的 prompt
+**目标**: 调用 `snippets/todo-prompt.py`，生成任务执行的 prompt
 
 #### todo-manager Skill
 
-**目标**: 调用 `Notes/snippets/todo-manager.py`，管理 todos 的状态
+**目标**: 调用 `snippets/todo-manager.py`，管理 todos 的状态
 
 ## 完整闭环流程设计
 

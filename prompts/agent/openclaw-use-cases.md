@@ -1,7 +1,7 @@
 # OpenClaw 应用案例集合
 
 > 主要来源：https://mp.weixin.qq.com/s/X0mXjE9t7rPfEQIFm8vLWA
-> 补充来源：https://aiwarts101.feishu.cn/wiki/UDKcwj3SgiySezkwUAGcYt8gnVb
+> 补充来源：个人飞书资料，公开提交中已脱敏。
 
 ---
 

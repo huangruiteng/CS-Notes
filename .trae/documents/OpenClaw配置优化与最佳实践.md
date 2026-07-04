@@ -108,7 +108,7 @@
 5. ❌ 不要绑定到公网 IP（`0.0.0.0`）
 
 ### Git 操作最佳实践
-1. ✅ 使用 `Notes/snippets/todo-push.sh` 和 `Notes/snippets/todo-pull.sh` 作为标准 git 操作流程
+1. ✅ 使用 `snippets/todo-push.sh` 和 `snippets/todo-pull.sh` 作为标准 git 操作流程
 2. ✅ todo-push.sh 白名单机制：仅允许 `Notes/`、`.trae/`、`创作/` 三个文件夹
 3. ✅ todo-push.sh 黑名单机制：绝对禁止 `公司项目/` 文件夹
 4. ✅ 在 commit 前检查 `git status`

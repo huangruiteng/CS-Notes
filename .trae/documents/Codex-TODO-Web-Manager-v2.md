@@ -27,9 +27,9 @@
 首页只展示四块：
 
 - TODO 总览：pending / completed / feedback_required 数量。
-- Next Action：复用 `python3 Notes/snippets/codex_todo_triage.py --next-action`。
-- User Action Queue：复用 `python3 Notes/snippets/codex_todo_triage.py --user-actions`。
-- Blocker Checks：复用 `python3 Notes/snippets/codex_todo_triage.py --check-blockers`。
+- Next Action：复用 `python3 snippets/codex_todo_triage.py --next-action`。
+- User Action Queue：复用 `python3 snippets/codex_todo_triage.py --user-actions`。
+- Blocker Checks：复用 `python3 snippets/codex_todo_triage.py --check-blockers`。
 
 这比完整 CRUD 更符合当前合作模式：Codex 先判断，再推进一个真实小切口。
 
@@ -71,9 +71,9 @@ GET /api/codex/check-blockers
 实现方式优先调用或复用：
 
 ```bash
-python3 Notes/snippets/codex_todo_triage.py --next-action
-python3 Notes/snippets/codex_todo_triage.py --user-actions
-python3 Notes/snippets/codex_todo_triage.py --check-blockers
+python3 snippets/codex_todo_triage.py --next-action
+python3 snippets/codex_todo_triage.py --user-actions
+python3 snippets/codex_todo_triage.py --check-blockers
 ```
 
 返回 JSON 时可以先用简单结构：

@@ -1,20 +1,20 @@
 # Snippets
 
-这个目录放可复用的脚本、prompt 和工作流片段。长期笔记中沉淀出的可执行 prompt，优先在这里保留一份独立入口，方便复制到 Codex / Claude Code / code review 流程中。
+这个目录放可复用的脚本、代码片段和工作流工具。可直接复制到 Codex / Claude / ChatGPT / Trae / Lark bot 的 prompt 资产统一放在顶层 `prompts/`。
 
 ## 新增 Snippet 约定
 
-- 可复用脚本、prompt、checklist 放在这里；一次性导出、临时结果和敏感配置不要放这里。
-- 新增脚本 / prompt 后，在本 README 加一个入口或模式说明，避免变成隐形资产。
+- 可复用脚本、代码片段、checklist 放在这里；一次性导出、临时结果和敏感配置不要放这里。
+- 新增脚本 / checklist 后，在本 README 加一个入口或模式说明，避免变成隐形资产。
 - 命名优先使用功能前缀：`code-reading-*`、`gpu-*`、`codex-*`、`todo-*`、`trusted_*`、`*_checklist.md`。
 - 涉及外部服务、飞书、launchd 或本机自动化的脚本，README 中要说明触发场景和边界；账号、token、私有路径留在 `.local/`。
-- 新增后至少运行一次 `python3 Notes/snippets/check-snippet-links.py`；脚本类按风险运行 `--help`、dry-run 或语法检查。
+- 新增后至少运行一次 `python3 snippets/check-snippet-links.py`；脚本类按风险运行 `--help`、dry-run 或语法检查。
 
 ## 常用校验
 
 ```bash
-python3 Notes/snippets/check-snippet-links.py
-python3 Notes/snippets/check-learning-material-queue.py
+python3 snippets/check-snippet-links.py
+python3 snippets/check-learning-material-queue.py
 ```
 
 - 第一条检查 snippets README / checklist 中的本地链接。
@@ -40,14 +40,9 @@ python3 Notes/snippets/check-learning-material-queue.py
 - [extract_trusted_material_sources.py](extract_trusted_material_sources.py)：从长期关注来源中抽取 trusted source radar 的候选。
 - [trusted_source_scan.py](trusted_source_scan.py)：围绕 trusted sources 做轻量扫描，服务材料探索能力；不要替代具体材料精读。
 
-## Reusable Prompts
-
-- [agent-engineering-quality-prompt.md](agent-engineering-quality-prompt.md)：面向 coding agent 的工程质量约束，覆盖 fail-fast、KISS、DRY、YAGNI、小步可回滚和验证闭环。
-- [prompt-openclaw.md](prompt-openclaw.md)：OpenClaw 相关 prompt。
-- [code-reading-intro.md](code-reading-intro.md)：代码阅读起步提示。
-- [code-reading-trae-agent.md](code-reading-trae-agent.md)：Trae Agent 代码阅读提示。
-
 ## Code Reading / Profiling Entrypoints
 
+- [code-reading-intro.md](code-reading-intro.md)：代码阅读起步提示。
+- [code-reading-trae-agent.md](code-reading-trae-agent.md)：Trae Agent 代码阅读提示。
 - `code-reading-*.py|*.md|*.cc`：按项目 / 框架沉淀的源码阅读入口；新增源码阅读材料时优先复用这个命名。
 - `gpu-*.py|*.cc|*.sh`、`cpu-profiling.sh`、`nvidia-triton-*.py`：GPU / CPU / Triton profiling 与底层系统实验片段。

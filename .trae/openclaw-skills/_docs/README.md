@@ -47,7 +47,7 @@ Todo 管理 - 管理 CS-Notes 项目中的 todo 任务。
 
 **使用方法：**
 ```bash
-cd /root/.openclaw/workspace/CS-Notes/Notes/snippets/
+cd /root/.openclaw/workspace/CS-Notes/snippets/
 python3 todo-manager.py
 ```
 

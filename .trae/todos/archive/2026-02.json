@@ -57,7 +57,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.626308",
       "links": [
-        "`.trae/openclaw-skills/plan-generator/`、`.trae/openclaw-skills/plan-executor/`、`.trae/openclaw-skills/hybrid-executor/`、`Notes/snippets/task_executor.py`、`.trae/documents/Plan-Generator-Hybrid-Executor-验证报告.md`"
+        "`.trae/openclaw-skills/plan-generator/`、`.trae/openclaw-skills/plan-executor/`、`.trae/openclaw-skills/hybrid-executor/`、`snippets/task_executor.py`、`.trae/documents/Plan-Generator-Hybrid-Executor-验证报告.md`"
       ],
       "definition_of_done": [
         "测试 Plan Generator",
@@ -268,7 +268,7 @@
         "http://xhslink.com/o/8rKN7celDGn、https://arxiv.org/html/2602.11664v1",
         "https://mp.weixin.qq.com/s/Mkbbqdvxh-95pVlnLv9Wig、`Notes/AI-Agent-Product&amp;PE.md`",
         "`/Users/bytedance/CS-Notes/创作/公司项目/`、`.trae/documents/todos管理系统.md`",
-        "`Notes/snippets/todo-manager.py`、`Notes/snippets/todo-sync.sh`、`Notes/snippets/todo-prompt.py`、`.trae/documents/INBOX.md`、`.trae/documents/todos管理系统.md`、`Notes/AI-Agent-Product&amp;PE.md`（OpenClaw）、`.trae/documents/OpenClaw集成方案.md`",
+        "`snippets/todo-manager.py`、`snippets/todo-sync.sh`、`snippets/todo-prompt.py`、`.trae/documents/INBOX.md`、`.trae/documents/todos管理系统.md`、`Notes/AI-Agent-Product&amp;PE.md`（OpenClaw）、`.trae/documents/OpenClaw集成方案.md`",
         "`公司项目/01-公司项目创作pipeline.md`",
         "`公司项目/01-公司项目创作pipeline.md`",
         "[https://zhuanlan.zhihu.com/p/2000634266720161814、https://openviking.ai/、联网搜索 OpenViking](https://zhuanlan.zhihu.com/p/2000634266720161814、https://openviking.ai/、`公司项目/03.01)",
@@ -276,8 +276,8 @@
         "`.trae/documents/OpenClaw集成方案.md`、`.trae/documents/INBOX.md`",
         "`.trae/documents/OpenClaw集成方案.md`",
         "`.trae/documents/OpenClaw集成方案.md`、<https://github.com/openclaw/openclaw>、<https://www.volcengine.com/docs/6396/2189942?lang=zh>、`Notes/AI-Agent-Product&amp;PE.md:390-466`",
-        "`Notes/snippets/todo-sync.sh`",
-        "`Notes/snippets/todo-pull.sh`、`Notes/snippets/todo-push.sh`、`Notes/snippets/todo-push-commit.sh`、`.trae/documents/PROJECT_CONTEXT.md`",
+        "`snippets/todo-sync.sh`",
+        "`snippets/todo-pull.sh`、`snippets/todo-push.sh`、`snippets/todo-push-commit.sh`、`.trae/documents/PROJECT_CONTEXT.md`",
         "`.trae/documents/OpenClaw集成方案.md`、`Notes/AI-Agent-Product&amp;PE.md:390-466`",
         "飞书机器人对话",
         "https://mp.weixin.qq.com/s/gyEbK_UaUO3AeQvuhhRZ6g"
@@ -352,7 +352,7 @@
       "started_at": "2026-02-17",
       "completed_at": "2026-02-17",
       "links": [
-        "session-management-optimization.md、.trae/documents/SESSION-OPTIMIZER-USAGE.md、Notes/snippets/session-monitor.py、Notes/snippets/session-optimizer.py"
+        "session-management-optimization.md、.trae/documents/SESSION-OPTIMIZER-USAGE.md、snippets/session-monitor.py、snippets/session-optimizer.py"
       ],
       "definition_of_done": [
         "设计具体的 session 管理优化方案",
@@ -391,7 +391,7 @@
       "started_at": "2026-02-17",
       "completed_at": "2026-02-17",
       "links": [
-        "Notes/snippets/speech_to_text.py"
+        "snippets/speech_to_text.py"
       ],
       "definition_of_done": [
         "创建 speech-to-text 工具",
@@ -587,7 +587,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624400",
       "links": [
-        "`.trae/openclaw-skills/plan-generator/`、`.trae/openclaw-skills/plan-executor/`、`.trae/openclaw-skills/hybrid-executor/`、`Notes/snippets/task_executor.py`、`.trae/documents/Plan-Generator-Hybrid-Executor-验证报告.md`"
+        "`.trae/openclaw-skills/plan-generator/`、`.trae/openclaw-skills/plan-executor/`、`.trae/openclaw-skills/hybrid-executor/`、`snippets/task_executor.py`、`.trae/documents/Plan-Generator-Hybrid-Executor-验证报告.md`"
       ],
       "definition_of_done": [
         "测试 Plan Generator",
@@ -705,7 +705,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624706",
       "links": [
-        "trae-agent/、Notes/snippets/code-reading-trae-agent.md、.trae/documents/trae-agent-评估报告.md"
+        "trae-agent/、snippets/code-reading-trae-agent.md、.trae/documents/trae-agent-评估报告.md"
       ],
       "definition_of_done": [
         "跑通 trae-agent client",
@@ -829,7 +829,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T19:08:00.000000",
       "links": [
-        "`Notes/snippets/session-optimizer.py`、`CS-Notes/.openclaw-session-optimizer.json`"
+        "`snippets/session-optimizer.py`、`CS-Notes/.openclaw-session-optimizer.json`"
       ],
       "definition_of_done": [
         "分析问题根因：session-optimizer 不知道什么时候有新的 session 开始",
@@ -897,7 +897,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624436",
       "links": [
-        "`Notes/snippets/voice_task_parser.py`"
+        "`snippets/voice_task_parser.py`"
       ],
       "definition_of_done": [
         "实现 LLM 智能解析口述式任务模板",
@@ -925,7 +925,7 @@
       "feedback_required": false,
       "created_at": "2026-02-20T10:50:00.000000",
       "links": [
-        "`Notes/snippets/todo-push.sh"
+        "`snippets/todo-push.sh"
       ],
       "definition_of_done": [
         "分析 todo-push.sh 无法识别中文名的问题根因",
@@ -957,7 +957,7 @@
       "feedback_required": false,
       "created_at": "2026-02-20T09:15:00.000000",
       "links": [
-        "`Notes/snippets/todo-push.sh`、`Notes/snippets/todo-pull.sh`"
+        "`snippets/todo-push.sh`、`snippets/todo-pull.sh`"
       ],
       "definition_of_done": [
         "分析为什么有时不会自动push/pull了",
@@ -1017,7 +1017,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624923",
       "links": [
-        "`.trae/documents/任务执行可观测闭环设计方案.md`、`Notes/snippets/task_execution_logger.py`"
+        "`.trae/documents/任务执行可观测闭环设计方案.md`、`snippets/task_execution_logger.py`"
       ],
       "definition_of_done": [
         "任务执行采用结构化日志输出（如 stream-json），让调度器能识别执行阶段、失败原因、重试点与最终产物",
@@ -1045,7 +1045,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T17:50:00.000000",
       "links": [
-        "`.trae/documents/LLM-智能解析-重新设计方案.md`、`.trae/web-manager/`、`Notes/snippets/voice_task_parser.py`"
+        "`.trae/documents/LLM-智能解析-重新设计方案.md`、`.trae/web-manager/`、`snippets/voice_task_parser.py`"
       ],
       "definition_of_done": [
         "在 Todos Web Manager 中提供口述式任务输入界面",
@@ -1614,7 +1614,7 @@
       "feedback_required": false,
       "created_at": "2026-02-21T12:18:00.000000",
       "links": [
-        "Notes/snippets/speech_to_text.py"
+        "snippets/speech_to_text.py"
       ],
       "definition_of_done": [
         "查找 large turbo 模型的 pt 文件",
@@ -1921,7 +1921,7 @@
         "也许需要相关能力和agents.md稍微抽象和精炼一点"
       ],
       "started_at": "2026-02-23T04:46:45.977668",
-      "progress": "✅ 已完成！已成功通用化三个模板文件！\n\n已完成的工作：\n1. ✅ 优化 project_rules-generic.md：\n   - 移除笔记库特定的内容整理原则\n   - 通用化 Git 操作 SOP（移除 Notes/snippets/todo-push.sh 等特定工具）\n   - 通用化目录与落盘约定（移除 Notes/、创作/、公司项目/等特定目录）\n   - 移除个人文风规范、公司项目创作等笔记库特定内容\n   - 保留通用的 Todo 管理、AI 助手工作流等内容\n\n2. ✅ 优化 AGENTS-generic.md：\n   - 移除 \"CS-Notes 特定\" 的引用\n   - 改为通用的 \"项目特定\"\n\n3. ✅ 优化 MEMORY-generic.md：\n   - 移除 \"markdown-toc skill\" 等笔记库特定工具\n   - 通用化内容整理流程\n   - 保留通用的最佳实践、Todo 管理原则等\n\n三个通用模板现在可以适用于任意新项目（笔记、开源、闭源）！",
+      "progress": "✅ 已完成！已成功通用化三个模板文件！\n\n已完成的工作：\n1. ✅ 优化 project_rules-generic.md：\n   - 移除笔记库特定的内容整理原则\n   - 通用化 Git 操作 SOP（移除 snippets/todo-push.sh 等特定工具）\n   - 通用化目录与落盘约定（移除 Notes/、创作/、公司项目/等特定目录）\n   - 移除个人文风规范、公司项目创作等笔记库特定内容\n   - 保留通用的 Todo 管理、AI 助手工作流等内容\n\n2. ✅ 优化 AGENTS-generic.md：\n   - 移除 \"CS-Notes 特定\" 的引用\n   - 改为通用的 \"项目特定\"\n\n3. ✅ 优化 MEMORY-generic.md：\n   - 移除 \"markdown-toc skill\" 等笔记库特定工具\n   - 通用化内容整理流程\n   - 保留通用的最佳实践、Todo 管理原则等\n\n三个通用模板现在可以适用于任意新项目（笔记、开源、闭源）！",
       "completed_at": "2026-02-23T14:50:00.000000",
       "review_history": [
         {
@@ -1947,7 +1947,7 @@
       "feedback_required": false,
       "created_at": "2026-02-20T00:50:00.000000",
       "links": [
-        "`.trae/web-manager/index-enhanced.html`、`Notes/snippets/speech_to_text.py`"
+        "`.trae/web-manager/index-enhanced.html`、`snippets/speech_to_text.py`"
       ],
       "definition_of_done": [
         "在 Todos Web Manager 的 Review 意见输入框旁边添加语音输入按钮",
@@ -1981,7 +1981,7 @@
       "created_at": "2026-02-25T07:06:00.000000",
       "started_at": "2026-02-25T07:06:00.000000",
       "links": [
-        "Notes/snippets/speech_to_text.py",
+        "snippets/speech_to_text.py",
         ".trae/openclaw-skills/openai-whisper/"
       ],
       "definition_of_done": [
@@ -2204,7 +2204,7 @@
       "started_at": "2026-02-24T20:00:00.000000",
       "completed_at": "2026-02-24T20:15:00.000000",
       "links": [
-        "`Notes/snippets/todo-manager.py`",
+        "`snippets/todo-manager.py`",
         "`.trae/web-manager/`",
         "`.trae/todos/todos.json`"
       ],

@@ -4,11 +4,11 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  Notes/snippets/github-search.sh status
-  Notes/snippets/github-search.sh repos "agent memory llm" [limit]
-  Notes/snippets/github-search.sh code "memory router" owner/repo [limit]
-  Notes/snippets/github-search.sh issues "memory" owner/repo [limit]
-  Notes/snippets/github-search.sh prs "eval" owner/repo [limit]
+  snippets/github-search.sh status
+  snippets/github-search.sh repos "agent memory llm" [limit]
+  snippets/github-search.sh code "memory router" owner/repo [limit]
+  snippets/github-search.sh issues "memory" owner/repo [limit]
+  snippets/github-search.sh prs "eval" owner/repo [limit]
 
 Requires:
   gh auth login

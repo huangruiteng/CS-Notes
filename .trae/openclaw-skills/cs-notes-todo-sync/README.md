@@ -4,7 +4,7 @@ OpenClaw Skill，用于拉取 Git、扫描任务、生成执行提示。
 
 ## 功能
 
-- 调用 `Notes/snippets/todo-pull.sh`
+- 调用 `snippets/todo-pull.sh`
 - 拉取 Git 最新代码
 - 扫描 Inbox 中的新任务
 - 生成待执行任务提示清单

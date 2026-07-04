@@ -52,8 +52,8 @@ def example_task():
             task_id=task_id,
             execution_summary="示例任务执行成功，展示了如何使用 task_execution_logger.py",
             product_links=["https://github.com/huangrt01/CS-Notes"],
-            key_diffs=["modified: Notes/snippets/example_task_with_logger.py"],
-            reproduction_commands=["python3 Notes/snippets/example_task_with_logger.py"]
+            key_diffs=["modified: snippets/example_task_with_logger.py"],
+            reproduction_commands=["python3 snippets/example_task_with_logger.py"]
         )
         logger.save_artifact(artifact)
     

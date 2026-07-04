@@ -18,7 +18,7 @@ description: Todo 管理 - 管理 CS-Notes 项目中的 todo 任务，包括任�
 ### 运行 Todo 管理
 
 ```bash
-cd /root/.openclaw/workspace/CS-Notes/Notes/snippets/
+cd /root/.openclaw/workspace/CS-Notes/snippets/
 python3 todo-manager.py
 ```
 

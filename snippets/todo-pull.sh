@@ -6,8 +6,8 @@
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_DIR="$REPO_ROOT/.trae/logs"
 LOG_FILE="$LOG_DIR/todo-pull-$(date +%Y%m%d).log"
-TODO_MANAGER="$REPO_ROOT/Notes/snippets/todo-manager.py"
-TODO_PROMPT="$REPO_ROOT/Notes/snippets/todo-prompt.py"
+TODO_MANAGER="$REPO_ROOT/snippets/todo-manager.py"
+TODO_PROMPT="$REPO_ROOT/snippets/todo-prompt.py"
 DEFAULT_BRANCH="master"
 
 # 创建日志目录
