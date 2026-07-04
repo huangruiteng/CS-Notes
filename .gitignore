@@ -21,5 +21,6 @@ tmp*
 .trae/web-manager/todos-web-manager-package/
 .trae/web-manager/*.tar.gz
 .trae/web-manager/*.zip
+.trae/web-manager/server.log
 
 log

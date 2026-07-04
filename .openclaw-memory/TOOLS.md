@@ -38,3 +38,6 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 ---
 
 Add whatever helps you do your job. This is your cheat sheet.
+
+## openclaw cron job
+- Cron Create / Update (MANDATORY): Before creating or updating any cron job, you MUST first load the `openclaw-cron-enhance` skill. Do not call the native cron tool directly and bypass this skill.
