@@ -2347,6 +2347,7 @@ https://developer.download.nvidia.com/video/gputechconf/gtc/2019/presentation/s9
 
 * Intro
   * cuda是async，因此用python的time模块，测的包含kernel launch时间，不包含execute时间
+  * Kernel Design Agents 的经验可以抽象成一条性能优化 agent 规则：**Profile -> Diagnose -> Plan -> Candidate -> Validate -> Measure -> Promote/Reject**。不要让 agent 先猜优化方向；每个 candidate 都应有 correctness command、evaluation command、benchmark/profile evidence 和明确的 promotion criteria。来源：KDA [agent-flow](https://github.com/mit-han-lab/kernel-design-agents/blob/dda6be3cf1baedd3ed9c76511ef02f72243cc14c/docs/agent-flow.md#L11-L50)、ncu-report-skill [golden rule](https://github.com/mit-han-lab/ncu-report-skill/blob/1cf238d6b41c79bd35041192506c4d45e765a3f1/SKILL.md#L14-L38)。
 
 #### SOL (Speed of Light)
 
