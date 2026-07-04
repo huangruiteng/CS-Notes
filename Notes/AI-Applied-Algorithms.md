@@ -1829,6 +1829,30 @@ model / agent policy
 - 设计 CUA server 时，不能只追求能点能打字；更重要的是 sandbox、allowlist、human gate、trace、screenshot retention、state reset 和可回放。
 - 对 agent benchmark 来说，比较单位不只是 `model`，而是 `model + CUA server / harness + environment`。
 
+##### CUA 的单点任务边界：高复杂 GUI 自动化不等于长程价值交付
+
+> 来源：[记一个我被Claude Fable 5震撼的瞬间。](https://mp.weixin.qq.com/s/L6R_SPWlOBv6dI0wWWHQrg)，数字生命卡兹克，2026-07-03。来源状态：已读正文；以下把文章作为 CUA / agent 执行案例，不验证其中模型命名和账号侧细节。
+
+文章案例称，agent 从“提升 SEO / GEO”目标出发，调研网站流量和爬虫访问，推翻 Cloudflare 方案，进入云厂商控制台，找到人工工单入口，提交并追问 CDN 白名单和回源配置，识别官方请求头方案里的伪造风险，补共享密钥校验，切换 DNS，再写运维文档、提交代码和证书续期手册。
+
+这个任务复杂度很高，因为它跨了浏览器 GUI、云控制台、工单系统、服务器、DNS / CDN、代码仓库和运维文档。但它更适合归类为 **高复杂度单点任务**，还不是完整的 long-running value delivery。CUA 扩大了 agent 的“眼和手”，让它能穿过 GUI-only、API 缺失和人工入口；长程价值交付还要求目标账本、状态记忆、预算、权限、证据链、验收、复盘和后续触发机制。
+
+| 层级 | 案例里的能力 | 仍然缺的长程控制面 |
+| --- | --- | --- |
+| Execution | 浏览器操作、控制台配置、服务器检查、工单交互、DNS 切换 | sandbox、权限分级、敏感动作 gate、可回放 action trace |
+| Decision | 自主选 CDN 方案、质疑旧方案、识别安全风险 | 决策依据记录、可审计 trade-off、可撤销方案 |
+| Evidence | 请求量、配置结果、代码提交、运维文档 | 统一 evidence ledger、验收标准、失败归因、长期 SLA |
+| Continuity | 写下证书续期步骤和后续提醒 | durable reminder、owner、heartbeat、到期前自动检查和恢复路径 |
+
+因此评价这类 CUA 案例时，不应只看“是否完成了炫酷流程”，而要问：
+
+- 人类到底做了几次不可替代的业务决策？这些决策有没有被沉淀为 constraint / policy / procedure？
+- 每个敏感动作有没有 gate、证据和 rollback path，例如提交工单、改 DNS、改限流、写密钥？
+- 成功经验是否能被复用到下一次同类任务，而不是只留下自然语言故事？
+- 两个月后的证书续期、配置漂移、供应商策略变化，是否会被系统重新唤醒并验证？
+
+一句话：**CUA 是长程 agent 的执行面，不是长程 agent 本身。** 它在 ETCLOVG 里主要落在 E/T/O/G；只有再接上 C/L/V，也就是 context / memory、lifecycle control、verification，才可能从一次高复杂任务推进到持续价值交付。
+
 ##### OSCAR: Operating System Control via State-Aware Reasoning and Re-Planning ([arxiv](https://arxiv.org/abs/2410.18963), ICLR 2025)
 
 将 agent 操作建模为状态机，基于 screen observation 做 state-aware reasoning，在执行过程中根据环境变化进行 task-driven re-planning。GAIA benchmark Level 3 成功率 13.5%（接近此前 SOTA 的两倍），OSWorld 和 AndroidWorld 上同样超越其他方法。

@@ -217,6 +217,30 @@ YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需�
 * 衡量产出：
   * discounted developer productivity (in the spirit of [discounted cash flow](https://en.wikipedia.org/wiki/Discounted_cash_flow))
 
+### 开发流程：瀑布式开发
+
+> 参考：W. W. Royce, [Managing the Development of Large Software Systems](https://www.praxisframework.org/files/royce1970.pdf), 1970；[Agile Manifesto](https://agilemanifesto.org/)、[Agile Principles](https://agilemanifesto.org/principles.html)。
+
+瀑布式开发把软件项目拆成线性阶段：需求、规格、设计、实现、集成、测试、交付 / 运维。每一阶段有明确产物和 sign-off，下游依赖上游完成，像水从上游流到下游。
+
+它的设计动机不是“慢”，而是**用阶段门管理承诺**：先把需求、预算、责任、文档、验收口径和合同边界固定下来，再进入实现。它适合需求稳定、变更成本高、合规文档重、硬件 / 外包 / 多团队依赖强的项目。
+
+核心问题在于，软件开发往往不是制造业复制，而是知识发现。瀑布隐含三个强假设：
+
+- 需求能在早期说清。
+- 设计能在实现前接近正确。
+- 集成和测试可以后置。
+
+一旦这些假设不成立，错误会沿阶段向下游滚动：需求误解到测试阶段才暴露，设计缺陷到集成阶段才发现，返工成本就会非常高。瀑布最危险的地方不是文档多，而是**反馈太晚**。
+
+更好的理解：
+
+- 瀑布适合管理外部承诺：合同、审计、里程碑、供应商、合规验收。
+- 敏捷 / 迭代适合管理不确定性：用户需求、产品体验、技术方案、模型行为、真实数据反馈。
+- 真实组织里通常是混合形态：外层有阶段门，内层用短迭代交付可运行软件。
+
+一句话：瀑布式开发的本质是用计划和阶段门降低管理不确定性；敏捷的本质是用更早、更频繁的工作软件和用户反馈降低产品 / 技术不确定性。关键不在流程标签，而在反馈是否早于不可逆承诺。
+
 
 
 ## DevOps --> 「云原生-ToB.md」

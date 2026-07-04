@@ -1555,7 +1555,7 @@ openclaw agents list --bindings
      4. 等待用户完成后，再标记为完成
 
 2. **Git 操作 SOP 与安全防线**
-   - 必须使用 `Notes/snippets/todo-push.sh` 和 `Notes/snippets/todo-pull.sh` 作为标准 git 操作流程，不能直接用 git 命令
+   - 必须使用 `snippets/todo-push.sh` 和 `snippets/todo-pull.sh` 作为标准 git 操作流程，不能直接用 git 命令
    - todo-push.sh 白名单机制：仅允许 `Notes/`、`.trae/`、`创作/` 三个文件夹
    - todo-push.sh 黑名单机制：绝对禁止 `公司项目/` 文件夹
    - 验证步骤：每次 commit 前，先执行 `git status` 检查，或直接运行 `todo-push.sh`
@@ -4804,6 +4804,59 @@ for hat in queue:
 - `/goal` 最适合配合明确验收标准使用：目标、边界、验证命令、停止条件、进度日志都要写清楚。
 - Computer Use 的价值在于补 CLI / API 不能覆盖的 GUI 环节，但应优先用于 scope 小、可回滚、可检查的任务。
 - Automations 适合做 thread heartbeat 或独立后台任务；和 skill 配合时，关键是把任务描述、报告条件、停止条件写得足够 durable。
+
+#### Codex 产品工作形态：taste、dogfooding 与模型时机
+
+> 来源：[Founder Park 微信文章](https://mp.weixin.qq.com/s/wJrUsBSs0owDascwDZBd-w)，2026-07-02，已读正文；原访谈：[Lenny's Newsletter: OpenAI Codex lead on the new shape of product work](https://www.lennysnewsletter.com/p/openai-codex-lead-on-the-new-shape)，[podcast transcript](https://podscripts.co/podcasts/lennys-podcast-product-career-growth/openai-codex-lead-on-the-new-shape-of-product-work-andrew-ambrosino)。补充参考：[Justin M. Berg - The primal mark](https://justinmberg.com/research-pathdependence/)、[Linear](https://linear.app)、[LogRocket - Linear design](https://blog.logrocket.com/ux-design/linear-design/)、[Frontend Horse - The Linear Look](https://frontend.horse/articles/the-linear-look/)。
+
+这篇访谈的核心不是“PM 会不会消失”，而是 **AI 把实现成本降到很低之后，产品流程被倒置了**。过去实现昂贵，所以先调研、PRD、设计、原型，再进入工程；现在一个可运行、看起来像上线版的原型很便宜，真正稀缺的变成：该不该做、做到什么形态、什么时候做、用什么媒介表达、怎么从 90 个候选里折叠出正确方向。
+
+几个可复用判断：
+
+1. **Primal mark：原型也是第一笔**
+   - `primal mark` 来自 Justin M. Berg 的创造力研究，指创意生成中最开始的那一点内容，它会锚定后续方向。熟悉的第一笔更容易产生有用但不新颖的方案；新颖的第一笔更容易产生新颖但不够有用的方案；更好的路径是先从新颖处开始，再注入熟悉元素提高可用性。
+   - AI 时代的危险是：探索阶段的原型已经能做得像上线产品，团队容易被视觉完成度锚定，以为它已经过了产品、设计、商业和用户验证。正确做法是把 **artifact fidelity** 和 **decision maturity** 分开标注：原型可以很精致，但仍可能只是早期探索。
+
+2. **“去年每个新网站都在抄 Linear”**
+   - 这里说的网站是 [Linear](https://linear.app)：面向现代软件团队的产品开发 / issue / roadmap / AI agent 工作流工具。Andrew 的意思不是 Linear 设计不好，而是如果模型每次都输出 Linear 风格，说明它只学会了当下中位数审美，还没有真正的设计判断。
+   - Linear 风格大致是：暗色背景、强对比排版、极细边框、产品截图而非人物照片、bento grid、网格纹理、微妙渐变 / glow / glassmorphism、少量 CTA、单向滚动、信息线性展开。LogRocket 把它总结为顺序清晰、认知负担低、低噪声、高可读的 SaaS aesthetic；Frontend Horse 则从暗色、彩色模糊光、bento、细线、电路线、网格背景、边框高光等视觉材料拆解。
+   - 可偷的是原则，不是皮肤：Linear 的设计之所以成立，是因为它和产品价值一致，即速度、秩序、低噪声、工作流推进。如果一个产品没有这种内核，只复制暗色、渐变和细线，最后只会变成“更高级的同质化模板”。
+
+3. **产品的 baby 版本**
+   - `baby Cursor / baby Codex` 指一个大幅简化的代码库，能模拟正式产品的关键交互，但足够轻，适合设计师和 PM 快速 vibe code 交互方案。
+   - 它不是玩具 demo，而是新的设计媒介：把交互探索放进可运行软件里，同时避开生产代码复杂度。关键仍是阶段意识：baby 版本用于探索“侧边栏是否该这样动”“面板是否该这样出现”，不是证明需求已经成立。
+
+4. **无限 tokens 时代，稀缺的是 taste**
+   - 最有价值的人不只是会写代码，而是能从想法到完成全程推动，并且有品味判断“这个很棒”。taste 不只是审美，还包括系统位置、方向判断、表达方式、交互语义和抽象能力。
+   - 当 tokens、原型和文档都近乎无限，组织最怕的不是做不出来，而是制造大量垃圾内容、垃圾原型、垃圾功能请求。此时产品人的价值从“催产出”转向“滤噪声、折叠方向、定义边界、守住质量”。
+
+5. **Dogfooding 是不舒服的产品塑形机制**
+   - Codex 应用被 dogfooding 循环塑造：团队刻意尽可能多地在 Codex 里完成自己的工作，即使它暂时不是最好的工具。更极端的是，有时不直接优化内部流程，而是逼产品变好，让产品最终能支撑这些流程。
+   - 这种 dogfooding 的价值不在“吃苦”，而在把真实工作流痛点变成产品 primitive：日报、状态跟踪、浏览器使用、Computer Use、memory、automation、connector 边界，都是先从个人系统里长出来，再判断哪些应该变成一级体验。
+
+6. **同一个东西可能要发布六次，直到模型能力追上**
+   - AI 产品的可行性不只取决于功能形态，还取决于当前模型是否足够聪明。Codex web 的“给任务 -> agent 去做 -> 回来给结果”形态并不荒谬，只是当时模型不够好；Claude Code 更本地、更诚实、更会停下来问人，因此更匹配当时能力边界。
+   - 规划上应保留一个 `parking lot`：把感兴趣方向做成原型，判断“现在是否可行”；暂时不行的不要永久杀死，等模型能力跃迁后重新拿出来试。越近的计划越具体，越远的计划越模糊，否则就是虚假精度。
+
+7. **探索和打磨不能全压给同一个机制**
+   - 一个团队很难同时持续颠覆自己，又长期专注质量、性能、细节和一致性。AI 产品更需要双系统：一边是自下而上的探索文化，允许新形态颠覆既有产品；一边是主线产品的 polish、可靠性、质量门禁。
+   - 组织设计上，不能只说“每个人都是 builder”。角色边界可以变软，但产品、工程、设计、研究仍是有最佳实践的专业。更合理的形态是角色重叠增加，但每个人仍在某个能力分布上形成深度。
+
+8. **Codex 的愿景：工作大本营，而不是一个更大的矩形**
+   - Codex 的方向不是把所有事情塞进一个屏幕矩形里，而是成为开始工作、结束工作、管理自动化流程的大本营。它可以调用专业工具：Excel 仍负责财务模型，Premiere Pro 仍负责视频编辑，Notion / Linear / Salesforce 仍负责各自专业对象；Codex 负责协调、自动化、连接和复盘。
+   - 这解释了应用内浏览器、Chrome 扩展、Computer Use、connector 的共同方向：未来很多 SaaS 不是由人打开网页逐页操作，而是由 agent 在 Codex 里“由内而外”地调用。难点是边界设计：什么时候用 connector，什么时候用内置浏览器，什么时候接管 Chrome，什么时候退到 Computer Use。
+
+9. **工程实践：会写代码不稀缺，会删代码和拒绝功能更稀缺**
+   - 当 AI 写代码比例接近 100%，指标不再是“AI 写了多少”，而是代码是在监督下还是无人监督下写的。当前模型天然倾向增加复杂度，所以 autonomous development 的关键短板是让模型学会删代码、降复杂度、合并重复抽象。
+   - 同样地，feature request 也需要 harness：判断哪些值得做、哪些应该忽略、哪些应该合并后重新定义。产品型 agent 的评估不能只看“能否实现请求”，还要看是否能维护抽象边界、降低系统复杂度、拒绝错误方向。
+
+对 Agent Harness / OpenClaw 的直接启发：
+
+- `feature_request_triage_v0` 应区分 `do / ignore / merge / reframe / park_until_model_capability`，而不是把每个请求都转成任务。
+- `prototype_maturity_v0` 应同时记录 `fidelity` 和 `decision_maturity`，避免高保真原型伪装成已验证方向。
+- `dogfood_loop_v0` 应把个人工作流痛点沉淀成 candidate primitive，再通过复用率、失败模式、人工介入点判断是否产品化。
+- `code_cleanup_agent_v0` 的目标不是“继续改进”，而是删除 dead code、合并重复抽象、降低状态数、保留回归测试和证据链。
+- `model_capability_gate_v0` 应允许一个 feature 现在暂停、未来重试；失败不只归因于产品形态，也可能归因于模型能力窗口未到。
 
 ### AI Coding 的使用技巧
 
