@@ -2482,6 +2482,8 @@ OpenTelemetry GenAI / OpenInference / agentevals 不属于 memory 方法本身�
 
 一个较稳的分层是：OTel / OpenInference 负责通用 trace 语言，例如 `LLM / RETRIEVER / RERANKER / TOOL / EVALUATOR` span、model、token、cache、error、conversation id；Agent Harness 再扩展 `memory_candidate_id`、`retrieved`、`reranked`、`injected`、`cited_or_followed`、`caused_action`、`outcome_delta`、`lifecycle_update`。这样 memory learning loop 既能接入行业 observability，又不会把内部 memory 语义硬塞进 `gen_ai.*`。
 
+Flowtrace 提醒这里还有第二类 trace：它不是 runtime event trace，而是 **task-method trace**。它用 `trace.json` 保存 step DAG 和 deliverable，用 `state.json` 保存 run 状态，用 `replies/NNNN.json` 保存结构化结论和 evidence，用 git commit 保存每次声明性写入。对 memory learning loop 来说，这类 trace 可以成为 raw trajectory 与 procedure memory 之间的中间层：既保留方法图、证据和局部重跑边界，又不把它硬编译成 workflow engine。详见 [AI-Agent-Product&PE.md - Flowtrace](./AI-Agent-Product&PE.md)
+
 ### Agent memory 调用的两种范式
 
 agent memory 不只有“检索 top-k 然后塞进 prompt”这一种调用方式。更通用的拆法是两种范式：

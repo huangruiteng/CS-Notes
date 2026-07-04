@@ -1954,7 +1954,7 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
 
 **Workflow 显式化**：AFlow（ICLR 2025）证明 workflow 可以被搜索、比较与自动优化，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o；AgentFlow（ICLR 2026）证明系统级 in-the-flow RL 训练 planner 优于只替换更强模型。工程侧的 Dynamic Workflow 则把 loop 的计划、状态、分支与验收显式化为可读脚本，避免每次都依赖模型运行时 instruction following。详见 [AI-Applied-Algorithms.md - Agent + Workflow](./AI-Applied-Algorithms.md)
 
-这一组材料可以按四层理解：Dynamic Workflow 管一条可重放执行路径，LoopX 管多轮长程目标和 gate，Agent Teams 管多 agent 协作 runtime，oh-my-pi / mini-SWE-agent 则形成工具层的两端：前者把 LSP、DAP、PTY、browser、memory、subagent、internal URL 都做成 batteries-included harness，后者坚持最小 bash loop。真正要判断的不是“哪个 agent 更强”，而是哪些能力应该上升为 runtime primitive，哪些能力应该继续留给模型和 prompt。
+这一组材料可以按五层理解：Dynamic Workflow 管一条可重放执行路径；Flowtrace 管可复用的任务方法、步骤证据和局部重跑；LoopX 管多轮长程目标和 gate；Agent Teams 管多 agent 协作 runtime；oh-my-pi / mini-SWE-agent 则形成工具层的两端：前者把 LSP、DAP、PTY、browser、memory、subagent、internal URL 都做成 batteries-included harness，后者坚持最小 bash loop。真正要判断的不是“哪个 agent 更强”，而是哪些能力应该上升为 runtime primitive，哪些能力应该继续留给模型和 prompt。
 
 #### Dynamic Workflow：把 loop 编译成可重放脚本
 
@@ -1971,6 +1971,56 @@ Dynamic Workflow 的核心不是“多开 sub-agent”，而是把计划从模�
 一个成熟 loop 至少要想清楚六件事：Trigger 怎么启动；Planner 如何拆任务；State 是否外部化、可暂停恢复；Workers 负责哪些可并行子任务；Evaluator 是否把 worker 准出门和阶段间 gate 分开；Loop / Branch / Resume / Repeatability 是否能让差异追到某一次模型调用，而不是整条路径漂移。
 
 对 Agent Harness 的启发：长期运行 agent 的主战场不是写更长 prompt，而是把任务队列、脚本状态、phase/log、验证 gate、用户插手点和回放记录做成一等公民。loop 越自动，越要保留 human-in-the-loop 的两个接口：关键岔路主动问人，中途定期吸收用户 steering；否则无人值守只是在无人值守地犯错。
+
+#### Flowtrace：把 agent 工作从 transcript 变成 git-backed trace
+
+> 来源：[README](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/README.md#L23-L94)、[trace folder layout](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/README.md#L153-L175)、[PHILOSOPHY](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/PHILOSOPHY.md#L3-L12)、[soft execution model](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/PHILOSOPHY.md#L70-L132)、[CLI reference](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/CLI.md#L7-L19)、[`Trace` / `StepSpec`](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/schema.rs#L7-L77)、[`RunState`](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/state.rs#L13-L35)、[`reply` / evidence schema](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/output.rs#L12-L49)、[`make-trace` skill](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/skills/make-trace/SKILL.md#L30-L50)。读取 commit `1571c76`，整理时间：2026-07-04。
+
+**定位**：Flowtrace 不是 workflow engine，也不是另一个聊天 UI，而是把 agent 工作过程外部化为一个 **git-backed、file-backed、可检查、可复用、可局部重跑的 trace artifact**。它解决的是高价值知识工作里 chat transcript 的四个问题：太长看不住、结果难核验、中间假设难 steer、成功经验会蒸发在 scrollback 里。
+
+核心抽象：
+
+```yaml
+flowtrace_contract_v0:
+  trace_root:
+    trace.json:
+      id:
+      title:
+      description:
+      version:
+      steps:
+        "<step_id>":
+          name:
+          does:
+          from_steps: []
+          assets: []
+      deliverable:
+        description:
+        assets: []
+    steps/<step_id>/STEP.md: per-step contract + implementation hints
+    resources/: shared static inputs
+    runs/<run_id>/:
+      state.json: single source of truth for run status
+      replies/NNNN.json: append-only structured-output stream
+      <step_id>/: runtime files, official assets, scratch
+```
+
+设计动机：
+
+- **把 composition knowledge 从 prompt / transcript 里拿出来**：Skill 复用的是动作，Workflow 复用的是执行控制流，Flowtrace 复用的是“这类任务该如何拆、哪些步骤并行、哪些产物喂给下游、最终交付物是什么”。它自称 soft scaffold for cognition，重点是方法图，不是调度引擎。
+- **用文件和 git 代替口头进度**：每个 step 写出文件，`state.json` 记录 status / assets，`replies/NNNN.json` 记录结构化结论和 evidence；每次 CLI write 都只提交声明路径，不做 `add -A`。这让 run 的中间过程可审计、可时光回看，也让“我做完了”变成 asset + evidence，而不是文本声明。
+- **把 steer 从重跑整条 chat 变成重跑局部 DAG**：`done` 不是终态，step 可以重新进入 `running`；`flowtrace show --downstream <step_id>` 给出拓扑有序的下游步骤。它刻意不把 stale flag 写进 state，因为 trace 是软方法图，传播责任属于 executor。
+- **降低 agent 的 context 压力**：agent 不必背完整历史，只要按结构读 `trace.json`、当前 step 的 `STEP.md`、上游 declared assets 和当前 run state。结构化读取替代线性 scrollback，适合长 session、复用 runbook、技能沉淀和高风险报告。
+
+`make-trace` skill 暴露了它真正难的部分：不是写 JSON，而是把一个 SKILL.md、runbook、chat log 或已完成任务 **lift 成 faithful DAG**。它要求判断哪些认知动作该升成 step，哪些只是 step 内部规则；要求独立二次核验 DAG 是否忠于来源；还强调互斥 deliverable 应拆成多个 trace，而不是在一个 trace 里塞条件分支。
+
+评价：
+
+- **强项**：它非常适合“会重复、要核验、要交给别人或未来自己复用”的任务，例如投研、尽调、安全 gate、复杂调研、bug-fix learning loop。相比普通 agent trace / observability，它更接近 procedure memory：把过程、证据、交付物和局部重跑边界保存成可读文件。
+- **边界**：Flowtrace 不是 executor，不负责调度、权限、预算、sandbox、grader，也不强制 step output schema。它的 soft 设计避免过早把认知方法硬编译成 workflow，但也意味着生产级长程 agent 仍需要外层 control plane：谁来执行、何时执行、失败如何 gate、staleness 如何强制传播、哪些 evidence 足以验收。
+- **和 Dynamic Workflow 的差异**：Dynamic Workflow 是 execution artifact，适合阶段明确、可自动执行、需要确定性 replay 的任务；Flowtrace 是 knowledge artifact，描述“这类任务如何做”，允许 executor 跳过、重排、替换实现。前者管路径，后者管方法和证据。
+
+对 LoopX / Agent Harness 的启发：Flowtrace 可以作为 `task_trace_artifact_v0`，被 LoopX 这类 control plane 引用为某个 goal / todo 的工作账本。短期值得借的是：`trace.json` 的 step/dependency/deliverable schema、`state.json` 的 run SOT、append-only replies、path-backed evidence、exact-path git commit、downstream rerun 查询，以及从成功 run 反向沉淀 procedure trace 的 `make-trace` 流程。
 
 #### Waiting primitive：yield_time_ms 与 /loop 的设计差异
 
