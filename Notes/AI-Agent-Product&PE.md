@@ -1954,7 +1954,7 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
 
 **Workflow 显式化**：AFlow（ICLR 2025）证明 workflow 可以被搜索、比较与自动优化，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o；AgentFlow（ICLR 2026）证明系统级 in-the-flow RL 训练 planner 优于只替换更强模型。工程侧的 Dynamic Workflow 则把 loop 的计划、状态、分支与验收显式化为可读脚本，避免每次都依赖模型运行时 instruction following。详见 [AI-Applied-Algorithms.md - Agent + Workflow](./AI-Applied-Algorithms.md)
 
-这一组材料可以按五层理解：Dynamic Workflow 管一条可重放执行路径；Flowtrace 管可复用的任务方法、步骤证据和局部重跑；LoopX 管多轮长程目标和 gate；Agent Teams 管多 agent 协作 runtime；oh-my-pi / mini-SWE-agent 则形成工具层的两端：前者把 LSP、DAP、PTY、browser、memory、subagent、internal URL 都做成 batteries-included harness，后者坚持最小 bash loop。真正要判断的不是“哪个 agent 更强”，而是哪些能力应该上升为 runtime primitive，哪些能力应该继续留给模型和 prompt。
+这一组材料可以按五层理解：Dynamic Workflow 管一条可重放执行路径；Flowtrace 管可复用的任务方法、步骤证据和局部重跑；LoopX 管多轮长程目标和 gate；Agent Teams 管多 agent 协作 runtime；oh-my-pi / mini-SWE-agent 则形成工具层的两端：前者把 LSP、DAP、PTY、browser、memory、subagent、internal URL 都做成 batteries-included harness，后者坚持最小 bash loop。Humanize / RLCR 更像夹在 workflow 与 control plane 之间的单任务 coding loop harness：它不发明新 executor，而是把 plan、review、summary、lesson 和退出 gate 串成工程纪律。真正要判断的不是“哪个 agent 更强”，而是哪些能力应该上升为 runtime primitive，哪些能力应该继续留给模型和 prompt。
 
 #### Dynamic Workflow：把 loop 编译成可重放脚本
 
@@ -2021,6 +2021,55 @@ flowtrace_contract_v0:
 - **和 Dynamic Workflow 的差异**：Dynamic Workflow 是 execution artifact，适合阶段明确、可自动执行、需要确定性 replay 的任务；Flowtrace 是 knowledge artifact，描述“这类任务如何做”，允许 executor 跳过、重排、替换实现。前者管路径，后者管方法和证据。
 
 对 LoopX / Agent Harness 的启发：Flowtrace 可以作为 `task_trace_artifact_v0`，被 LoopX 这类 control plane 引用为某个 goal / todo 的工作账本。短期值得借的是：`trace.json` 的 step/dependency/deliverable schema、`state.json` 的 run SOT、append-only replies、path-backed evidence、exact-path git commit、downstream rerun 查询，以及从成功 run 反向沉淀 procedure trace 的 `make-trace` 流程。
+
+#### Humanize：用 Codex review 把 Ralph Loop 变成工程闭环
+
+> 来源：[README](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/README.md#L7-L26)、[Quick Start](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/README.md#L42-L77)、[Usage / Plan Understanding Quiz](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/docs/usage.md#L5-L40)、[`start-rlcr-loop` command](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/commands/start-rlcr-loop.md#L13-L195)、[`setup-rlcr-loop.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/scripts/setup-rlcr-loop.sh#L821-L907)、[`loop-codex-stop-hook.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/hooks/loop-codex-stop-hook.sh#L785-L940)、[`codex review` phase](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/hooks/loop-codex-stop-hook.sh#L1209-L1316)、[`ask-codex.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/scripts/ask-codex.sh#L244-L415)、[BitLesson](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/docs/bitlesson.md#L25-L50)。读取 commit `0ec921a`，整理时间：2026-07-05。
+
+**定位**：Humanize 是一个 Claude Code plugin，核心工作流叫 RLCR（Ralph-Loop with Codex Review）。它不是新的代码生成模型，也不是完整 agent control plane，而是把“Claude 一轮轮实现”放进 **plan gate + stop hook + independent Codex review + code review phase** 的工程闭环里：Claude 负责实现，Codex 负责独立审查 summary / diff，问题反馈回下一轮，直到 acceptance criteria 和 code review 都过。
+
+核心抽象：
+
+```yaml
+humanize_rlcr_contract_v0:
+  input:
+    idea: /humanize:gen-idea
+    plan: /humanize:gen-plan --input draft.md --output plan.md
+    refined_plan: /humanize:refine-plan --input plan.md
+  preflight:
+    plan_compliance_check: repo relevance + no branch-switching
+    plan_understanding_quiz: two MCQs before execution
+  loop_state:
+    root: .humanize/rlcr/<timestamp>/
+    state: state.md
+    plan_backup: plan.md
+    goal_tracker: goal-tracker.md
+    round_contract: round-N-contract.md
+    round_summary: round-N-summary.md
+    review_result: round-N-review-result.md
+  phases:
+    implementation: Claude implements, then Codex reviews summary via codex exec
+    review: codex review --base <base_commit> checks actual code changes
+    finalize: cleanup / simplification before exit
+  memory:
+    bitlesson: .humanize/bitlesson.md
+    per_round_delta: Action none|add|update
+```
+
+设计动机：
+
+- **Ralph Loop 的问题不是“不够循环”，而是“循环会放大错误计划”**：Humanize 把这个称为 wishful coding。`start-rlcr-loop` 前先做 plan compliance check，再用独立 agent 出两道 plan understanding quiz；quiz 不强制阻断，但制造一个很有价值的摩擦：用户必须知道自己准备让 agent 执行什么。
+- **把 review 变成退出 gate，而不是靠 Claude 自觉**：Claude 想结束时，Stop hook 会检查 summary、round contract、BitLesson Delta、todo 是否完成、branch 是否漂移、plan 是否被改、工作区是否干净、文件是否过大；随后用 `codex exec` 审查本轮 summary。只有 Codex 最后一行给出 `COMPLETE`，才进入代码审查阶段。
+- **把“实现完成”与“代码质量过关”拆成两阶段**：Implementation Phase 关注是否按 plan / goal tracker 推进；Review Phase 调 `codex review --base <base_commit>` 看真实 diff，并用 `[P0-9]` severity marker 判断是否继续循环。这个设计避免 summary 自洽但代码有问题，也避免一开始就让 code review 承担所有目标对齐职责。
+- **用 BitLesson 做 project-level 过程记忆**：每轮 summary 必须包含 `## BitLesson Delta`，记录是否新增 / 更新项目经验。它试图解决 Ralph Loop 的另一个问题：同一个项目里 agent 反复踩同一个坑，但经验没有进入下一轮。
+
+评价：
+
+- **强项**：它是非常现实的 AI coding harness 样本。价值不在“Claude + Codex”这个组合本身，而在把 plan 理解、独立审查、退出拦截、diff review、过程记忆、monitor dashboard 全部做成可运行协议。它把 Ralph Loop 从“脚本不断重启 Claude”升级成“每轮必须留下 summary / contract / review / lesson”。
+- **边界**：它强依赖 Claude Code hooks、Codex CLI、shell 脚本和 Markdown 状态文件；很多 gate 仍通过文本 marker、文件命名和 hook 行为维持，不是强类型事件系统。它也不是 LoopX 那类多目标 control plane：同一 repo 默认只允许一个 active loop，缺少 durable task ledger / permission lease / budget ledger / typed artifact store。
+- **和 Flowtrace / LoopX 的差异**：Flowtrace 保存“方法图和证据”，Humanize 驱动“具体 coding loop 的准入、执行、review 和退出”；LoopX 管多目标长程状态，Humanize 更像单个 coding task 的 loop harness。三者可以组合：LoopX 选任务和 gate，Humanize 跑 coding loop，Flowtrace / run log 保存可复用方法和证据。
+
+对 LoopX / Agent Harness 的启发：短期可借 `plan_understanding_gate_v0`、`round_contract_v0`、`cross_model_review_gate_v0`、`mainline_progress_verdict`、`review_phase_by_base_commit`、`bitlesson_delta_v0`。但实现上不要照搬 hook-script + Markdown marker 作为唯一事实源，更好的方向是把这些变成 typed event / state transition / artifact ref：`summary_submitted -> summary_reviewed -> code_review_started -> review_issues_found -> finalize_ready`。
 
 #### Waiting primitive：yield_time_ms 与 /loop 的设计差异
 
@@ -5094,6 +5143,8 @@ Agent Skills 是可扩展 AI 助手能力的模块化技能包，补充特定领
 #### Ralph Loop
 
 Ralph Loop 是让 AI 持续工作的循环机制。
+
+2026-07 补充：Humanize / RLCR 可以看作 Ralph Loop 的工程化版本。它不是只让 Claude Code 任务做完后自动重启，而是在每轮退出前加入 plan understanding、round summary、goal tracker、Codex summary review、`codex review --base` 和 BitLesson 过程记忆；详见 [Agent 应用技术架构 - Humanize](#humanize用-codex-review-把-ralph-loop-变成工程闭环)。
 
 * 核心思想：
   * 维护一个任务列表
