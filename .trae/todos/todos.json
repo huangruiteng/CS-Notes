@@ -44,11 +44,11 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-05-07",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
-        "recommended_status": "completed",
-        "judgment": "推进TODO 的默认语义应是改进 CS-Notes 工作系统，而不是处理材料队列。材料处理必须由素材/调研/精读/读完等显式指令触发。",
-        "recommended_action": "后续连续推进 TODO 时，优先找流程机制、脚本索引、笔记结构、素材探索能力和用户动作队列治理的小切口。"
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -82,11 +82,11 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-05-07",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
-        "recommended_status": "completed",
-        "judgment": "已修正连续推进 TODO 时被 user-blocked 项反复卡住的问题。",
-        "recommended_action": "后续若仍只有用户动作项，Codex 可从 batch-plan 的材料队列建议中选择一个小切口新建并完成 TODO。"
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -117,11 +117,11 @@
       ],
       "progress": "✅ 2026-05-07 已完成。四批推进合并收敛：1) 从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`；2) 明确平台访问矩阵和读取边界，公众号/小红书/视频类均保留 Unread / transcript / user-export 规则；3) 抽样扫描 Lilian Weng、ezyang、GPU MODE、PyTorch Dev Discuss，并把 A129/A130/B29/B30 写入候选库；4) 新增 `Notes/snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`，后续主动调研可复用 scan plan -> actual read -> candidates writeback 流程。剩余的具体平台读取问题不再挂在本 TODO 下，后续遇到材料时按素材管线处理。",
       "codex_triage": {
-        "triaged_at": "2026-05-07",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
-        "recommended_status": "completed",
-        "judgment": "trusted source layer 已从来源解析推进到可复用 scan helper 和候选库写回样例，达到当前 TODO 的合理完成边界。",
-        "recommended_action": "后续不要长期挂 TODO；主动调研时直接运行 `trusted_source_scan.py`，遇到读不到的平台按素材管线标 Unread 或让用户补正文。"
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       },
       "started_at": "2026-05-07T00:20:00+0800",
       "completed_at": "2026-05-07T02:05:00+0800",
@@ -168,11 +168,11 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-05-04",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
-        "judgment": "已将 agent-harness 技术反馈升级为职业学习路线和 artifact schema。",
-        "recommended_action": "后续调研 PER/HER/OPE 等材料时必须转成 schema、实验或职业叙事，不做泛阅读。"
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -196,11 +196,11 @@
       ],
       "progress": "✅ 已完成 verifiedstate/agent-memory-eval 调研。读取 repo metadata、README、package.json、src 结构、MemorySystemAdapter、runner、temporal/conflict fixture 样例。结论：repo 已 archived，不建议直接作为依赖接入；但 temporal/conflict/multihop/abstention/provenance 五类 eval taxonomy 和 adapter shape 值得转成 Agent Harness 的 `memory_capability_smoke_v0`。已产出 `.trae/documents/VerifiedState-Agent-Memory-Eval-Review.md`，并包含可直接转发给 agent-harness 主控的 steering message；已更新 `.local/LEARNING_MATERIAL_CANDIDATES.md` 中 A98 条目。",
       "codex_triage": {
-        "triaged_at": "2026-05-04",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
-        "judgment": "已把 GitHub 线索转化为 Agent Harness 可执行 steering，而不是停留在材料收集。",
-        "recommended_action": "如果用户同意，将转发稿交给 agent-harness 主控；否则先作为后续 TODO 候选。"
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       },
       "completed_at": "2026-05-04T05:20:00.000000",
       "changed_files": [
@@ -237,11 +237,11 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-05-04",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
-        "judgment": "GitHub 搜索能力已经从工具配置转成具体材料/开源贡献线索。",
-        "recommended_action": "下一步优先调研 verifiedstate/agent-memory-eval，而不是继续泛搜。"
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -278,7 +278,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-05-04",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -419,13 +419,6 @@
         "加一个assign给user的todo：配置gh并配置github的搜索能力"
       ],
       "progress": "✅ GitHub 搜索能力配置完成。用户已完成 gh auth login；`Notes/snippets/github-search.sh status` 验证已登录 huangrt01；`Notes/snippets/github-search.sh repos \"agent memory llm\" 3` 返回合法 JSON；进一步用 `Notes/snippets/github-search.sh repos \"llm agent\" 3` 和 `Notes/snippets/github-search.sh issues \"memory\" openai/codex 3` 验证 repo / issue 搜索均能返回结构化 JSON。该能力后续可服务调研、开源贡献选题和 Agent infra/materials 检索。",
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_recent_observe",
-        "recommended_status": "completed-observe",
-        "judgment": "GitHub 搜索能力已接入，可被调研和开源贡献流程复用。",
-        "recommended_action": "后续调研 GitHub repo/issue/PR 时优先使用 Notes/snippets/github-search.sh。"
-      },
       "changed_files": [
         ".trae/documents/GitHub-Search-GH-Setup.md",
         ".trae/todos/todos.json",
@@ -725,13 +718,6 @@
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".trae/todos/todos.json"
       ],
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_archived_by_user_decision",
-        "recommended_status": "completed",
-        "judgment": "用户明确取消火山 OpenClaw Web Manager 访问问题，不再继续排查 URL/ECS/SSH。",
-        "recommended_action": "不再推进；如果未来重新需要访问火山环境，应新建更具体的诊断 TODO。"
-      },
       "completed_at": "2026-05-04T03:20:00.000000"
     },
     {
@@ -1009,13 +995,6 @@
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".trae/todos/todos.json"
       ],
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_paused_private_project",
-        "recommended_status": "completed",
-        "judgment": "公司项目融合有潜在价值，但当前不服务短期执行，不应占据 TODO 队列。",
-        "recommended_action": "暂停；严格避免把公司项目内容纳入 git。"
-      },
       "completed_at": "2026-05-04T03:20:00.000000"
     },
     {
@@ -1659,13 +1638,6 @@
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".trae/todos/todos.json"
       ],
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_archived_by_user_decision",
-        "recommended_status": "completed",
-        "judgment": "ECS SSH 任务是旧 OpenClaw Web Manager 链路的前置依赖；主任务已取消。",
-        "recommended_action": "不再推进旧 ECS 诊断；需要时新建具体机器级任务。"
-      },
       "completed_at": "2026-05-04T03:20:00.000000"
     },
     {
@@ -1877,13 +1849,6 @@
         ".trae/todos/todos.json"
       ],
       "original_text": "高优先级：调研公司内部的coding bash cli 工具",
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_deprioritized_by_user_decision",
-        "recommended_status": "completed",
-        "judgment": "Trae CLI/proactive 对当前主线不是高优先级；Codex CLI 是默认执行入口。",
-        "recommended_action": "归档；未来仅在需要跨工具对比或内部 adapter 时重启。"
-      },
       "completed_at": "2026-05-04T03:35:00.000000"
     },
     {
@@ -1968,14 +1933,7 @@
       "changed_files": [
         ".trae/documents/Trae-CLI-Proactive-Research-Brief.md",
         ".trae/todos/todos.json"
-      ],
-      "codex_triage": {
-        "triaged_at": "2026-05-04",
-        "category": "completed_deprioritized_by_user_decision",
-        "recommended_status": "completed",
-        "judgment": "Trae CLI/proactive 对当前主线不是高优先级；Codex CLI 是默认执行入口。",
-        "recommended_action": "归档；未来仅在需要跨工具对比或内部 adapter 时重启。"
-      }
+      ]
     },
     {
       "id": "todo-20260225-002",
@@ -2056,7 +2014,14 @@
         "Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
         ".trae/documents/Todos-Web-Manager-Process-Oncall.md",
         ".trae/todos/todos.json"
-      ]
+      ],
+      "codex_triage": {
+        "triaged_at": "2026-06-28",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
+      }
     },
     {
       "id": "todo-20260225-003",
@@ -2501,11 +2466,11 @@
       ],
       "progress": "✅ Codex 自用 TODO 控制台 MVP 已完成。已产出 `.trae/documents/Codex-TODO-Web-Manager-v2.md`；后端在 `.trae/web-manager/server.py` 增加 `/api/codex/summary`、`/api/codex/next-action`、`/api/codex/user-actions`、`/api/codex/check-blockers` 四个只读接口；前端在 `.trae/web-manager/index-enhanced.html` 增加 `Codex 控制台` tab，隐藏旧筛选/写入口，并以只读卡片展示 next action、user queue、blocker checks。Flask test client 验证主页 200 且 Codex tab 存在，四个接口均返回 200。",
       "codex_triage": {
-        "triaged_at": "2026-05-04",
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
-        "judgment": "Codex TODO 控制台 MVP 已可用；后续只在真实使用反馈下继续改，不恢复旧大而全 Web Manager。",
-        "recommended_action": "下一步优先让用户完成 gh auth login；Web Manager 后续只做安全开关或小修。"
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       },
       "started_at": "2026-05-04T03:35:00.000000",
       "completed_at": "2026-05-04T04:05:00.000000",
@@ -2548,7 +2513,14 @@
         "Notes/snippets/codex_todo_triage.py",
         ".trae/todos/todos.json",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
-      ]
+      ],
+      "codex_triage": {
+        "triaged_at": "2026-06-28",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
+      }
     },
     {
       "id": "todo-20260504-008",
@@ -2584,7 +2556,14 @@
         "Notes/snippets/codex_todo_triage.py",
         ".trae/todos/todos.json",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
-      ]
+      ],
+      "codex_triage": {
+        "triaged_at": "2026-06-28",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
+      }
     },
     {
       "id": "todo-20260504-009",
@@ -2640,9 +2619,11 @@
         ".codex/skills/research-material-scout/SKILL.md"
       ],
       "codex_triage": {
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
-        "judgment": "active 队列为空时，从最近读完材料中抽取可执行闭环并正式记录；这比继续追加概念讨论更符合仓库 TODO 系统。",
-        "next_action": "下一次推进 TODO 时，优先从 S18 Fine-Mem、agent-harness 主控反馈或当前 materials 阅读顺序中抽取下一个可落地小切口。"
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -2686,9 +2667,11 @@
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
       "codex_triage": {
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
-        "judgment": "空队列时不要只输出模板；应把当前材料阅读顺序转成下一批可验证小产物建议。",
-        "next_action": "下一次推进可从 batch-plan 输出中选择 A63 OpenViking feature mapping、S17 Memex schema delta，或等用户读完 S18 后执行读完闭环。"
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -2739,9 +2722,11 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "category": "completed_read_done",
-        "judgment": "OpenViking session 可以作为 coarse trajectory container，但 Agent Harness 必须保留 step-level trace/replay/eval schema；OpenViking 当前开源索引更像统一 context collection 而非三套独立索引。",
-        "next_action": "等待用户和 OpenViking 同学确认 session schema 边界；随后把确认结果转成 Agent Harness/OpenViking integration TODO。"
+        "triaged_at": "2026-06-28",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     },
     {
@@ -2771,9 +2756,11 @@
       ],
       "progress": "Codex 已准备脱敏沟通包 .trae/documents/OpenViking-Session-Trajectory-Alignment.md，并在 .trae/documents/Codex-TODO-User-Action-Queue.md 中压缩成 30 秒可复制消息、回复回填格式和后续分支动作。当前仍等待用户发给 OV 同学并贴回反馈。",
       "codex_triage": {
-        "category": "user_blocked",
-        "judgment": "Codex 已把问题转成可执行沟通包；下一步必须由用户进行人际/内部协作确认。",
-        "next_action": "用户复制 .trae/documents/Codex-TODO-User-Action-Queue.md 中的 30 秒版本发给 OV 同学，并把回复按模板贴回；Codex 再据此生成 Agent Harness/OpenViking integration TODO。"
+        "triaged_at": "2026-06-28",
+        "category": "user_or_environment_blocked",
+        "recommended_status": "user-blocked",
+        "judgment": "需要用户账号、公司内部环境、机器权限或主观判断。",
+        "recommended_action": "保留为 user-blocked；用户重新激活后再拆 Codex 可执行部分。"
       }
     },
     {
@@ -2799,10 +2786,11 @@
         "Notes/snippets/codex_todo_triage.py"
       ],
       "codex_triage": {
+        "triaged_at": "2026-06-28",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
-        "judgment": "本次修正让推进项目的控制面回到 CS-Notes 本仓库。",
-        "recommended_action": "后续推进项目先看 batch-plan 输出；只有本仓库 TODO 明确指向外部仓库时才扩展扫描。"
+        "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
+        "recommended_action": "复盘经验；不要回到旧执行链路。"
       }
     }
   ]
