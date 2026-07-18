@@ -408,4 +408,32 @@
 
 ---
 
-*最后更新：2026-03-12*
+## Codex TODO System v2（2026年7月更新）
+
+### 1. 校准 推进TODO 默认不消费 material 队列
+- **核心原则**：`推进TODO` 不是让 Codex 消费材料队列、把 material 转成私有材料卡，而是从流程优化、机制优化、效率优化、探索素材能力、笔记重构等角度让本仓库更好
+- **关键修正**：只有用户说 `素材：`、`精读`、`读完`、`调研` 或点名材料时才消费具体 material
+- **回退操作**：删除了所有由 `推进TODO` 默认消费 material 队列产生的转译产物（A68/B20/A100/S20/A92/S19/S17/A101/A17/S14/S8）
+
+### 2. 修正仅剩用户阻塞项时的 Codex TODO 批推进
+- **核心改进**：`codex_todo_triage.py --batch-plan` 现在在只有 user-blocked TODO 时，也会展示 `.local/LEARNING_MATERIAL_CANDIDATES.md` 当前阅读顺序中的 Codex-owned 小切口
+- **新增功能**：`render_material_queue_suggestions()` 复用空队列/用户阻塞两种场景
+
+### 3. 将非技术知识中的长期关注博主纳入材料探索雷达
+- **成果**：从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`
+- **新增工具**：`Notes/snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`
+
+### 4. Codex TODO System v2 执行标准
+之后每次 `推进TODO` 应输出：
+1. 当前 TODO 系统判断：本轮处理的是真实任务、流程演进、用户阻塞还是归档清理
+2. 选中的 batch：说明为什么这些任务/子切口可以一起推进，为什么现在做
+3. 实际产物：文件、脚本、笔记、状态变更、可运行配置或可转发 steering
+4. 状态回写：只在有真实产物或明确归并结论时更新 `.trae/todos/todos.json`
+5. 下一步：给一个最小后续动作，不堆路线图
+
+### 5. 空队列协议
+当 `.trae/todos/todos.json` 中没有 Codex 可独立推进的 active 任务时，`推进TODO` 不应为了维持仪式感硬编旧任务。即使仍有 `feedback_required=true` 的用户动作，Codex 也可以从流程优化、机制优化、效率优化、素材探索能力、笔记重构、脚本/skill 改进、索引治理或最近 completed TODO 中找一个安全的小切口推进；用户动作只作为阻塞提醒，不应永久卡住 Codex-owned 批次。
+
+---
+
+*最后更新：2026-07-19*
