@@ -44,7 +44,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -82,7 +82,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -117,7 +117,7 @@
       ],
       "progress": "✅ 2026-05-07 已完成。四批推进合并收敛：1) 从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`；2) 明确平台访问矩阵和读取边界，公众号/小红书/视频类均保留 Unread / transcript / user-export 规则；3) 抽样扫描 Lilian Weng、ezyang、GPU MODE、PyTorch Dev Discuss，并把 A129/A130/B29/B30 写入候选库；4) 新增 `Notes/snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`，后续主动调研可复用 scan plan -> actual read -> candidates writeback 流程。剩余的具体平台读取问题不再挂在本 TODO 下，后续遇到材料时按素材管线处理。",
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -168,7 +168,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -196,7 +196,7 @@
       ],
       "progress": "✅ 已完成 verifiedstate/agent-memory-eval 调研。读取 repo metadata、README、package.json、src 结构、MemorySystemAdapter、runner、temporal/conflict fixture 样例。结论：repo 已 archived，不建议直接作为依赖接入；但 temporal/conflict/multihop/abstention/provenance 五类 eval taxonomy 和 adapter shape 值得转成 Agent Harness 的 `memory_capability_smoke_v0`。已产出 `.trae/documents/VerifiedState-Agent-Memory-Eval-Review.md`，并包含可直接转发给 agent-harness 主控的 steering message；已更新 `.local/LEARNING_MATERIAL_CANDIDATES.md` 中 A98 条目。",
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -237,7 +237,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -278,7 +278,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2016,7 +2016,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2466,7 +2466,7 @@
       ],
       "progress": "✅ Codex 自用 TODO 控制台 MVP 已完成。已产出 `.trae/documents/Codex-TODO-Web-Manager-v2.md`；后端在 `.trae/web-manager/server.py` 增加 `/api/codex/summary`、`/api/codex/next-action`、`/api/codex/user-actions`、`/api/codex/check-blockers` 四个只读接口；前端在 `.trae/web-manager/index-enhanced.html` 增加 `Codex 控制台` tab，隐藏旧筛选/写入口，并以只读卡片展示 next action、user queue、blocker checks。Flask test client 验证主页 200 且 Codex tab 存在，四个接口均返回 200。",
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2515,7 +2515,7 @@
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2558,7 +2558,7 @@
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2619,7 +2619,7 @@
         ".codex/skills/research-material-scout/SKILL.md"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2667,7 +2667,7 @@
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2722,7 +2722,7 @@
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
@@ -2756,7 +2756,7 @@
       ],
       "progress": "Codex 已准备脱敏沟通包 .trae/documents/OpenViking-Session-Trajectory-Alignment.md，并在 .trae/documents/Codex-TODO-User-Action-Queue.md 中压缩成 30 秒可复制消息、回复回填格式和后续分支动作。当前仍等待用户发给 OV 同学并贴回反馈。",
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "user_or_environment_blocked",
         "recommended_status": "user-blocked",
         "judgment": "需要用户账号、公司内部环境、机器权限或主观判断。",
@@ -2786,7 +2786,7 @@
         "Notes/snippets/codex_todo_triage.py"
       ],
       "codex_triage": {
-        "triaged_at": "2026-07-18",
+        "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
         "recommended_status": "completed-observe",
         "judgment": "近期完成，应保留经验并观察是否需要后续自动化。",
