@@ -1,0 +1,8 @@
+{
+  "delivery": "project_managed_copy",
+  "loopx_version": "0.3.0",
+  "schema_version": "loopx_managed_project_skill_v0",
+  "skill_id": "loopx-change-quality",
+  "source_digest": "0b18045b0b012ef70dcdd47e7acf10cf6e16e33741b222870d0f92abd822f79a",
+  "surface": "codex"
+}

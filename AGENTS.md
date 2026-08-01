@@ -90,7 +90,8 @@ open -a Typora <file.md>
 10. 对内部飞书 / ByteTech / 公司文档做笔记时，写入 git 关联笔记库前必须脱敏：不要写内部 URL、临时 token、内部人员/团队细节或非公开实现；优先引用公开论文、开源仓库、官方文档、release note。若材料来自内部文档但也有公开实现，公开笔记只能写“基于公开/开源材料分析”，完整内部来源和私有判断只放 `.local/`。
 11. `S21`、`A89` 这类材料候选库编号只用于 `.local/LEARNING_MATERIAL_CANDIDATES.md` / `.local/LEARNING_MATERIAL_ARCHIVE.md` 的追踪；写入 `Notes/` 的长期笔记标题时不要带这些编号，标题应面向主题本身。
 12. 笔记整理和 `读完` 闭环完成前，必须做一次“上层 high-level 同步检查”：判断新材料是否改变目录页、领域框架、综述表、概念地图、路线图或跨材料排序；若改变，就适当更新上层笔记，而不是只把内容塞进局部 section。
-13. `读完` 闭环中，公开主笔记可以压缩成框架化表达，但用户读后感里的具体抓手不能被抽象掉；必须在主笔记或 `.local/LEARNING_MATERIAL_ARCHIVE.md` 中保留每个关键机制、benchmark、schema、figure/table、failure case、术语判断或质疑点，无法保留时要说明跳过原因。
+13. `读完` 闭环中，用户明确强调的要点必须进入 `Notes/` 主体笔记，不能只落到 `.local/LEARNING_MATERIAL_ARCHIVE.md`。公开主笔记可以压缩成框架化表达，但每个用户抓手都要在 `Notes/` 中有可检索锚点：可以是正文小节、表格行、schema 字段、cross-reference、脚注式来源说明或一句明确判断；`.local` archive 只作为原文细节、私密来源、过长证据和读取记录的补充，不能替代主笔记落盘。
+14. `读完` 完成前必须做“用户抓手覆盖检查”：先列出用户强调的每个关键机制、benchmark、schema、figure/table、failure case、术语判断、质疑点或对比句，再逐项标注其 `Notes/` 落点；若某个抓手因安全、隐私或不适合公开而不能原样写入 `Notes/`，也必须写入脱敏后的通用表达，并说明完整细节保留在 `.local` 的原因。
 
 ### B. 写作与公司项目
 
@@ -133,9 +134,24 @@ open -a Typora <file.md>
 
 当用户说“素材：”“调研”“找素材”“材料雷达”“学习材料”时，默认按素材管线处理：
 
+若当前项目已显式启用 LoopX Material Lifecycle，通用的 snapshot /
+inventory、生命周期迁移、无损 ranked-entry rebuild、bounded rerank、
+owner-gated apply 与 rollback 统一遵循项目级受管的 `loopx-material` skill。
+本文只保留 CS-Notes 的来源读取、私有落点、主题分类、职业优先级和笔记写作规则；
+项目规则可以收紧但不能削弱 `loopx-material` 的无损、exact-read 和 authority 门禁。
+
+本仓库已经启用该能力：当
+`.local/material-lifecycle/authority/current.json` 指向 `managed_catalog`
+时，`.local/LEARNING_MATERIAL_CANDIDATES.md` 与
+`.local/LEARNING_MATERIAL_ARCHIVE.md` 仅作为原 777 条记录的只读内容
+backing / rollback source。任何线程都不得直接向旧文件追加材料、修改生命周期或
+编辑其中的旧 Top30；新素材必须走 exact-read evidence -> managed candidate
+intake -> authority CAS/readback/receipt。`素材：`只授权 candidate intake，
+不自动授权 Top30 重排；排序变化必须另走 Decision Context-backed bounded rerank。
+
 **指令约定**
 
-- `素材：<链接/文本>`：用户投喂材料。读取、保留原始链接、分档、摘要并写入候选库；读不到就标记 Unread 并说明需要用户补正文/截图/导出。
+- `素材：<链接/文本>`：用户投喂材料。读取、保留原始链接、分档、摘要；本仓库通过项目级 `loopx-material` 将 exact-read 结果写入 managed candidate store。读不到则保留 Unread 状态并说明需要用户补正文/截图/导出。
 - `调研：<问题/方向>`：主动调研指令。围绕问题做多源召回、追一手来源、去噪分档，并给出下一步学习/产出建议。
 - `整理笔记：<链接/文本>` 或“整理笔记 + 点名文件 / 主题”：直接进入 `Notes/` 笔记整合流程。用户点名目标和材料主领域优先，不默认入候选库，也不默认映射到 Agent infra / 职业主线。
 - `请你读：<材料 id / 链接 / 标题>`：Codex 先读原文 / repo / 数据入口，再给精要内容、核心设计、用户本人是否需要继续读、对当前 artifact 的改造点；输出时必须区分“材料值得 Codex 读透 / 落成设计语言”和“用户本人需要亲自精读原文”，并尽量细分到 section / figure / table / code / doc page 粒度，不要把二者混成一个判断；若判断“读 Codex 摘要即可 / 用户不用亲读”，摘要必须达到替代用户首读的密度，覆盖核心机制、关键字段 / schema、实验或证据、局限和 artifact 映射，而不是只给结论；若材料有关键数学机制或指标定义，在原有讲解基础上补核心公式 / 数学直觉，但不要为了公式而公式；`精读` 保留为兼容别名。
@@ -146,7 +162,7 @@ open -a Typora <file.md>
 3. 对近期动态、社媒评价、热点追踪、作者动态这类广域召回需求，SenSight 优先作为主召回层；Codex 负责二次验证、去噪、分档和落盘。
 4. Agent-Reach 这类本地互联网工具脚手架作为补位：适合读具体 URL、视频字幕、GitHub、RSS、Reddit 等 source-level 内容；不替代 SenSight 的跨平台聚合与质量筛选。
 5. 召回后必须追一手来源：论文、官方文档、代码仓库、release note、原始访谈或产品页优先；社媒和公众号只作为线索或二级解读。
-6. 入库默认写 `.local/LEARNING_MATERIAL_CANDIDATES.md`，并给出 S/A/B/Unread 分档、摘要、对用户职业主线的价值、后续动作。
+6. 入库先检查 managed authority：本仓库默认写受管 catalog 与 immutable managed-native content backing，并生成 intake receipt；只有未启用 Material Lifecycle 的其他项目才回退到其旧候选库。
 7. 对用户最重要的固定方向：Agent infra / OpenClaw / ArkClaw / Agent Harness / OpenViking / agent memory / RL infra / verl / Ray / vLLM / SGLang / RecSys+LLM。
 
 **SenSight 调研执行流**
@@ -156,7 +172,7 @@ open -a Typora <file.md>
   1. 召回：`social_search` 看社媒和近期讨论，`retrieve_summarize` 看 AI 技术长文聚合，`daily_paper` / `daily_blog` 若为空不算失败，`search_events` 更适合热点追踪而不是精确技术材料。
   2. 验真：对高价值线索追一手来源；找不到一手来源的社媒观点只能作为 B 档、Unread 或线索，不写成确定事实。
   3. 价值输出：每个候选写清楚 S/A/B、原始链接、读取状态、为什么对当前 70/20/10 路线有价值、能转成哪个 artifact / schema / TODO；同时说明哪些材料不该现在读。
-- 一次 `调研：` 完成标准：说明 SenSight 或降级路径状态，至少检查两个不同来源类型，给出新增候选或“不入库”的理由，并确认候选已经落到 `.local/LEARNING_MATERIAL_CANDIDATES.md`。
+- 一次 `调研：` 完成标准：说明 SenSight 或降级路径状态，至少检查两个不同来源类型，给出新增候选或“不入库”的理由；若产生候选，确认 managed authority 已包含该 stable material ref 且 receipt/readback 成功。
 - 调研结果优先更新阅读顺序和行动优先级，而不是只把材料追加到文件尾。
 
 **自验证要求**
@@ -164,7 +180,7 @@ open -a Typora <file.md>
 - 每次 `调研：` 完成前，检查至少两个不同来源类型；如果 SenSight 不可用，明确记录降级路径。
 - 每个高价值候选必须有原始链接、读取状态、来源类型和一句“为什么值得你看/为什么只需我摘要”的判断。
 - 社媒/公众号观点不能直接当事实，涉及技术事实时必须追论文、代码、官方文档、release note 或一手访谈。
-- 完成前用搜索确认新增条目已写入候选库；如果没有落盘，不算完成。
+- 完成前确认新增条目已进入当前 managed authority；不得以旧 Markdown 中出现一段文本代替受管入库。
 
 ### F. AI 热点日报
 

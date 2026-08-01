@@ -23,6 +23,32 @@ The user's current priority stack:
 4. RecSys + LLM / search and recommendation infra as a differentiating background.
 5. Career narrative / interview deep dives / market sensing / personal technical taste and distribution.
 
+## Boundary With LoopX Material
+
+This skill is the CS-Notes source-discovery and exact-reading adapter. It owns
+source recall, primary-source verification, reader maps, domain scoring, and
+the private CS-Notes landing decision.
+
+When the connected goal explicitly activates Material Lifecycle, use the
+project-local managed `loopx-material` skill for generic store inventory, candidate/archive
+transitions, lossless migration, ranked-entry rebuild, bounded rerank,
+owner-gated apply, rollback, and audit. Pass exact-read evidence and the
+project-specific score into that workflow; do not duplicate or weaken its
+authority and losslessness gates here.
+
+For CS-Notes, a managed authority pointer under
+`.local/material-lifecycle/authority/current.json` means the old candidate and
+archive Markdown files are immutable legacy content backing. Never append a
+candidate, archive an item, or edit the old Top30 in those files. Use the
+project-local `loopx-material` workflow and the private managed intake adapter.
+An explicit `素材：` request authorizes candidate intake only; it does not
+authorize a ranking change.
+
+The installed project skill does not itself activate Material Lifecycle.
+Without an explicit goal-scoped todo/profile and declared private source
+authority, this skill may research or read material but must not rewrite the
+managed candidate/archive/ranking store.
+
 ## Source Strategy
 
 Prefer primary sources for technical conclusions:
@@ -61,7 +87,7 @@ Use it as an index, not as evidence by itself:
 1. Pick the relevant ETCLOVG layer first: execution, tooling, context, lifecycle, observability, verification, or governance.
 2. Inspect the candidate repo's README, docs, releases, issues, or paper before ranking it.
 3. Prefer implementation entries that can change the user's artifacts: sandbox boundary, tool registry/schema, state/context contract, handoff/workflow loop, trace/eval schema, policy/audit layer.
-4. Do not dump many frameworks into Top30. Write only high-signal projects into `.local/LEARNING_MATERIAL_CANDIDATES.md`, with read status and concrete artifact deltas.
+4. Do not dump many frameworks into Top30. Promote only high-signal projects through the current managed candidate authority, with read status and concrete artifact deltas.
 5. Treat stars and catalog summaries as recall/ranking hints, not truth.
 
 ### arXiv / Paper Reading Route
@@ -304,19 +330,30 @@ Do not install Agent-Reach automatically unless the user asks. It may install ma
 
 Directive convention:
 
-- `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and write to the candidate library.
+- `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and append one managed candidate through exact-read evidence, immutable content backing, authority CAS, readback, and receipt.
 - `调研：<question/topic>` means active research. Use broad recall plus source verification, then write high-signal candidates and recommendations.
 - `整理笔记：<link/text>` or "整理笔记 + named note/theme" means direct note integration. The output surface is `Notes/`, not the candidate library by default. Named target and source-domain taxonomy win over career priority.
 - `请你读：<material id/link/title>` means Codex reads first, then returns both a mechanism-first summary and a reader map for the user. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output requirements, but defaults to deeper pass-3 reconstruction when the material warrants it.
+- `读完：<material id/link/title + user notes>` means close the reading loop. Update the best `Notes/` landing before archiving unless the content is private-only. Treat user-highlighted points as retention requirements: concrete prompts, env flags, schema fields, tool/API names, figures/tables, failure cases, doubts, and comparison phrases should be preserved in the public note when safe and conceptually useful; `.local` may keep raw/private/full detail, but must not be the only landing for points the user explicitly asked to remember.
 - `继续调研` means continue the latest active-research theme, but only if adding new sources or a new decision-relevant synthesis.
 
 For each user-provided material:
 
 0. Classify the request intent before choosing tools or files:
    - `整理笔记`: use the repository note-integration workflow. If the user named a file/section, inspect that target first; if not, classify the source's primary contribution such as model algorithm, training method, inference system, agent runtime, product strategy, or career signal, then find the matching note. Do not default to Agent infra just because the material is AI-related.
-   - `素材`: intake to `.local/LEARNING_MATERIAL_CANDIDATES.md`.
+   - `素材`: intake to the current managed material authority. Do not write the legacy candidate Markdown.
    - `调研`: prioritize by the user's 70/20/10 career plan.
    - `请你读 / 精读`: read first, then decide whether the result should be summarized only, integrated into notes, or later archived.
+
+### User-Highlighted Detail Preservation
+
+When the user provides a numbered/bulleted readout, quoted phrase, prompt snippet, schema, env var, failure case, or says "这个值得作为专题section / 概念级别 / 这个点要记", treat it as first-class source material rather than optional color.
+
+- Account for every explicit user point before closing the turn: either in `Notes/`, in `.local` with a privacy/version reason, or intentionally skipped with a reason reported to the user.
+- Prefer distilled-but-concrete preservation in `Notes/`: short prompt excerpts or paraphrases, tool names, env flags, schema fields, benchmark names, mode names, key tables/figures, and caveats. Do not over-compress them into only an abstract framework.
+- If a detail is version-sensitive or platform-specific, label it as such and preserve the source/version boundary; do not hide it solely in `.local`.
+- If the user asks for a "专题section" or "概念级别", promote or create an independent section instead of burying the point under a neighboring topic.
+- `.local` is for raw cache, private URLs, full prompt copies, and sensitive/internal detail. It supplements public notes; it is not a substitute for durable `Notes/` synthesis.
 
 1. Preserve the original link in the final note title.
    - If the URL contains disposable login tokens, access tokens, auth codes, session IDs, or other sensitive query parameters, use them only for reading and persist only the stable URL with those parameters stripped. Note that the original link was sanitized.
@@ -334,7 +371,7 @@ For each user-provided material:
    - A: Codex summary is enough unless the theme becomes active.
    - B: useful background, tool lead, or product observation.
    - Unread: not read; never pretend.
-5. Write the result into `.local/LEARNING_MATERIAL_CANDIDATES.md`.
+5. If Material Lifecycle is active, write exact-read evidence and staged content, then use `.local/material-lifecycle/managed_candidate_intake.py` to prepare/apply one candidate. Verify the current authority revision advanced by one record. Do not rerank unless a separate Decision Context proposal authorizes it.
 
 ## Active Research Workflow
 
@@ -373,10 +410,11 @@ Before reporting that a research task is done:
    - evidence sentence,
    - why it matters to the user's 70/20/10 career plan,
    - next action.
-4. Run a local search to confirm the candidate entry exists in `.local/LEARNING_MATERIAL_CANDIDATES.md`.
+4. Confirm the candidate stable ref exists exactly once in the current managed catalog, the immutable content backing digest verifies, and an intake receipt records CAS/readback success.
 5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when the material is a paper or research artifact, and contains a concrete "用户本人还需要读什么" reader map. If the answer is "不用读原文", still say which sections were inspected and why they are skippable, and provide a richer substitute-quality digest so the user does not lose meaningful value by skipping the original.
 6. For tool / standard / API / framework bundles, check that the answer starts with background and workflow introduction: why this thing exists, what pain it solves, what breaks without it, and how each component is positioned. Then explain each component as a standalone material before mapping to Agent Harness / OpenViking. Do not start directly from jargon, fields, or claim maps, and do not let the project mapping crowd out the source-content explanation.
-7. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
+7. For `读完` / note integration, run a user-highlighted point audit: every explicit bullet, numbered item, prompt snippet, schema field, env flag, comparison phrase, or doubt from the user is either present in `Notes/`, present only in `.local` with a privacy/version reason, or intentionally skipped with a reason reported.
+8. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
 
 ## Quality Bar
 
@@ -397,6 +435,7 @@ When writing into `Notes/`:
 - Do not put formulas in ```text code fences; reserve code fences for schemas, field lists, commands, and pseudocode.
 - If a figure from the source or user-provided material is essential to understanding the mechanism, save it into the target note's relative asset folder (for example `Notes/AI-Applied-Algorithms/`) and link it with a relative Markdown path. Prefer primary-source figures when available.
 - For high-value cross-layer case studies, do not create a monolithic material section by default. First extract the general mechanism into the highest-level framework section, then add only small local deltas to existing eval / memory / runtime / tooling sections. Keep the source case as evidence, not as the organizing axis.
+- Preserve user-highlighted concrete details in `Notes/` when safe: prompt snippets, command/env flags, schema fields, API/tool names, mode names, version boundaries, and failure cases. Prefer short excerpts or paraphrases over long raw prompt dumps, and mark version-sensitive/platform-specific details instead of silently dropping them.
 
 For `请你读` / `精读`, Codex should read first and then provide a mechanism-first guide rather than a broad reading plan. Because personal original-reading recommendations are conservative, `Codex-summary-enough` answers must be more detailed, not thinner: include enough background, source-content explanation, core design, fields/schemas, evidence, artifact mapping, and caveats to substitute for the user's first-pass read. Use a two-focus structure: first explain the material itself, then map it to the user's current artifact. For papers / research artifacts, load `references/paper-reading-protocol.md`; the short form below is the minimum answer shape:
 
