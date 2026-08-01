@@ -1,0 +1,218 @@
+{
+  "style": {
+    "width": 1440,
+    "height": 1800,
+    "margin": 84,
+    "bottom_rule_offset": 76,
+    "bg": "#F8FAFE",
+    "bg_top_left": "#FFFFFF",
+    "bg_top_right": "#F0ECFC",
+    "bg_bottom_left": "#E5EDF9",
+    "bg_bottom_right": "#F4F8FD",
+    "text": "#252C33",
+    "muted": "#68717D",
+    "blue": "#3158D7",
+    "line_blue": "#F8FAFE",
+    "font_path": "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "title_font_index": 6,
+    "body_font_index": 6,
+    "title_size": 112,
+    "heading_size": 76,
+    "body_size": 43,
+    "note_size": 32,
+    "footer_size": 28,
+    "title_line_gap": 12,
+    "body_line_gap": 24,
+    "paragraph_gap": 34,
+    "bullet_gap": 20,
+    "bullet_size": 18,
+    "bullet_indent": 48,
+    "texture": false,
+    "show_rules": false,
+    "card_fill": "#FFFFFF",
+    "card_outline": "#E1E6EF",
+    "card_text": "#252C33",
+    "card_radius": 20,
+    "card_padding": 28,
+    "card_gap": 18,
+    "card_shadow": true,
+    "label_fill": "#E8EEFF",
+    "label_text": "#3158D7"
+  },
+  "pages": [
+    {
+      "brand": "LoopX",
+      "page": "01 / 08",
+      "blocks": [
+        {"type": "label", "text": "LONG-HORIZON AGENT · 200+ HOURS", "size": 30, "gap": 34},
+        {"type": "heading", "text": "长程 Agent 需要一块自己的", "size": 88},
+        {"type": "heading", "text": "KANBAN", "color": "blue", "size": 166},
+        {"type": "paragraph", "text": "LoopX 把任务组织成一块会执行、会等待、会恢复的看板。", "size": 48, "gap": 30},
+        {"type": "cards", "columns": 3, "size": 37, "items": [
+          {"number": "1", "title": "卡片", "text": "稳定 identity + owner + evidence"},
+          {"number": "2", "title": "列", "text": "canonical state 的 projection"},
+          {"number": "3", "title": "移动", "text": "有前置条件的 typed transition"}
+        ]},
+        {"type": "cards", "columns": 2, "size": 31, "gap": 14, "items": [
+          {"title": "状态带", "text": "runnable → claimed → waiting → review → terminal", "fill": "#F4F7FF", "outline": "#BFCDF8"},
+          {"title": "执行链", "text": "observe → claim → execute → validate → writeback", "fill": "#F4F7FF", "outline": "#BFCDF8"}
+        ]},
+        {"type": "heading", "text": "真实 goal 已跨越 200+ hours", "color": "blue", "size": 58},
+        {"type": "note", "text": "200+ hours 指同一 goal 的控制面窗口，不是模型连续推理时长。", "gap": 10}
+      ],
+      "footer": "LoopX / Agent Control Plane",
+      "filename": "01-cover.jpg"
+    },
+    {
+      "brand": "LoopX / WHY KANBAN WORKS",
+      "page": "02 / 08",
+      "heading": "人类看板的一半能力，在人脑里",
+      "heading_color": "blue",
+      "heading_size": 82,
+      "blocks": [
+        {"type": "paragraph", "text": "普通看板只要一张卡片、几个列和一次拖动，因为人会默默补齐卡片没写下的事实。", "size": 47, "gap": 30},
+        {"type": "cards", "columns": 2, "size": 38, "items": [
+          {"title": "看板记录", "text": "任务标题 / 当前列 / 负责人 / 简单进度"},
+          {"title": "人类补齐", "text": "真实目标 / 承诺 / 例外 / 证据 / 什么才算完成", "fill": "#F4F7FF", "outline": "#BFCDF8"}
+        ]},
+        {"type": "heading", "text": "长程 Agent 缺少这层隐含记忆", "color": "blue", "size": 60},
+        {"type": "paragraph", "text": "一次 agent loop 可以很短。几天后重新唤醒时，它仍要知道同一 goal 做到了哪里、哪些证据仍然可信、谁在等谁，以及下一轮是否值得继续花算力。", "size": 45, "gap": 26},
+        {"type": "rule", "text": "上下文是工作记忆，不是长期事实源。", "size": 50, "gap": 18}
+      ],
+      "footer": "LoopX 将这层隐含记忆外置为结构化状态。",
+      "filename": "02-hidden-human-state.jpg"
+    },
+    {
+      "brand": "LoopX / MULTI-AXIS STATE",
+      "page": "03 / 08",
+      "heading": "一张卡片，同时位于四条状态轴",
+      "heading_color": "blue",
+      "heading_size": 82,
+      "blocks": [
+        {"type": "paragraph", "text": "LoopX 里的 todo 有稳定 identity，也同时携带 owner、依赖、scope、authority、evidence 和 continuation condition。", "size": 45, "gap": 30},
+        {"type": "cards", "columns": 2, "size": 37, "row_gap": 22, "items": [
+          {"number": "1", "title": "Lifecycle", "text": "runnable / claimed / monitoring / review / terminal"},
+          {"number": "2", "title": "Task class", "text": "exploration / delivery / validation / continuous monitor"},
+          {"number": "3", "title": "Authority", "text": "owner / claimed_by / user gate / capability boundary"},
+          {"number": "4", "title": "Proof & time", "text": "evidence freshness / next_due_at / receipt revision"}
+        ]},
+        {"type": "heading", "text": "看板列只是 projection", "color": "blue", "size": 62},
+        {"type": "paragraph", "text": "Runnable、Waiting、Review 和 Done 是这些事实的可见视图。UI 可以重排，truth 只能通过受控 transition 改写。", "size": 45, "gap": 18}
+      ],
+      "footer": "卡片是读模型，canonical state 才是事实源。",
+      "filename": "03-multi-axis-state.jpg"
+    },
+    {
+      "brand": "LoopX / EXECUTION CUTAWAY",
+      "page": "04 / 08",
+      "heading": "一张 todo 的三层剖面",
+      "heading_color": "blue",
+      "heading_size": 86,
+      "blocks": [
+        {"type": "label", "text": "01 / WHAT THE USER SEES", "size": 28, "gap": 22},
+        {"type": "cards", "columns": 5, "size": 27, "gap": 10, "items": [
+          {"title": "Run", "text": "可执行"},
+          {"title": "Claim", "text": "已认领"},
+          {"title": "Wait", "text": "等待"},
+          {"title": "Review", "text": "验证"},
+          {"title": "Done", "text": "终态"}
+        ]},
+        {"type": "label", "text": "02 / WHAT THE SYSTEM KNOWS", "size": 28, "gap": 22},
+        {"type": "cards", "columns": 2, "size": 33, "items": [
+          {"title": "Identity & routing", "text": "goal_id / todo_id / owner / claimed_by"},
+          {"title": "Authority & proof", "text": "scope / gate / evidence / receipt revision"}
+        ]},
+        {"type": "label", "text": "03 / WHAT A MOVE EXECUTES", "size": 28, "gap": 22},
+        {"type": "cards", "columns": 3, "size": 31, "items": [
+          {"title": "Before", "text": "observe / authorize / precondition"},
+          {"title": "During", "text": "execute / monitor / validate"},
+          {"title": "After", "text": "writeback / receipt / successor"}
+        ]},
+        {"type": "rule", "text": "失败不会抹掉历史：replay / repair / replan", "size": 46, "gap": 16}
+      ],
+      "footer": "长程稳定来自可恢复状态，不来自一段无限增长的上下文。",
+      "filename": "04-execution-cutaway.jpg"
+    },
+    {
+      "brand": "LoopX / TYPED TRANSITIONS",
+      "page": "05 / 08",
+      "heading": "移动卡片，是一次受控 transition",
+      "heading_color": "blue",
+      "heading_size": 82,
+      "blocks": [
+        {"type": "rule", "text": "observe → claim → authorize → execute", "size": 46, "gap": 18},
+        {"type": "rule", "text": "validate → writeback → spend / reschedule", "size": 46, "gap": 32},
+        {"type": "cards", "columns": 2, "size": 35, "row_gap": 20, "items": [
+          {"title": "claim / release", "text": "认领、租约、并发边界"},
+          {"title": "gate / decide", "text": "显式等待人类或更高权限"},
+          {"title": "monitor / resume", "text": "无变化时退避，有变化时恢复"},
+          {"title": "complete / supersede", "text": "审计完成，必要时创建 successor"},
+          {"title": "writeback / replay / repair", "text": "拒绝 stale write，从历史重建 projection", "fill": "#F4F7FF", "outline": "#BFCDF8"}
+        ]},
+        {"type": "note", "text": "每一步都可以拒绝越权、证据不足或基于旧 revision 的状态变化。", "gap": 12}
+      ],
+      "footer": "Done 需要 accepted writeback、effect receipt 与 terminal audit。",
+      "filename": "05-typed-transitions.jpg"
+    },
+    {
+      "brand": "LoopX / DOMAIN SWIMLANES",
+      "page": "06 / 08",
+      "heading": "同一块内核，投影出不同业务看板",
+      "heading_color": "blue",
+      "heading_size": 80,
+      "blocks": [
+        {"type": "paragraph", "text": "Domain 决定业务事实和专业 transition，LoopX kernel 继续处理 claim、gate、monitor、quota、writeback 和 recovery。", "size": 45, "gap": 30},
+        {"type": "cards", "columns": 1, "size": 35, "row_gap": 22, "items": [
+          {"number": "1", "title": "Issue Fix", "text": "可行性 → patch → CI → review → merge"},
+          {"number": "2", "title": "Auto ML", "text": "candidate → launch / preflight → monitor → evaluate → promote / retire"},
+          {"number": "3", "title": "Auto Research", "text": "hypothesis → execute → evaluate → promote / retire"}
+        ]},
+        {"type": "heading", "text": "Capability Pack 定义领域泳道", "color": "blue", "size": 60},
+        {"type": "paragraph", "text": "Kernel 不需要理解每个领域的全部细节；它只需要保证这些卡片可认领、可验证、可等待、可恢复。", "size": 44, "gap": 18}
+      ],
+      "footer": "看板形状可以变，长程状态合约保持一致。",
+      "filename": "06-domain-swimlanes.jpg"
+    },
+    {
+      "brand": "LoopX / WAIT · RECOVER · REPLAN",
+      "page": "07 / 08",
+      "heading": "等待和失败，也必须能继续",
+      "heading_color": "blue",
+      "heading_size": 86,
+      "blocks": [
+        {"type": "cards", "columns": 2, "size": 35, "row_gap": 22, "items": [
+          {"number": "1", "title": "Waiting", "text": "user gate / deferred / resume_when"},
+          {"number": "2", "title": "No change", "text": "result_hash / next_due_at / stateful backoff"},
+          {"number": "3", "title": "Failure", "text": "保留负证据 / retry / repair / replan"},
+          {"number": "4", "title": "Human feedback", "text": "改 vision / acceptance / gate / evidence / successor"}
+        ]},
+        {"type": "heading", "text": "无变化时安静退避", "color": "blue", "size": 60},
+        {"type": "paragraph", "text": "Monitor 只刷新外部状态，记录 no-change 并逐步 backoff；只有 material change 才创建 successor 或恢复执行。", "size": 45, "gap": 28},
+        {"type": "heading", "text": "反馈进入状态，下一轮 frontier 就会改变", "color": "blue", "size": 58},
+        {"type": "note", "text": "旧 event 和 evidence 不被覆盖，因此系统既能纠偏，也能解释为什么改。", "gap": 14}
+      ],
+      "footer": "无人时跑稳，有人时跑好。",
+      "filename": "07-wait-recover-replan.jpg"
+    },
+    {
+      "brand": "LoopX / EXECUTABLE KANBAN",
+      "page": "08 / 08",
+      "heading": "LoopX：长程 Agent 的可执行看板",
+      "heading_color": "blue",
+      "heading_size": 84,
+      "blocks": [
+        {"type": "heading", "text": "200+ hours 后，系统仍知道下一步", "size": 68},
+        {"type": "paragraph", "text": "多个有界 agent loop 依靠外置状态，共享同一 goal、同一份事实、证据和持续演化的 frontier。", "size": 45, "gap": 30},
+        {"type": "cards", "columns": 1, "size": 38, "row_gap": 22, "items": [
+          {"number": "1", "title": "Picture", "text": "看板列和 dashboard 是可重建的 projection"},
+          {"number": "2", "title": "Contract", "text": "canonical state 与 typed transition 维持 truth"},
+          {"number": "3", "title": "Outcome", "text": "任务可执行、可等待、可接手、可恢复"}
+        ]},
+        {"type": "rule", "text": "Kanban is the picture;\nthe control plane is the contract.", "size": 58, "gap": 26},
+        {"type": "note", "text": "200+ hours 指同一 goal 跨多次 wake、等待、handoff、人工 gate 与 runtime restart 的控制面窗口。", "gap": 12}
+      ],
+      "footer": "GitHub：github.com/huangruiteng/loopx",
+      "filename": "08-closing.jpg"
+    }
+  ]
+}
