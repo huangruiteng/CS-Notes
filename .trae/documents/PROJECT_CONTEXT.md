@@ -30,7 +30,7 @@
 
 ### Pull（拉取）
 - 指令：“pull” 或 “拉取”
-- 执行：`./Notes/snippets/todo-pull.sh`
+- 执行：`./snippets/todo-pull.sh`
 - 功能：
   - git pull 最新代码
   - 扫描 Inbox 新任务
@@ -39,10 +39,10 @@
 ### Push（推送）
 - 指令：“push” 或 “推送”
 - 执行：
-  1. `./Notes/snippets/todo-push.sh`（生成变更摘要）
+  1. `./snippets/todo-push.sh`（生成变更摘要）
   2. AI 分析变更摘要，生成 commit message
   3. 向用户展示：commit message + 变更文件列表
-  4. 用户确认后执行：`./Notes/snippets/todo-push-commit.sh "<commit-message>"`
+  4. 用户确认后执行：`./snippets/todo-push-commit.sh "<commit-message>"`
 - 隐私保护：
   - 仅允许：Notes/、.trae/、创作/
   - 绝对禁止：公司项目/

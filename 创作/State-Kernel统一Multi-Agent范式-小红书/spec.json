@@ -1,0 +1,346 @@
+{
+  "style": {
+    "width": 1440,
+    "height": 1800,
+    "margin": 80,
+    "left_rule": 56,
+    "bottom_rule_offset": 96,
+    "bg": "#FCFCFB",
+    "text": "#383838",
+    "muted": "#5F5F5F",
+    "blue": "#0068B7",
+    "line_blue": "#B8D7E4",
+    "font_path": "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "title_font_index": 1,
+    "body_font_index": 6,
+    "meta_size": 38,
+    "title_size": 108,
+    "heading_size": 64,
+    "body_size": 53,
+    "note_size": 40,
+    "footer_size": 36,
+    "title_line_gap": 12,
+    "body_line_gap": 27,
+    "paragraph_gap": 39,
+    "bullet_gap": 19,
+    "bullet_size": 25,
+    "bullet_indent": 66,
+    "texture": true,
+    "show_rules": true,
+    "footer_align": "left",
+    "card_fill": "#FFFFFF",
+    "card_outline": "#DCE7EE",
+    "card_text": "#33383D",
+    "card_radius": 16,
+    "card_padding": 26,
+    "card_gap": 18,
+    "card_shadow": false,
+    "label_fill": "#E9F3FA",
+    "label_text": "#0068B7"
+  },
+  "pages": [
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  01 / 07",
+      "title": "长程 Multi-Agent：\nA2A 与 Dynamic Workflow\n的统一状态协议",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "理解长程 Multi-Agent，可以直接类比人类 Leader 如何管理数字员工。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 37,
+          "items": [
+            {
+              "title": "Context, Not Control → A2A",
+              "text": "集中维护文档、群聊和项目状态，员工基于共享上下文敏捷协作。效率更高，但会引入不确定性。"
+            },
+            {
+              "title": "SOP / Workflow → Dynamic Workflow",
+              "text": "Leader / POC 为多个角色定义严格流程。确定性更强、方便 domain 优化，但存在单点瓶颈。"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "长程系统通常同时使用两种范式：开放任务由 agent 自主认领，关键链路交给 workflow。"
+        },
+        {
+          "type": "heading",
+          "text": "1. State Kernel：两种范式共享的控制面",
+          "color": "blue",
+          "size": 61
+        },
+        {
+          "type": "paragraph",
+          "text": "A2A 与 Dynamic Workflow 都要维护 goal、todo ownership、evidence、gate、quota 与 handoff。"
+        }
+      ],
+      "filename": "01-cover-and-paradigms.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  02 / 07",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "任务跨越多轮、多个 agent 与多个 runtime 后，这些信息必须进入外部状态。"
+        },
+        {
+          "type": "cards",
+          "size": 38,
+          "items": [
+            {
+              "number": "1",
+              "title": "Source state",
+              "text": "goal_identity / todo_item / claim / run_history / rollout_event / operator_gate / quota / rollback_packet"
+            },
+            {
+              "number": "2",
+              "title": "Projection",
+              "text": "status / goal projection / todo index / task graph / review packet / dashboard。只读，不拥有 truth。"
+            },
+            {
+              "number": "3",
+              "title": "Non-goals",
+              "text": "不接管 executor、workflow runtime、mailbox 或 raw transcript，也不把 dashboard 当成事实源。"
+            }
+          ]
+        },
+        {
+          "type": "rule",
+          "text": "Source state 负责 truth，Projection 负责读取。",
+          "size": 56,
+          "gap": 25
+        },
+        {
+          "type": "heading",
+          "text": "2. State Kernel 如何支持去中心化 A2A",
+          "color": "blue",
+          "size": 61
+        }
+      ],
+      "filename": "02-state-kernel.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  03 / 07",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "多个 agent 围绕共享 State Kernel 协作。agent 可以直接通信，但任务状态不能只存在于聊天 summary。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 36,
+          "items": [
+            {"title": "shared event ledger", "text": "共享 source-of-truth event stream，状态不分叉"},
+            {"title": "per-agent frontier", "text": "按 scope、claim 和当前状态读取可执行项"},
+            {"title": "scoped claim", "text": "标记 claimed_by、write scope 与 capability"},
+            {"title": "quota guard", "text": "决定继续、等待、进入 gate 或修控制面"},
+            {"title": "evidence graph", "text": "记录 artifact、eval、branch、失败与负证据"},
+            {"title": "handoff gate", "text": "约束 owner route、successor todo、no-follow-up"}
+          ]
+        },
+        {
+          "type": "rule",
+          "text": "per-agent frontier 分离，source state 统一。",
+          "size": 56,
+          "gap": 24
+        },
+        {
+          "type": "heading",
+          "text": "3. State Kernel 如何支持 Dynamic Workflow",
+          "color": "blue",
+          "size": 61
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 37,
+          "items": [
+            {
+              "title": "Workflow script / supervisor",
+              "text": "顺序、并行、循环、工具调用和子 agent 调度。"
+            },
+            {
+              "title": "State Kernel",
+              "text": "checkpoint / resume、branch、human gate、evidence、quota、rollback、handoff。"
+            }
+          ]
+        }
+      ],
+      "filename": "03-a2a-and-workflow.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  04 / 07",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "node 完成后先写 evidence / state transition，再执行 branch、rollback、human gate 或 handoff。长期状态继续沿用。"
+        },
+        {
+          "type": "heading",
+          "text": "4. CooperBench 与 Shepherd",
+          "color": "blue",
+          "size": 61
+        },
+        {
+          "type": "cards",
+          "size": 35,
+          "items": [
+            {
+              "title": "CooperBench：communication-only A2A",
+              "text": "同一 repo / base commit，两项可能冲突的 feature。solo 由一个 agent 完成两项；coop 由两个 agent 在隔离 workspace 中各做一项，只通过自然语言消息协作。coop 平均成功率低约 30%。典型失败是 vague / ill-timed message、commitment drift、wrong expectation；rebase / checkpoint 可把隐式协调转成共享状态。"
+            },
+            {
+              "title": "Shepherd：reversible execution trace",
+              "text": "model action、tool call、environment change 进入 Git-like trace；agent 与 environment 可原子 fork、revert、resume、replay。supervisor 将 pair-coding pass rate 从 28.8% 提升到 54.7%；CRO 从行为变化点 fork / replay，避免完整 trajectory 重跑。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "两层状态问题",
+          "color": "blue",
+          "size": 58
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 35,
+          "items": [
+            {
+              "title": "Execution substrate",
+              "text": "Shepherd 处理 observe / fork / revert / replay，使运行状态可以被 meta-agent 操作。"
+            },
+            {
+              "title": "Control-plane truth",
+              "text": "State Kernel 处理 goal / ownership / evidence / gate / quota / handoff，使长期状态可以被审计和接手。"
+            }
+          ]
+        }
+      ],
+      "filename": "04-papers.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  05 / 07",
+      "heading": "5. LoopX 对两种范式的承接",
+      "heading_color": "blue",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "LoopX 在 executor 外实现 State Kernel，不限定 agent 必须采用哪一种协作范式。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 37,
+          "items": [
+            {
+              "title": "去中心化 A2A",
+              "text": "per-agent frontier / todo claim / evidence graph / handoff gate"
+            },
+            {
+              "title": "Dynamic Workflow",
+              "text": "checkpoint / resume / branch / human gate / rollback / quota spend"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "同一套状态合约可服务 A2A 与 Dynamic Workflow，两种范式也可以在同一个长程目标中切换。"
+        },
+        {
+          "type": "heading",
+          "text": "LoopX 的边界",
+          "color": "blue",
+          "size": 58
+        },
+        {
+          "type": "cards",
+          "columns": 3,
+          "size": 34,
+          "items": [
+            {"title": "Executor", "text": "Codex / Claude / workflow 执行 bounded loop"},
+            {"title": "State Kernel", "text": "维护长期 goal、todo、evidence、gate、quota、handoff"},
+            {"title": "Projection", "text": "status / review / dashboard 只读，不拥有 truth"}
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "6. Auto-research：State Kernel 上的 A2A demo",
+          "color": "blue",
+          "size": 59
+        }
+      ],
+      "filename": "05-loopx.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  06 / 07",
+      "blocks": [
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 36,
+          "items": [
+            {"title": "Research curator", "text": "定义 contract、metric、scope、budget 与 gate"},
+            {"title": "Hypothesis proposer", "text": "维护 hypothesis、family、successor / retire"},
+            {"title": "Research executor", "text": "认领 frontier，执行 dev / holdout experiment"},
+            {"title": "Evaluator / promoter", "text": "基于 evidence 决定 support、retry、retire、promote"}
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Role state machine",
+          "color": "blue",
+          "size": 58
+        },
+        {
+          "type": "cards",
+          "columns": 3,
+          "size": 32,
+          "items": [
+            {"title": "contract_ready", "text": "目标、scope、metric、budget"},
+            {"title": "hypothesis_proposed", "text": "todo-backed hypothesis"},
+            {"title": "frontier_selected", "text": "quota + claim 选择执行项"},
+            {"title": "evidence_recorded", "text": "dev / holdout 与 artifact refs"},
+            {"title": "evaluated", "text": "supported / contradicted / retry"},
+            {"title": "promoted / retired", "text": "promotion gate 或保留负证据"}
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "四个角色共享 research contract、todo、evidence graph 与 promotion gate，由 State Kernel 维护跨轮次状态。"
+        },
+        {
+          "type": "note",
+          "text": "下一页：真实 KNN demo + 一键执行命令",
+          "gap": 18
+        }
+      ],
+      "filename": "06-auto-research.jpg"
+    },
+    {
+      "meta": "Long-Horizon Multi-Agent  ·  07 / 07",
+      "heading": "7. Auto-research：四个角色共享 State Kernel",
+      "heading_color": "blue",
+      "heading_size": 58,
+      "blocks": [
+        {
+          "type": "image",
+          "path": "创作/State-Kernel统一Multi-Agent范式-小红书/auto-research-knn-evidence-strips.jpg",
+          "max_width": 1200,
+          "gap": 16
+        },
+        {
+          "type": "paragraph",
+          "size": 28,
+          "gap": 8,
+          "text": "loopx --format json auto-research start \\\n\"如何在保持精确近邻结果的前提下提升 KNN 查询速度？\" \\\n--preset knn-demo --language zh --session-name loopx-knn-demo \\\n--workspace \"$HOME/loopx-auto-research/knn-demo/visible-workspace\" \\\n--create-workspace --execute --no-attach\n\nGitHub：github.com/huangruiteng/loopx"
+        }
+      ],
+      "filename": "07-knn-demo.jpg"
+    }
+  ]
+}

@@ -1482,7 +1482,7 @@ sudo apt-get install libboost-all-dev
       - 实现了基础的reflection功能，尽量不漏抽实体
       - 没有考虑对实体的去重和合并（比如将“西红柿”和“番茄”合并为同一实体），猜测是因为基于实体相关性进行实体检索，相似的实体都能检索进来
 
-* prompt.py 提示词
+* `prompts/` 提示词资产库
 
 * 构建KG边节点，对high-level concept做embedding
 
@@ -1904,6 +1904,5 @@ perf/avl
 Second (and perhaps counterintuitively), one can achieve concurrency and composability by having no locks whatsoever. In this case, there must be no global subsystem state—subsystem state must be captured in per-instance state, and it must be up to consumers of the subsystem to assure that they do not access their instance in parallel. By leaving locking up to the client of the subsystem, the subsystem itself can be used concurrently by different subsystems and in different contexts
 
 * A concrete example of this is the AVL tree implementation used extensively in the Solaris kernel. As with any balanced binary tree, the implementation is sufficiently complex to merit componentization, but by not having any global state, the implementation may be used concurrently by disjoint subsystems—the only constraint is that manipulation of a single AVL tree instance must be serialized.
-
 
 

@@ -169,6 +169,113 @@ YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需�
 输出时请说明：改了什么、为什么这样改、遵守了哪些原则、如何验证、剩余风险是什么。
 ```
 
+### 软件测试与质量保障：从规格到生产
+
+测试提供的是**针对已表达条件的反例搜索与回归证据**，不能证明软件没有 Bug。QA（Quality Assurance）比测试更宽：它还包括规格评审、流程设计、质量门禁、风险管理、发布验证、生产监控和复盘。
+
+#### 测试组合：不同层次回答不同问题
+
+| 层次 | 主要回答 | 特点与边界 |
+|---|---|---|
+| 静态检查 | 代码是否违反类型、语法、风格、安全或架构规则 | 不运行程序；反馈快，但不能证明运行时行为 |
+| 单元测试 | 一个函数、类或小组件的局部行为是否正确 | 数量多、速度快、失败易定位；通常隔离数据库、网络等外部依赖 |
+| 集成测试 | 组件与数据库、文件、队列、外部 API 能否正确协作 | 能发现序列化、事务、配置和协议错误；比单测慢且更依赖环境 |
+| Contract test | 服务消费者与提供者是否仍满足约定的请求 / 响应契约 | 比全链路测试轻；不证明完整业务流程正确 |
+| 验收测试 | 系统是否满足用户可见的业务规格 | 从外部行为出发，可作为交付 gate；质量取决于规格是否完整 |
+| End-to-End | 部署后的完整系统能否走通关键用户旅程 | 置信度高，但慢、贵、易 flaky，只保留少量关键路径 |
+| 探索性 / 人工测试 | 是否存在规格没有提前想到的问题 | 擅长发现 usability、异常组合和 unknown unknowns；难以稳定回归 |
+
+测试金字塔是一条反馈成本原则：保留大量小而快的测试、适量边界测试、少量全链路测试。具体形状取决于系统，不能把“单测数量最多”机械化成目标。[Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html)
+
+#### Gherkin / BDD：把业务行为写成可执行规格
+
+[Gherkin](https://cucumber.io/docs/gherkin/reference/) 是 Cucumber 使用的结构化自然语言 DSL，不是测试执行引擎。它用 `Given / When / Then` 描述初始状态、行为和可观察结果，再由 step definition 映射到测试代码：
+
+```gherkin
+Feature: 支付幂等
+
+  Scenario: 相同幂等键重复提交
+    Given 订单尚未支付
+    When 客户端使用相同幂等键提交两次支付
+    Then 只产生一笔扣款
+    And 两次请求返回同一个支付结果
+```
+
+好的 Gherkin 面向领域行为，不写 CSS selector、内部函数或数据库实现；`Then` 检查用户或外部系统能观察到的结果。它的价值是让产品、QA 和工程师共同审查“系统应该做什么”，并留下机器可执行的 acceptance criteria。Gherkin 文件能运行，不代表规格完整；遗漏的场景依然不会被测试发现。
+
+#### Coverage：测到不等于测对
+
+- **Line / statement coverage**：测试执行过哪些语句。
+- **Branch coverage**：条件的不同分支是否都被走过。
+- **Condition coverage**：复合条件中的各个布尔项是否取过不同结果。
+
+Coverage 只证明代码被执行过，不证明断言能识别错误。一个没有有效 assertion 的测试也可以得到很高覆盖率。因此：
+
+- 低覆盖率是强烈的风险信号，说明存在自动化测试从未触达的区域。
+- 高覆盖率只是弱正向信号，不能替代测试设计、边界 case 和业务验收。
+- 不存在适用于所有项目的统一目标值；应按业务风险、复杂度、变更频率和寿命制定门槛。
+- Coverage 更适合用来寻找测试空白，而不是作为让团队刷到某个百分比的 KPI。[Google Code Coverage Best Practices](https://testing.googleblog.com/2020/08/code-coverage-best-practices.html)
+
+#### Mutation testing：测试“测试能否发现错误”
+
+变异测试会自动对生产代码注入小错误，例如把 `>` 改成 `>=`、删除一次调用、替换返回值，然后重新运行测试：
+
+```text
+baseline tests pass
+-> generate mutant
+-> run relevant tests
+-> test fails: mutant killed
+-> test passes: mutant survived
+```
+
+Coverage 问“测试是否执行过这段代码”；mutation testing 问“这段代码被改错后，测试是否会察觉”。常用指标是 `mutation score = killed mutants / valid mutants`。survived mutant 通常表示断言或 case 太弱，但也可能是行为等价、无业务影响的 equivalent mutant，需要人工判读。[PIT 基础概念](https://pitest.org/quickstart/basic_concepts/)
+
+Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测试。生产实践通常只变异本次改动、按历史有效性筛选 operator，并只运行相关测试；Google 的增量方案也是把它放进 code review，而不是每次扫描整个仓库。[Practical Mutation Testing at Scale](https://arxiv.org/abs/2102.11378)
+
+#### 相邻方法
+
+- **Property-based testing**：给出 invariant，由框架生成大量输入并缩减失败样例。例如对任意列表，`sort(sort(xs)) == sort(xs)`。它扩大输入空间，但仍依赖人先写对 property。
+- **Fuzzing**：持续生成畸形、随机或 coverage-guided 输入，主要寻找 crash、越界、hang 和安全缺陷。[OSS-Fuzz](https://google.github.io/oss-fuzz/)
+- **Regression testing**：把曾经出现的 Bug 固化为测试，防止相同行为再次出现。
+- **Performance / load / soak testing**：分别检查延迟与吞吐、并发负载、长时间运行下的泄漏和退化。
+- **Security testing**：结合 SAST、依赖扫描、DAST、fuzzing、权限与威胁模型；普通功能测试无法覆盖其全部风险。
+
+#### QA 流程与质量指标
+
+一条可执行的质量链路通常是：
+
+```text
+规格与风险评审
+-> static checks + unit tests
+-> integration / contract tests
+-> acceptance / critical E2E
+-> security / performance gates
+-> risk-based review
+-> canary / feature flag
+-> production metrics + rollback
+```
+
+质量指标也应覆盖多个维度：
+
+| 维度 | 可用信号 |
+|---|---|
+| 测试有效性 | coverage gap、mutation score、flaky rate、测试耗时 |
+| 功能质量 | escaped defects、回归缺陷、验收通过率 |
+| 可维护性 | 复杂度、重复、依赖环、hotspot、变更耦合 |
+| 可靠性与性能 | error rate、p95 / p99 latency、资源水位、SLO |
+| 交付风险 | change failure rate、rollback rate、MTTR |
+| 安全 | 高危依赖、静态 / 动态扫描结果、权限越界与漏洞修复时长 |
+
+指标是 proxy，不是目标本身。Coverage 可以靠无效测试刷高，复杂度可以靠机械拆函数降低，测试通过率也会因跳过 flaky case 变好。质量 gate 必须和真实风险、生产反馈及人工判断交叉验证。
+
+#### 测试设计的最低要求
+
+- 新增回归测试应先在旧实现上失败，再在修复后通过，证明它有辨别力。
+- expected result 应来自规格或独立 oracle，不能照抄被测实现的输出。
+- 除 happy path 外，覆盖边界值、非法输入、部分失败、重试、幂等、并发与状态恢复。
+- Mock 外部边界，不要把核心业务逻辑全部 mock 掉；关键集成仍需面对真实或高保真依赖。
+- 优先审查 assertion 和测试意图，而不是只看测试数量与 coverage 增量。
+
 
 
 ### 衡量 Measure technical quality
@@ -216,6 +323,30 @@ YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需�
 
 * 衡量产出：
   * discounted developer productivity (in the spirit of [discounted cash flow](https://en.wikipedia.org/wiki/Discounted_cash_flow))
+
+### 开发流程：瀑布式开发
+
+> 参考：W. W. Royce, [Managing the Development of Large Software Systems](https://www.praxisframework.org/files/royce1970.pdf), 1970；[Agile Manifesto](https://agilemanifesto.org/)、[Agile Principles](https://agilemanifesto.org/principles.html)。
+
+瀑布式开发把软件项目拆成线性阶段：需求、规格、设计、实现、集成、测试、交付 / 运维。每一阶段有明确产物和 sign-off，下游依赖上游完成，像水从上游流到下游。
+
+它的设计动机不是“慢”，而是**用阶段门管理承诺**：先把需求、预算、责任、文档、验收口径和合同边界固定下来，再进入实现。它适合需求稳定、变更成本高、合规文档重、硬件 / 外包 / 多团队依赖强的项目。
+
+核心问题在于，软件开发往往不是制造业复制，而是知识发现。瀑布隐含三个强假设：
+
+- 需求能在早期说清。
+- 设计能在实现前接近正确。
+- 集成和测试可以后置。
+
+一旦这些假设不成立，错误会沿阶段向下游滚动：需求误解到测试阶段才暴露，设计缺陷到集成阶段才发现，返工成本就会非常高。瀑布最危险的地方不是文档多，而是**反馈太晚**。
+
+更好的理解：
+
+- 瀑布适合管理外部承诺：合同、审计、里程碑、供应商、合规验收。
+- 敏捷 / 迭代适合管理不确定性：用户需求、产品体验、技术方案、模型行为、真实数据反馈。
+- 真实组织里通常是混合形态：外层有阶段门，内层用短迭代交付可运行软件。
+
+一句话：瀑布式开发的本质是用计划和阶段门降低管理不确定性；敏捷的本质是用更早、更频繁的工作软件和用户反馈降低产品 / 技术不确定性。关键不在流程标签，而在反馈是否早于不可逆承诺。
 
 
 
@@ -367,16 +498,17 @@ $$
 
 这说明两者虽然时间上重叠，但在数据依赖上互不干扰，可以安全并发。
 
-#### 和锁、Event Sourcing、CRDT 的关系
+#### 和锁、WAL、Event Sourcing、CRDT 的关系
 
 | 机制 | 核心思路 | 适合场景 |
 | --- | --- | --- |
 | Pessimistic locking | 先加锁，再读写，提前阻止冲突 | 冲突率高、写入代价大、不能接受重试 |
 | OCC | 先并发执行，提交前验证，不通过就 retry | 冲突率低、读多写少、希望减少锁等待 |
+| WAL | 正式数据持久化前，先持久化足以恢复的记录 | 崩溃恢复、事务 durability、延迟刷写数据页 |
 | Event Sourcing | 把状态变化记录成事件流，用 replay / projection 重建状态 | 需要审计、回放、历史状态、并行 read model |
 | CRDT | 让并发更新天然可合并，减少中心化冲突检测 | 分布式、离线、多副本协作编辑 |
 
-OCC 解决的是 **提交时能不能接受这次写入**；Event Sourcing 解决的是 **状态变化如何被记录、重放和审计**；CRDT 解决的是 **多个副本并发更新如何自动收敛**。它们不是互斥关系：一个系统可以用 OCC 做提交验证，用 event log 记录已通过的提交，再用 projection 服务读路径。
+OCC 解决的是 **提交时能不能接受这次写入**；WAL 解决的是 **已接受的写入如何经受进程或机器崩溃**；Event Sourcing 解决的是 **业务状态变化如何被记录、重放和审计**；CRDT 解决的是 **多个副本并发更新如何自动收敛**。它们不是互斥关系：数据库可以用 OCC 做提交验证，用 WAL 保证持久化；应用再用 domain event / event log 记录已提交的业务事实，并用 projection 服务读路径。
 
 **应用场景：versioned agent memory 提交协议。**
 
@@ -420,6 +552,157 @@ memory_patch_txn:
 因此 OCC 和 Event Sourcing 是互补的：OCC 让 memory patch 在提交前验证依赖是否仍成立；Event Sourcing / versioning 让提交后的状态变化可追踪、可回放、可按 `data_version` 解释历史行为。
 
 
+
+### WAL（Write-Ahead Log）：先持久化恢复记录，再持久化正式状态
+
+> 来源：[ARIES](https://research.ibm.com/publications/aries-a-transaction-recovery-method-supporting-fine-granularity-locking-and-partial-rollbacks-using-write-ahead-logging)、[PostgreSQL WAL](https://www.postgresql.org/docs/current/wal-intro.html)、[SQLite WAL](https://sqlite.org/wal.html)、[RocksDB WAL format](https://github.com/facebook/rocksdb/wiki/Write-Ahead-Log-File-Format)、[Linux ext4 journal](https://docs.kernel.org/filesystems/ext4/journal.html)、[Raft paper](https://raft.github.io/raft.pdf)。
+
+WAL 的核心是一条**持久化顺序约束**：
+
+> 在正式数据页、索引、内存表对应的持久化状态落盘前，先把足以恢复该修改的日志记录刷到稳定存储。
+
+数据库可以先修改内存中的 buffer page；真正不能发生的是：脏数据页已经持久化，而描述这次修改的 WAL 还没有持久化。
+
+```text
+修改路径：
+  修改内存中的 buffer page
+  -> append WAL record
+
+data page 写回门槛：
+  flush WAL through page LSN
+  -> 才允许对应 dirty page 写回正式数据文件
+
+transaction 提交门槛：
+  append commit record
+  -> flush WAL through commit LSN
+  -> 才向调用方确认 committed
+```
+
+两个关键不变量：
+
+```text
+写回 data page 前：
+  durable_wal_lsn >= page_lsn
+
+确认 transaction committed 前：
+  durable_wal_lsn >= commit_lsn
+```
+
+其中 LSN（Log Sequence Number）是日志记录的单调位置。它让系统知道数据页已经包含到哪条日志、恢复应从哪里继续。
+
+#### 为什么 WAL 能兼顾 durability 与性能
+
+如果每次事务提交都随机写回所有数据页，I/O 成本很高。WAL 把同步路径收敛成顺序追加：
+
+```text
+commit path:
+  sequential append + fsync(WAL)
+
+background path:
+  batch flush dirty pages
+  checkpoint
+  recycle old WAL
+```
+
+顺序写通常比散落的数据页随机写便宜；多个并发事务还可以通过 **group commit** 共用一次 WAL flush。PostgreSQL 因此不要求每次提交都同步刷完所有被修改的数据页。
+
+但 `write()` / append 返回成功不等于已经耐久。数据可能仍在操作系统 page cache、磁盘控制器缓存或设备易失缓存中。真正的 durability 取决于：
+
+- `fsync` / `fdatasync` 或等价持久化屏障；
+- WAL 与数据文件之间的 flush ordering；
+- commit record 何时被认为稳定；
+- checksum、record length 等 torn-write / partial-record 检测；
+- 存储设备是否诚实实现 flush。
+
+#### WAL record、checkpoint 与恢复
+
+一条通用 WAL record 常包含：
+
+```text
+lsn
+transaction_id
+record_type
+target_page / key
+redo information
+optional undo information
+previous_lsn
+length + checksum
+```
+
+崩溃后，系统从 checkpoint 附近扫描 WAL：
+
+```text
+读取 checkpoint
+-> 丢弃尾部不完整或 checksum 错误的 record
+-> REDO：重做已持久化日志、但尚未进入正式数据页的修改
+-> 可选 UNDO：撤销崩溃时未提交事务已经写出的修改
+-> 重新建立一致状态
+```
+
+并非所有 WAL 都同时支持 REDO 和 UNDO：
+
+- PostgreSQL、RocksDB 等常见路径主要依赖 redo；
+- ARIES 这类 undo/redo recovery 会分析事务、重复历史，再撤销 loser transactions；
+- 日志只保存 after-image、before-image、physical page delta 还是 logical operation，决定了能执行哪种恢复。
+
+checkpoint 不是“日志已经没用”。它只建立一个更近的恢复起点。只有当相关状态已安全进入正式存储、没有 reader / replica / backup 再依赖旧日志时，旧 WAL 才能回收。
+
+#### 编程中的经典应用
+
+| 场景 | WAL 记录什么 | 恢复方式与边界 |
+|---|---|---|
+| 关系数据库 | page change、transaction 与 commit record | 从 checkpoint redo；具体系统可能还需要 undo / MVCC cleanup |
+| SQLite | 修改先追加到 `-wal` 文件，主数据库保持旧版本 | reader 固定自己的 end mark；checkpoint 把 WAL page 合并回主文件；仍只有一个 writer |
+| RocksDB / LSM KV | `WriteBatch` 先进入 WAL，再更新 MemTable | crash 后 replay WAL 重建尚未 flush 成 SSTable 的 MemTable |
+| ext4 / journaling filesystem | metadata 或 data block transaction + commit block | 没有合法 commit/checksum 的事务在 replay 时丢弃；完成事务再写回 home location |
+| 2PC participant / coordinator | prepare state、commit / abort decision | 节点重启后恢复 in-doubt transaction；WAL 不会消除等待 coordinator 的阻塞问题 |
+| Raft replicated state machine | term、vote 与 command log 持久化，并复制到 quorum | committed entry 才 apply 到 state machine；这是“本地 WAL + 分布式共识”，不能只靠 append 本地文件替代 |
+| durable job / workflow | task transition、input、attempt、result intent | 启动时 replay 到状态机；外部副作用还要靠 idempotency key、receipt 或补偿协议 |
+
+最后两类需要注意：
+
+- Raft log 不只是 WAL。WAL 解决单节点崩溃恢复；Raft 还要建立跨副本的一致顺序和 commit quorum。
+- 应用状态机可以使用 WAL 思路，但不宜轻易手写存储引擎。多数业务先使用数据库事务、SQLite 或成熟 KV，再把业务状态机建在其上。
+
+#### WAL、Event Sourcing、Outbox 与普通日志
+
+| 概念 | 核心目的 | 是否通常是业务 source of truth |
+|---|---|---|
+| WAL | 存储层 crash recovery 与 durability | 否；可 checkpoint、归档或回收 |
+| Event Sourcing | 用 domain event 定义和重建业务状态 | 是 |
+| Transactional Outbox | 将“业务提交”和“待发送消息”放进同一数据库事务 | Outbox row 是可靠投递意图，不是底层 WAL |
+| Consensus log | 在多个副本间建立一致的 command 顺序 | 是 replicated state machine 的提交依据 |
+| Observability log | 调试、搜索、监控 | 通常不是 correctness 依赖 |
+
+一个订单系统可能同时拥有：
+
+```text
+PostgreSQL WAL
+  保证订单表和 outbox 表的事务持久化
+
+Outbox
+  保证 OrderPaid 消息最终交给 broker
+
+Domain event
+  表达“订单已支付”这个业务事实
+
+Application log
+  记录 handler 延迟和错误，供排障
+```
+
+四者都可能是 append-only，却承担不同正确性责任。
+
+#### 常见误解与工程边界
+
+- **WAL 不是备份。** 磁盘损坏、误删除或错误操作可能同时影响数据与日志；备份需要独立副本和恢复演练。
+- **WAL 不是自动幂等。** recovery 可能重复执行 record，必须用 page LSN、transaction state、sequence 或幂等操作避免二次生效。
+- **WAL 不能安全重放任意外部副作用。** 发邮件、扣款、调用外部 API 需要 intent/outcome、idempotency key、receipt 或补偿；不能把日志 replay 直接等同于再次执行。
+- **checkpoint 太少会让日志膨胀、恢复变慢；太频繁会增加写放大与延迟。**
+- **关闭同步刷盘是在改变 durability contract。** 吞吐提升来自允许掉电后丢失最近提交，不能仍对外宣称严格 durable。
+
+一句话：
+
+> WAL 是“先留下足以恢复的证据，再允许正式状态落盘”的存储协议；Event Sourcing 是业务状态模型，Outbox 是跨系统投递协议，Raft 是复制与共识协议。
 
 ### Event Sourcing：用事件日志重建系统状态
 
@@ -1294,7 +1577,8 @@ def AdvanceToMatchingTime(row_iter1, row_iter2, row_iter3):
 
 * testing中的一些概念：
   * 单测：单元性和隔离性
-  * property-based testing属于单测
+  * property-based testing 常用于单测，也可以作用于组件、状态机或 API；它是一种输入生成与 invariant 验证方法，不是固定的测试层级
+  * 完整的测试层次、Gherkin、coverage 与 mutation testing 见[软件测试与质量保障](#软件测试与质量保障从规格到生产)
 
 
 

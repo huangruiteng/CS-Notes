@@ -18,6 +18,7 @@
 ### 关于本仓库
 
 * This repository uses Github as image host, for the simplicity and reliability of backup.
+* 顶层目录中，`Notes/` 放长期笔记，`snippets/` 放可复用脚本与代码片段，`prompts/` 放可复用 prompt 资产。
 * 本仓库内容由自制[笔记转化器](https://github.com/huangrt01/CS-Notes)自动生成
   * remaining bug: 包含`$`的行会视为latex行内公式转化为公式图片，但这样会将shell代码转换，需要判断是否在latex代码域内，予以排除
   * solution: clone仓库，用[Typora](https://typora.io/)阅读Note文件夹里的本体文件
@@ -31,4 +32,3 @@
 ### Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=huangrt01/CS-Notes&type=date&legend=top-left)](https://www.star-history.com/#huangrt01/CS-Notes&type=date&legend=top-left)
-

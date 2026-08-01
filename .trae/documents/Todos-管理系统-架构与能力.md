@@ -174,20 +174,20 @@ Lark 通知完成
 
 ### 3. 命令行工具
 
-- `Notes/snippets/todo-push.sh` - Git push 标准操作流程
-- `Notes/snippets/todo-pull.sh` - Git pull 标准操作流程
-- `Notes/snippets/todo-push-commit.sh` - 带 commit message 的 push 脚本
-- `Notes/snippets/todo_migrator.py` - Markdown → JSON 迁移工具
-- `Notes/snippets/todo_sync.py` - JSON→Markdown 同步功能
-- `Notes/snippets/add_todo_to_json.py` - 添加 todo 到 JSON 的工具
+- `snippets/todo-push.sh` - Git push 标准操作流程
+- `snippets/todo-pull.sh` - Git pull 标准操作流程
+- `snippets/todo-push-commit.sh` - 带 commit message 的 push 脚本
+- `snippets/todo_migrator.py` - Markdown → JSON 迁移工具
+- `snippets/todo_sync.py` - JSON→Markdown 同步功能
+- `snippets/add_todo_to_json.py` - 添加 todo 到 JSON 的工具
 
 ### 4. 任务执行能力
 
-- `Notes/snippets/task_executor.py` - Task Executor，支持结构化日志输出、任务状态管理、阶段追踪、产物沉淀、指标计算
-- `Notes/snippets/blog_monitor.py` - 博主监控脚本
-- `Notes/snippets/context_completer.py` - 自动补全上下文脚本
-- `Notes/snippets/speech_to_text.py` - 语音转文字脚本
-- `Notes/snippets/voice_task_parser.py` - 语音任务解析器
+- `snippets/task_executor.py` - Task Executor，支持结构化日志输出、任务状态管理、阶段追踪、产物沉淀、指标计算
+- `snippets/blog_monitor.py` - 博主监控脚本
+- `snippets/context_completer.py` - 自动补全上下文脚本
+- `snippets/speech_to_text.py` - 语音转文字脚本
+- `snippets/voice_task_parser.py` - 语音任务解析器
 
 ### 5. Plan Mode 能力
 

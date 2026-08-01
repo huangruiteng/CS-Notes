@@ -17,7 +17,7 @@ Use this skill when the user:
 
 ### 1. Find the right landing spot
 
-1. Run `python3 Notes/snippets/markdown_toc.py Notes/Gourmet.md` to see the file structure.
+1. Run `python3 snippets/markdown_toc.py Notes/Gourmet.md` to see the file structure.
 2. Search for the restaurant and nearby cuisine sections with `rg -n "<restaurant>|<cuisine>|<city>" Notes/Gourmet.md`.
 3. Prefer updating an existing restaurant section.
 4. If the restaurant already exists, preserve prior visits and split the notes by visit, date, or menu type rather than blending everything together.

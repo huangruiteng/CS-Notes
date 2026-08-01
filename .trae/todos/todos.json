@@ -17,7 +17,7 @@
       "links": [
         "AGENTS.md",
         ".local/AGENTS.md",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
@@ -36,7 +36,7 @@
       "changed_files": [
         "AGENTS.md",
         ".local/AGENTS.md",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
@@ -63,7 +63,7 @@
       "updated_at": "2026-05-07T03:00:00+0800",
       "completed_at": "2026-05-07T03:00:00+0800",
       "links": [
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Codex-TODO-User-Action-Queue.md"
       ],
@@ -75,7 +75,7 @@
       ],
       "progress": "✅ 已完成。`codex_todo_triage.py --batch-plan` 现在在只有 user-blocked TODO 时，也会展示 `.local/LEARNING_MATERIAL_CANDIDATES.md` 当前阅读顺序中的 Codex-owned 小切口；新增 `render_material_queue_suggestions()` 复用空队列/用户阻塞两种场景。已同步更新 `Codex-TODO-System-v2.md` 与 `Codex-TODO-User-Action-Queue.md`，明确用户阻塞项只作为提醒，不应永久卡住 Codex 批推进。",
       "changed_files": [
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Codex-TODO-User-Action-Queue.md",
         ".local/CODEX_TODO_TRIAGE_INDEX.md",
@@ -100,8 +100,8 @@
       "updated_at": "2026-05-07T02:05:00+0800",
       "links": [
         "Notes/非技术知识.md#持续关注",
-        "Notes/snippets/blog_monitor.py",
-        "Notes/snippets/blogger_monitor.py",
+        "snippets/blog_monitor.py",
+        "snippets/blogger_monitor.py",
         ".local/LEARNING_MATERIAL_CANDIDATES.md"
       ],
       "user_requirements": [
@@ -115,7 +115,7 @@
         "对读不到的平台只记录 Unread / fallback，不假装读过；必要时提示用户补正文、截图或导出",
         "复用或重构现有 blog_monitor.py / blogger_monitor.py，避免只做一次性手工扫描"
       ],
-      "progress": "✅ 2026-05-07 已完成。四批推进合并收敛：1) 从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`；2) 明确平台访问矩阵和读取边界，公众号/小红书/视频类均保留 Unread / transcript / user-export 规则；3) 抽样扫描 Lilian Weng、ezyang、GPU MODE、PyTorch Dev Discuss，并把 A129/A130/B29/B30 写入候选库；4) 新增 `Notes/snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`，后续主动调研可复用 scan plan -> actual read -> candidates writeback 流程。剩余的具体平台读取问题不再挂在本 TODO 下，后续遇到材料时按素材管线处理。",
+      "progress": "✅ 2026-05-07 已完成。四批推进合并收敛：1) 从 `Notes/非技术知识.md#持续关注` 解析并清洗 34 个 trusted sources，形成 `.local/TRUSTED_MATERIAL_SOURCE_RADAR.md` 与 `.local/TRUSTED_MATERIAL_SOURCES.json`；2) 明确平台访问矩阵和读取边界，公众号/小红书/视频类均保留 Unread / transcript / user-export 规则；3) 抽样扫描 Lilian Weng、ezyang、GPU MODE、PyTorch Dev Discuss，并把 A129/A130/B29/B30 写入候选库；4) 新增 `snippets/trusted_source_scan.py` 与 `.local/TRUSTED_SOURCE_SCAN_PLAN_20260507.md`，后续主动调研可复用 scan plan -> actual read -> candidates writeback 流程。剩余的具体平台读取问题不再挂在本 TODO 下，后续遇到材料时按素材管线处理。",
       "codex_triage": {
         "triaged_at": "2026-07-19",
         "category": "completed_recent_observe",
@@ -126,8 +126,8 @@
       "started_at": "2026-05-07T00:20:00+0800",
       "completed_at": "2026-05-07T02:05:00+0800",
       "changed_files": [
-        "Notes/snippets/extract_trusted_material_sources.py",
-        "Notes/snippets/trusted_source_scan.py",
+        "snippets/extract_trusted_material_sources.py",
+        "snippets/trusted_source_scan.py",
         ".local/TRUSTED_MATERIAL_SOURCE_RADAR.md",
         ".local/TRUSTED_MATERIAL_SOURCES.json",
         ".local/TRUSTED_SOURCE_SCAN_20260507.md",
@@ -223,14 +223,14 @@
       "links": [
         ".trae/documents/GitHub-Agent-Memory-Research-Seeds.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
-        "Notes/snippets/github-search.sh"
+        "snippets/github-search.sh"
       ],
       "definition_of_done": [
         "使用刚接入的 GitHub 搜索能力做 repo / issue 双路线索召回",
         "筛掉泛泛 awesome/list，保留 agent memory eval、type-aware retrieval、framework memory/store integration 等更接近主线的线索",
         "沉淀成可追踪文档，并同步到本地学习材料候选库"
       ],
-      "progress": "✅ 已完成 GitHub 搜索能力的第一次价值输出。使用 `Notes/snippets/github-search.sh` 搜索 repo / issue，沉淀 `.trae/documents/GitHub-Agent-Memory-Research-Seeds.md`，并向 `.local/LEARNING_MATERIAL_CANDIDATES.md` 增补 GitHub 开源线索。高价值候选包括 verifiedstate/agent-memory-eval、mem0 type-aware memory retrieval issue、LangGraph ClawMem memory/store integration、Codex memory issues。下一步最建议调研 verifiedstate/agent-memory-eval README。",
+      "progress": "✅ 已完成 GitHub 搜索能力的第一次价值输出。使用 `snippets/github-search.sh` 搜索 repo / issue，沉淀 `.trae/documents/GitHub-Agent-Memory-Research-Seeds.md`，并向 `.local/LEARNING_MATERIAL_CANDIDATES.md` 增补 GitHub 开源线索。高价值候选包括 verifiedstate/agent-memory-eval、mem0 type-aware memory retrieval issue、LangGraph ClawMem memory/store integration、Codex memory issues。下一步最建议调研 verifiedstate/agent-memory-eval README。",
       "changed_files": [
         ".trae/documents/GitHub-Agent-Memory-Research-Seeds.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
@@ -253,10 +253,10 @@
       "feedback_required": false,
       "created_at": "2026-05-04T00:20:07.520587",
       "links": [
-        "Notes/snippets/generate-ai-hotspots-daily.sh",
-        "Notes/snippets/install-ai-hotspots-launchd.sh",
-        "Notes/snippets/uninstall-ai-hotspots-launchd.sh",
-        "Notes/snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist"
+        "snippets/generate-ai-hotspots-daily.sh",
+        "snippets/install-ai-hotspots-launchd.sh",
+        "snippets/uninstall-ai-hotspots-launchd.sh",
+        "snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist"
       ],
       "definition_of_done": [
         "确认 macOS 本地定时方案：launchd 优先，必要时对比 cron / OpenClaw cron / Codex automation",
@@ -268,13 +268,13 @@
       "user_requirements": [
         "记一个todo，macos里想办法实现：每天定时给我生成AI热点"
       ],
-      "progress": "✅ 已完成 macOS 本地每日 AI 热点自动化。\n1. 新增生成脚本 Notes/snippets/generate-ai-hotspots-daily.sh，调用 Codex + ai-hotspots skill 生成日报。\n2. 新增 launchd plist 模板 Notes/snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist，默认每天 08:30 运行。\n3. 新增 install/uninstall 脚本，并已安装到 ~/Library/LaunchAgents/com.huangrt.csnotes.ai-hotspots.plist。\n4. 手动触发验证生成 .local/ai-hotspots/reports/ai-daily-2026-05-04.html。\n5. 验证中发现 Codex 子进程可能生成报告后不退出，已给生成脚本增加 20 分钟硬超时；若报告已写入则视为 partial success，避免 launchd 长时间悬挂。\n6. 追加修正：LaunchAgent 已加入 RunAtLoad；如果当天还没有报告，登录/加载时会补跑。生成或跳过时会发 macOS 通知；脚本支持 stale lock 恢复。",
+      "progress": "✅ 已完成 macOS 本地每日 AI 热点自动化。\n1. 新增生成脚本 snippets/generate-ai-hotspots-daily.sh，调用 Codex + ai-hotspots skill 生成日报。\n2. 新增 launchd plist 模板 snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist，默认每天 08:30 运行。\n3. 新增 install/uninstall 脚本，并已安装到 ~/Library/LaunchAgents/com.huangrt.csnotes.ai-hotspots.plist。\n4. 手动触发验证生成 .local/ai-hotspots/reports/ai-daily-2026-05-04.html。\n5. 验证中发现 Codex 子进程可能生成报告后不退出，已给生成脚本增加 20 分钟硬超时；若报告已写入则视为 partial success，避免 launchd 长时间悬挂。\n6. 追加修正：LaunchAgent 已加入 RunAtLoad；如果当天还没有报告，登录/加载时会补跑。生成或跳过时会发 macOS 通知；脚本支持 stale lock 恢复。",
       "completed_at": "2026-05-04T00:34:06.819517",
       "changed_files": [
-        "Notes/snippets/generate-ai-hotspots-daily.sh",
-        "Notes/snippets/install-ai-hotspots-launchd.sh",
-        "Notes/snippets/uninstall-ai-hotspots-launchd.sh",
-        "Notes/snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist",
+        "snippets/generate-ai-hotspots-daily.sh",
+        "snippets/install-ai-hotspots-launchd.sh",
+        "snippets/uninstall-ai-hotspots-launchd.sh",
+        "snippets/launchd/com.huangrt.csnotes.ai-hotspots.plist",
         ".trae/todos/todos.json"
       ],
       "codex_triage": {
@@ -407,22 +407,29 @@
       "created_at": "2026-02-25T21:56:04.098916",
       "links": [
         ".trae/documents/GitHub-Search-GH-Setup.md",
-        "Notes/snippets/github-search.sh"
+        "snippets/github-search.sh"
       ],
       "definition_of_done": [
         "gh CLI 已安装并可运行",
         "用户完成 gh auth login",
-        "Notes/snippets/github-search.sh repos \"agent memory llm\" 3 能返回 JSON",
+        "snippets/github-search.sh repos \"agent memory llm\" 3 能返回 JSON",
         "GitHub repo/code/issue/PR 搜索入口可被 Codex 复用"
       ],
       "user_requirements": [
         "加一个assign给user的todo：配置gh并配置github的搜索能力"
       ],
-      "progress": "✅ GitHub 搜索能力配置完成。用户已完成 gh auth login；`Notes/snippets/github-search.sh status` 验证已登录 huangrt01；`Notes/snippets/github-search.sh repos \"agent memory llm\" 3` 返回合法 JSON；进一步用 `Notes/snippets/github-search.sh repos \"llm agent\" 3` 和 `Notes/snippets/github-search.sh issues \"memory\" openai/codex 3` 验证 repo / issue 搜索均能返回结构化 JSON。该能力后续可服务调研、开源贡献选题和 Agent infra/materials 检索。",
+      "progress": "✅ GitHub 搜索能力配置完成。用户已完成 gh auth login；`snippets/github-search.sh status` 验证已登录 huangrt01；`snippets/github-search.sh repos \"agent memory llm\" 3` 返回合法 JSON；进一步用 `snippets/github-search.sh repos \"llm agent\" 3` 和 `snippets/github-search.sh issues \"memory\" openai/codex 3` 验证 repo / issue 搜索均能返回结构化 JSON。该能力后续可服务调研、开源贡献选题和 Agent infra/materials 检索。",
+      "codex_triage": {
+        "triaged_at": "2026-05-04",
+        "category": "completed_recent_observe",
+        "recommended_status": "completed-observe",
+        "judgment": "GitHub 搜索能力已接入，可被调研和开源贡献流程复用。",
+        "recommended_action": "后续调研 GitHub repo/issue/PR 时优先使用 snippets/github-search.sh。"
+      },
       "changed_files": [
         ".trae/documents/GitHub-Search-GH-Setup.md",
         ".trae/todos/todos.json",
-        "Notes/snippets/github-search.sh"
+        "snippets/github-search.sh"
       ],
       "updated_at": "2026-05-04T04:35:00.000000",
       "completed_at": "2026-05-04T04:35:00.000000"
@@ -525,7 +532,7 @@
       "started_at": "2026-02-23T17:30:00.000000",
       "completed_at": "2026-02-23T18:00:00.000000",
       "links": [
-        "`Notes/snippets/task_execution_logger.py`",
+        "`snippets/task_execution_logger.py`",
         "`.trae/openclaw-skills/`"
       ],
       "definition_of_done": [
@@ -737,7 +744,7 @@
         "基于 OpenClaw 现有能力，考虑配合一些新的能力",
         "输出完整的优化方案文档"
       ],
-      "progress": "✅ 已创建设计文档 `.trae/documents/自主推进任务机制优化方案.md`！已创建 `execution_tracker.py` 脚本（Notes/snippets/execution_tracker.py），支持：reset（用户交互时重置）、check（检查是否可以执行更多任务）、increment（递增任务计数）！配置参数：MAX_TASKS_BETWEEN_INTERVENTIONS=8！下一步可以在实际使用中验证！\n\n✅ 已观察了最近每次heartbeat后自主推进任务的情况！\n\n观察结果：\n1. 当前heartbeat机制工作良好！\n2. 在用户两次干预之间，可以自主推进多个任务！\n3. 最近的一次heartbeat，成功推进了多个todo！\n4. 用户起床后，很多todo都到了不得不依赖用户做些什么或者做决策的阶段！\n\n优化方案评估：\n- 当前方案已经很好地满足了用户需求！\n- 在用户两次干预之间主动推进任务！\n- 只有需要用户做选择题的时候才找用户确认！\n- 否则尽量自主推进一切事项！\n- 用户希望：起床后，每个todo都到了不得不依赖他做些什么或者做决策的阶段！\n\n结论：\n- 当前方案已经很好地满足了用户需求！\n- 不需要做太大的调整！\n- 继续在实际使用中验证即可！",
+      "progress": "✅ 已创建设计文档 `.trae/documents/自主推进任务机制优化方案.md`！已创建 `execution_tracker.py` 脚本（snippets/execution_tracker.py），支持：reset（用户交互时重置）、check（检查是否可以执行更多任务）、increment（递增任务计数）！配置参数：MAX_TASKS_BETWEEN_INTERVENTIONS=8！下一步可以在实际使用中验证！\n\n✅ 已观察了最近每次heartbeat后自主推进任务的情况！\n\n观察结果：\n1. 当前heartbeat机制工作良好！\n2. 在用户两次干预之间，可以自主推进多个任务！\n3. 最近的一次heartbeat，成功推进了多个todo！\n4. 用户起床后，很多todo都到了不得不依赖用户做些什么或者做决策的阶段！\n\n优化方案评估：\n- 当前方案已经很好地满足了用户需求！\n- 在用户两次干预之间主动推进任务！\n- 只有需要用户做选择题的时候才找用户确认！\n- 否则尽量自主推进一切事项！\n- 用户希望：起床后，每个todo都到了不得不依赖他做些什么或者做决策的阶段！\n\n结论：\n- 当前方案已经很好地满足了用户需求！\n- 不需要做太大的调整！\n- 继续在实际使用中验证即可！",
       "started_at": "2026-02-19",
       "review_history": [
         {
@@ -789,7 +796,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624463",
       "links": [
-        "`Notes/snippets/context_completer.py`"
+        "`snippets/context_completer.py`"
       ],
       "definition_of_done": [
         "实现自动补全上下文",
@@ -910,7 +917,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T14:16:05.624950",
       "links": [
-        "`.trae/documents/自然语言与语音任务输入方案.md`、`Notes/snippets/voice_task_parser.py`、`Notes/snippets/speech_to_text.py`",
+        "`.trae/documents/自然语言与语音任务输入方案.md`、`snippets/voice_task_parser.py`、`snippets/speech_to_text.py`",
         ".trae/documents/Codex-TODO-System-v2.md"
       ],
       "definition_of_done": [
@@ -1007,7 +1014,7 @@
       "created_at": "2026-02-19T16:00:00.000000",
       "links": [
         "https://playwright.dev/",
-        "`Notes/snippets/playwright_simple.py`"
+        "`snippets/playwright_simple.py`"
       ],
       "definition_of_done": [
         "调研 Playwright 的使用方法",
@@ -1021,7 +1028,7 @@
         "RSSHub 也返回 403 错误",
         "需要使用 Playwright 模拟浏览器来绕过反爬机制"
       ],
-      "progress": "✅ 已完成！成功将playwright做成了一个skill，并将脚本从snippets移动到了新建的skill文件夹中！\\n\\n已完成的工作：\\n1. ✅ 创建了playwright-scraper skill文件夹\\n2. ✅ 创建了skill.json文件\\n3. ✅ 创建了main.py文件（将原playwright_simple.py的内容移动过去）\\n4. ✅ 创建了SKILL.md文件\\n5. ✅ 删除了原来的Notes/snippets/playwright_simple.py文件\\n6. ✅ 提交了这些更改\\n\\n现在，playwright已经作为一个独立的skill存在于.trae/openclaw-skills/playwright-scraper/文件夹中了！",
+      "progress": "✅ 已完成！成功将playwright做成了一个skill，并将脚本从snippets移动到了新建的skill文件夹中！\\n\\n已完成的工作：\\n1. ✅ 创建了playwright-scraper skill文件夹\\n2. ✅ 创建了skill.json文件\\n3. ✅ 创建了main.py文件（将原playwright_simple.py的内容移动过去）\\n4. ✅ 创建了SKILL.md文件\\n5. ✅ 删除了原来的snippets/playwright_simple.py文件\\n6. ✅ 提交了这些更改\\n\\n现在，playwright已经作为一个独立的skill存在于.trae/openclaw-skills/playwright-scraper/文件夹中了！",
       "started_at": "2026-02-19",
       "completed_at": "2026-02-25T23:35:48.842621",
       "plan": {
@@ -1095,7 +1102,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T17:50:00.000000",
       "links": [
-        "`Notes/snippets/task_execution_logger.py`、`.trae/documents/任务执行可观测闭环设计方案.md`"
+        "`snippets/task_execution_logger.py`、`.trae/documents/任务执行可观测闭环设计方案.md`"
       ],
       "definition_of_done": [
         "让 task_execution_logger.py 成为本仓库在各种交互方式下的默认 setting",
@@ -1191,7 +1198,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T18:47:07.445357",
       "links": [
-        "`.trae/documents/LLM-智能解析-重新设计方案.md`、`Notes/snippets/voice_task_parser.py`",
+        "`.trae/documents/LLM-智能解析-重新设计方案.md`、`snippets/voice_task_parser.py`",
         ".trae/documents/Codex-TODO-System-v2.md"
       ],
       "definition_of_done": [
@@ -1259,7 +1266,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T21:15:00.000000",
       "links": [
-        "`Notes/snippets/task_execution_logger.py`、`Notes/snippets/example_task_with_logger.py`"
+        "`snippets/task_execution_logger.py`、`snippets/example_task_with_logger.py`"
       ],
       "definition_of_done": [
         "在所有任务执行中都使用 task_execution_logger.py",
@@ -1271,7 +1278,7 @@
         "落地的定义是【成为了本仓库在各种交互方式下的默认setting，并体验和效果良好】，而不仅是有个设计文档和玩具代码即算落地",
         "尤其注意沉淀前面我希望你e2e落地的思路，并不是写了、实现了就算done，而是要用起来、用好"
       ],
-      "progress": "✅ 已完成！已创建示例任务（Notes/snippets/example_task_with_logger.py），展示如何在实际任务中使用 task_execution_logger.py！包含了完整的任务执行日志记录、任务状态机、指标收集等功能！\n\n✅ 已验证！task_execution_logger 确实能稳定调用，且能正确传入 agent 字段（openclaw）！\n\n测试验证结果：\n1. ✅ task_execution_logger 导入成功\n2. ✅ Logger 创建成功\n3. ✅ 任务开始记录成功，agent 字段正确传入为 \"openclaw\"\n4. ✅ 日志记录成功\n5. ✅ 任务完成记录成功\n6. ✅ 日志文件中正确显示了 \"agent\": \"openclaw\" 字段\n\n🎉 task_execution_logger.py 现在已经真正用起来了！",
+      "progress": "✅ 已完成！已创建示例任务（snippets/example_task_with_logger.py），展示如何在实际任务中使用 task_execution_logger.py！包含了完整的任务执行日志记录、任务状态机、指标收集等功能！\n\n✅ 已验证！task_execution_logger 确实能稳定调用，且能正确传入 agent 字段（openclaw）！\n\n测试验证结果：\n1. ✅ task_execution_logger 导入成功\n2. ✅ Logger 创建成功\n3. ✅ 任务开始记录成功，agent 字段正确传入为 \"openclaw\"\n4. ✅ 日志记录成功\n5. ✅ 任务完成记录成功\n6. ✅ 日志文件中正确显示了 \"agent\": \"openclaw\" 字段\n\n🎉 task_execution_logger.py 现在已经真正用起来了！",
       "started_at": "2026-02-19",
       "execution_log": [
         {
@@ -1300,9 +1307,9 @@
         "retry_count": 0
       },
       "artifacts": {
-        "execution_summary": "✅ 已完成！已创建示例任务（Notes/snippets/example_task_with_logger.py），展示如何在实际任务中使用 task_execution_logger.py！包含了完整的任务执行日志记录、任务状态机、指标收集等功能！",
+        "execution_summary": "✅ 已完成！已创建示例任务（snippets/example_task_with_logger.py），展示如何在实际任务中使用 task_execution_logger.py！包含了完整的任务执行日志记录、任务状态机、指标收集等功能！",
         "product_links": [
-          "`Notes/snippets/task_execution_logger.py`、`Notes/snippets/example_task_with_logger.py`"
+          "`snippets/task_execution_logger.py`、`snippets/example_task_with_logger.py`"
         ],
         "key_diffs": [],
         "reproduction_commands": []
@@ -1325,7 +1332,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T21:15:00.000000",
       "links": [
-        "`Notes/snippets/voice_task_parser.py`、`Notes/snippets/example_voice_task_parsing.py`",
+        "`snippets/voice_task_parser.py`、`snippets/example_voice_task_parsing.py`",
         ".trae/documents/Codex-TODO-System-v2.md"
       ],
       "definition_of_done": [
@@ -1424,7 +1431,7 @@
       "user_requirements": [
         "调研如何让openclaw记录（log）下来自己的一些关键命令行调用（比如安装依赖，比如git操作等）"
       ],
-      "progress": "✅ 已完成！OpenClaw 已经有了完整的日志功能！不需要额外实现！我们只需要：1) 查看现有日志：`openclaw logs --follow`；2) 配置日志路径和级别（如果需要）；3) 使用 Control UI (web) 查看日志！OpenClaw 日志功能包括：文件日志（默认位置：`/tmp/openclaw/openclaw-YYYY-MM-DD.log`）、CLI 查看日志（`openclaw logs --follow`）、Control UI (web) 查看日志、Diagnostics + OpenTelemetry 功能！\n\n✅ 已真正落地！创建了 `Notes/snippets/command_logger.py`！\n\n已完成的工作：\n1. ✅ 创建了完整的 command_logger.py，支持：\n   - 记录命令执行（log_command）\n   - 运行并记录命令（run_and_log）\n   - 获取最近的命令记录（get_recent_commands）\n2. ✅ 日志文件位置：`.trae/logs/commands_YYYY-MM-DD.jsonl`\n3. ✅ 测试验证成功！成功记录了 echo 和 git status 命令！\n\n测试结果：\n- ✅ 命令日志文件已记录了命令执行！\n- ✅ 包含命令字符串、工作目录、成功状态、输出、错误信息等！\n- ✅ 可以查看最近的命令记录！\n\n现在可以在涉及关键命令行调用时，主动查阅一下 log，然后通过 lark 返回给用户结果的同时，告诉用户执行了哪些命令！",
+      "progress": "✅ 已完成！OpenClaw 已经有了完整的日志功能！不需要额外实现！我们只需要：1) 查看现有日志：`openclaw logs --follow`；2) 配置日志路径和级别（如果需要）；3) 使用 Control UI (web) 查看日志！OpenClaw 日志功能包括：文件日志（默认位置：`/tmp/openclaw/openclaw-YYYY-MM-DD.log`）、CLI 查看日志（`openclaw logs --follow`）、Control UI (web) 查看日志、Diagnostics + OpenTelemetry 功能！\n\n✅ 已真正落地！创建了 `snippets/command_logger.py`！\n\n已完成的工作：\n1. ✅ 创建了完整的 command_logger.py，支持：\n   - 记录命令执行（log_command）\n   - 运行并记录命令（run_and_log）\n   - 获取最近的命令记录（get_recent_commands）\n2. ✅ 日志文件位置：`.trae/logs/commands_YYYY-MM-DD.jsonl`\n3. ✅ 测试验证成功！成功记录了 echo 和 git status 命令！\n\n测试结果：\n- ✅ 命令日志文件已记录了命令执行！\n- ✅ 包含命令字符串、工作目录、成功状态、输出、错误信息等！\n- ✅ 可以查看最近的命令记录！\n\n现在可以在涉及关键命令行调用时，主动查阅一下 log，然后通过 lark 返回给用户结果的同时，告诉用户执行了哪些命令！",
       "started_at": "2026-02-20",
       "review_history": [
         {
@@ -1444,7 +1451,7 @@
       "feedback_required": false,
       "created_at": "2026-02-19T08:08:06.000000",
       "links": [
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/todos/todos.json"
       ],
       "definition_of_done": [
@@ -1458,11 +1465,11 @@
       "user_requirements": [
         "你是如何考虑新增的todos要能被新的web manager下的存储形式感知到的"
       ],
-      "progress": "✅ 已按 Codex 协作模式替代完成。原任务要求 JSON ↔ Markdown 双向同步，但用户后来已表示旧方案不用做；当前推进中将其收敛为更适合 Codex 的单向 triage index。\n1. 新增 Notes/snippets/codex_todo_triage.py，从 .trae/todos/todos.json 生成 Codex 视角的 Markdown triage index。\n2. 输出到 .local/CODEX_TODO_TRIAGE_INDEX.md，按 Codex 可做、流程演进、用户阻塞、可归档、近期完成经验等分类。\n3. 不做 Markdown → JSON 双向同步，避免旧 Web Manager 形态继续扩大复杂度。\n4. 该脚本成为后续「推进TODO」前的轻量 review 入口。",
+      "progress": "✅ 已按 Codex 协作模式替代完成。原任务要求 JSON ↔ Markdown 双向同步，但用户后来已表示旧方案不用做；当前推进中将其收敛为更适合 Codex 的单向 triage index。\n1. 新增 snippets/codex_todo_triage.py，从 .trae/todos/todos.json 生成 Codex 视角的 Markdown triage index。\n2. 输出到 .local/CODEX_TODO_TRIAGE_INDEX.md，按 Codex 可做、流程演进、用户阻塞、可归档、近期完成经验等分类。\n3. 不做 Markdown → JSON 双向同步，避免旧 Web Manager 形态继续扩大复杂度。\n4. 该脚本成为后续「推进TODO」前的轻量 review 入口。",
       "started_at": "2026-02-27T05:03:47.194414",
       "completed_at": "2026-05-04T00:50:02.978891",
       "changed_files": [
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/todos/todos.json"
       ]
     },
@@ -1836,7 +1843,7 @@
         ".trae/documents/Trae-CLI-Proactive-Research-Brief.md",
         ".trae/documents/trae-agent-评估报告.md",
         ".trae/documents/OpenClaw-vs-Trae-Agent-对比报告.md",
-        "Notes/snippets/code-reading-trae-agent.md"
+        "snippets/code-reading-trae-agent.md"
       ],
       "definition_of_done": [
         "确认公司内部是否存在独立 coding bash CLI 或 Trae CLI agent runner 文档/owner",
@@ -1947,10 +1954,10 @@
         ".trae/documents/Todos-Web-Manager-Process-Oncall.md",
         ".trae/documents/WebManager-Public-Port-Security-Review.md",
         ".trae/web-manager/server.py",
-        "Notes/snippets/todos-web-manager/start.sh",
-        "Notes/snippets/todos-web-manager/install-launchd.sh",
-        "Notes/snippets/todos-web-manager/uninstall-launchd.sh",
-        "Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist"
+        "snippets/todos-web-manager/start.sh",
+        "snippets/todos-web-manager/install-launchd.sh",
+        "snippets/todos-web-manager/uninstall-launchd.sh",
+        "snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist"
       ],
       "definition_of_done": [
         "检查当前进程、5000 端口、launchd 状态和 server.log",
@@ -1962,7 +1969,7 @@
       "user_requirements": [
         "oncall分析为啥todos web manager进程时不时就消失 不是常驻"
       ],
-      "progress": "✅ 已完成 oncall 分析与最小修复。结论：旧 Web Manager 不是 daemon 化服务，而是手动前台 Flask debug server；debug reloader + 0.0.0.0 不适合常驻，也有公网风险。已将 server.py 默认改成 127.0.0.1 + debug off；新增 start/install/uninstall launchd 脚本和 launchd plist；短启动验证 /api/tasks 通过。未自动安装常驻服务，避免把旧 Web Manager 重新变成主入口；需要时运行 Notes/snippets/todos-web-manager/install-launchd.sh。",
+      "progress": "✅ 已完成 oncall 分析与最小修复。结论：旧 Web Manager 不是 daemon 化服务，而是手动前台 Flask debug server；debug reloader + 0.0.0.0 不适合常驻，也有公网风险。已将 server.py 默认改成 127.0.0.1 + debug off；新增 start/install/uninstall launchd 脚本和 launchd plist；短启动验证 /api/tasks 通过。未自动安装常驻服务，避免把旧 Web Manager 重新变成主入口；需要时运行 snippets/todos-web-manager/install-launchd.sh。",
       "started_at": "",
       "completed_at": "2026-05-04T01:42:22",
       "commit_hash": "",
@@ -1970,10 +1977,10 @@
         ".trae/documents/Todos-Web-Manager-Process-Oncall.md",
         ".trae/documents/WebManager-Public-Port-Security-Review.md",
         ".trae/web-manager/server.py",
-        "Notes/snippets/todos-web-manager/start.sh",
-        "Notes/snippets/todos-web-manager/install-launchd.sh",
-        "Notes/snippets/todos-web-manager/uninstall-launchd.sh",
-        "Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
+        "snippets/todos-web-manager/start.sh",
+        "snippets/todos-web-manager/install-launchd.sh",
+        "snippets/todos-web-manager/uninstall-launchd.sh",
+        "snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
         ".trae/todos/todos.json"
       ]
     },
@@ -1986,11 +1993,11 @@
       "feedback_required": false,
       "created_at": "2026-05-04T06:15:00",
       "links": [
-        "Notes/snippets/todos-web-manager/README.md",
-        "Notes/snippets/todos-web-manager/start.sh",
-        "Notes/snippets/todos-web-manager/install-launchd.sh",
-        "Notes/snippets/todos-web-manager/uninstall-launchd.sh",
-        "Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
+        "snippets/todos-web-manager/README.md",
+        "snippets/todos-web-manager/start.sh",
+        "snippets/todos-web-manager/install-launchd.sh",
+        "snippets/todos-web-manager/uninstall-launchd.sh",
+        "snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
         ".trae/documents/Todos-Web-Manager-Process-Oncall.md"
       ],
       "definition_of_done": [
@@ -2002,16 +2009,16 @@
       "user_requirements": [
         "web manager相关的脚本似乎应该弄个子文件夹"
       ],
-      "progress": "✅ 已将 Todos Web Manager 启动、安装、卸载脚本迁移到 Notes/snippets/todos-web-manager/，并将对应 plist 收到子目录 launchd/。已更新 install-launchd.sh、plist、oncall 文档和 completed TODO 中的路径；新增 README 说明目录用途。",
+      "progress": "✅ 已将 Todos Web Manager 启动、安装、卸载脚本迁移到 snippets/todos-web-manager/，并将对应 plist 收到子目录 launchd/。已更新 install-launchd.sh、plist、oncall 文档和 completed TODO 中的路径；新增 README 说明目录用途。",
       "started_at": "2026-05-04T06:15:00",
       "completed_at": "2026-05-04T06:20:00",
       "commit_hash": "",
       "changed_files": [
-        "Notes/snippets/todos-web-manager/README.md",
-        "Notes/snippets/todos-web-manager/start.sh",
-        "Notes/snippets/todos-web-manager/install-launchd.sh",
-        "Notes/snippets/todos-web-manager/uninstall-launchd.sh",
-        "Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
+        "snippets/todos-web-manager/README.md",
+        "snippets/todos-web-manager/start.sh",
+        "snippets/todos-web-manager/install-launchd.sh",
+        "snippets/todos-web-manager/uninstall-launchd.sh",
+        "snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist",
         ".trae/documents/Todos-Web-Manager-Process-Oncall.md",
         ".trae/todos/todos.json"
       ],
@@ -2455,7 +2462,7 @@
         "区分火山 OpenClaw Web Manager 旧线与 CS-Notes/Codex 自用 TODO 控制台，避免继续混淆。",
         "产出 Web Manager v2 设计 brief，明确本地只读、阻塞面板、next-action、user-action queue、check-blockers。",
         "MVP 不暴露公网、不默认提供 Git/TODO 写接口、不读取或写入公司项目。",
-        "后续实现时优先复用 Notes/snippets/codex_todo_triage.py，而不是重建一套任务逻辑。"
+        "后续实现时优先复用 snippets/codex_todo_triage.py，而不是重建一套任务逻辑。"
       ],
       "links": [
         ".trae/documents/Codex-TODO-Web-Manager-v2.md",
@@ -2478,7 +2485,7 @@
         ".trae/documents/Codex-TODO-Web-Manager-v2.md",
         ".trae/web-manager/server.py",
         ".trae/web-manager/index-enhanced.html",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/todos/todos.json"
       ]
     },
@@ -2492,7 +2499,7 @@
       "created_at": "2026-05-04T11:18:02+0800",
       "links": [
         ".trae/documents/Codex-TODO-System-v2.md",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
       "definition_of_done": [
@@ -2510,7 +2517,7 @@
       "commit_hash": "",
       "changed_files": [
         ".trae/documents/Codex-TODO-System-v2.md",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/todos/todos.json",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
@@ -2534,7 +2541,7 @@
         "AGENTS.md",
         ".local/AGENTS.md",
         ".trae/documents/Codex-TODO-System-v2.md",
-        "Notes/snippets/codex_todo_triage.py"
+        "snippets/codex_todo_triage.py"
       ],
       "definition_of_done": [
         "根 AGENTS.md 明确推进TODO默认批推进",
@@ -2553,7 +2560,7 @@
         "AGENTS.md",
         ".local/AGENTS.md",
         ".trae/documents/Codex-TODO-System-v2.md",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/todos/todos.json",
         ".local/CODEX_TODO_TRIAGE_INDEX.md"
       ],
@@ -2639,7 +2646,7 @@
       "updated_at": "2026-05-04T13:02:07+0800",
       "background": "用户要求“推进仓库todo（你应该batch推进吧）”。当前 .trae/todos/todos.json 没有 pending / in-progress / user-blocked TODO，因此按空队列协议，从材料队列和流程沉淀中抽取一个同目标 batch：让 batch-plan 能直接读当前材料阅读顺序，并为下一篇 S18 Fine-Mem 产出精读入口。",
       "links": [
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Fine-Mem-Deep-Read.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
@@ -2660,7 +2667,7 @@
       "commit_hash": "",
       "changed_files": [
         ".trae/todos/todos.json",
-        "Notes/snippets/codex_todo_triage.py",
+        "snippets/codex_todo_triage.py",
         ".trae/documents/Codex-TODO-System-v2.md",
         ".trae/documents/Fine-Mem-Deep-Read.md",
         ".local/LEARNING_MATERIAL_CANDIDATES.md",
@@ -2776,14 +2783,14 @@
       "definition_of_done": [
         "AGENTS.md 明确推进项目默认以本仓库 TODO、文档、脚本、笔记为主。",
         ".local/AGENTS.md 降级 agent-harness 扫描为按需触发。",
-        "Notes/snippets/codex_todo_triage.py 的 batch-plan 区分 Codex 可推进 active TODO 与用户动作队列。",
+        "snippets/codex_todo_triage.py 的 batch-plan 区分 Codex 可推进 active TODO 与用户动作队列。",
         "batch-plan 空队列模板不再默认提示检查 agent-harness。"
       ],
       "progress": "✅ 已完成。batch-plan 现在在无 Codex-owned active TODO 时展示用户动作队列与本仓库可做 batch，不再把 user-blocked OV 任务当作 Codex 可推进任务，也不默认引导到 agent-harness。",
       "links": [
         "AGENTS.md",
         ".local/AGENTS.md",
-        "Notes/snippets/codex_todo_triage.py"
+        "snippets/codex_todo_triage.py"
       ],
       "codex_triage": {
         "triaged_at": "2026-07-19",

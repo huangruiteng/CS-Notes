@@ -19,7 +19,7 @@
   - 拿到任务后第一时间标记为 in-progress
   - 新建 session 不会再次选择这个任务
 * **【强制】任务执行可观测闭环**：
-  - **所有任务执行必须使用 task_execution_logger**（`Notes/snippets/task_execution_logger.py`）
+  - **所有任务执行必须使用 task_execution_logger**（`snippets/task_execution_logger.py`）
   - 开始任务前：调用 `logger.start_task(task_id)`
   - 执行中：记录关键步骤日志（`logger.log_info`、`logger.log_debug` 等）
   - 完成任务：调用 `logger.complete_task(task_id)`
@@ -32,7 +32,7 @@
   - **OpenClaw**：独立的 AI 助手系统，有自己的记忆（`.openclaw-memory/`）和规则（`.openclaw-memory/AGENTS.md`），主要用于自主推进 todo
   - **共享资源**：两者共享同一个工作空间，包括 todos.json、task_execution_logger 等
   - **统一数据源**：都使用 `.trae/todos/todos.json` 作为任务数据源
-  - **统一日志系统**：都使用 `Notes/snippets/task_execution_logger.py` 记录执行日志和指标
+  - **统一日志系统**：都使用 `snippets/task_execution_logger.py` 记录执行日志和指标
   - **避免冲突**：priority-task-reader 保证只返回 pending 状态的任务，拿到任务后第一时间标记为 in-progress
 * **OpenClaw 的核心价值**：
   - 可以在后台自主推进任务，不阻塞用户与 Trae 的交互
@@ -47,7 +47,7 @@
   - 向用户报告进度，不要等待用户询问
   - 进度报告要包含：百分比、预估剩余时间
 * **Git 操作 SOP（第一原则：敏感内容绝对不能 push 到 git）**：
-  - **公用 Skill 能力**：使用 `Notes/snippets/todo-push.sh` 和 `Notes/snippets/todo-pull.sh` 作为标准 git 操作流程
+  - **公用 Skill 能力**：使用 `snippets/todo-push.sh` 和 `snippets/todo-pull.sh` 作为标准 git 操作流程
   - **todo-push.sh 白名单机制**：仅允许 `Notes/`、`.trae/`、`创作/` 三个文件夹
   - **todo-push.sh 黑名单机制**：绝对禁止 `公司项目/` 文件夹
   - **todo-push.sh 排除模式**：排除 `.trae/logs/`、`*.pyc`、`__pycache__/`、`.DS_Store`

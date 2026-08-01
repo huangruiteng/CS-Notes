@@ -1,0 +1,262 @@
+{
+  "style": {
+    "width": 1440,
+    "height": 2400,
+    "margin": 80,
+    "left_rule": 56,
+    "bottom_rule_offset": 122,
+    "title_size": 148,
+    "heading_size": 66,
+    "body_size": 58,
+    "meta_size": 40,
+    "title_font_index": 6,
+    "body_font_index": 6
+  },
+  "pages": [
+    {
+      "filename": "01-cover.jpg",
+      "meta": "Codex 负责人对谈转述 | 阅读需8分钟",
+      "title": "Codex 负责人：\n实现越便宜\nVision 越贵",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Andrew Ambrosino 反对“所有人都是 builder”，重点不是 PM 要不要消失，而是 AI 时代产品组织的稀缺资源变了。"
+        },
+        {
+          "type": "paragraph",
+          "text": "实现成本下降后，最贵的东西不再是“能不能做出来”，而是 vision、taste、判断，以及把 idea 推到 shipped product 的闭环能力。"
+        },
+        {
+          "type": "paragraph",
+          "text": "Loop Engineering 解决的就是这个闭环问题：vision 不能停在一句口号，product feedback 不能散在聊天记录里，engineering 结果也要能写回下一轮判断。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这不是岗位保卫战，而是一套 AI 产品组织的 operating model：先用 baby 版本探索，再用 dogfooding 逼出真实需求，最后把工程结果写回新的 vision。"
+        }
+      ]
+    },
+    {
+      "filename": "02-taste.jpg",
+      "heading": "1. 实现便宜后，taste 变贵",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Andrew Ambrosino 的核心判断很直接：当公司里 90 个人都能各自做出 90 个像样原型，真正的问题不再是“谁会做”，而是“哪一个值得做”。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这不是 PRD 死了，也不是原型赢了。更准确的变化是：每种媒介都变便宜后，选择正确媒介本身变成了产品能力。"
+        },
+        {
+          "type": "paragraph",
+          "text": "如果要表达模糊方向，文档仍然有价值；如果要压力测试交互，原型更有效；如果要证明系统边界，代码和真实用户路径才是答案。"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "模糊方向，需要文档来压清楚判断。",
+            "交互模式，需要原型来让人上手试。",
+            "系统抽象，需要代码和真实工作流来验证。"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "所谓 taste，不只是审美，而是在无限 tokens 里分辨信号和噪音。"
+        },
+        {
+          "type": "paragraph",
+          "text": "实现越便宜，垃圾原型和垃圾文档都会变多。产品负责人真正要守住的，是判断密度。"
+        }
+      ]
+    },
+    {
+      "filename": "03-baby-product.jpg",
+      "heading": "2. baby 版本让流程前置",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "过去的产品流程默认实现很贵，所以要先调研、画图、写文档，把风险尽量排在开发之前。"
+        },
+        {
+          "type": "paragraph",
+          "text": "现在不一样。一个探索阶段的东西，可能已经像正式产品一样精致。视觉成熟度和决策成熟度脱钩了。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这也是 baby Codex / baby Cursor 这类简化代码库有价值的原因：它让团队能在接近真实产品的环境里快速试交互，而不必一开始就动正式复杂系统。"
+        },
+        {
+          "type": "paragraph",
+          "text": "但 baby 版本不是玩具。它真正承担的是“低成本暴露产品判断”的职责：这个交互是否成立，这个状态是否应该存在，这个入口是否会被用户自然使用。"
+        },
+        {
+          "type": "paragraph",
+          "text": "关键不在于多做几个 demo，而在于每个 demo 都带着可判定的问题：用户会不会接手，agent 会不会卡住，状态能不能在下一轮继续使用。"
+        },
+        {
+          "type": "rule",
+          "text": "风险不再只靠流程排除，而要靠可运行原型暴露。",
+          "size": 54
+        }
+      ]
+    },
+    {
+      "filename": "04-dogfooding.jpg",
+      "heading": "3. Codex 是被 dogfooding 塑造的",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "对谈里最值得注意的一点，是 Codex 团队刻意把自己的工作推进到 Codex 里完成，即使它当下还不是最好的工具。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这是一种不舒服的产品策略：很多内部流程不是先用人工 workaround 补齐，而是逼产品本身长出能力。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这和“内部用户多用用”不是一回事。普通 dogfooding 很容易停在反馈收集；Codex 更像是把团队自己的工作流变成产品训练场。"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "不能做，就修到能做。",
+            "能做更多，产品边界就被重新定义。",
+            "真实团队工作流，成为产品需求生成器。"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "这类 dogfooding 的价值，不是“我们自己也用”，而是让 vision、product、engineering 形成一条持续反馈的 loop。"
+        },
+        {
+          "type": "paragraph",
+          "text": "产品不是先被完整设计出来，再交给工程实现。它是在真实使用压力里，一周一周被逼出来。"
+        }
+      ]
+    },
+    {
+      "filename": "05-six-launches.jpg",
+      "heading": "4. 同一个形态，可能要发布六次",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "对谈里还有一个很反常识的产品判断：一个功能现在失败，不一定说明形态错了，可能只是模型还没到。"
+        },
+        {
+          "type": "paragraph",
+          "text": "Codex web 的早期形态并不激进：给模型一个任务，它去做，回来给结果。但当时模型不够强，形态就显得过早。"
+        },
+        {
+          "type": "paragraph",
+          "text": "Claude Code 后来做得更本地、更克制、更贴合当时模型能力，所以体验反而好很多。"
+        },
+        {
+          "type": "paragraph",
+          "text": "AI 产品规划因此变得很难：路线图不只取决于产品形态，还取决于模型能力什么时候跨过可用阈值。"
+        },
+        {
+          "type": "paragraph",
+          "text": "所以规划不能只是一张 roadmap。它更像一个候选功能池：现在可行的推进，不可行的保留；每次模型跃迁后，再把旧想法拿出来重新验。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这也解释了为什么同一个产品形态可能要发布很多次。形态不变，模型能力变了，结果就会完全不同。"
+        }
+      ]
+    },
+    {
+      "filename": "06-roles.jpg",
+      "heading": "5. 角色会融合，但专业不会消失",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "“所有人都是 builder”糟糕的地方，在于它容易把学科里的最佳实践一并抹掉。会写几行代码，不等于会做产品判断。"
+        },
+        {
+          "type": "paragraph",
+          "text": "更合理的变化是：角色边界变软，但专业分布仍然存在。设计师会写代码，PM 懂技术，工程师有产品判断，但每个人仍有自己的重心。"
+        },
+        {
+          "type": "paragraph",
+          "text": "Andrew 用 zone defense 描述 PM 的位置也很准：不是所有人挤在同一块区域里写原型，而是有人主动覆盖那些没人看、但会决定产品方向的空白地带。"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "最有价值的人，能从想法推到完成。",
+            "但更关键的是知道什么值得完成。",
+            "在无限 tokens 里，筛掉垃圾比生产更多东西更重要。"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "AI 时代的 IC，本质上也在管理 agents、任务、信息流和判断边界。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这也是“builder”这个词危险的地方：它很容易让人误以为生产更多东西就是价值本身。真正稀缺的是让东西进入正确形态的判断。"
+        }
+      ]
+    },
+    {
+      "filename": "07-codex-vision.jpg",
+      "heading": "6. Codex 想做的不是一个矩形",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Codex 的愿景也很有意思：它不是要把所有事情塞进一个屏幕里的矩形应用。"
+        },
+        {
+          "type": "paragraph",
+          "text": "它更像一个工作大本营：在这里开始、结束、管理自动化流程，同时调用浏览器、Chrome 扩展、computer use 和外部专业工具。"
+        },
+        {
+          "type": "paragraph",
+          "text": "Dan Shipper 说的“由内而外使用 SaaS”很准确：未来不是你去 Notion、Linear、Salesforce 里点，而是 agent 在你的工作大本营里帮你操作它们。"
+        },
+        {
+          "type": "paragraph",
+          "text": "对谈里那个视频剪辑例子很典型：Codex 不需要变成更好的 Premiere Pro，它可以理解专业工具背后的文件和插件接口，再把专业工具编排进任务里。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这会把产品边界从“我提供哪些 UI”改成“我能调度哪些能力”。开发者工具和知识工作工具因此开始靠近。"
+        },
+        {
+          "type": "rule",
+          "text": "工具不是被替代，而是被 agent 编排。",
+          "size": 54
+        }
+      ]
+    },
+    {
+      "filename": "08-loopx.jpg",
+      "heading": "7. Goal / Vision / Replan",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Loop Engineering 到最后会落成一个状态机：goal 提供长期方向，vision 把方向压成每个 agent 当前可执行的边界，run 负责产生证据。"
+        },
+        {
+          "type": "image",
+          "path": "创作/Codex负责人builder观点-小逸排版/goal-vision-replan-state.png",
+          "gap": 54
+        },
+        {
+          "type": "paragraph",
+          "text": "当证据耗尽、目标变化、handoff 清空但没有 successor，系统进入 replan。有效 replan 必须写回 bounded delta：新的 vision、todo、acceptance，或者 no-follow-up。"
+        },
+        {
+          "type": "paragraph",
+          "text": "这正好接住 Codex 那条 vision -> product -> engineering -> new vision 的闭环。LoopX 的 vision 是把这套状态放进本地控制面，让长程 agent 不靠聊天记忆接力。"
+        },
+        {
+          "type": "rule",
+          "text": "GitHub 搜：huangruiteng/loopx",
+          "size": 54
+        }
+      ]
+    }
+  ]
+}

@@ -18,7 +18,7 @@ description: Top Lean AI 榜单监控 - 监控 Top Lean AI 榜单的变化，记
 ### 运行监控
 
 ```bash
-cd /root/.openclaw/workspace/CS-Notes/Notes/snippets/
+cd /root/.openclaw/workspace/CS-Notes/snippets/
 python3 top_lean_ai_monitor.py
 ```
 

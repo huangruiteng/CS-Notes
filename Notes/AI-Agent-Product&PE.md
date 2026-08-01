@@ -745,6 +745,93 @@ AI 生成的代码不可信，必须在隔离环境中执行。Docker 容器共�
 - repo 中 Skill / docs 开源，但 ego lite 浏览器本体是单独免费下载产品；企业可信度取决于本地数据边界、更新机制、权限审计和可关闭能力。
 - 高质量 Snapshot 是否真的稳定覆盖复杂 iframe、shadow DOM、第三方组件，需要用内部工具和真实 SaaS 页面长期试，而不是只看官网 demo。
 
+### Tutti：把多 agent 协作从 summary handoff 变成 shared workspace
+
+> 来源：[官网](https://tutti.sh/)、GitHub [`tutti-os/tutti`](https://github.com/tutti-os/tutti)（2026-07-09：Apache-2.0，`1279` stars，`114` forks，主语言 TypeScript；读取 commit `443c857`）、[README: what/why](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/README.md#L28-L46)、[Big @ / app center / control center](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/README.md#L64-L143)、[Tutti vs Tutti VM](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/README.md#L151-L177)、[project structure](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/project-structure.md#L21-L48)、[workbench lifecycle](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/workbench-node-lifecycle.md#L8-L27)、[Agent Activity Packages](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/agent-activity-packages.md#L43-L72)、[Workspace Issue Manager](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/workspace-issue-manager.md#L15-L23)、[App Factory](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/workspace-app-factory.md#L90-L137)、[Browser Node security](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/docs/architecture/browser-node-package.md#L237-L250)、[`tutti_mention_routing.go`](https://github.com/tutti-os/tutti/blob/443c8574df36ccd8ee09be19086cf2f3605a1b93/packages/agent/daemon/runtime/tutti_mention_routing.go#L8-L45)。整理时间：2026-07-09。
+
+**定位**：Tutti 不是新的 coding agent，也不是模型订阅转售，而是 agent 周围的 **real-time shared workspace**。它要解决的痛点是：Claude Code、Codex、Canvas、设计 / 文档 / PPT 工具各自很强，但真实工作一旦需要 handoff，用户就变成复制上下文、上传文件、解释进度、搬运产物的人。Tutti 的产品承诺是把 context、files、apps、tasks、running state 放进同一个工作区，让 Codex 能接 Claude 的结果，app 产物能继续被下游 agent 引用。
+
+产品原语可以压成五个：
+
+- **Shared workspace**：不是让 agent 互发总结，而是共享 conversation、文件、app invocation、task 和 running state；Local 版面向“一个人 + 多个本地 agent”，VM 版把 working state 放进 cloud Room，支持多人 / 多设备 / 多人各自 agent 协作。
+- **Big @ + `+` reference**：`@` 可以引用过去会话、文件、app 调用、任务，`+` 可以引用本地文件或 app 输出。源码里 `mention://workspace-issue/`、`mention://workspace-app/`、`mention://agent-session/`、`mention://agent-target/` 会被映射到不同 skill 路由，说明 `@` 不是 UI 装饰，而是 prompt/context routing primitive。
+- **App Center**：设计、图片、文档、PPT 等 app 同时给人和 agent 使用。app manifest 里已经有 `references.listEndpoint / searchEndpoint`，App Factory 还把生成 app 定义成带 `tutti.app.json / bootstrap.sh / AGENTS.md / healthcheck` 的本地 package。
+- **Goal to Tasks / Control Center**：目标拆任务、用户 review 后分配给合适 agent；Control Center 汇总 agent conversation、待审批动作和 running task。这里的核心是把“工作关于工作”的 tab switching 变成一个 attention / approval 面。
+- **Workbench shell**：Electron desktop + `tuttid` local daemon + packages。Workbench 只拥有 node shell、布局、拖拽、最小化、snapshot；terminal、browser、agent session、issue/task/run 这些业务状态由 host / daemon 持有。这个边界很重要：shared UI 不是 durable state kernel。
+
+源码实现给出的架构信号：
+
+```yaml
+tutti_shared_workspace_v0:
+  entrypoints:
+    apps/desktop: Electron desktop, supervises tuttid
+    apps/cli: daemon capability protocol CLI
+    services/tuttid: local daemon, business workflows, durable state, persistence
+  reusable_packages:
+    agent/activity-core: session/message snapshot, event merge, attention selectors
+    agent/gui: conversation rail, timeline, approvals, composer
+    workbench/surface: shell layout, projected node presence, launch, activation
+    workspace/terminal: xterm node, transport contracts, replay/hydration
+    workspace/issue-manager: Issue -> Task -> Run, context references, run lifecycle UI
+    workspace/app-center: app packages, references, install/runtime surface
+    browser/workbench-node: embedded browser node and preview proxy mechanics
+  state_boundary:
+    workbench_snapshot: shell presentation only
+    host_daemon_state: sessions, terminal cwd/status, browser runtime URL, task progress, app runtime
+    business_event_stream: typed events over loopback WebSocket, not ad hoc JSON
+```
+
+设计动机：
+
+- **summary handoff 会损耗上下文**：多 agent 协作的真实瓶颈不是“能不能再开一个模型”，而是中间产物、当前状态、审批点、设计资产、文件和任务关系会在工具切换时丢失。Tutti 选择把 handoff 从自然语言摘要升级为 workspace reference。
+- **人和 agent 要共享同一个作业台**：如果 app、文件、终端、浏览器、任务板只对人或只对 agent 可见，用户仍然要当中间人。Tutti 的 app center / workbench 思路是让人和 agent 看见同一组 artifact，只是入口不同。
+- **Local-first 是信任入口，VM 是协作扩展**：Local 版让 agent 运行和工作状态都留在本机；VM 版才把 working state 放进 cloud Room。这个分层比一上来做云端多人 agent OS 更容易获得早期开发者信任。
+- **GUI 降低 agent 编排门槛**：Tutti 把 goal breakdown、agent assignment、running task、approval、app output 都放进 GUI。它的目标用户不是只会终端的 power user，而是希望多 agent / 多 app 流程不再靠手动搬运的 builder、设计师、PM、内容创作者。
+
+按 multi-agent sharing model 看，Tutti 更接近 shared workspace / shared room：它把 session 间对话、app 产物、文件、任务和 run 状态上提到 `workspaceId` 下的全局 projection。这个方向比 summary handoff 更强，也比单纯 session-to-session dialogue 更像“共同作业台”；但它不是自动等于长程控制面，仍需要外层 ledger、permission、evidence、quota 和 handoff gate 来定义什么状态可以成为事实。
+
+评价：
+
+- **强项**：Tutti 的抓手很准，切中“多个 AI 订阅都很强，但 workflow 摩擦巨大”的现实问题；源码也不是纯壳，已经把 agent activity、workbench、issue/task/run、terminal、browser node、app package、business event stream 切成比较清晰的边界。它最值得学的是 **workspace reference + workbench projection + host-owned durable state** 这组组合。
+- **边界**：Tutti 更像 collaboration UX / shared workbench / artifact hub，不是 LoopX 那种长程 state kernel。它能减少 handoff 损耗，但不天然保证 goal completion、quota、evidence graph、frontier、rollback、blocked audit；这些仍要由外层 control plane 或更强 daemon 状态机承担。
+- **风险**：shared workspace 容易变成 context soup。要长期可靠，必须让 reference 有类型、权限、scope、version、evidence、expiration；Room 共享也要把隐私边界、secret redaction、app 权限、local process 能力、generated app sandbox 讲清楚。当前 App Factory 文档明确 MVP generated app 没有 sandbox，这对企业场景是硬边界。
+
+和相关项目的差异：
+
+| 项目 | 核心问题 | Tutti 的相对位置 |
+|---|---|---|
+| ego lite | browser as agent runtime：真实登录态、Space、Snapshot、JS helper | Tutti 可把 browser 作为 workbench node / app surface，关注更大的 workspace 编排 |
+| Flowtrace | 把任务方法、step、evidence 做成 git-backed trace artifact | Tutti 是 live workspace；Flowtrace 更像可复用 procedure / evidence artifact |
+| LoopX | 长程 goal / todo / quota / evidence / handoff control plane | Tutti 可作为 LoopX 的 human-agent surface；LoopX 仍应保存 durable state contract |
+| Raft / Flowith Matrix | human-agent / agent organization 产品形态 | Tutti 更 local-first、更 app/workbench 中心；VM 后才进入多人 Room / agent-to-agent collaboration |
+
+对 LoopX / Agent Harness 的启发：
+
+```yaml
+shared_workspace_ref_v0:
+  ref_kind:
+    - agent_conversation
+    - agent_target
+    - workspace_file
+    - workspace_app
+    - app_invocation
+    - issue
+    - task
+    - run
+  required_fields:
+    ref_uri:
+    workspace_id:
+    owner_scope:
+    version_or_snapshot:
+    permission_scope:
+    evidence_refs:
+    expiry_policy:
+  rule:
+    UI reference is not enough; every @ mention that affects execution should resolve to a typed, permission-scoped, evidence-backed handle.
+```
+
+短期可以借三件事：第一，把 agent / app / task / file 统一成 typed reference，而不是把上下文塞进 prompt；第二，把 Control Center 做成 attention queue，显式展示等待用户审批、等待外部状态、正在运行的任务；第三，把 workbench snapshot 和业务状态分离，避免 UI 布局快照污染 long-running state kernel。
+
 ## ToC 产品
 
 ### 模型能力
@@ -1555,7 +1642,7 @@ openclaw agents list --bindings
      4. 等待用户完成后，再标记为完成
 
 2. **Git 操作 SOP 与安全防线**
-   - 必须使用 `Notes/snippets/todo-push.sh` 和 `Notes/snippets/todo-pull.sh` 作为标准 git 操作流程，不能直接用 git 命令
+   - 必须使用 `snippets/todo-push.sh` 和 `snippets/todo-pull.sh` 作为标准 git 操作流程，不能直接用 git 命令
    - todo-push.sh 白名单机制：仅允许 `Notes/`、`.trae/`、`创作/` 三个文件夹
    - todo-push.sh 黑名单机制：绝对禁止 `公司项目/` 文件夹
    - 验证步骤：每次 commit 前，先执行 `git status` 检查，或直接运行 `todo-push.sh`
@@ -1872,6 +1959,18 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
 - [飞书智能伙伴](https://www.feishu.cn/product/ai_companion)
 - [腾讯会议智能助手](https://meeting.tencent.com/ai/)
 
+##### WorkBuddy：从聊天框转向高价值办公结果
+
+> 来源：[36氪：从「聊天框」到「下战壕」——月访问量 2000 万的 WorkBuddy，跑通腾讯 AI 产品新范式](https://mp.weixin.qq.com/s/r9RdgVLqsBG56rlsf3A5mA)，2026-07-23；产品能力参考：[WorkBuddy 官方简介](https://www.workbuddy.cn/docs/workbuddy/Overview)。
+
+WorkBuddy 把用户愿意付费、愿意验收的办公任务封装成结果工作流，价值由可交付结果而非聊天覆盖面决定。文章展示了三个高价值场景：
+
+- **热点地图 / 趋势雷达**：汇总平台趋势与运营经验，输出选题热度、渠道选择和分发建议。用户购买的是“下一步把精力投到哪里”的判断，搜索结果只是一项原料。
+- **汇报 / 产品周报**：完成数据清洗、图表生成、协作原声整理、WIP 汇总和排期风险提示。价值集中在减少跨系统的信息搬运与组织对齐成本。
+- **搜索规则挖掘**：把电商标题经验拆成热词、买家场景、痛点表达和关键词位置等可复用规则。隐性经验从“老师傅带徒弟”变成可执行、可传播的工作流。
+
+三者的共同结构是 `数据获取 + 分析框架 + 领域经验 + 交付标准`。产品入口先展示“一键做同款”的成品，再让用户替换数据和上下文，降低了从空白聊天框定义任务、调 Prompt 和判断输出质量的门槛。官方文档也把 WorkBuddy 定义为能自主拆解、操作文件并交付文档、表格、PPT、数据分析等完整成果的办公工作台。
+
 #### 全家桶
 
 * Google
@@ -1901,6 +2000,25 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
   - IT 研发提效
 
 #### 寻找落地场景
+
+##### 从越界使用发现需求：CodeBuddy 到 WorkBuddy
+
+文章披露，CodeBuddy 在腾讯内部推广期间，有超过一万名产品经理、HR、运营等非研发员工持续用它处理非代码任务。非目标用户愿意忍受编程工具的高门槛，说明需求强度已经高到足以穿透产品边界；这比“用户说自己可能需要”更接近真实行为证据。
+
+这条产品发现路径可以压成：
+
+`垂直工具服务核心用户 -> 非目标用户持续越界使用 -> 聚类真实任务 -> 抽取通用执行能力 -> 用结果模板降低门槛 -> 新产品承接更大人群`
+
+关键动作是观察越界用户反复完成哪些任务，并把高频任务重构为 WorkBuddy 的办公工作流；单纯把 CodeBuddy 的聊天框开放给所有岗位无法完成这一步。热点地图、汇报和搜索规则挖掘分别对应决策、协同和经验复用，都是产出价值明确、可以验收的办公任务。
+
+判断越界使用是否值得发展为新产品，可以看四个信号：
+
+1. **持续性**：用户是否已经形成长期使用；
+2. **摩擦承受度**：即使工具不为自己设计，用户是否仍愿意绕路完成任务；
+3. **任务聚类**：不同用户是否反复出现相似的输入、步骤与交付物；
+4. **结果价值**：产物能否直接支持决策、协作、获客、收入或风险控制。
+
+这个案例说明，早期产品边界既用于聚焦，也能充当需求探针。被排除用户的稳定行为不应被简单归为误用；它可能揭示底层能力已经越过原场景，并出现了新的 product-market fit 候选。
 
 ##### 业务流程解构
 
@@ -1954,21 +2072,352 @@ OrbitOS 是一个开源的 AI 生产力笔记系统，基于 Obsidian，主打 A
 
 **Workflow 显式化**：AFlow（ICLR 2025）证明 workflow 可以被搜索、比较与自动优化，小模型以 4.55% 的 GPT-4o 推理成本在特定任务上超越 GPT-4o；AgentFlow（ICLR 2026）证明系统级 in-the-flow RL 训练 planner 优于只替换更强模型。工程侧的 Dynamic Workflow 则把 loop 的计划、状态、分支与验收显式化为可读脚本，避免每次都依赖模型运行时 instruction following。详见 [AI-Applied-Algorithms.md - Agent + Workflow](./AI-Applied-Algorithms.md)
 
+这一组材料可以分层理解：Dynamic Workflow 管一条可重放执行路径；Loop Engineering Toolkit 管 loop hygiene；Loom 把软件交付固化为 project-local 状态机和读写协议；Flowtrace 管可复用的任务方法、步骤证据和局部重跑；Qwen Audio Agent 管实时语音对话与异步 Work 的交付边界；LoopX 管跨 run 的长程目标和 gate；Agent Teams 管多 agent 协作 runtime。oh-my-pi / Oh My Humanize / mini-SWE-agent 则形成工具层的光谱：oh-my-pi / OMH 把 LSP、DAP、PTY、browser、memory、subagent、internal URL 和 workflow dashboard 做成 batteries-included harness，mini-SWE-agent 坚持最小 bash loop。Humanize / RLCR 和 KDA 更像夹在 workflow 与 control plane 之间的单任务 loop harness：前者把 plan、review、summary、lesson 和退出 gate 串成工程纪律，后者把性能敏感任务变成 contract、candidate、benchmark、profile、promotion decision 的证据循环。真正要判断的不是“哪个 agent 更强”，而是哪些能力应该上升为 runtime primitive，哪些能力应该继续留给模型和 prompt。
+
 #### Dynamic Workflow：把 loop 编译成可重放脚本
 
 > 来源：[Addy Osmani - Loop Engineering](https://addyosmani.com/blog/loop-engineering/)、[Claude Code Dynamic workflows docs](https://code.claude.com/docs/en/workflows)、[Anthropic - Introducing dynamic workflows in Claude Code](https://claude.com/blog/introducing-dynamic-workflows-in-claude-code)
 
-Dynamic Workflow 的核心不是“多开 sub-agent”，而是把计划从模型运行时移到脚本里：模型可以生成或修改脚本，但执行时的阶段顺序、并行、分支、循环、状态保存由代码承载；模型只在显式 worker / evaluator 调用点贡献判断。它回答的问题是：复杂任务中，哪些结构应该由 deterministic runtime 管，哪些不确定性才交给 LLM。
+Dynamic Workflow 是由 Claude 生成、runtime 执行的 JavaScript orchestration script。它把计划从模型上下文移入代码：loop、branch、fan-out 和 intermediate result 由脚本持有，LLM 只在 `agent()` 这类 worker / reviewer / refuter 调用点贡献不确定性判断。由此，长任务不再依赖一个主 agent 在长上下文里逐轮记住全局状态。
 
-和 Skill 的边界：
+![Claude Code Subagents / Skills / Agent teams / Workflows 对照](./AI-Agent-Product&PE/claude-code-dynamic-workflow-comparison.png)
 
-- **Skill 是 instruction artifact**：结构仍由模型读说明后即兴执行，适合探索、边界模糊、需要临场取舍的任务。
-- **Workflow 是 execution artifact**：path、state、branch / retry、resume、logging 进入脚本，适合阶段清晰、有验收标准、会重复执行或需要审计的任务。
-- 关键交易是“强模型生成一次，普通模型执行多次”：高智力用于生成 / 改写 workflow，实际 run 只在 worker / evaluator 点调用模型，降低运行时 instruction following 压力。
+| 维度 | Subagents | Skills | Agent teams | Workflows |
+|---|---|---|---|---|
+| 是什么 | Claude 启动的 worker | Claude 遵循的指令 | lead agent 管理的 peer sessions | runtime 执行的脚本 |
+| 谁决定下一步 | Claude 逐 turn 决定 | Claude 按 prompt 决定 | lead agent 逐 turn 决定 | script 决定 |
+| 中间结果放哪里 | Claude context | Claude context | shared task list | script variables |
+| 可复用对象 | worker definition | instructions | team definition | orchestration 本身 |
+| 规模 | 每 turn 少量 delegated tasks | 与 subagent 相近 | 少量 long-running peers | 单 run 数十到数百 agent |
+| 中断语义 | 重启当前 turn | 重启当前 turn | teammates 继续运行 | 同一 session 内可恢复 |
 
-一个成熟 loop 至少要想清楚六件事：Trigger 怎么启动；Planner 如何拆任务；State 是否外部化、可暂停恢复；Workers 负责哪些可并行子任务；Evaluator 是否把 worker 准出门和阶段间 gate 分开；Loop / Branch / Resume / Repeatability 是否能让差异追到某一次模型调用，而不是整条路径漂移。
+**Plan moved into code**
 
-对 Agent Harness 的启发：长期运行 agent 的主战场不是写更长 prompt，而是把任务队列、脚本状态、phase/log、验证 gate、用户插手点和回放记录做成一等公民。loop 越自动，越要保留 human-in-the-loop 的两个接口：关键岔路主动问人，中途定期吸收用户 steering；否则无人值守只是在无人值守地犯错。
+Subagent / Skill / Agent Team 中，Claude 仍是 turn-by-turn orchestrator；Workflow 中，脚本决定执行顺序、并行、分支、循环和中间结果归并。脚本由强模型生成或修改后，可以被读取、diff、保存为命令和重复运行，稳定结构不必在每次执行时重新依赖 instruction following。
+
+**LLM 变成 worker / reviewer / refuter 调用点**
+
+Workflow runtime 独立于对话执行，中间结果保存在脚本变量里。`agent()` 生成一个 subagent，`pipeline()` 对 item list fan-out；模型负责搜索、修改、判断和验证，脚本负责调度与归并。官方最小形态如下：
+
+```javascript
+export const meta = {
+  name: 'audit-routes',
+  description: 'Audit every route handler for missing auth checks',
+}
+
+const found = await agent('List every .ts file under src/routes/.', {
+  schema: { type: 'object', required: ['files'], properties: { files: { type: 'array', items: { type: 'string' } } } },
+})
+
+const audits = await pipeline(found.files, file =>
+  agent(`Audit ${file} for missing authentication checks.`, { label: file }),
+)
+
+return audits.filter(Boolean)
+```
+
+**适合大规模同构或半同构任务**
+
+官方示例集中在同一种结构：先发现 item set，再对 item 并行执行，最后独立验证和归并。典型任务包括全 repo auth / security audit、`tsc` 循环修复、批量迁移、PR 多文件 review、多源 deep research，以及反复搜索 flaky test 直到新增问题收敛。它适合“任务数量超过一个 context 能稳定协调”或“同一步骤要作用于很多 item”的场景；小任务使用 Workflow 只会增加编排和 token 成本。
+
+**质量来自独立验证，而不是一次更长推理**
+
+Dynamic Workflow 的质量模式是 independent verification、adversarial review 和 claims cross-check：多个 agent 独立给出候选，reviewer / refuter 尝试推翻结论，未通过核验的 claim 不进入最终报告。它把“旁观者视角”和“反证”从 prompt 建议提升成可重复的 runtime pattern。
+
+**产品化与运行时边界**
+
+- 强项：后台运行、进度面板、阶段 / agent / token / elapsed-time 可观测性、启动前脚本审批、暂停 / 恢复 / 停止 / 重启、保存为项目或个人命令、`args` 结构化输入、成本提示和组织级禁用，形成了完整的 orchestration 产品面。
+- 弱项：workflow 运行中不接收普通用户输入，阶段间需要人工签核时要拆成多个 workflow；script 本身不能直接访问 filesystem / shell，真实读写与命令必须由 agent 完成；最多 16 个并发 agent、单 run 最多 1000 个 agent；暂停只支持同一 Claude Code session 内恢复，退出后新 session 会重新开始；大规模 fan-out 的 token 成本显著。
+- 边界判断：它仍以一次 workflow run 为主要生命周期，不等于 durable project state。progress cache 能支持同 session resume，但没有自动提供跨 session 的 goal evolution、长期 evidence ledger、quota ledger、human gate history 和 multi-runtime handoff。
+
+**和 Skill / Agent Team / LoopX State Kernel 的关系**
+
+- **Skill 是 instruction artifact**：模型读完说明后动态执行，适合探索性强、边界模糊、需要临场取舍的任务。
+- **Agent Team 是 collaboration runtime**：lead、peer session、shared task list / mailbox 共同推进，适合少量长期 peer 的协商与分工。
+- **Dynamic Workflow 是 execution artifact**：script / runtime 拥有 executor loop，适合阶段明确、可自动执行、需要大量 fan-out 和确定性 replay 的任务。
+- **LoopX State Kernel 是 durable control state**：它不替代 workflow runtime，而是让 workflow / supervisor 把 `goal / todo / claim / evidence / quota / gate / handoff / rollback packet` 写回共同事实面，支持跨 run、跨 agent、跨 runtime 的继续、分支、等待和交接。
+
+因此，LoopX 不宜表述为 Dynamic Workflow 的 executor/runtime 超集。两者的分工是：Dynamic Workflow 管“这一轮路径怎么跑”，LoopX 管“跨轮次谁能继续、为何继续、证据写到哪里、何时等待或交接”。如果 LoopX 后续补齐 mid-run input、跨 session checkpoint、evidence / quota / handoff，它扩展的是长程控制语义，不替代 `agent()` / `pipeline()` 的执行引擎。
+
+[Recursive Agent Harnesses](https://arxiv.org/html/2606.13643v1) 提供了这一产品形态对应的研究视角：递归单元从裸 model call 升级为带 filesystem、code execution、planning 和继续 spawn 能力的完整 harness；它与 Dynamic Workflow 共享 `plan moved into code`，并在 Oolong-Synthetic 上评估大规模 per-item reasoning + global aggregation。机制、实验和证据边界见 [AI-Applied-Algorithms.md - Recursive Agent Harnesses](./AI-Applied-Algorithms.md#recursive-agent-harnesses递归带工具的完整-harness)。
+
+#### Loop Engineering Toolkit：把 loop 工程纪律做成 audit / scaffold / guardrail
+
+> 来源：[README](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/README.md#L31-L49)、[primitives](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/docs/primitives.md#L5-L97)、[primitives matrix](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/docs/primitives-matrix.md#L5-L15)、[loop design checklist](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/docs/loop-design-checklist.md#L5-L88)、[`patterns/registry.yaml`](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/patterns/registry.yaml#L1-L150)、[`loop-audit`](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-audit/src/auditor.ts#L54-L84)、[`loop-audit` score](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-audit/src/auditor.ts#L240-L294)、[`loop-init` scaffold](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-init/src/cli.ts#L216-L246)、[`loop-init` observability](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-init/src/cli.ts#L254-L311)、[`loop-context`](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-context/src/context-manager.ts#L1-L17)、[`loop-context` breaker](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-context/src/context-manager.ts#L141-L210)、[`loop-cost`](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-cost/src/estimator.ts#L127-L181)、[`loop-worktree`](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-worktree/src/worktree.ts#L8-L33)、[`loop-worktree` cleanup](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/loop-worktree/src/worktree.ts#L184-L214)、[`mcp-server` resolver](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/tools/mcp-server/src/resolver.ts#L14-L24)、[budget skill](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/templates/SKILL.md.loop-budget#L10-L18)、[guard skill](https://github.com/cobusgreyling/loop-engineering/blob/2e030ebb628b93eff7dbd3a5cf6c0b36452569d7/templates/SKILL.md.loop-guard#L41-L70)。读取 commit `2e030eb`，整理时间：2026-07-09。
+
+**定位**：`cobusgreyling/loop-engineering` 不是一个 agent runtime，也不是 workflow engine；它更像 **loop hygiene toolkit**：把“别只 prompt agent，要设计 loop”落成仓库文件、starter、skill、registry、audit score、成本估算、context breaker、worktree manifest 和 MCP 资源查询。它解决的是 adoption gap：团队知道要做长程 loop，但不知道从哪些最小工程护栏开始。
+
+核心抽象：
+
+```yaml
+loop_engineering_toolkit_v0:
+  repo_spine: LOOP.md + STATE.md + AGENTS.md
+  operating_files: loop-budget.md + loop-run-log.md + loop-constraints.md + loop-ledger.json
+  primitives: scheduling, worktrees, skills, MCP/connectors, subagents, state/memory
+  patterns: daily-triage, pr-babysitter, ci-sweeper, dependency-sweeper, post-merge-cleanup, changelog-drafter, issue-triage
+  tools: loop-init, loop-audit, loop-cost, loop-context, loop-sync, loop-worktree, loop-mcp-server, goal-audit
+  rollout_levels: L0 draft, L1 report, L2 assisted, L3 unattended
+```
+
+代码亮点：
+
+- **Readiness score 可操作**：`loop-audit` 不是泛泛 checklist，而是把 `STATE.md / LOOP.md / AGENTS.md / loop skills / verifier / safety / GitHub workflows / MCP / worktree / budget / run log / constraints / real activity` 变成加权信号，再用 L1/L2/L3 gate 限制“高分但没成本观测或没真实 run”的假成熟。
+- **Scaffold 带默认安全姿势**：`loop-init` 按 pattern + tool 复制不同 starter，还会补 `loop-budget.md`、`loop-run-log.md`、`loop-constraints.md`、budget/constraint skills；对 fix-capable loop 额外种 `loop-ledger.json` 和 `loop-guard`，而 report-only loop 保持轻量。这比只给 prompt 模板更像工程产品。
+- **成本模型前置**：`patterns/registry.yaml` 为每个 pattern 记录 cadence、risk、state file、phases、human gates、`tokens_noop / tokens_report / tokens_action / suggested_daily_cap / early_exit_required`；`loop-cost` 把 cadence 转 runs/day，并给 noop/report/action/realistic blend 四种成本情景。高频 PR/CI loop 的核心不是“跑得勤”，而是 empty watchlist 必须早退。
+- **Context breaker 是最有含金量的代码**：`loop-context` 不调用 LLM，直接从 `loop-ledger.json` 做错误签名归一化、stack trace 裁剪、最近尝试去重、context injection 和熔断判断；连续同错、连续失败、token budget、max iterations 都会要求 escalate。这是“长程 agent 防空转”的最小可移植实现。
+- **Worktree 不是口号，有 manifest 生命周期**：`loop-worktree` 用 `.loop-worktrees/manifest.json` 管 `active / rejected / escalated / merged / stale`，创建时一 run 一 branch，cleanup 默认只扫 rejected/escalated，且不 `--force` 时会保留有未提交改动的 worktree。这个细节比“用 git worktree 隔离”更接近可运维。
+- **MCP resolver 降低 prompt stuffing**：`loop-mcp-server` 把 patterns、skills、state、budget、run log、safety docs 暴露成可查询资源，并做 `..` / path segment 安全检查。它体现的设计方向是：loop 知识应该能被工具按需读取，而不是每次塞进系统 prompt。
+
+评价：它的强项是 **轻、可复制、可审计**，适合把个人/团队从“手动催 agent”推进到 L1/L2 的 operational loop；弱项也明显：大量判断仍是静态文件和正则启发式，`loop-audit` 可以被“摆文件”刷分，缺少强 event ledger、permission lease、evidence graph、真实 executor lifecycle 和跨 agent state kernel。因此它不是 LoopX 的替代，而是 LoopX 外围很值得借的 **hygiene layer**：scorecard、starter、pattern registry、cost guard、context breaker、worktree manifest、MCP resource resolver 都可以被吸收；LoopX 仍应负责 durable state、quota、handoff、evidence writeback 和多 agent frontier。
+
+#### Loom：把 Coding Agent 固化为可恢复的软件交付状态机
+
+> 来源：[README / Context Routing](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/README.md#L32-L117)、[Technical Report](https://zonodqioyxil6r3k.public.blob.vercel-storage.com/Loomline-v0.pdf)、[`ActionResult`](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/core/action_result.rs#L7-L101)、[`TransitionEngine`](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/core/transition.rs#L58-L173)、[`NextAction`](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/core/next_action.rs#L6-L63)、[delivery state](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/core/status.rs#L12-L110)、[write authorization](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/state/write_targets.rs#L49-L180)、[atomic store](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/state/store.rs#L112-L128)、[candidate acceptance](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/src/rust/state/lifecycle_store.rs#L17-L41)、[Claude Code stop guard](https://github.com/valkor-ai/loom/blob/32f80926ac11ae514342401c6eeaae1fb860656a/plugins/claude-code/hooks/loom-workflow-guard.js#L16-L74)。读取 commit `32f8092`，版本 `0.2.7`。
+
+Loom 不是新的 coding model，也不是 Temporal 式通用 durable runtime，而是一个 **model-neutral、project-local 的软件交付 harness**。Codex、Claude Code、OpenCode 仍负责理解和执行；Loom 的 Rust MCP server 负责把 clarify、architecture、plan、execute、review、repair、local preview 和 handoff 串成显式状态机，并把需求、任务、测试、runtime facts 和 repair history 留在 `.loom/`。
+
+```text
+@loom request
+-> TransitionEngine 读取 project / delivery / phase 状态
+-> ActionResult:
+   auto_runnable | user_gate | active_operation
+   repairable_error | done | blocked | failed
+-> NextAction:
+   requestRef + readGroups + writeTargets + submitTool
+-> Agent 定向读取、执行并提交 candidate / task result
+-> Loom 校验 contract fingerprint、字段、目标与 evidence
+-> candidate 被接纳为 canonical artifact，推进 next_action
+```
+
+最有价值的不是阶段名称，而是把“继续做什么”和“允许如何做”合成一个协议：
+
+- **Runtime 拥有 continuation**：`auto_runnable` 明确 `stopAllowed=false`；Claude Code hook 会阻止 Agent 在非终态提前结束。续跑不再只靠 prompt 里的“请继续”。
+- **Context routing 同时也是 authority routing**：`requestRef` 指向本轮契约，`readGroups` 只暴露必要字段，`writeTargets` 和 `submitTool` 限定回写面；提交时还检查 fingerprint 和读取审计，避免拿旧契约或未读内容生成新状态。
+- **Candidate 不是 source of truth**：Agent 先写候选，Loom 做 normalize / validate / accept；接纳后才成为 canonical artifact，候选随即清理。实现、review、repair 也分阶段保存，降低 Agent 自写自验的偏差。
+- **跨 Agent 复用的是协议，不是共享脑内上下文**：多个 MCP-capable Agent 都可接手同一个 delivery state，但 Loom 当前并没有 Agent Team、mailbox、claim 或 swarm 调度。
+
+设计动机很直接：代码生成已经便宜，真正昂贵的是不丢需求、不半途宣布完成、保留验证证据，以及中断后继续交付。Loom 用 typed state、窄上下文和显式 submit gate 把这些从“好 Agent 应该记得”改成 runtime contract；它比 Loop Engineering Toolkit 更接近一个产品化的、软件交付专用 State Kernel。
+
+边界也要说清：
+
+- `.loom/` 通过临时文件、`fsync + rename` 和 operation lease 获得本机恢复能力，但默认被 git ignore；当前一个 project 只有一个 active delivery，也没有 Temporal 的 event history replay、分布式 task queue、HA 与通用并发事务。因此这里的 durable 是 **跨 session 的本地持久化**。
+- `writeTargets` 约束 Loom artifact 的提交协议，不等于 OS 级 sandbox；Agent 通过 shell 修改真实 repo 时，权限隔离仍要交给外层 container / Seatbelt / Landlock。
+- 固定 SDLC 与大量 schema 适合较完整的应用交付，却可能压重成熟仓库中的小 patch。Technical Report 主要给出愿景和设计论证，没有外部 benchmark；schema 能保证结构完整，不能保证模型产出的语义正确。
+- 当前 deploy 是本地 Docker Compose preview，不是生产发布平台。源码测试覆盖很广，但干净 checkout 直接跑完整 Rust suite 仍依赖另行安装 Python knowledge worker 的 `jieba` 等包。
+
+| 对比 | 主要拥有者 | 与 Loom 的差异 |
+| --- | --- | --- |
+| Dynamic Workflow | 单次 run 的 script control flow | Loom 额外持久化软件交付阶段、契约、证据与 repair state |
+| Temporal | 通用 durable execution、retry、task queue、replay | Loom 提供领域语义与 Agent 协议，但不是分布式执行底座 |
+| LoopX | 跨 run / agent 的 goal、claim、quota、evidence、gate、handoff | Loom 更窄、更深、阶段更固定；接近 software-delivery-specific State Kernel |
+
+LoopX 最值得借的是 `ActionResult + stopAllowed`、`requestRef + readGroups + writeTargets + submitTool`、candidate-to-canonical acceptance、repairable error 和 transition decision log；不宜照搬的是巨大的领域 schema、固定 SDLC，以及缺少共享并发 authority 的本地隐藏状态。
+
+#### Flowtrace：把 agent 工作从 transcript 变成 git-backed trace
+
+> 来源：[README](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/README.md#L23-L94)、[trace folder layout](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/README.md#L153-L175)、[PHILOSOPHY](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/PHILOSOPHY.md#L3-L12)、[soft execution model](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/PHILOSOPHY.md#L70-L132)、[CLI reference](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/docs/trace/CLI.md#L7-L19)、[`Trace` / `StepSpec`](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/schema.rs#L7-L77)、[`RunState`](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/state.rs#L13-L35)、[`reply` / evidence schema](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/crates/flowtrace-core/src/output.rs#L12-L49)、[`make-trace` skill](https://github.com/AIScientists-Dev/Flowtrace/blob/1571c76365c02c13d50b943cedd36e3b21865757/skills/make-trace/SKILL.md#L30-L50)。读取 commit `1571c76`，整理时间：2026-07-04。
+
+**定位**：Flowtrace 不是 workflow engine，也不是另一个聊天 UI，而是把 agent 工作过程外部化为一个 **git-backed、file-backed、可检查、可复用、可局部重跑的 trace artifact**。它解决的是高价值知识工作里 chat transcript 的四个问题：太长看不住、结果难核验、中间假设难 steer、成功经验会蒸发在 scrollback 里。
+
+核心抽象：
+
+```yaml
+flowtrace_contract_v0:
+  trace_root:
+    trace.json:
+      id:
+      title:
+      description:
+      version:
+      steps:
+        "<step_id>":
+          name:
+          does:
+          from_steps: []
+          assets: []
+      deliverable:
+        description:
+        assets: []
+    steps/<step_id>/STEP.md: per-step contract + implementation hints
+    resources/: shared static inputs
+    runs/<run_id>/:
+      state.json: single source of truth for run status
+      replies/NNNN.json: append-only structured-output stream
+      <step_id>/: runtime files, official assets, scratch
+```
+
+设计动机：
+
+- **把 composition knowledge 从 prompt / transcript 里拿出来**：Skill 复用的是动作，Workflow 复用的是执行控制流，Flowtrace 复用的是“这类任务该如何拆、哪些步骤并行、哪些产物喂给下游、最终交付物是什么”。它自称 soft scaffold for cognition，重点是方法图，不是调度引擎。
+- **用文件和 git 代替口头进度**：每个 step 写出文件，`state.json` 记录 status / assets，`replies/NNNN.json` 记录结构化结论和 evidence；每次 CLI write 都只提交声明路径，不做 `add -A`。这让 run 的中间过程可审计、可时光回看，也让“我做完了”变成 asset + evidence，而不是文本声明。
+- **把 steer 从重跑整条 chat 变成重跑局部 DAG**：`done` 不是终态，step 可以重新进入 `running`；`flowtrace show --downstream <step_id>` 给出拓扑有序的下游步骤。它刻意不把 stale flag 写进 state，因为 trace 是软方法图，传播责任属于 executor。
+- **降低 agent 的 context 压力**：agent 不必背完整历史，只要按结构读 `trace.json`、当前 step 的 `STEP.md`、上游 declared assets 和当前 run state。结构化读取替代线性 scrollback，适合长 session、复用 runbook、技能沉淀和高风险报告。
+
+`make-trace` skill 暴露了它真正难的部分：不是写 JSON，而是把一个 SKILL.md、runbook、chat log 或已完成任务 **lift 成 faithful DAG**。它要求判断哪些认知动作该升成 step，哪些只是 step 内部规则；要求独立二次核验 DAG 是否忠于来源；还强调互斥 deliverable 应拆成多个 trace，而不是在一个 trace 里塞条件分支。
+
+评价：
+
+- **强项**：它非常适合“会重复、要核验、要交给别人或未来自己复用”的任务，例如投研、尽调、安全 gate、复杂调研、bug-fix learning loop。相比普通 agent trace / observability，它更接近 procedure memory：把过程、证据、交付物和局部重跑边界保存成可读文件。
+- **边界**：Flowtrace 不是 executor，不负责调度、权限、预算、sandbox、grader，也不强制 step output schema。它的 soft 设计避免过早把认知方法硬编译成 workflow，但也意味着生产级长程 agent 仍需要外层 control plane：谁来执行、何时执行、失败如何 gate、staleness 如何强制传播、哪些 evidence 足以验收。
+- **和 Dynamic Workflow 的差异**：Dynamic Workflow 是 execution artifact，适合阶段明确、可自动执行、需要确定性 replay 的任务；Flowtrace 是 knowledge artifact，描述“这类任务如何做”，允许 executor 跳过、重排、替换实现。前者管路径，后者管方法和证据。
+
+对 LoopX / Agent Harness 的启发：Flowtrace 可以作为 `task_trace_artifact_v0`，被 LoopX 这类 control plane 引用为某个 goal / todo 的工作账本。短期值得借的是：`trace.json` 的 step/dependency/deliverable schema、`state.json` 的 run SOT、append-only replies、path-backed evidence、exact-path git commit、downstream rerun 查询，以及从成功 run 反向沉淀 procedure trace 的 `make-trace` 流程。
+
+#### Humanize：用 Codex review 把 Ralph Loop 变成工程闭环
+
+> 来源：[README](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/README.md#L7-L26)、[Quick Start](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/README.md#L42-L77)、[Usage / Plan Understanding Quiz](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/docs/usage.md#L5-L40)、[`start-rlcr-loop` command](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/commands/start-rlcr-loop.md#L13-L195)、[`setup-rlcr-loop.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/scripts/setup-rlcr-loop.sh#L821-L907)、[`loop-codex-stop-hook.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/hooks/loop-codex-stop-hook.sh#L785-L940)、[`codex review` phase](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/hooks/loop-codex-stop-hook.sh#L1209-L1316)、[`ask-codex.sh`](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/scripts/ask-codex.sh#L244-L415)、[BitLesson](https://github.com/PolyArch/humanize/blob/0ec921a36b4365df503511c5567bbd3e02db0df5/docs/bitlesson.md#L25-L50)。读取 commit `0ec921a`，整理时间：2026-07-05。
+
+**定位**：Humanize 是一个 Claude Code plugin，核心工作流叫 RLCR（Ralph-Loop with Codex Review）。它不是新的代码生成模型，也不是完整 agent control plane，而是把“Claude 一轮轮实现”放进 **plan gate + stop hook + independent Codex review + code review phase** 的工程闭环里：Claude 负责实现，Codex 负责独立审查 summary / diff，问题反馈回下一轮，直到 acceptance criteria 和 code review 都过。
+
+核心抽象：
+
+```yaml
+humanize_rlcr_contract_v0:
+  input:
+    idea: /humanize:gen-idea
+    plan: /humanize:gen-plan --input draft.md --output plan.md
+    refined_plan: /humanize:refine-plan --input plan.md
+  preflight:
+    plan_compliance_check: repo relevance + no branch-switching
+    plan_understanding_quiz: two MCQs before execution
+  loop_state:
+    root: .humanize/rlcr/<timestamp>/
+    state: state.md
+    plan_backup: plan.md
+    goal_tracker: goal-tracker.md
+    round_contract: round-N-contract.md
+    round_summary: round-N-summary.md
+    review_result: round-N-review-result.md
+  phases:
+    implementation: Claude implements, then Codex reviews summary via codex exec
+    review: codex review --base <base_commit> checks actual code changes
+    finalize: cleanup / simplification before exit
+  memory:
+    bitlesson: .humanize/bitlesson.md
+    per_round_delta: Action none|add|update
+```
+
+设计动机：
+
+- **Ralph Loop 的问题不是“不够循环”，而是“循环会放大错误计划”**：Humanize 把这个称为 wishful coding。`start-rlcr-loop` 前先做 plan compliance check，再用独立 agent 出两道 plan understanding quiz；quiz 不强制阻断，但制造一个很有价值的摩擦：用户必须知道自己准备让 agent 执行什么。
+- **把 review 变成退出 gate，而不是靠 Claude 自觉**：Claude 想结束时，Stop hook 会检查 summary、round contract、BitLesson Delta、todo 是否完成、branch 是否漂移、plan 是否被改、工作区是否干净、文件是否过大；随后用 `codex exec` 审查本轮 summary。只有 Codex 最后一行给出 `COMPLETE`，才进入代码审查阶段。
+- **把“实现完成”与“代码质量过关”拆成两阶段**：Implementation Phase 关注是否按 plan / goal tracker 推进；Review Phase 调 `codex review --base <base_commit>` 看真实 diff，并用 `[P0-9]` severity marker 判断是否继续循环。这个设计避免 summary 自洽但代码有问题，也避免一开始就让 code review 承担所有目标对齐职责。
+- **用 BitLesson 做 project-level 过程记忆**：每轮 summary 必须包含 `## BitLesson Delta`，记录是否新增 / 更新项目经验。它试图解决 Ralph Loop 的另一个问题：同一个项目里 agent 反复踩同一个坑，但经验没有进入下一轮。
+
+评价：
+
+- **强项**：它是非常现实的 AI coding harness 样本。价值不在“Claude + Codex”这个组合本身，而在把 plan 理解、独立审查、退出拦截、diff review、过程记忆、monitor dashboard 全部做成可运行协议。它把 Ralph Loop 从“脚本不断重启 Claude”升级成“每轮必须留下 summary / contract / review / lesson”。
+- **边界**：它强依赖 Claude Code hooks、Codex CLI、shell 脚本和 Markdown 状态文件；很多 gate 仍通过文本 marker、文件命名和 hook 行为维持，不是强类型事件系统。它也不是 LoopX 那类多目标 control plane：同一 repo 默认只允许一个 active loop，缺少 durable task ledger / permission lease / budget ledger / typed artifact store。
+- **和 Flowtrace / LoopX 的差异**：Flowtrace 保存“方法图和证据”，Humanize 驱动“具体 coding loop 的准入、执行、review 和退出”；LoopX 管多目标长程状态，Humanize 更像单个 coding task 的 loop harness。三者可以组合：LoopX 选任务和 gate，Humanize 跑 coding loop，Flowtrace / run log 保存可复用方法和证据。
+
+对 LoopX / Agent Harness 的启发：短期可借 `plan_understanding_gate_v0`、`round_contract_v0`、`cross_model_review_gate_v0`、`mainline_progress_verdict`、`review_phase_by_base_commit`、`bitlesson_delta_v0`。但实现上不要照搬 hook-script + Markdown marker 作为唯一事实源，更好的方向是把这些变成 typed event / state transition / artifact ref：`summary_submitted -> summary_reviewed -> code_review_started -> review_issues_found -> finalize_ready`。
+
+#### Oh My Humanize：把 Humanize 从 hook loop 推成 workflow-native terminal agent
+
+> 来源：[humanfia/oh-my-humanize README](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/README.md#L19-L22)、[workflow advanced](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/README.md#L81-L107)、[tool surface](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/README.md#L193-L316)、[workflow artifact / freeze / promotion policy](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L3-L87)、[read-only node contract](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L89-L99)、[Humanize RLCR candidate](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L101-L156)、[KDA Humanize candidate](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L173-L211)、[workflow dashboard](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L245-L316)、[authoring notes](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/workflows.md#L363-L380)、[`humanize-rlcr.omhflow`](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/packages/coding-agent/examples/workflow/experimental/humanize-rlcr/humanize-rlcr.omhflow#L21-L78)、[`humanize-rlcr` edges](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/packages/coding-agent/examples/workflow/experimental/humanize-rlcr/humanize-rlcr.omhflow#L230-L278)、[`kda-humanize.omhflow`](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/packages/coding-agent/examples/workflow/experimental/kda-humanize/kda-humanize.omhflow#L21-L50)、[`kda-humanize` nested Humanize + promotion](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/packages/coding-agent/examples/workflow/experimental/kda-humanize/kda-humanize.omhflow#L111-L201)、[task agent discovery](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/task-agent-discovery.md#L22-L38)、[advisor](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/advisor-watchdog.md#L3-L6)、[memory](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/memory.md#L1-L21)、[bash runtime](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/bash-tool-runtime.md#L76-L112)、[Hashline](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/packages/hashline/src/prompt.md#L3-L43)、[approval mode / subagents](https://github.com/humanfia/oh-my-humanize/blob/1a9f715c10024348065f0b1be64bac4abc5d2868/docs/approval-mode.md#L1-L23)。读取 commit `1a9f715`，整理时间：2026-07-06。
+
+**定位**：Oh My Humanize（OMH）不是 PolyArch/humanize 的轻量插件，也不是单纯“让输出更像人”的 prompt 包，而是一个 **workflow-native terminal coding agent**。它把 Humanize / RLCR 的 plan gate、human gate、implementation loop、Codex-style review 和 code-review cleanup，提升成 `.omhflow + resources` artifact、production freeze、checkpoint / restart、TUI workflow dashboard、experimental flow promotion policy，再叠加一整套 coding agent 工具基座：Hashline edits、LSP / DAP、persistent Python / Bun、browser、subagents、advisor、memory、internal URL schemes、native shell / PTY。
+
+核心抽象：
+
+```yaml
+omh_workflow_native_agent_contract_v0:
+  workflow_artifact:
+    file: "*.omhflow"
+    resources: same-name directory with prompts/scripts/fixtures
+    production_run: immutable freeze
+    lifecycle: stop -> checkpoint -> approved_change -> refreeze -> restart
+  flow_library:
+    tiers: built_in_practical | experimental | external_candidate | demo
+    promotion_evidence: >8h Project x Flow x Task + audited artifacts
+    stable_builtin_set: intentionally empty until evidence-backed
+  node_contract:
+    workspaceAccess: read | write
+    read_node_guard: fail activation if tracked/staged/untracked workspace changed
+    context: workflowContext / OMP_WORKFLOW_CONTEXT
+  humanize_rlcr_candidate:
+    gates: plan_compliance -> human_understanding -> implementation_summary_review -> code_review -> final_alignment
+    loop_verdicts: CONTINUE | COMPLETE, ISSUES | CLEAN, rework | finish
+  kda_humanize_candidate:
+    outer_flow: task_contract -> workspace_inspection -> plan -> humanize_subflow -> candidate_validation -> promotion_decision
+    subflow_boundary: imported Humanize shown as function-like call
+  tool_substrate:
+    edit_integrity: hashline content-hash anchors + stale-anchor rejection
+    execution: bash with PTY / non-PTY / async jobs, persistent Python and Bun eval
+    code_intel: LSP + DAP
+    collaboration: first-class subagents + typed output + advisor sidecar
+    memory: project-scoped Hindsight / memory://
+    resources: pr:// issue:// agent:// skill:// rule:// artifact:// memory:// conflict://
+```
+
+设计动机：
+
+- **把 RLCR 从 hook-script 约束推到 workflow runtime 约束**：PolyArch/humanize 依赖 Claude Code hook、shell 脚本和 Markdown marker；OMH 把同样的 plan / implement / review / cleanup 结构写进 `.omhflow` 的 node、edge、resources、stateSchema 和 gates。模型仍然做实现与判断，但 loop 的拓扑、准出门、重启边界和资源依赖变成可审计 artifact。
+- **把“长程”定义成 evidence policy，而不是睡够八小时**：OMH 明确把稳定内置 flow 留空，实验 flow 需要跨真实项目和任务的长程证据才能晋升；一次八小时 run 只是候选证据。它还强调 flow 不能靠 sleep / hold / duration-check 保活，必须由 transcript 和 artifacts 证明持续有效工作。
+- **把 operator experience 做成一等接口**：workflow dashboard 不是打印一张图，而是持续展示 topology、loopback、frontier、active agent、checkpoint、steer / interrupt / stop / restart / change。这个点对长程 agent 很关键：用户不该只在最终报告里发现 agent 早就跑偏。
+- **把工具可靠性前置到 harness 层**：Hashline 用 read/search 产生的 content-hash tag 锚定编辑，stale anchor 直接拒绝；bash runtime 区分 PTY / non-PTY / async job / output artifact；LSP / DAP / browser / eval / internal URL 都收进同一工具面。它的判断是：长程 coding agent 的上限不仅取决于模型，还取决于 edit、exec、observe、review、resume 这些 primitive 是否够硬。
+
+评价：
+
+- **强项**：OMH 是一个很好的“端侧 agent runtime 设计标本”。它把 Humanize 的工程纪律、oh-my-pi 的工具基座、Dynamic Workflow 的 artifact 化思路、KDA 的 candidate / promotion 思路揉在一起，给 LoopX 这类项目提供了很多可借的设计语言：flow tier、freeze、checkpoint、read-only node guard、operator deck、typed subagent output、advisor sidecar、hash-anchored edits、internal resource URL。
+- **边界**：它的能力面非常大，短期理解成本和集成成本高；GitHub metadata 上不是 fork，但 `package.json` 大量依赖 `@oh-my-pi/* 16.3.4`，更像 OMH-branded productization / derivative。文档里稳定 built-in practical flow 为空，`humanize-rlcr` 和 `kda-humanize` 仍是 `experimental::`，所以不能把 README 里的完整工具宣称等同于已验证的长程价值交付。
+- **风险**：approval 默认 `yolo`，subagents 为避免 UI stall 也 headless `yolo`，虽然父 `task` approval 被视为授权边界，但企业 / 多 repo / 私密 workspace 场景必须重新设计 permission lease、tool policy、workspace scope 和 audit log。advisor 默认只读，但 `WATCHDOG.yml` 可以授予 mutating tools；这很强，也很容易越权。
+- **和 LoopX 的关系**：OMH 更像强 executor / workflow runner / local terminal cockpit；LoopX 更应该保留外部 State Kernel / durable ledger / quota / handoff / evidence graph。短期不应把 LoopX 变成 OMH，而是把 OMH 的成熟 primitive 拆出来吸收：`workflow_artifact_v0`、`flow_promotion_evidence_v0`、`node_workspace_access_guard_v0`、`operator_frontier_dashboard_v0`、`hash_anchored_edit_evidence_v0`、`advisor_sidecar_v0`。最理想的组合是：LoopX 管长程目标与跨 agent 状态，OMH 这类 runtime 负责单个 bounded workflow / executor loop。
+
+#### Kernel Design Agents：把 CUDA kernel 优化变成 evidence-backed candidate loop
+
+> 来源：KDA [README](https://github.com/mit-han-lab/kernel-design-agents/blob/dda6be3cf1baedd3ed9c76511ef02f72243cc14c/README.md#L3-L70)、[agent-flow](https://github.com/mit-han-lab/kernel-design-agents/blob/dda6be3cf1baedd3ed9c76511ef02f72243cc14c/docs/agent-flow.md#L3-L50)、[basic-flow prompt](https://github.com/mit-han-lab/kernel-design-agents/blob/dda6be3cf1baedd3ed9c76511ef02f72243cc14c/prompts/basic-flow.md#L5-L39)、[CLAUDE.md](https://github.com/mit-han-lab/kernel-design-agents/blob/dda6be3cf1baedd3ed9c76511ef02f72243cc14c/CLAUDE.md#L3-L33)、KernelWiki [README](https://github.com/mit-han-lab/KernelWiki/blob/2777d18ffb3a3d682d8f25a3e3b8864d925a5ff1/README.md#L37-L126) / [SKILL.md](https://github.com/mit-han-lab/KernelWiki/blob/2777d18ffb3a3d682d8f25a3e3b8864d925a5ff1/SKILL.md#L14-L112)、ncu-report-skill [README](https://github.com/mit-han-lab/ncu-report-skill/blob/1cf238d6b41c79bd35041192506c4d45e765a3f1/README.md#L10-L40) / [SKILL.md](https://github.com/mit-han-lab/ncu-report-skill/blob/1cf238d6b41c79bd35041192506c4d45e765a3f1/SKILL.md#L14-L91)。读取 KDA commit `dda6be3`，整理时间：2026-07-05。
+
+**定位**：Kernel Design Agents（KDA）不是一个完整 CUDA benchmark harness，也不是“让 agent 自动写 kernel”的魔法仓库，而是一个很小的 **agent-centric workflow reference**：面向性能敏感 CUDA kernel 任务，让 coding agent 做调研、实现、验证、测量和迭代。主仓库刻意保持 task-agnostic；真实代码、测试、数据集、benchmark 脚本、私有规则和生成产物都放到独立 task workspace。
+
+核心抽象：
+
+```yaml
+kda_contract_v0:
+  task_contract:
+    objective:
+    inputs_outputs:
+    correctness_requirements:
+    constraints:
+    validation_command:
+    evaluation_command:
+    promotion_criteria:
+  workspace_artifacts:
+    docs/draft.md: first plan draft
+    docs/plan.md: executable plan
+    benchmark.csv: measurable result log
+    candidates.jsonl: candidate name, parent link, status
+    profile/: profiler outputs and report summaries
+    runs_or_outputs/: generated artifacts
+  loop:
+    - inspect workspace and baseline
+    - write draft before editing
+    - convert draft into executable plan
+    - implement one candidate at a time
+    - validate correctness
+    - measure target metric
+    - record evidence
+    - promote | revise | reject
+  optional_skills:
+    KernelWiki: Blackwell/Hopper kernel knowledge retrieval
+    ncu_report_skill: Nsight Compute profiling and diagnosis
+    humanize: plan generation and implementation loop
+```
+
+设计动机：
+
+- **性能优化是实验搜索，不是一次性生成**：kernel 任务天然有 correctness、shape、硬件、编译器、profile、指标噪声和 promotion criteria。KDA 把 agent 从“写一个更快版本”约束成“提出一个 candidate、证明 correctness、测指标、记录证据、决定晋升或淘汰”。
+- **把 reusable workflow 和 task workspace 分离**：KDA 主 repo 只放通用流程和 starter prompt，下游工作区拥有私有 evaluator、数据、生成 kernel、benchmark log 和 profile。这个设计避免把一次比赛/私有 harness 固化进通用模板，也让 workflow 可以迁移到 compiler pass、runtime kernel、infra change 等其他性能敏感任务。
+- **把 domain knowledge 做成 skill，而不是塞进 prompt**：KernelWiki 是 Blackwell / Hopper kernel 优化知识库，按 `sources -> wiki -> queries` 三层组织，带 confidence、reproducibility、version-sensitive claim 和 upstream source trace；ncu-report-skill 则把 Nsight Compute 工作流拆成 run directory、standalone harness、full/source 两类 profile、Python 解析、六个分析维度、diagnosis playbook 和 evidence-backed report。KDA 的 agent 不是靠长 prompt 背硬件知识，而是在需要时调用可追溯知识库和 profiler 分析器。
+- **核心文化是 evidence-before-change**：ncu-report-skill 的黄金规则是 `Profile -> Diagnose -> Plan`，要求不要先猜，不要先改，不要写泛泛建议，而要拿具体 metric、stall hotspot、timeline、rule engine speedup 和 input distribution 来支撑判断。这正是 agent 做底层工程时最容易缺失的纪律。
+
+评价：
+
+- **强项**：KDA 很小，但抓住了 agent 做 hard engineering 的关键：外部世界有可测指标时，agent 应该被设计成实验 runner，而不是聊天式建议器。`candidate ledger + benchmark/profile evidence + promotion rule` 比“多轮自我反思”更接近工程真实闭环。
+- **边界**：它目前仍是早期流程原型，主 repo 几乎没有 executor / scheduler / typed state / benchmark adapter / parallel search / budget control。是否有效高度依赖下游 workspace、GPU 环境、evaluator 质量、skill 是否被正确调用，以及人类是否能及时修正错误方向。它更像 runbook + prompt + skill bundle，不是 autonomous kernel-search system。
+- **和 Humanize / Flowtrace / LoopX 的差异**：Humanize 负责单个 coding loop 的 plan/review/exit gate；Flowtrace 保存方法图和证据；LoopX 管多目标长程状态；KDA 则是一个具体垂直场景里的 performance candidate loop。它的通用价值在于把“候选实现如何晋升”说清楚，而不是发明新 agent runtime。
+
+对 LoopX / Agent Harness 的启发：KDA 可以抽象成 `performance_candidate_loop_v0`：`task_contract -> baseline -> candidate -> validation_result -> eval_metric -> profile_evidence -> promotion_decision`。如果做 AI infra 开源贡献、LLM serving benchmark、agent runtime profiling，应该借 KDA 的思想：每个 agent 改动都必须有 candidate parent、可复现命令、指标表、profile/trace evidence 和明确的 promote/reject reason；否则长程 agent 只是在堆实现，没有形成可学习的实验历史。
 
 #### Waiting primitive：yield_time_ms 与 /loop 的设计差异
 
@@ -2010,6 +2459,61 @@ agent_process_wait_contract_v0:
 
 设计结论：等待不是一个小 UX 细节，而是 agent runtime 的核心能力。没有暂停、恢复、轮询、增量输出和证据事件，长任务就会退化成 prompt 层自我催眠；有了这些 primitive，`/loop` 这类上层工作流才能专注于“何时重新判断”，而不是替工具层补洞。
 
+#### 语音 Agent runtime：把 conversation presence 与 durable work 解耦
+
+> 源码样本：[`QwenAudio/qwen-audio-agent`](https://github.com/QwenAudio/qwen-audio-agent)，读取 commit `ea29524`、版本 `1.1.1`。主要依据：[产品与三层架构](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/docs/architecture.md#L5-L138)、[Realtime 六个窄工具](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/voice/frontend-tools.mjs#L6-L160)、[非阻塞 Work 提交](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/voice/tools/tool-call-handler.mjs#L138-L184)、[Work 状态机与 scheduler lane](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/task/task-manager.mjs#L247-L446)、[持久 Coordinator Session](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-backend-adapter.mjs#L270-L329)、[异步 Project Session](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-backend-adapter.mjs#L786-L930)、[委托完成与最终整理](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-backend-adapter.mjs#L1241-L1295)、[结果 claim / ack / retry](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/voice/announcement/announcement-manager.mjs#L235-L340)、[语音打断与 turn correlation](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/voice/realtime-gateway.mjs#L719-L825)。
+
+`qwen-audio-agent` 不是 Qwen Audio 模型仓库，也不是新的通用 Agent loop。它是一个 **voice channel runtime + backend Agent bridge**：Qwen Audio Realtime 维持低延迟双工对话，Gateway 把需要搜索、文件、代码、应用或长时间处理的请求转成后台 Work，再通过 ACP 交给 Codex、Claude Code、OpenCode、OpenClaw、Kimi 等现有 Agent。
+
+它抓住了语音 Agent 的核心矛盾：**conversation presence 追求低延迟、可打断和持续回应；durable work 追求工具权限、长时间执行、恢复和可靠交付。** 二者若共享一个同步 turn，用户要么等工具跑完才能继续说话，要么一打断就把长任务一起取消。更合理的建模是三个时间尺度：
+
+| 时间尺度 | 主要对象 | 目标 |
+|---|---|---|
+| 百毫秒到秒 | Realtime voice turn | ASR、直接回答、打断、连续对话 |
+| 秒到分钟 | Gateway Work | 排队、状态、取消、权限、结果交付 |
+| 分钟到更久 | Backend Agent / project Session | 工具调用、文件与代码、独立上下文、持续执行 |
+
+![qwen-audio-agent 三层参考架构](./AI-Agent-Product&PE/qwen-audio-agent-three-layer-architecture.png)
+
+源码中的完整链路是：
+
+```text
+PCM audio -> Qwen Audio Realtime WebSocket
+-> Smart Turn + streaming / final ASR
+-> Realtime model：direct answer | spawn_thinking(objective)
+-> Gateway 立即返回 accepted，创建 owner-scoped Work
+-> 同一 owner 的 Coordinator lane 串行进入持久 ACP Session
+-> Coordinator 直接完成，或用 session_start / session_send 启动独立 Project Session
+-> Project Session 异步执行；Coordinator lane 释放，可接收下一项语音请求
+-> runtime 观察目标 Session 状态，按 delegation_id + session_id 关联真实结果
+-> Work: delegated -> finalizing；runtime 重新驱动 Coordinator 生成最终 presentation
+-> Work 完成，结果等待安全的双工插入窗口
+-> 注入 Realtime context 并生成口语回复
+-> 客户端 playback.started 后才确认 delivered
+```
+
+几个值得复用的设计：
+
+- **前台工具面必须窄**：Realtime 只有 `spawn_thinking / cancel_agent_task / get_agent_task_status / get_current_time / user_memory / respond_agent_permission`。它只表达用户意图和控制动作，不选择 backend、Session、subagent 或执行策略。语音模型负责 presence，不假装拥有完整工具世界。
+- **Work 是 delivery receipt，不是 backend task graph**：公共状态只有 `queued / running / delegated / finalizing / cancelling / completed / failed / cancelled`，并隐藏 Session ID、目录、delegation ID 和 raw reasoning。前端需要知道“这项工作怎样交付”，不需要复制 backend 内部拓扑。
+- **协调上下文与执行上下文分开**：每个 owner + backend 复用一个持久 Coordinator Session；独立项目任务进入新的或既有 Project Session。Coordinator 只负责理解、委托和最终表达，Project Session 负责真实工作。Gateway 与 ACP adapter 双重串行化 Coordinator 写入，防止同一 Session 内并发 prompt 竞态。
+- **Delegation ID 把 multi-agent 委托变成 runtime 可驱动的状态机**：`session_start / session_send` 返回 `started + delegation_id` 后，Coordinator 的当前 turn 即可结束。Runtime 用 opaque handle 持有原 Work 与目标 Session 的关联，负责等待、状态投影、取消和结果校验；收到 completion event 时，它再以 `delegation_id + verified result` 重新驱动 Coordinator。因此 Coordinator 是语义上的 planner / presenter，runtime 才是跨 Agent 状态变化的 supervisor。
+- **异步的关键是锁外等待**：Work 进入 `delegated` 后立即释放 scheduler slot 和 Coordinator lane，而不是让 Coordinator poll，也不是在 Coordinator lock 内 `await` 整个 Project Session。锁只保护“写入共享 Coordinator Session”的短临界区；任务完成后，runtime 再短暂获取 lock 完成 presentation。
+- **结果回注是交付协议，不是一条消息**：完成结果先 claim，播报期间续租；用户正在说话、前景回复未结束或已有音频排队时延迟插入；生成完不等于送达，只有客户端报告 `playback.started` 才 ack。失败会退避重试，毒结果达到上限后 release，避免阻塞后续完成项。
+- **打断只取消当前语音 response，不默认取消后台 Work**：检测到 `speech_started` 后清空播放、取消当前 Realtime response、推进 turn generation，但已提交 Work 继续运行。用户明确说“取消任务”时才走 task cancellation。这是“可打断对话”和“可持续执行”能够同时成立的关键。
+- **全双工是音频系统能力，不只是 WebSocket**：macOS TUI 使用 `VoiceProcessingIO`，把远端播放作为 AEC reference，输出消回声的麦克风信号；Linux / Windows 默认半双工，也可显式开启无 AEC 全双工。没有回声消除，模型很容易把自己的播报重新识别成用户输入。
+
+这里所谓“始终是同一个助手”是 **presentation invariant**，不是所有状态都塞进同一上下文。前台 Realtime context、Gateway Work ledger、Coordinator Session、Project Session 各自拥有不同事实；它们通过 final ASR、objective envelope、opaque handle、typed event 和 verified result 连接。统一人格来自稳定的交接协议，而不是共享一块无限 context。
+
+评价：
+
+- **强项**：它把语音 Agent 最容易被低估的并发、打断、权限、结果插入、重复播报和 Session 关联做成了 runtime 状态，而不是继续堆 prompt；ACP adapter 也证明同一个语音产品可以复用不同 Coding Agent 的工具、MCP、Skill 和认证。源码约有 `440` 个测试定义，server / web / TUI / desktop 测试全部通过；Node `24.15.0` 下复核的 OpenClaw runtime-discovery 用例也全部通过。
+- **边界**：当前 Realtime provider 虽已拆出 protocol / provider adapter，注册表实际只有 DashScope；“model-neutral”主要成立于 backend Agent，不完全成立于语音前台。普通 `running` Work 在 Gateway 重启后会失败，只有支持 native delegation recovery 的 backend 能重挂部分委托；`tasks.json` 也是本地快照，不是 append-only event ledger。
+- **工程风险**：路由仍依赖 Realtime 模型正确判断 direct answer、status query 和 `spawn_thinking`；核心 Gateway / ACP adapter 都超过千行 JavaScript，状态关联复杂。仓库公开时间很短、版本推进很快，测试密度高不等于已经经历长期真实负载。
+- **产品边界**：它解决“长任务运行时，用户还能自然说话并可靠收到结果”，但不定义项目级 goal、evidence、quota、claim ownership、checkpoint、completion audit 或 human gate。因此它是 **channel runtime / delivery plane**，不是 durable project control plane。
+
+和 LoopX 的关系可以压成一句：**Qwen Audio Agent 管“如何让后台工作进入并回到语音对话”，LoopX 管“这项工作为什么继续、由谁拥有、哪些证据足以完成”。** 合理组合不是把 Qwen Audio Agent 的 `TaskManager` 升格为项目事实源，而是让它保存 `loopx_work_ref` 和交付状态；真实 goal / evidence / quota / gate 留在 State Kernel，ACP Session 作为 executor handle，最终通过 announcement lease 回到语音渠道。
+
 #### LoopX：长程 agent 的本地控制面
 
 > 来源：[README](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L11-L29)、[What Is It](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L44-L69)、[Why Loop Engineering Needs A Control Plane](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/README.md#L277-L307)、[Architecture](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/docs/architecture.md#L3-L13)、[`cli.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/cli.py#L114-L160)、[`quota.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/quota.py#L6559-L7010)、[`todos.py`](https://github.com/huangruiteng/loopx/blob/afd6f7ede061c2e0f34d18fa4c302eb5ce749405/loopx/todos.py#L635-L760)。读取 commit `afd6f7e`，整理时间：2026-06-28。
@@ -2025,7 +2529,13 @@ agent_process_wait_contract_v0:
 
 设计动机很清楚：长程 agent 的失败不是单步不会做，而是跨 restart、跨人类反馈、跨 agent handoff 后状态漂移。LoopX 的价值在于把“当前目标是什么、谁被 gate、谁能继续、证据在哪里、下一轮是否允许跑”外部化成机器可读状态。它和 Dynamic Workflow 的关系是：Workflow 管一条可重放执行路径，LoopX 管多轮、多 agent、多 gate 的项目级 control plane。
 
+和 Temporal 的关系是上层控制面与下层 durable execution：Temporal 用 Event History、deterministic replay、Task Queue、timer 和 retry 保证 workflow 跨故障继续；LoopX 定义 goal、claim、quota、evidence 和 completion gate。Temporal 可以成为 LoopX 的可选执行 backend，但 Task Queue 不能替代 task / evidence ledger，Workflow `Completed` 也不能替代目标完成审计。机制与阶段判断见 [Temporal Durable Execution](./AI-Applied-Algorithms.md#temporal-durable-executiondeterministic-replay--side-effect-boundary)。
+
 边界：LoopX 的抽象密度很高，早期用户需要理解 goal / gate / quota / todo / registry / runtime root 等概念；如果没有真实长程任务，它会显得比普通 agent workflow 重。它也不提供执行隔离和模型能力增强，必须和 Codex / Claude / sandbox / CI / benchmark runner 配合使用。
+
+和 Goal mode 的关系：LoopX 管项目级流程控制，Goal mode 管终态审计。前者回答“谁能继续、下一轮是否该跑、状态和证据写哪里”，后者回答“能否宣称完成、是否真的 blocked、预算是否还能继续”。更高层的分类见 [AI-Applied-Algorithms.md - Long-running control plane](./AI-Applied-Algorithms.md#long-running-control-planeworkflow--goal--evidence--quota--handoff)。
+
+和 SubAgent / AgentSwarm / Hermes Kanban 的关系：SubAgent 解决“这一小段工作交给谁做”，AgentSwarm / Agent Jobs 解决“一批相似子任务如何并行跑”，Hermes Kanban 代表“durable task board / worker lifecycle”形态；LoopX 的核心不应是复制某个 executor，而是把 Codex / Claude Code / Cursor / Hermes / shell agent 这些 bounded loop 接成 `LoopX-managed Loop Agent`。更完整的 subagent / durable teammate 概念和 contract 见 [SubAgent / Agent-as-Tool / MultiAgent](./AI-Applied-Algorithms.md#subagent--agent-as-tool--multiagent从多开模型到上下文与证据控制)。
 
 #### Claude Code Agent Teams：从多开会话到可管理 runtime
 
@@ -2054,6 +2564,8 @@ agent_process_wait_contract_v0:
 
 Mailbox 的设计动机是防止“共享聊天记录”拖垮 context。teammate 不应该读 lead 的完整历史，也不应该彼此共享全部 token；它们只需要知道自己任务、项目约束、最新依赖状态和可追溯 artifact。这样牺牲了一点同步便利，但换来 context isolation、并行性和更清晰的责任边界。
 
+放到 sharing model 里看，Agent Teams 主要覆盖两类能力：`mailbox + task ledger` 和 `session-to-session dialogue`。task list / mailbox 承担受控会议室，teammate 之间的消息承担临时协商；它没有走 Tutti 式全量 shared workspace。LoopX 更应该先把第二类做稳：shared event ledger、per-agent frontier、scoped claim、quota guard、artifact / evidence refs、handoff gate，而不是急着把所有 agent 的空间合成一个大 context。
+
 ![Claude Code Agent Teams hooks gate](./AI-Agent-Product&PE/claude-agent-teams-hooks-gate.jpg)
 
 Hooks 是这套设计最值得借鉴的地方：`TaskCreated` 可以做任务准入，`TaskCompleted` 可以把“我做完了”拦在 `completion_requested`，由 verifier / lead / test gate 决定是否进入 `completed`；`TeammateIdle` 可以在 worker 空转时注入下一步建议或收敛指令。多 agent runtime 的质量控制点不应该只在最终答案，而要前移到任务创建、任务认领、完成请求和 idle recovery。
@@ -2067,6 +2579,34 @@ Hooks 是这套设计最值得借鉴的地方：`TaskCreated` 可以做任务准
 - permission 不能简单继承 lead，尤其不能让 teammate 继承 `--dangerously-skip-permissions` 这类全局能力。更稳的抽象是 capability lease：按 agent、task、目录、命令、时间窗和风险级别授予。
 - task completed 不是文本声明，而是 artifact refs + validation refs + event history。mailbox 只传协调消息，长期事实必须落在 ledger / event store / artifact store。
 - Agent Teams 更像高质量产品原型和设计样本，不是生产级 orchestration kernel。它仍暴露出 resume / rewind、状态延迟、关停、单 lead、不可嵌套、权限粒度、leader transfer 等边界；真正的长程 agent control plane 需要把这些能力外置成 durable state 和可回放 trace。
+
+#### oh-my-pi：batteries-included coding agent runtime
+
+> 来源：[can1357/oh-my-pi README](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/README.md#L100-L178)、[tool list / provider / native runtime](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/README.md#L220-L490)、[`bash` tool runtime](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/tools/bash.md#L21-L76)、[`task` subagent runtime](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/tools/task.md#L27-L99)、[`hashline` edit tool](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/tools/edit.md#L21-L48)、[`memory`](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/memory.md#L1-L98)、[`compaction`](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/compaction.md#L24-L142)、[`rulebook`](https://github.com/can1357/oh-my-pi/blob/b258c790a5b9f584da2a6ac34e6365fde3a1ee8e/docs/rulebook-matching-pipeline.md#L29-L80)。读取 commit `b258c79`，整理时间：2026-07-04。
+
+**定位**：oh-my-pi 不是“更花哨的终端聊天”，而是一个终端优先、IDE-aware、工具面极宽的 coding agent runtime。它继承 Pi 的交互式终端形态，但把编码 agent 常见的高频能力内建成一套统一 harness：文件读写、hash-anchored edit、LSP、DAP、persistent bash / PTY、browser、web search、GitHub、subagent、memory、compaction、rules、session fork / resume / share、ACP / RPC / SDK。
+
+设计动机可以概括为三类成本：
+
+- **降低工具调用可靠性成本**：与其让模型反复拼 `rg`、`sed`、`gh`、浏览器、调试器和补丁语法，不如把它们变成一致的 tool surface。`read` 同时覆盖本地文件、URL、PDF、SQLite、archive、notebook 和 `pr://` / `agent://` / `memory://` 等 internal URL；模型只学一个“像文件一样读”的接口。
+- **降低输出 token 与编辑失败成本**：`hashline` 要求模型引用 `[PATH#TAG]` 和行号做 `SWAP / DEL / INS`，而不是重打一大段上下文；snapshot tag 可以发现 stale anchor，no-op guard 可以阻止模型在同一个无效补丁上打转。它把“编辑定位”从自然语言相似匹配压成可验证协议。
+- **降低长程状态漂移成本**：subagent 有独立 child session、artifact、`agent://<id>` 输出、`history://<id>` 轨迹、可选隔离 workspace 和 idle / parked 生命周期；memory 把跨 session 的技术决策、流程和坑点压成 project-scoped guidance，但明确要求优先相信当前 repo 证据；compaction 把旧历史变成 first-class session entry，而不是把摘要混在普通对话里。
+
+关键机制：
+
+- **Tool surface 大而统一**：README 列了 32 个工具，但它不是简单堆功能；核心设计是把外部世界收敛到少数熟悉接口：`read` 读一切，`bash` 跑进程，`task` 生成子 agent，`resolve` 接受预览动作，`search_tool_bm25` 在隐藏工具索引里按需唤回工具。
+- **Native runtime 取代 shell 拼装**：搜索、shell、AST、highlight、PTY、image decode、token counting 等热路径用 Rust / N-API 内建，避免依赖系统上是否有 `rg/find/bash`，也减少 fork/exec 和跨平台差异。它的判断是：agent runtime 的可靠性不该寄托在用户机器上的零散二进制。
+- **Bash / PTY / async job 分层**：`bash` 支持 foreground、client terminal、PTY、explicit background、auto-background。长任务不必全靠 prompt 写 `while sleep`，而是可以变成 job id、progress update、completion injection 和 artifact spill。
+- **Subagent 是有生命周期的 runtime 对象**：`task` 可以 batch spawn，支持 schema / yield、isolated workspace、patch / branch merge、async job、concurrency semaphore、idle TTL、park / revive；子 agent 不继承完整对话历史，只拿共享 context、workspace、local artifact 和允许工具。
+- **规则与记忆是 runtime injection，不只是 prompt 静态文本**：Rulebook 统一 `.omp`、Cursor、Windsurf、Cline 等规则来源，并支持 Time Traveling Stream Rules：当输出触发规则时中断流、注入提醒、从相近位置重试。memory 则被标注为 heuristic，必须和当前 repo evidence 配对使用。
+
+评价：
+
+- **强项**：它非常适合作为 agent runtime 设计样本。尤其值得学的是 internal URL、hash-anchored edits、subagent artifact protocol、async job、memory 可信度约束、rules 的动态注入，以及“工具多但接口少”的产品手法。
+- **代价**：这是一条 maximalist 路线，初始上下文、工具说明、配置面、native runtime 和维护成本都会变重。工具面越宽，模型越需要更好的 tool selection；否则 `search_tool_bm25`、tool gating、role-based model routing 这些机制本身又会变成新的复杂度来源。
+- **与 mini-SWE-agent 的对照**：mini-SWE-agent 押注“强模型 + 极简 bash loop”；oh-my-pi 押注“把 agent 常踩坑的工具能力都产品化”。二者不是谁消灭谁，而是两个边界测试：当任务短、repo 简单、模型强时，极简 harness 更稳；当任务需要 LSP/DAP/browser/memory/subagent/跨会话协作时，缺 runtime primitive 会把复杂度推回 prompt 和临时脚本。
+
+对 LoopX / Agent Harness 的启发：短期最值得借的是 protocol 形状，而不是整套大 harness。可以优先沉淀 `artifact:// / agent:// / memory:// / pr://` 这类统一 read surface、hash-based edit evidence、job lifecycle event、subagent yield schema、memory exposure trace、rule injection event；等真实 call site 出现，再决定要不要复制 LSP / DAP / browser / native PTY 这些更重能力。
 
 #### 极简 Agent 架构：mini-SWE-agent 的启示
 
@@ -2311,6 +2851,8 @@ Serving infra 层也有相同模式。Z.ai 的 Scaling Pain 把 GLM-5 在高并�
 
 ## Agent ToB&ToC 产品
 
+Tutti 也属于这一类 agent workspace 产品，但它的主贡献更偏 **shared workbench / workspace reference / local daemon**，详见上文 [Tutti：把多 agent 协作从 summary handoff 变成 shared workspace](#tutti把多-agent-协作从-summary-handoff-变成-shared-workspace)。按产品谱系看，它介于 ego lite 的 browser runtime、Raft 的 human-agent collaboration workspace、Flowith Matrix 的 agent organization 之间：先解决一个人和多个本地 agent / app 的上下文共享，再通过 Tutti VM 扩展到多人 Room。
+
 ### Raft（原 Slock）：human-agent 协作空间
 
 > 来源：[slock.ai](https://slock.ai/)（已跳转到 [raft.build](https://raft.build/)）、[Introducing Raft](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)、[Raft use cases](https://raft.build/resources/use-cases/)、第三方 setup guide [CodePick: Slock Setup Guide](https://codepick.dev/en/guides/slock-setup/)、npm 包 [`@slock-ai/daemon`](https://www.npmjs.com/package/%40slock-ai/daemon)（2026-06-15 `npm view` 显示已 renamed to `@botiverse/raft-daemon`）
@@ -2373,6 +2915,10 @@ Flowith 在 2026-06-23 预告 Matrix，把它定义为“0 人公司运行器”
 3. **Agent organization / company runner**：把多个 agents 编成团队、部门或公司，核心竞争从单次模型能力转向 control plane、权限、记忆、预算、审计和结果交付。
 
 ICLR 2025/2026 Agent 方向论文的综合启示：Agent 系统设计应以 protocol/schema 为底座、以 workflow 和 benchmark 为驱动、以 artifact/memory/recover 为核心运行能力。优先收敛 workflow 显式定义、benchmark runner、schema/protocol 层、memory update policy，而非过早扩张复杂多 Agent 协作。
+
+Multi-agent 的产品形态也可以按 sharing model 切：全量 shared workspace、mailbox + task / event ledger、session-to-session dialogue。Tutti 更像 shared workspace，Claude Code Agent Teams 主要是 mailbox + dialogue，LoopX 的短中期价值是把 mailbox + ledger 做成可恢复的 state kernel。概念层整理见 [SubAgent / Agent-as-Tool / MultiAgent](./AI-Applied-Algorithms.md#subagent--agent-as-tool--multiagent从多开模型到上下文与证据控制)。
+
+OpenAI ICML Q&A 图文线索给出的产品侧判断是：下一阶段 agent 产品不会只拼“单次回答更聪明”，而会拼长程运行、动态环境、可信 eval、样本效率、系统可靠性、个性化、可解释性和 human control。编码仍是最先商业化的入口，但更大的产品形态会走向交互式创作、完整项目代理、企业系统连接、AI for Science 和按任务 / 结果 / 成本节省定价。技术层整理见 [OpenAI ICML Q&A 图文线索](./AI-Applied-Algorithms.md#openai-icml-qa-图文线索下一阶段竞争从单次推理转向长程系统能力)。
 
 ### Agent Scaling 与群体智能
 
@@ -4687,9 +5233,13 @@ for hat in queue:
 
 
 
-## AI编程
+## AI 编程
 
-### Intro
+本节按七个问题组织：为什么 AI 编程先成熟、产品如何选、个人如何使用、系统如何规模化、质量如何闭环、团队如何协作，以及工具如何落地。
+
+### 核心判断与能力边界
+
+#### 为什么编程是当前最强的垂直领域
 
 * 「编程」是**目前大模型能力最强的垂直领域**，甚至超越了对「自然语言」本身的处理能力。因为：
 
@@ -4713,7 +5263,31 @@ for hat in queue:
 - **复利工程**：所有 agent 都在工作时，可以想想复利工程，想想怎么让 agent 自我闭环的程度进一步提升。审视每次需要人肉提供 context 的环节，逐渐优化提供给 agent 的 tools/skills。
 - **视角转向 SDLC 全流程**：看能否由 agent 来 100% 闭环软件开发生命周期的各个环节。
 
-### 产品
+#### 判断力是 AI 使用效果的上限
+
+* AI 祖师爷阿兰·图灵 1947 年在[伦敦数学学会的演讲](https://www.vordenker.de/downloads/turing-vorlesung.pdf)上说过：
+
+  * > ...if a machine is expected to be infallible, it cannot also be intelligent.
+
+  * --> 使用者的判断力，决定了 AI 能力的上限。 就像团队领导，是团队的上限一样。
+
+* AI 能力定律：AI 能力的上限，是使用者的判断力
+
+  * $$AI 能力 = \min(\text{AI 能力}, \text{使用者判断力})$$
+  * AI 提效定律：AI 提升的效率，与使用者的判断力成正比，与生产力成反比
+
+#### Generation is Cheap：Spec 变成稀缺输入
+
+&gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
+
+**Spec 与代码 Token 比例关系**
+
+- **比例**：spec 和代码 token 的比例关系大致为 1:5
+- **示例**：500 行代码大致对应 5000 token
+
+### 产品形态与选型
+
+#### 产品地图
 
 - [Cursor](https://www.cursor.com/)
 - [Windsurf](https://codeium.com/windsurf)
@@ -4725,7 +5299,8 @@ for hat in queue:
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
-##### 核心推荐
+**核心推荐**
+
 1. **Codex + gpt-5.3-codex 模型**
    - 超强的 code review 和 debug 能力
    - 复杂任务遵循能力令人印象深刻
@@ -4736,20 +5311,23 @@ for hat in queue:
    - 主要劣势是 token 价格比较贵
    - 策略上会比较保守地使用 context，导致天花板相对比较低
 
-##### 可关注产品
+**可关注产品**
+
 - **OpenCode**：尤其是需要用一些新模型如 DeepSeek-v3.2、GLM-5、Kimi-K2.5 做尝试时。可玩性很高，可以用不同模型的 sub agent 来完成不同类型任务，也支持使用各家 coding plan 订阅，还附带了个简易的网页端。
 - **Antigravity**：想利用 Gemini 强大的多模态理解能力，自带了浏览器操作能力，做前端开发可能尤其适合。此外它设计的 agent manager 个人也很喜欢。
 
-##### 模型厂商优势
+**模型厂商优势**
+
 模型厂商 20 美元的订阅费，能提供超过 100 美元的 token 用量。这一点往往是 Cursor 等第三方厂商无法比拟的。
 
 2026-06 补充：SemiAnalysis 对 ChatGPT/Codex 与 Claude 订阅的压测显示，模型厂商订阅优势本质是“容量交叉补贴 + 限流分层”，不是传统 SaaS 毛利。按 API 标价 75% gross margin 假设，重度 long-horizon coding 用户可能让 $200 plan 进入负毛利；详见 [非技术知识 - 大模型产品的成本结构](./非技术知识.md#大模型产品的成本结构从软件经济到制造业经济)。
 
-#### Codex VS. Claude Code：顶尖产品对比
+#### Codex vs. Claude Code：顶尖产品对比
 
 这两个顶尖产品之间的对比一直是个热门话题。
 
-##### Codex
+**Codex**
+
 - **形态**：一开始的形态是 web 端的异步工作 agent
 - **调教方向**：端到端、高质量地完成任务
 - **特点**：
@@ -4762,7 +5340,8 @@ for hat in queue:
   - 功能丰富程度相对低
   - 写 prompt 明显不如 opus
 
-##### Claude Code
+**Claude Code**
+
 - **形态**：cli 工具
 - **调教方向**：更看重持续的交互体验
 - **特点**：
@@ -4771,14 +5350,16 @@ for hat in queue:
   - 第一次的输出质量远不如 Codex，经常遗漏或者干脆放了个空实现，需要多次交互补齐
   - 工具整体的功能比较丰富，比如 hooks、sub agent、skills、tasks 等都是第一时间实现和支持，可玩性比较高
 
-##### 效率对比
+**效率对比**
+
 - 从效率角度来说，个人更倾向于 Codex，可以用异步多任务方式开发：
   - 单个任务工作时间更长，减少人的 context switch
   - 任务完成质量更高，大大减少了后续沟通和修改
 - Claude Code 的工作方式要么在 session 中持续工作、调整，要么就要面临高频 context switch，总体提效反而不高
 - 如果是简单的小修改，用 Claude Code 或者 Cursor 中直接选中代码 cmd + L 都是不错的快速解决方案
 
-##### 产品比较方式
+**产品比较方式**
+
 同一个代码项目，采用相同的 AGENTS.md 文件，使用同样的 prompt 来做某个开发任务：
 1. 两个 agent 完成后，分别创建 pull request
 2. 由两个 agent 分别 review 对比两个 pull request，让它们选择更好的那个
@@ -4805,7 +5386,60 @@ for hat in queue:
 - Computer Use 的价值在于补 CLI / API 不能覆盖的 GUI 环节，但应优先用于 scope 小、可回滚、可检查的任务。
 - Automations 适合做 thread heartbeat 或独立后台任务；和 skill 配合时，关键是把任务描述、报告条件、停止条件写得足够 durable。
 
-### AI Coding 的使用技巧
+#### Codex 产品工作形态：taste、dogfooding 与模型时机
+
+> 来源：[Founder Park 微信文章](https://mp.weixin.qq.com/s/wJrUsBSs0owDascwDZBd-w)，2026-07-02，已读正文；原访谈：[Lenny's Newsletter: OpenAI Codex lead on the new shape of product work](https://www.lennysnewsletter.com/p/openai-codex-lead-on-the-new-shape)，[podcast transcript](https://podscripts.co/podcasts/lennys-podcast-product-career-growth/openai-codex-lead-on-the-new-shape-of-product-work-andrew-ambrosino)。补充参考：[Justin M. Berg - The primal mark](https://justinmberg.com/research-pathdependence/)、[Linear](https://linear.app)、[LogRocket - Linear design](https://blog.logrocket.com/ux-design/linear-design/)、[Frontend Horse - The Linear Look](https://frontend.horse/articles/the-linear-look/)。
+
+这篇访谈的核心不是“PM 会不会消失”，而是 **AI 把实现成本降到很低之后，产品流程被倒置了**。过去实现昂贵，所以先调研、PRD、设计、原型，再进入工程；现在一个可运行、看起来像上线版的原型很便宜，真正稀缺的变成：该不该做、做到什么形态、什么时候做、用什么媒介表达、怎么从 90 个候选里折叠出正确方向。
+
+几个可复用判断：
+
+1. **Primal mark：原型也是第一笔**
+   - `primal mark` 来自 Justin M. Berg 的创造力研究，指创意生成中最开始的那一点内容，它会锚定后续方向。熟悉的第一笔更容易产生有用但不新颖的方案；新颖的第一笔更容易产生新颖但不够有用的方案；更好的路径是先从新颖处开始，再注入熟悉元素提高可用性。
+   - AI 时代的危险是：探索阶段的原型已经能做得像上线产品，团队容易被视觉完成度锚定，以为它已经过了产品、设计、商业和用户验证。正确做法是把 **artifact fidelity** 和 **decision maturity** 分开标注：原型可以很精致，但仍可能只是早期探索。
+
+2. **“去年每个新网站都在抄 Linear”**
+   - 这里说的网站是 [Linear](https://linear.app)：面向现代软件团队的产品开发 / issue / roadmap / AI agent 工作流工具。Andrew 的意思不是 Linear 设计不好，而是如果模型每次都输出 Linear 风格，说明它只学会了当下中位数审美，还没有真正的设计判断。
+   - Linear 风格大致是：暗色背景、强对比排版、极细边框、产品截图而非人物照片、bento grid、网格纹理、微妙渐变 / glow / glassmorphism、少量 CTA、单向滚动、信息线性展开。LogRocket 把它总结为顺序清晰、认知负担低、低噪声、高可读的 SaaS aesthetic；Frontend Horse 则从暗色、彩色模糊光、bento、细线、电路线、网格背景、边框高光等视觉材料拆解。
+   - 可偷的是原则，不是皮肤：Linear 的设计之所以成立，是因为它和产品价值一致，即速度、秩序、低噪声、工作流推进。如果一个产品没有这种内核，只复制暗色、渐变和细线，最后只会变成“更高级的同质化模板”。
+
+3. **产品的 baby 版本**
+   - `baby Cursor / baby Codex` 指一个大幅简化的代码库，能模拟正式产品的关键交互，但足够轻，适合设计师和 PM 快速 vibe code 交互方案。
+   - 它不是玩具 demo，而是新的设计媒介：把交互探索放进可运行软件里，同时避开生产代码复杂度。关键仍是阶段意识：baby 版本用于探索“侧边栏是否该这样动”“面板是否该这样出现”，不是证明需求已经成立。
+
+4. **无限 tokens 时代，稀缺的是 taste**
+   - 最有价值的人不只是会写代码，而是能从想法到完成全程推动，并且有品味判断“这个很棒”。taste 不只是审美，还包括系统位置、方向判断、表达方式、交互语义和抽象能力。
+   - 当 tokens、原型和文档都近乎无限，组织最怕的不是做不出来，而是制造大量垃圾内容、垃圾原型、垃圾功能请求。此时产品人的价值从“催产出”转向“滤噪声、折叠方向、定义边界、守住质量”。
+
+5. **Dogfooding 是不舒服的产品塑形机制**
+   - Codex 应用被 dogfooding 循环塑造：团队刻意尽可能多地在 Codex 里完成自己的工作，即使它暂时不是最好的工具。更极端的是，有时不直接优化内部流程，而是逼产品变好，让产品最终能支撑这些流程。
+   - 这种 dogfooding 的价值不在“吃苦”，而在把真实工作流痛点变成产品 primitive：日报、状态跟踪、浏览器使用、Computer Use、memory、automation、connector 边界，都是先从个人系统里长出来，再判断哪些应该变成一级体验。
+
+6. **同一个东西可能要发布六次，直到模型能力追上**
+   - AI 产品的可行性不只取决于功能形态，还取决于当前模型是否足够聪明。Codex web 的“给任务 -> agent 去做 -> 回来给结果”形态并不荒谬，只是当时模型不够好；Claude Code 更本地、更诚实、更会停下来问人，因此更匹配当时能力边界。
+   - 规划上应保留一个 `parking lot`：把感兴趣方向做成原型，判断“现在是否可行”；暂时不行的不要永久杀死，等模型能力跃迁后重新拿出来试。越近的计划越具体，越远的计划越模糊，否则就是虚假精度。
+
+7. **探索和打磨不能全压给同一个机制**
+   - 一个团队很难同时持续颠覆自己，又长期专注质量、性能、细节和一致性。AI 产品更需要双系统：一边是自下而上的探索文化，允许新形态颠覆既有产品；一边是主线产品的 polish、可靠性、质量门禁。
+   - 组织设计上，不能只说“每个人都是 builder”。角色边界可以变软，但产品、工程、设计、研究仍是有最佳实践的专业。更合理的形态是角色重叠增加，但每个人仍在某个能力分布上形成深度。
+
+8. **Codex 的愿景：工作大本营，而不是一个更大的矩形**
+   - Codex 的方向不是把所有事情塞进一个屏幕矩形里，而是成为开始工作、结束工作、管理自动化流程的大本营。它可以调用专业工具：Excel 仍负责财务模型，Premiere Pro 仍负责视频编辑，Notion / Linear / Salesforce 仍负责各自专业对象；Codex 负责协调、自动化、连接和复盘。
+   - 这解释了应用内浏览器、Chrome 扩展、Computer Use、connector 的共同方向：未来很多 SaaS 不是由人打开网页逐页操作，而是由 agent 在 Codex 里“由内而外”地调用。难点是边界设计：什么时候用 connector，什么时候用内置浏览器，什么时候接管 Chrome，什么时候退到 Computer Use。
+
+9. **工程实践：会写代码不稀缺，会删代码和拒绝功能更稀缺**
+   - 当 AI 写代码比例接近 100%，指标不再是“AI 写了多少”，而是代码是在监督下还是无人监督下写的。当前模型天然倾向增加复杂度，所以 autonomous development 的关键短板是让模型学会删代码、降复杂度、合并重复抽象。
+   - 同样地，feature request 也需要 harness：判断哪些值得做、哪些应该忽略、哪些应该合并后重新定义。产品型 agent 的评估不能只看“能否实现请求”，还要看是否能维护抽象边界、降低系统复杂度、拒绝错误方向。
+
+对 Agent Harness / OpenClaw 的直接启发：
+
+- `feature_request_triage_v0` 应区分 `do / ignore / merge / reframe / park_until_model_capability`，而不是把每个请求都转成任务。
+- `prototype_maturity_v0` 应同时记录 `fidelity` 和 `decision_maturity`，避免高保真原型伪装成已验证方向。
+- `dogfood_loop_v0` 应把个人工作流痛点沉淀成 candidate primitive，再通过复用率、失败模式、人工介入点判断是否产品化。
+- `code_cleanup_agent_v0` 的目标不是“继续改进”，而是删除 dead code、合并重复抽象、降低状态数、保留回归测试和证据链。
+- `model_capability_gate_v0` 应允许一个 feature 现在暂停、未来重试；失败不只归因于产品形态，也可能归因于模型能力窗口未到。
+
+### 使用方法与个人工作流
 
 #### Agent Skills
 
@@ -4962,6 +5596,8 @@ Agent Skills 是可扩展 AI 助手能力的模块化技能包，补充特定领
 
 Ralph Loop 是让 AI 持续工作的循环机制。
 
+2026-07 补充：Humanize / RLCR 可以看作 Ralph Loop 的工程化版本。它不是只让 Claude Code 任务做完后自动重启，而是在每轮退出前加入 plan understanding、round summary、goal tracker、Codex summary review、`codex review --base` 和 BitLesson 过程记忆；详见 [Agent 应用技术架构 - Humanize](#humanize用-codex-review-把-ralph-loop-变成工程闭环)。
+
 * 核心思想：
   * 维护一个任务列表
   * AI 从列表中逐个取出任务执行
@@ -5086,27 +5722,16 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 - long-running coding agent 的关键不是无限循环，而是每个 task 都有独立 session、独立 workspace、明确验收信号和可回放 trace。
 - 多 agent / subagent 是否有价值，取决于任务能否拆成低耦合、可验证、可合并的单元；否则并行只会放大 review 和回归成本。
 
-### 检索的实现
+### 技术基础与规模化执行
+
+#### 代码检索：工具搜索与 Embedding
 
 * Claude Code  的同学提到过，他们不会对代码库做 Embedding 或索引，而是直接提供工具，用工具来做代码搜索
 * **代码 Embedding 被低估**
 
-### 理论
+#### GitHub Copilot：产品演进与补全原理
 
-* AI 祖师爷阿兰·图灵 1947 年在[伦敦数学学会的演讲](https://www.vordenker.de/downloads/turing-vorlesung.pdf)上说过：
-
-  * > ...if a machine is expected to be infallible, it cannot also be intelligent.
-
-  * --> 使用者的判断力，决定了 AI 能力的上限。 就像团队领导，是团队的上限一样。
-
-* AI 能力定律：AI 能力的上限，是使用者的判断力
-
-  * $$AI 能力 = \min(\text{AI 能力}, \text{使用者判断力})$$
-  * AI 提效定律：AI 提升的效率，与使用者的判断力成正比，与生产力成反比
-
-### Github Copilot
-
-#### Intro
+**产品演进与使用经验**
 
 * [Inside GitHub: Working with the LLMs behind GitHub Copilot](https://github.blog/2023-05-17-inside-github-working-with-the-llms-behind-github-copilot/)
   * Prompt crafting
@@ -5139,7 +5764,7 @@ Ralph Loop 是让 AI 持续工作的循环机制。
     * 实验特性，在Copilot中，大量的参数、优先级、设置字段都是通过实验来控制的，有一套完整的监控上报体系，帮助Copilot去调整这些参数，以达到更好的效果
   * [GitHub Copilot 深度剖析](https://xie.infoq.cn/article/06aabd93dc757a1015def6857)
 
-#### 基本原理
+**基本原理**
 
 - 模型层：最初使用 OpenAI Codex 模型，它也是 GPT-3.5、GPT-4 的「一部分」。[现在已经完全升级，模型细节未知](https://github.blog/2023-07-28-smarter-more-efficient-coding-github-copilot-goes-beyond-codex-with-improved-ai-model/)。
 
@@ -5166,13 +5791,14 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 
 ![efficency](./AI-Agent-Product&PE/copilot-efficency.png)
 
-### 远程开发的两种选型
+#### 远程开发的两种选型
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
 通过自然语言就能完成大多数的开发任务，自然会想着在手机端是不是也能随时随地指派任务给 agent。
 
-#### 选型一：AI coding 工具沙箱 Web UI
+**选型一：AI coding 工具沙箱 Web UI**
+
 - **产品**：Codex、Claude Code、Jules 等产品提供的 web/app 版
 - **特点**：
   - 随时随地可以启动 agent 任务
@@ -5183,7 +5809,8 @@ Ralph Loop 是让 AI 持续工作的循环机制。
   - 沙盒自身具备的能力也有限（相比自己用的开发机）
   - 目前的场景仍然比较受限
 
-#### 选型二：本地开发机改造为云服务
+**选型二：本地开发机改造为云服务**
+
 - **启发**：受到"大龙虾"的启发
 - **方案**：
   - 在虚拟机或 mac mini 上部署开发环境
@@ -5192,21 +5819,25 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 - **特点**：
   - 能够有更持续的 session 和完整的工具能力
 
-### Generation is Cheap 和 Spec 概念
+#### 长程、并行与自我闭环
 
-&gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
-
-#### Spec 与代码 Token 比例关系
-- **比例**：spec 和代码 token 的比例关系大致为 1:5
-- **示例**：500 行代码大致对应 5000 token
-
-### 长程任务 Context 压力的解决方案
+**管理 Context 压力**
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
 一些 coding agent 产品应对复杂、长程任务带来的 context 压力的方案。
 
-### 并行工作思路
+* 对于比较深入的 [long horizon](https://zhida.zhihu.com/search?content_id=770339889&content_type=Answer&match_order=1&q=long+horizon&zhida_source=entity) 任务，OpenAI 看起来更倾向于单 agent 工作，利用自带的 context 压缩能力来支持超长上下文。而采用多 agent 方案的产品，一般会给 agent 提供基于文件系统的 context 共享机制，本质上也是避免信息传递的损耗。
+
+* 对于可以拆分成很多独立任务的（wide）场景，拆分任务让多个 agent 并行工作是不错的思路，比如 Claude Agent Team，Manus 的 wide research 等。显然 wide 和 deep 这两种场景的方案是可以结合起来的。
+
+* 还有种比较有意思的拆分方式是类似 [oh-my-opencode](https://link.zhihu.com/?target=https%3A//github.com/code-yeongyu/oh-my-opencode) 中的做法，根据任务属性，分派给不同的 sub agent，每个 agent 可以选择最合适的模型来工作。
+
+
+
+
+
+**并行执行：提高吞吐**
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
@@ -5220,7 +5851,7 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 - 可以同时 kick off 多个任务或 Plan 任务然后统一 review
 - 充分利用模型厂商提供的高 token 用量优势
 
-### 减少人的 Context Switch：核心是让 Agent 自我闭环
+**减少人的 Context Switch**
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
@@ -5237,7 +5868,7 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 **优化方向：**
 - 审视每次需要人肉提供 context 的环节，逐渐优化提供给 agent 的 tools/skills
 
-### SDLC 各环节的 Agent 闭环
+### SDLC 质量保障与交付闭环
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
@@ -5294,6 +5925,31 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 
 发布之前除了 review，验收的很大一部分需要依赖测试。而发布之后的各类工程护栏也显得愈发重要。
 
+**Agent 代码的信任面：从实现 review 上移到可执行规格**
+
+> 来源：[《世界级编程大师：AI 写的代码，我一行都不看》](https://zhuanlan.zhihu.com/p/2064337707220964585)，机器之心对 Robert C. Martin 公开讨论的转述。测试概念见 [Software Engineering：软件测试与质量保障](Software-Engineering.md#软件测试与质量保障从规格到生产)。
+
+文章表面的激进主张是“不逐行阅读 Agent 代码”，实际工作流仍保留了明确的人类控制面：
+
+- Agent 生成实现与单元测试。
+- 人类审查 Gherkin 验收规格和 QA 流程，控制“什么才算正确”。
+- 关键功能全面 review，普通功能按风险抽查。
+- 最后进行人工探索和真实产品验收。
+
+因此，减少的是对所有实现细节的逐行检查，不是取消验证。Review budget 从大批量实现代码上移到规格、assertion、架构决策、高风险 diff 和发布证据。
+
+```text
+human-owned specification / risk
+-> agent implementation + unit tests
+-> independent static / mutation / integration / acceptance gates
+-> risk-based code review
+-> manual QA + canary + production feedback
+```
+
+这里的承重墙是**验证依据必须独立于实现**。如果同一个 Agent 同时解释需求、写实现、修改测试并宣布完成，测试很容易退化成 self-confirmation：贴合当前实现、提高 coverage，却没有辨别错误的能力。Gherkin 让人类审查外部行为；mutation testing 则通过主动改坏代码，检查 Agent 编写的测试是否真的会失败。
+
+这套方法仍不能推出“通过测试等于正确”。测试只能验证已经写进规格的条件，无法证明需求完整，也难以独立覆盖架构退化、安全边界、并发、数据迁移和未知交互。高风险模块仍需要针对性 code review、威胁建模和生产护栏。**代码生成吞吐上升后，质量控制从阅读每一行，转向维护一套独立、分层、难以被实现方共同操纵的验证系统。**
+
 **核心问题：**
 
 如何让 agent 提交的代码，能在一个完善的保障体系下被持续地、安全地合并进 main。
@@ -5322,13 +5978,13 @@ Ralph Loop 是让 AI 持续工作的循环机制。
 
 观察人工工作占比大的地方，逐渐优化。例如：代码合并后，让 agent 自行验证 API 是否正常工作，以及后续可以自行维护和执行自动化集成测试。
 
-### 项目管理：Backlog/Tasks 文件夹化
+#### 项目管理：Backlog/Tasks 文件夹化
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
 backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里，基于 git 来做项目管理。后续可以搞个 proactive agent，不断地扫描还未完成的任务，自动捞出来做。
 
-### 第三阶段：组织变革
+### 团队协作、组织与职业变化
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
@@ -5387,7 +6043,26 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
    - 观念保守的员工可能在原有工作流程下不会觉得有任何问题
    - 管理者需要意识到这些变化，做一些主动设计
 
-### 程序员的发展方向
+#### 飞书 CodeM：AI Coding 从个人工具进入团队协作面
+
+> 来源：[飞书 CodeM 发布，AI Coding 正式迈入“团队协同”](https://mp.weixin.qq.com/s/kZgCl9dXXK5ytGEdMtkcmw)，公众号正文目前只抽取到视频页标题、作者与发布时间；结合飞书官方关于 [Lark Coding Agent Bridge](https://www.feishu.cn/content/article/7647408304896953549) 与 [飞书 CLI](https://www.feishu.cn/content/article/7623291503305083853) 的公开材料理解。
+
+这条材料的价值不在于某个单点功能，而是一个产品方向信号：AI Coding 正在从“个人在 IDE / terminal 里和 agent 对话”，迁移到“团队协作系统里管理 agent 工作”。CodeM 这个名字本身可以先当作飞书对 AI Coding 协作入口的产品化尝试看待。
+
+传统 coding agent 的主要摩擦是协作对象不在同一个工作面里：需求在群和文档里，任务状态在项目管理工具里，执行过程在 terminal / IDE 里，结果又要贴回群、文档、PR 或任务卡片。个人效率提升越大，团队层面的同步、验收、追踪和责任边界反而越容易成为新瓶颈。
+
+飞书系产品的天然切入点是把 coding agent 接进协作底座：
+
+- **入口协同**：从群聊、话题、文档、任务、卡片中发起或追踪 coding agent，而不是只在本机 terminal 中操作。
+- **过程可见**：把 agent 的计划、进度、阻塞、结果和证据变成团队可读对象，减少截图、复制粘贴和口头同步。
+- **人类 gate**：代码生成之后，团队仍需要 review、权限确认、任务验收、发布确认；协作系统比纯 IDE 更适合承载这些 gate。
+- **组织记忆**：session、需求讨论、验收意见、复盘和文档可以沉淀在同一个协作空间里，便于后续成员接手。
+
+更抽象地说，AI Coding 的下一阶段竞争点不是“模型会不会写代码”，而是 **agent work 如何被组织接纳**：谁能发起任务，谁能看到过程，谁能确认完成，失败证据在哪里，结果如何进入已有研发流程。个人 IDE / CLI 解决的是 developer-agent 带宽；飞书 CodeM 这类方向解决的是 team-agent 带宽。
+
+对 LoopX / Agent Harness 的启发：不要只把 agent runtime 做成“更强的单人循环”，还要考虑团队协作层需要的状态对象：task ledger、progress stream、human gate、evidence refs、handoff note、review packet、release decision。团队协同不是把完整上下文共享给所有人，而是把关键状态、证据和决策点变成可订阅、可追踪、可验收的对象。
+
+#### 程序员的发展方向
 
 &gt; 来源：https://www.zhihu.com/question/1999136031413384196/answer/2009032881960424982
 
@@ -5412,13 +6087,15 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
 - 借助 AI 来做基于实战的学习变得前所未有的高效
 - 只要对于软件的诉求在不断增长，相信程序员这个职业仍然能得到很好的发展
 
-### 度量
+### 工程基础设施、工具生态与应用
+
+#### 度量与遥测
 
 ![info_collection](./AI-Agent-Product&PE/info_collection.png)
 
-### 本机部署
+#### 本机部署与开源模型
 
-#### Tabby
+**Tabby**
 
 * Tabby：https://tabby.tabbyml.com/
 
@@ -5460,7 +6137,7 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
 
 
 
-#### 开源编程大模型
+**开源编程大模型**
 
 * [Code Llama](https://ai.meta.com/blog/code-llama-large-language-model-coding/) - Meta 出品，可能是开源中最强的 （7B、13B、34B、70B）
 * [DeepSeek-Coder](https://github.com/deepseek-ai/DeepSeek-Coder) - 深度探索公司出品（1B、5.7B、6.7B、33B）
@@ -5468,7 +6145,7 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
 
 
 
-### 强Agent尝试 -- 自动编写代码的机器人
+#### 强 Agent 产品实验：自动编写代码的机器人
 
 * **Agent 的落地难题**
   * Agent 落地需要两个条件：
@@ -5525,7 +6202,7 @@ gpt-engineer .
 
 
 
-### 其它工具
+#### 其他工具
 
 1. [Tongyi Lingma](https://tongyi.aliyun.com/lingma) -- 代码补全，免费。阿里云相关。
 2. [CodeGeeX](https://codegeex.cn/) -- 清华智谱制造，CodeGeeX 3 Pro 免费可用
@@ -5536,7 +6213,7 @@ gpt-engineer .
 7. [Tabnine](https://www.tabnine.com/) - 代码补全，个人基础版免费
 8. [Amazon CodeWhisperer](https://aws.amazon.com/codewhisperer/) - 代码补全，免费。AWS 相关的编程能力卓越。其它凑合
 
-### 应用
+#### 应用场景与案例
 
 * 提效落地场景：
   * 市场调研
@@ -5557,7 +6234,7 @@ gpt-engineer .
 
 * [gpt-4-chatall](AIGC/gpt-4-chatall.png) 演示用GPT-4创建应用框架
 
-#### 背单词App
+**背单词 App**
 
 ![image-20250616171742672](./AI-Agent-Product&PE/image-20250616171742672.png)
 
@@ -6917,6 +7594,20 @@ finetuning分类
 **预言**（Lovart 创始人陈冕）：
 - 26 年将是非效率类 AI C 端产品爆发的元年
 - 工具属性之外，更具情感价值、娱乐价值与交互深度的新产品或许即将出现
+
+##### Vivix：从个性化分发到个性化生成
+
+> 来源：[智能涌现：AI圈最神秘的一家公司，终于公开了它的“豪赌”](https://mp.weixin.qq.com/s/93j_bE9NUVodpfahOZZcKA)，2026-07-21；官方核验：[Vivix-W1](https://vivix.ai/vivix-w1)、[Vivix-A1](https://vivix.ai/vivix-a1)。模型机制见 [AI-Algorithms：实时交互生成](./AI-Algorithms.md#实时交互生成从-next-token-到-next-reaction-prediction)。
+
+Vivix 押注让内容在消费过程中持续生成，目标不止于降低短视频、短剧的制作成本：用户的文本、语音、触控、镜头和角色动作都能改变故事后续。推荐系统解决“每个人看到什么”，实时交互模型进一步尝试“每个人看到的内容如何因自己的动作而变化”。
+
+这条路线的产品难点先于规模化分发：**什么交互值得用户反复参与，什么内容比固定视频更有消费力**。Vivix 早期的 7Verse、TipTap 等原型主要用于验证交互格式和模型能力，没有被当成最终产品。产品原型在这里承担 model probe 的角色：暴露延迟、连续性、可控性、故事感和用户参与意愿，再把反馈送回数据与模型训练。
+
+首批场景选择游戏和直播：游戏提供高频、多对多的 action-state 数据，直播具备一对多分发和更高的商业转化上限；二者都能容纳较高的单位时间 token 消耗。是否成立仍取决于一组联合指标：首帧/首次反应时延、每小时生成成本、长时序一致性、互动密度、单次消费时长、留存和付费。这组指标比单一画质榜单更接近产品成败。
+
+模型公司与应用公司的边界也更清楚：Vivix 近期以模型 API 为主，提供实时理解、交互和生成引擎；客户沉淀自己的 harness，包括角色人格、故事机制、数值系统、商品呈现、定价和分发。底层模型能力最终可能趋同，场景数据、用户关系、交互设计和渠道决定应用层附加值。
+
+证据边界：W1/A1 官网与技术报告已公开模型定位、流式架构和演示，但成本、TTFF/TTFR、训练数据规模及商业进展主要来自创始人口述或厂商自评，尚缺第三方 benchmark、真实留存和单位经济性数据。现阶段可确认的是一种新的模型—产品协同方向，不能据此断言它会取代短视频或推荐系统。
 
 #### AI for Science
 

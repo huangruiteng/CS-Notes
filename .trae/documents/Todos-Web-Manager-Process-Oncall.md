@@ -31,22 +31,22 @@
   - 默认 `WEB_MANAGER_DEBUG=0`
   - 仅当显式设置 `WEB_MANAGER_DEBUG=1` 时开启 debug/reloader
 
-- `Notes/snippets/todos-web-manager/start.sh`
+- `snippets/todos-web-manager/start.sh`
   - 统一本地启动入口
   - 启动前检查 `flask` / `flask_cors` 是否存在
   - 默认只绑定 localhost
   - 日志目录：`.local/todos-web-manager/logs/`
 
-- `Notes/snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist`
+- `snippets/todos-web-manager/launchd/com.huangrt.csnotes.todos-web-manager.plist`
   - `RunAtLoad=true`
   - `KeepAlive.SuccessfulExit=false`
   - `ThrottleInterval=30`
   - stdout/stderr 固定写入 `.local/todos-web-manager/logs/`
 
-- `Notes/snippets/todos-web-manager/install-launchd.sh`
+- `snippets/todos-web-manager/install-launchd.sh`
   - 安装并加载 LaunchAgent
 
-- `Notes/snippets/todos-web-manager/uninstall-launchd.sh`
+- `snippets/todos-web-manager/uninstall-launchd.sh`
   - 卸载 LaunchAgent
 
 ## 使用方式
@@ -54,13 +54,13 @@
 手动前台启动：
 
 ```bash
-Notes/snippets/todos-web-manager/start.sh
+snippets/todos-web-manager/start.sh
 ```
 
 安装为 macOS 登录后常驻服务：
 
 ```bash
-Notes/snippets/todos-web-manager/install-launchd.sh
+snippets/todos-web-manager/install-launchd.sh
 ```
 
 查看状态：
@@ -75,7 +75,7 @@ tail -f .local/todos-web-manager/logs/launchd.err.log
 卸载：
 
 ```bash
-Notes/snippets/todos-web-manager/uninstall-launchd.sh
+snippets/todos-web-manager/uninstall-launchd.sh
 ```
 
 ## 后续建议

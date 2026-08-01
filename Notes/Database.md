@@ -632,8 +632,8 @@ LIMIT 100;
 
 #### PyMongo 代码示例
 
-- 基础操作（CRUD / 索引 / 地理空间 / 时序集合 / 聚合）：`Notes/snippets/db-mongodb-basic.py`
-- 聚合管道进阶（TF-IDF / 分布式分片 / 时序查询）：`Notes/snippets/db-mongodb-aggregation.py`
+- 基础操作（CRUD / 索引 / 地理空间 / 时序集合 / 聚合）：`snippets/db-mongodb-basic.py`
+- 聚合管道进阶（TF-IDF / 分布式分片 / 时序查询）：`snippets/db-mongodb-aggregation.py`
 
 #### 使用
 

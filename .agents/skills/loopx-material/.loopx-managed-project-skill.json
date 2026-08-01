@@ -1,0 +1,8 @@
+{
+  "delivery": "project_managed_copy",
+  "loopx_version": "0.2.13",
+  "schema_version": "loopx_managed_project_skill_v0",
+  "skill_id": "loopx-material",
+  "source_digest": "b516b249b04df634378044bb042d9fd6738958a7adcb6497bdcb5df8e7253ed6",
+  "surface": "codex"
+}
