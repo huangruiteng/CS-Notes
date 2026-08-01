@@ -3148,6 +3148,65 @@ Q-Former 通过两阶段训练实现图文对齐，每个阶段使用不同的�
 
 ### 图像和视频生成
 
+#### 视频生成模型基础：从时空 latent 到迭代生成
+
+当前主流视频生成模型常把原始视频压缩到 latent space，再在低维时空表示上生成。也存在自回归 video token 和混合路线；下文聚焦目前常见的 latent diffusion / flow 架构：
+
+```text
+文本 / 图像 / 音频条件
+        ↓ encoder
+真实视频 → Video VAE Encoder → 时空 latent / spacetime patches
+                                  ↓ Diffusion Transformer / Flow Transformer
+随机噪声 → 多次预测更新方向 → clean latent
+                                  ↓ Video VAE Decoder
+                               最终视频
+```
+
+**Video VAE 与 spacetime patch**
+
+- Video VAE 同时压缩空间分辨率和时间长度，避免直接在所有 RGB 像素上训练与采样；
+- latent 再切成时空 patch，形成 Transformer 可处理的 token；
+- token 不只表示“图像的一个小块”，还带有时间位置，因此位置编码要同时表达帧、宽和高；
+- DiT 里的 Transformer 通常是 denoiser / velocity predictor，不等于 LLM 那种逐 token 自回归解码器。
+
+这种表示可以统一不同分辨率、宽高比和时长的视频，但序列长度仍随空间和时间共同增长，计算量远高于单张图像。
+
+**Diffusion 与 Flow Matching**
+
+Diffusion 训练把 clean latent 扰动到不同噪声强度，再学习反向恢复；Flow Matching 则在噪声分布与数据分布之间选定概率路径，采样路径上的中间状态并回归对应向量场。常见预测参数化包括：
+
+| 目标 | 直觉 |
+|---|---|
+| noise | 当前 latent 中加入了多少噪声 |
+| clean sample | 原始 clean latent 应是什么 |
+| score | 当前概率密度上升最快的方向 |
+| velocity | 从噪声分布流向数据分布的瞬时方向 |
+
+Flow Matching 直接回归连续概率路径上的向量场：
+
+$$
+\frac{d z_t}{dt}=v_\theta(z_t,t,c)
+$$
+
+其中 `z_t` 是时间 `t` 的 noisy latent，`c` 是文本、参考图或其它条件。推理从高斯噪声出发，用数值求解器多次调用模型，逐步走到可解码的视频 latent。Diffusion 与 Flow Matching 的数学参数化不同，但工程心智模型相近：**模型学习每一步往哪里走，sampler 决定怎样沿这条路径走。**
+
+一次 denoiser / velocity model 调用称为一次 NFE（Number of Function Evaluations）。NFE 越高，通常越容易获得稳定细节，但延迟和成本也越高；少步蒸馏的核心就是让 student 用更少 NFE 跨过近似相同的生成路径。
+
+**视频比图像多出的难点**
+
+| 维度 | 典型问题 |
+|---|---|
+| 单帧视觉质量 | 纹理、清晰度、构图、审美 |
+| 时间一致性 | 闪烁、形变、物体突然出现或消失 |
+| 运动合理性 | 速度、接触、遮挡、人体动作与物理约束 |
+| 主体一致性 | 人脸、服装和物体在跨帧、跨镜头后保持身份 |
+| 镜头与叙事 | 运镜、景别切换、多镜头因果和场景连续性 |
+| 条件控制 | prompt、首尾帧、reference、轨迹和音频是否被正确遵循 |
+
+因此视频模型的能力不只来自 backbone。完整链路通常还包括视频筛选与重标注、渐进式分辨率/时长训练、SFT、视频 reward model / 偏好优化、rejection sampling、少步蒸馏，以及 VAE、attention 和 GPU kernel 优化。只看最终模型结构，无法解释全部质量差距。
+
+参考：[DDPM](https://arxiv.org/abs/2006.11239)、[Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747)、[Sora：Video generation models as world simulators](https://openai.com/index/video-generation-models-as-world-simulators/)、[Seedance 1.0 技术报告](https://arxiv.org/abs/2506.09113)。
+
 #### rejection sampling
 
 本质是 **"生成一批样本，筛选后保留优质样本" 的后处理方法 **。
@@ -3159,6 +3218,55 @@ Q-Former 通过两阶段训练实现图文对齐，每个阶段使用不同的�
 - 论文中的 "评判标准"：类条件生成用预训练的 ResNet-101 分类器（判断生成样本是否符合目标类别），文本条件生成用 CLIP 模型（判断生成图像与文本的对齐度）。
 
 评估使用 acceptance rate
+
+#### 视频生成模型蒸馏：白盒轨迹压缩与黑盒成片模仿
+
+视频生成模型并非不能蒸馏。需要区分两类目标：
+
+| 目标 | Teacher 暴露的信息 | 本质 |
+|---|---|---|
+| 少步生成 / 推理加速 | 权重、score / velocity、噪声状态和去噪轨迹 | 真正的 diffusion / flow distillation |
+| 从闭源 API 复刻能力 | prompt 与最终成片 | 合成数据模仿，通常不是过程蒸馏 |
+
+扩散或 flow model 的核心知识不是某一张最终成片，而是任意噪声状态和时间点上的更新方向：
+
+$$
+v_T(x_t,t,c)
+$$
+
+白盒蒸馏可以让 student 在相同条件、噪声和中间状态上逼近 teacher 的 score、velocity 或完整轨迹，用更少的 NFE（Number of Function Evaluations）跨过原来的多步去噪路径。这里常被压缩的是**采样步数**，student 不一定同时拥有更少参数。Consistency distillation、trajectory distillation 和 distribution matching 都属于这条路线；工业视频模型也已用多阶段蒸馏显著降低推理成本。
+
+黑盒 API 只返回终点：
+
+$$
+x_0 \sim p_T(x\mid c)
+$$
+
+它没有暴露“模型怎样从噪声走到该视频”。用这些成片继续训练当然可行，但更接近构造 synthetic dataset，主要受四个问题限制：
+
+1. **多解性**：同一 prompt 有大量合理视频，逐像素不同不代表语义或质量错误。
+2. **高维时空分布**：画风和常见构图较容易模仿，运动、遮挡、身份一致性、镜头连续性和物理规律需要远多于单帧的覆盖。
+3. **模式覆盖不足**：一次 API 返回只是条件分布中的一个样本；看不到其它生成 mode、失败候选和 reward model 淘汰的负例。
+4. **过程监督缺失**：拿不到 score、teacher logits、相同 noise 下的轨迹与中间 latent，监督从密集过程信号退化成稀疏终局样本。
+
+与 LLM 蒸馏的差异主要来自生成目标，而不是“一个用了 Transformer、另一个没有”：
+
+| 自回归 LLM | 扩散 / Flow 视频模型 |
+|---|---|
+| 学习离散的 `p_T(next token | prefix, prompt)` | 学习连续 latent 上的 `v_T(noisy latent, time, condition)` |
+| 白盒时可逐 token 匹配 logits | 白盒时可在多个时间点匹配 score / velocity |
+| 最终文本仍可拆成 token 级 SFT 监督 | 最终成片只暴露整条轨迹的终点 |
+| 黑盒蒸馏同样损失 logits，但文本是高度压缩的语义表示 | 视频包含高维空间、时间和运动自由度，输出模仿的样本复杂度更高 |
+
+因此，结构差异会放大难度，但不是不可蒸馏的理论边界。决定能否逼近 teacher 的关键变量是：
+
+```text
+teacher access × 轨迹监督密度 × 条件分布覆盖 × student 容量 × 自有数据和 reward 系统
+```
+
+一句话：**有白盒 teacher 时，视频模型可以做轨迹级少步蒸馏；只有成片时，只能从终点反推分布，能追近风格和高频能力，却很难低成本复制运动模型、控制能力和偏好边界。**
+
+参考：[Seedance 1.0 技术报告](https://arxiv.org/abs/2506.09113)、[Accelerating Video Diffusion Models via Distribution Matching](https://arxiv.org/abs/2412.05899)、[Consistency Trajectory Models](https://arxiv.org/abs/2310.02279)、[Sequence-Level Knowledge Distillation](https://arxiv.org/abs/1606.07947)、[On-Policy Distillation of Language Models](https://arxiv.org/abs/2306.13649)。
 
 
 #### 音视频联合生成
@@ -3212,6 +3320,35 @@ Q-Former 通过两阶段训练实现图文对齐，每个阶段使用不同的�
   - 视频：24 fps，每秒 24 帧
   - 音频：44100 Hz / 2048 ≈ 21.5 步/秒
 - 通过 `build_aligned_freqs()` 构建对齐的 RoPE 频率，将两者映射到统一时间坐标系，确保时序对齐
+
+#### 实时交互生成：从 next-token 到 next-reaction prediction
+
+> 来源：[智能涌现：AI圈最神秘的一家公司，终于公开了它的“豪赌”](https://mp.weixin.qq.com/s/93j_bE9NUVodpfahOZZcKA)，2026-07-21；一手资料：[Vivix-W1 Technical Report](https://vivix.ai/tech-report-vivix-w1)、[Vivix-A1 Technical Report](https://vivix.ai/tech-report-vivix-a1)。
+
+离线视频生成把 prompt、图像或音频作为初始条件，一次性生成完整 clip；实时交互生成则把用户的新动作持续写入生成过程，让当前状态在不重启的情况下改变后续音视频流。核心建模对象从“下一帧长什么样”扩展为“给定历史状态和当前交互，世界接下来如何反应”。
+
+创始人在访谈中把训练单元称为 **next reaction prediction**，包含三个部分：
+
+1. **理解**：过去发生了什么，包括场景、人物、声音和交互历史；
+2. **交互**：用户做了什么，包括文本、语音、触控、镜头与角色运动等原生信号；
+3. **生成**：交互发生后，下一段画面、声音、动作和叙事如何变化。
+
+游戏 replay、仿真日志等数据可以记录初始状态和完整操作序列，天然形成 `state + action -> next state` 的自监督样本。它比“视频转文字、再用文字控制视频”保留了更多时间、动作和环境信息。但 Vivix 尚未公开具体训练目标、数据混合比例和消融实验，`next reaction prediction` 目前更像数据范式与任务定义，而不是可复现算法。
+
+**Streaming-native 模型**
+
+- **W1**：约 30B active parameters 的中等规模版本。模型按细粒度音视频 segment 持续生成，新交互可在生成过程中进入 context；同时建模音画联合生成、多镜头叙事、多模态 reference 和长时序一致性。Vivix-Turbo 再用低步数蒸馏、长序列连续性优化、误差累积抑制和 reference consistency 降低实时推理成本。
+- **A1**：面向角色交互，将传统 `LLM -> TTS -> avatar` 串联管线改成原生多模态生成 loop，并用 Director Agent 做高层规划。短段之间的 local continuity prior 维持局部连贯，global sequence prior 维持长程身份和场景一致性；联合蒸馏把生成压到 2 steps，并同时约束 latent 与 raw data space。
+
+实时生成的系统目标不只是画质。W1 报告估算视频交互的有效 token throughput 比文本高约 $$10^3-10^4$$ 倍，因此需要同时优化：
+
+$$
+\text{interactive utility}=f(\text{latency},\text{cost},\text{quality},\text{consumption value})
+$$
+
+访谈给出的产品口径是 TTFF 约 300–600 ms、端到端 TTFR 约 1 s，单位成本以 YouTube 每小时约 0.2 美元的 CDN/带宽成本为目标。官方技术报告只确认 streaming generation、second-level latency 和低步数蒸馏，没有公开可复现的成本—延迟—质量联合 benchmark；这些数字应视为厂商自述的阶段性工程指标。
+
+这里的“世界模型”是功能主义定义：模型根据可观测的音视频状态和人类动作生成下一状态，服务互动叙事、游戏、直播或数字人。它不等于学习完整物理规律，也不能仅凭 demo 证明开放世界中的因果理解。当前 W1 的限制仍包括专业画质、复杂运动和密集场景；A1 仍会出现动作不一致、交互漂移与物理 grounding 错误。
 
 ## VLA (Vision Language Action) and Robot Foundation Model（具身智能）
 

@@ -300,54 +300,128 @@ close(resultsChan) // 所有任务完成后，安全关闭 Channel
     *   **正确写法**：将变量作为**参数传递**给匿名函数（如上例中的 `val`），或者在循环内部重新赋值（`v := item`）。
 *   **defer wg.Done()**：务必使用 `defer`，确保即使函数发生 panic 或提前 return，计数器也能正确减少，防止死锁。
 
-### sync.Map vs Map (Thread Safety)
+### `sync.Map`：专用并发 Map，不是 `map + Mutex` 的默认升级
 
-*   **普通 Map (`map`)**
-    *   **非线程安全**：在多个 Goroutine 中并发读写（或至少有一个写）同一个 map 会导致 **fatal error: concurrent map writes** (Panic 且无法 recover)，导致程序 crash。
-    *   **解决方案**：使用 `sync.RWMutex` 或 `sync.Mutex` 进行加锁保护。
+普通 `map` 允许多个 goroutine 并发读，但只要读写并发或写写并发且没有同步，就会产生 data race，并可能触发 `concurrent map read and map write` / `concurrent map writes` 等 fatal error。通用解法仍是用 `sync.Mutex` 或 `sync.RWMutex` 保护一个类型明确的普通 `map`。
 
-*   **sync.Map**
-    *   **用途**：Go 1.9 引入的**线程安全**的 Map 实现。
-    *   **特点**：
-        1.  **无需加锁**：内部实现了复杂的锁机制和原子操作，开箱即用。
-        2.  **类型擦除**：Key 和 Value 都是 `interface{}` 类型，使用时需要进行**类型断言**。
-    *   **适用场景**：
-        1.  **读多写少**：Key 集合稳定，写入很少，读取很多。
-        2.  **Key 分离**：多个 Goroutine 读写 disjoint (不相交) 的 Key 集合。
-    *   **性能权衡**：在普通场景下（如频繁读写不同 Key），性能可能不如 `Mutex + Map`。
-    *   **常用方法**：
-        *   `Store(key, value)`: 存储
-        *   `Load(key)`: 读取
-        *   `LoadOrStore(key, value)`: 读取或存储（原子操作）
-        *   `Delete(key)`: 删除
-        *   `Range(func(key, value interface{}) bool)`: 遍历
+[`sync.Map`](https://pkg.go.dev/sync#Map) 类似 `map[any]any`，零值可直接使用，单次 `Load`、`Store`、`Delete` 等方法可安全并发调用。但它是针对特定 workload 优化的专用容器，官方明确建议大多数代码优先使用普通 `map`，以获得类型安全，并更容易维护跨操作不变量。
 
-    *   **遍历示例 (Range)**：
-        ```go
-        // 假设 sourceMap 是一个 sync.Map (key: string, value: []*Item)
-        if sourceMap != nil {
-            // 1. 创建一个普通的 map 用于接收数据
-            targetMap := make(map[string][]*Item)
-        
-            // 2. 使用 Range 遍历 sync.Map
-            // Range 接收一个回调函数 func(key, value any) bool
-            sourceMap.Range(func(key, value any) bool {
-                // 3. 类型断言 (Type Assertion)
-                // sync.Map 存储的是 interface{} (any)，取出后必须断言为具体类型
-                k, ok1 := key.(string)
-                v, ok2 := value.([]*Item)
-        
-                if ok1 && ok2 {
-                    targetMap[k] = v // 4. 存入普通 map
-                }
-        
-                return true // 返回 true 继续遍历，返回 false 停止遍历 (break)
-            })
-        
-            // 5. 使用结果
-            result.Data = targetMap
-        }
-        ```
+> `sync.Map` 保证的是容器方法的并发安全，不等于业务操作天然原子、value 自身线程安全，也不等于所有路径都“不加锁”。
+
+#### 适用与不适用场景
+
+最适合两类场景：
+
+1. **写一次、读很多次**：例如只增长的缓存、对象注册表。
+2. **Key 空间彼此独立**：不同 goroutine 主要操作不相交的 key，竞争可以局部化。
+
+`LoadOrStore` 也很适合去重、单例初始化和“谁先注册谁生效”：
+
+```go
+actual, loaded := m.LoadOrStore(key, candidate)
+if loaded {
+    return actual // 复用已有值
+}
+return candidate // 本 goroutine 完成首次注册
+```
+
+以下情况通常更适合 `map + Mutex/RWMutex`：
+
+- 需要维护多个 key 之间的约束、事务或一致性快照。
+- 业务操作由多步组成，例如“读取余额 -> 判断 -> 更新两个账户”。
+- key/value 类型固定，希望编译期检查，而不是反复做类型断言。
+- 热点 key 需要频繁 read-modify-write；这类竞争并不会因为换成 `sync.Map` 消失。
+- 只是普通并发 map，没有证据表明锁竞争已成为瓶颈。
+
+最终选型应基于真实 key 分布、读写比例和竞争模式做 benchmark，而不是只看“读多写少”四个字。
+
+#### API 语义：优先使用原子复合操作
+
+| 方法 | 语义与注意点 |
+|---|---|
+| `Load` / `Store` / `Delete` | 基本读、写、删 |
+| `LoadOrStore` | key 已存在则读取，否则原子地存入候选值 |
+| `LoadAndDelete` | 原子地取出并删除 |
+| `Swap` | 原子替换并返回旧值 |
+| `CompareAndSwap` | 只有当前值等于 `old` 才替换；`old` 必须可比较 |
+| `CompareAndDelete` | 只有当前值等于 `old` 才删除；`old` 必须可比较 |
+| `Clear` | 删除全部条目；Go 1.23 加入 |
+| `Range` | 逐项回调，但**不是一致性快照** |
+
+不要用两个并发安全的调用拼出一个并不原子的业务操作：
+
+```go
+// 错误：两个 goroutine 都可能看到 key 不存在，然后先后覆盖。
+if _, ok := m.Load(key); !ok {
+    m.Store(key, value)
+}
+
+// 正确：用一个原子语义表达意图。
+actual, loaded := m.LoadOrStore(key, value)
+```
+
+`Range` 的保证很弱：每个 key 最多访问一次，但并发写删时，回调可能看到遍历期间任意时刻的映射。它不阻塞其他方法，回调也可以再次操作该 `sync.Map`；即使回调很早返回 `false`，实现仍可能是 `O(N)`。因此，把 `Range` 结果复制到普通 `map` 只能得到一个弱一致视图，不能当作原子快照。
+
+#### 内存模型：Map 安全不等于 Value 安全
+
+根据 [`sync.Map` 的内存模型说明](https://pkg.go.dev/sync#Map)，一次写操作会 synchronizes-before 任何观察到该写入效果的读操作。例如，`Store(k, v)` 完成后，观察到 `v` 的 `Load(k)` 可以看到写入前已经发生的初始化。
+
+但 `sync.Map` 只同步“value 引用的发布和替换”，不会保护 value 指向对象的后续修改：
+
+```go
+type Counter struct {
+    n int
+}
+
+var m sync.Map
+m.Store("jobs", &Counter{})
+
+v, _ := m.Load("jobs")
+v.(*Counter).n++ // 多 goroutine 同时执行仍然是 data race
+```
+
+这时仍需在 `Counter` 内使用锁或 `atomic`。同理，取出的 `map`、`slice`、指针对象也不会自动变成线程安全。
+
+#### Go 1.26 当前实现：并发 Hash-Trie
+
+大量文章仍用 `read / dirty / misses` 解释 `sync.Map`，但那已经不是 Go 1.26 的当前实现。Go 1.26.5 的 [`sync.Map` 源码](https://github.com/golang/go/blob/go1.26.5/src/sync/map.go) 是对内部 [`HashTrieMap[any, any]`](https://github.com/golang/go/blob/go1.26.5/src/internal/sync/hashtriemap.go) 的薄封装。
+
+```text
+sync.Map
+  -> atomic root pointer
+     -> 16-way indirect node (按 hash 片段选槽位)
+        -> indirect node ...
+           -> entry / collision overflow chain
+```
+
+它的关键思路是：
+
+- key 先经过带随机 seed 的 hash，每层取 4 bit，在 16 个子槽位中向下定位。
+- 初始化后的常见 `Load` 路径只沿原子指针遍历，不获取全局 map 锁。
+- 写入、替换和删除在目标 indirect node 上加局部锁，锁内再次确认状态，再通过原子指针发布修改。
+- hash 前缀冲突时继续扩展子树；完整 hash 冲突则挂到 overflow chain。
+- `Clear` 直接原子替换根节点，而不是逐个删除。
+
+这解释了为什么当前实现既偏向高频读取，又希望在较大 map 上保持尚可的写删性能；也解释了为什么 `Range` 无法自然提供全局一致快照：遍历期间各分支仍可独立变化。
+
+#### 历史实现：`read / dirty / misses`
+
+Go 1.25 默认源码及大量旧资料采用双层 map：
+
+- `read` 通过原子指针发布，承载常见无锁读取路径。
+- 新 key 或慢路径进入受 `mu` 保护的 `dirty`。
+- 访问 `read` 未命中而不得不检查 `dirty` 时累加 `misses`。
+- 当慢路径次数足以抵消复制成本时，把 `dirty` 整体提升为新的 `read`。
+- entry 用 `nil` / `expunged` / value 等状态协调删除与复用。
+
+这套设计很好地说明了“用双层状态换取读路径性能”的思想，但分析现代程序的性能或锁竞争时，应以实际 Go 版本源码为准。历史实现见 [Go 1.25.7 `sync/map.go`](https://github.com/golang/go/blob/go1.25.7/src/sync/map.go)。
+
+#### 常见边界
+
+- `sync.Map` 使用后不得复制；应传指针或嵌入不可复制的拥有者对象。
+- key 与普通 map 一样必须可比较；以 slice、map、function 作为动态 key 会 panic。
+- `any` 让 API 通用，却把类型错误推迟到运行时。业务类型固定时，可以封装窄接口，但不要用 wrapper 掩盖本该由普通 typed map 表达的逻辑。
+- `sync.Map` 不是跨 key 事务、快照容器，也不是 value 内部状态的锁。
 
 ### 接口与 Mock (Interface & Mock)
 
@@ -400,5 +474,4 @@ go env -w GOPROXY=https://goproxy.cn,direct
 ```
 
 *   `direct` 表示如果代理找不到，则直接回源下载。
-
 

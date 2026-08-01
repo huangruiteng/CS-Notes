@@ -825,9 +825,134 @@ int main(int argc, char *argv[]) {
 }
 ```
 
+#### 实时订阅：连接只是载体，可靠性来自游标与重放
+
+> 参考：[WHATWG Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html)、[RFC 6202: Bidirectional HTTP](https://www.rfc-editor.org/rfc/rfc6202.html)、[RFC 8895: ALTO Incremental Updates Using SSE](https://www.rfc-editor.org/rfc/rfc8895.html)、[NGINX `proxy_buffering`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering)。
+
+“实时订阅”不是某一种协议，而是一种状态同步关系：客户端先声明关注的 topic / resource，服务端在状态变化时持续推送 event。长连接只降低了事件到达延迟；一个可恢复的订阅还需要：
+
+```text
+subscription = filter + ordered event stream + cursor + reconnect + replay/resync
+```
+
+- **filter**：客户端能看到哪些资源和事件，必须在服务端重新做鉴权，不能只信客户端传来的 topic。
+- **event stream**：事件要有稳定 schema 和顺序语义；跨 partition 是否全序，必须明确。
+- **cursor**：记录客户端已经处理到哪里，例如 SSE 的 `id` / `Last-Event-ID`。
+- **reconnect**：连接断开后重新建立，并使用退避和 jitter 防止大规模同时重连。
+- **replay / resync**：游标仍在保留窗口内就补发缺失事件；游标过旧或出现 gap，就重新拉 snapshot。
+
+因此，SSE 的自动重连不等于可靠投递。若服务端只向当前连接写数据、没有 durable event log，断线期间的事件仍会丢失；若事件可能重放，客户端还要按 `event_id` 幂等应用。工程上通常追求 **at-least-once + idempotency**，不要轻易声称 exactly-once。
+
+##### SSE 的协议语义
+
+SSE（Server-Sent Events）是在一个长时间不结束的 HTTP response 中，由服务端持续发送 UTF-8 文本事件。这里的“长连接”更准确地说是长生命周期的 HTTP stream：HTTP/1.1 下通常占用一条连接，HTTP/2 / HTTP/3 下则可与其他 stream 复用底层连接。HTTP chunk / frame 只是传输分块，可能被中间层重组；SSE 的业务事件边界始终是空行。
+
+浏览器原生客户端是 `EventSource`，数据格式为 `text/event-stream`：
+
+```text
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+X-Accel-Buffering: no
+
+event: progress
+id: 42
+retry: 3000
+data: {"task_id":"t1","percent":80}
+
+: heartbeat
+
+```
+
+| 字段 | 语义 |
+| --- | --- |
+| `data` | 事件载荷；连续多个 `data:` 行会用换行符连接。 |
+| `event` | 事件类型；缺省时触发 `message`。 |
+| `id` | 更新客户端保存的 last event ID；重连时浏览器通过 `Last-Event-ID` 发回。 |
+| `retry` | 建议的重连等待时间，单位为毫秒。 |
+| `:` | 注释行，不触发业务事件，常用作应用层 heartbeat。 |
+
+```javascript
+const source = new EventSource("/api/tasks/t1/events");
+
+source.addEventListener("progress", event => {
+  const update = JSON.parse(event.data);
+  renderProgress(update);
+});
+
+source.onerror = () => {
+  // EventSource 默认会重连；这里只做状态展示和观测，不要再开第二条连接。
+};
+
+// 页面或任务不再需要订阅时必须主动释放。
+source.close();
+```
+
+原生 `EventSource` 的请求方向是 client -> server，业务数据方向只有 server -> client；构造器只暴露 URL 和 `withCredentials`，不能方便地携带 POST body 或自定义 `Authorization` header。浏览器场景通常使用同源 cookie、短期签名 URL，或改用基于 `fetch()` 的流式客户端。跨域订阅还要正确配置 CORS 与 credentials；不要把长期 token 放进 URL，因为 URL 容易进入日志和监控。
+
+服务端可用 HTTP `204 No Content` 告诉原生客户端停止重连。普通断开会触发自动重连；生产实现还应发送周期性注释 heartbeat，避免代理、网关或负载均衡器把空闲连接回收。15 秒只是 WHATWG / RFC 示例中的经验值，实际间隔必须小于整条链路上最短的 idle timeout。
+
+##### Snapshot + delta：避免订阅启动时的竞态
+
+典型同步流程不是“先查一次、再随便开条 SSE”，而是：
+
+```text
+GET snapshot
+  -> 返回 state + snapshot_cursor
+SUBSCRIBE after=snapshot_cursor
+  -> replay(cursor, current]
+  -> 持续接收 live events
+发现 cursor 过期 / 序号跳跃
+  -> 丢弃局部推断，重新获取 snapshot
+```
+
+`snapshot_cursor` 把快照与增量流接起来，避免“读取快照之后、建立订阅之前”发生的更新落入缝隙。更严格的实现应保证 snapshot 对应一个确定的日志位置；否则即使有 cursor，也可能重复或漏掉边界事件。
+
+##### 选型
+
+| 机制 | 数据方向与状态 | 优点 | 适用场景 / 主要代价 |
+| --- | --- | --- | --- |
+| 短轮询 | client 定时 pull；每次独立 request | 最简单、易缓存、易降级 | 低频状态；延迟与空请求开销互相制约。 |
+| 长轮询 | server 暂挂 request，有事件或超时才返回；客户端立即再请求 | 兼容普通 HTTP，天然以 response 分帧 | 低频通知、旧基础设施；每轮仍有完整 header 和重建请求的间隙。 |
+| SSE | 单向 server -> client；一条流式 HTTP response | 浏览器原生、文本分帧、自动重连、支持 event ID | 通知、任务进度、日志、feed；不适合高频双向交互和二进制流。 |
+| WebSocket | 全双工长连接；应用自定义 message protocol | 双向、低开销、支持二进制 | 聊天、协同编辑、控制面；重连、恢复、鉴权续期和心跳都要自行设计。 |
+| Webhook | server -> server 的独立 HTTP callback | 不要求订阅方维持连接，适合系统集成 | 延迟通常较高；要做签名、重试、去重和死信处理。 |
+
+LLM API 常说“用 SSE 流式返回 token”，很多实现实际是 **SSE 格式的 POST streaming response**，客户端用 `fetch()` / SDK 逐块解析；它不一定使用浏览器原生 `EventSource`，`[DONE]` 等结束标记也属于应用协议，不是 SSE 标准字段。
+
+##### 生产检查清单
+
+- **代理缓冲**：应用必须及时 flush；NGINX 默认 `proxy_buffering on`，可对该路由关闭，或由 upstream 返回 `X-Accel-Buffering: no`。否则服务端明明逐条写，客户端却成批收到。
+- **超时与心跳**：核对 browser、CDN、WAF、LB、gateway、reverse proxy、server 各层 idle / read timeout；heartbeat 要穿过整条链路。
+- **慢消费者与背压**：为每个 subscriber 使用有界队列，明确 `drop / coalesce / disconnect / resync` 策略。TCP 变慢只会把压力向上游传播，不会替应用决定保留哪些业务事件。
+- **容量**：长连接主要消耗 file descriptor、socket / request state、内存和负载均衡连接槽；关注 `active_connections`、连接建立率、重连率、发送队列大小、event lag、drop / replay 数和连接时长。
+- **生命周期**：客户端切换资源、页面卸载或任务结束时主动 `close()`；服务端检测断连并取消 producer，避免后台继续计算和写入。
+- **正确性测试**：覆盖断网重连、重复事件、乱序 / gap、游标过期、代理缓冲、token 过期、服务重启和重连风暴，而不只测正常持续输出。
+
 #### Proxy / Tunnel / SSH Port Forwarding
 
 参考：[代理，网关，隧道，有什么区别与联系？ - 知乎](https://www.zhihu.com/question/268204483/answer/334644846)
+
+##### Squid：可缓存、可治理的 HTTP 正向代理
+
+[Squid](https://github.com/squid-cache/squid) 是应用层 Web proxy/cache。典型部署把它放在客户端出口：先执行 ACL、认证和路由，再直接访问 origin 或转发给 parent proxy；对可缓存 HTTP 响应，还会按新鲜度和再验证规则复用对象。
+
+```text
+client -> Squid
+           |-- HIT  -> cached response
+           `-- MISS -> origin / parent proxy -> cache if allowed -> client
+```
+
+它的能力可以拆成四组：
+
+- **出口治理**：按来源、目标域名、端口和请求类型做 ACL，统一认证、访问日志与审计。
+- **HTTP 缓存**：降低重复请求的延迟和出口带宽；缓存与代理彼此独立，也可以配置成只代理、不缓存。
+- **代理层级**：通过 `cache_peer` 组织 parent / sibling cache，集中管理上游出口。
+- **其他模式**：也能作为 reverse proxy 或 interception proxy，但不是理解 Squid 的首要入口。
+
+HTTPS 默认通过 `CONNECT host:443` 建立 TCP tunnel。Squid 可以控制目标主机和端口，但看不到 TLS 内的 path、query、header 和 body，也就不能缓存或按内容治理。`SSL-Bump` 通过部署受信 CA 做 TLS 中间人才能重新获得这些能力，同时引入隐私、合规和证书安全风险，不应视为普通缓存配置。[HTTPS / CONNECT 边界](https://wiki.squid-cache.org/Features/HTTPS)
+
+今天通用 Web 流量大量采用 HTTPS、动态内容和 CDN，Squid 的普适缓存收益弱于早期互联网。它仍适合需要**统一出口、访问策略、审计、parent routing**，或明确存在可缓存对象的受控网络。显式配置客户端使用 proxy，语义通常也比透明拦截更清楚；interception 会破坏端到端假设，并影响认证、协议兼容和故障定位。[Interception 的限制](https://wiki.squid-cache.org/SquidFaq/InterceptionProxy)
 
 一次实战经验：远端 headless runtime 认证已经成功，但 `exec` 仍失败。最后发现问题不在 login，而在网络出口：远端能读本地 auth cache，却无法稳定访问运行时依赖的外部 endpoint。解决方式是本机启动 loopback HTTP CONNECT proxy，再用 SSH reverse tunnel 把远端 loopback 端口接到本机 proxy。
 
