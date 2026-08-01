@@ -12,8 +12,8 @@
 | --- | --- | --- |
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
-| Agent 框架、评估与工作流 | GAIA、MLE-bench、Deep Research、CUA、Workflow agent、trace-first eval | Agent benchmark、工具使用、工作流、安全评估和观测基建 |
-| Agent Harness / Agent Infra：总框架 | ETCLOVG、rollout、trace-native eval、governance、session boot、clean-state handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、Workflow agent、trace-first eval | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
+| Agent Harness / Agent Infra：总框架 | ETCLOVG、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
 | Online Learning、持续学习与反馈优化 | Online learning、in-context vs in-weights、算力挑战 | 从反馈信号走向持续改进 / 个性化 agent |
@@ -1299,7 +1299,35 @@ Thought:{agent_scratchpad}
 
 ### Agent 评估与安全
 
-这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再看 GAIA、MLE-bench、GDPval、AppWorld、BFCL-v3 等具体 benchmark。前者回答“agent eval 应该如何建模、分层和持续维护”，后者回答“不同任务世界如何构造 case、环境和 grader”。
+这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、GDPval、AppWorld、BFCL-v3 等具体任务世界。
+
+#### AgentCompass：评测对象不是裸模型，而是完整执行配置
+
+> 来源：[公众号解读](https://mp.weixin.qq.com/s/1Dn9EIikyGE6yNxXlINbyw)、[论文](https://arxiv.org/abs/2607.13705)、[GitHub](https://github.com/open-compass/AgentCompass)。以下机制以论文和 commit `feaa6ae` 的源码为准；公众号中的模型排名只作线索，不作为长期结论。
+
+[AgentCompass](https://github.com/open-compass/AgentCompass) 的价值不是再做一张排行榜，而是把原本黏在每个 benchmark 脚本里的评测流程拆成可替换组件。更准确的评测单位是：
+
+`result = f(model, benchmark, harness, environment, semantic config, budget, randomness)`
+
+| 组件 | 职责 | 不应混入 |
+| --- | --- | --- |
+| Benchmark | 定义 task、准备材料、成功标准和评分语义 | 某个 Agent loop 的实现细节 |
+| Harness | 把模型变成可运行 Agent，管理 session、prompt、tool loop 和 provider 协议 | benchmark 的答案与评分规则 |
+| Environment | 提供 shell、文件、容器、远程实例等执行原语和生命周期 | 模型决策与业务评分 |
+
+源码还补了两个扩展点：`Recipe` 只覆盖 plan / config，不拥有执行；`Analyzer` 在主评分后读取结果和 trajectory 做行为诊断。因此实际链路是：
+
+`RunRequest -> registry 解析组件 -> TaskSpec -> PreparedTask -> Harness session -> RunResult / Trajectory -> Benchmark.evaluate -> Analyzer`
+
+- `TaskSpec` 是原始题目；`PreparedTask` 是 benchmark 编译出的 prompt、media、files、workspace、tools、messages 与 expected output；`RunResult` 统一保存 score、correct、final answer、trajectory、artifact、metrics 和 error。参见 [task contract](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/models/task.py#L10-L108)、[result contract](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/models/result.py#L41-L63) 和 [component protocols](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/base.py#L92-L338)。
+- Runtime 用有界 `asyncio` worker pool 执行长任务，并按 task 增量落盘；结果文件经临时文件和原子替换提交，恢复时跳过已完成样本、重跑 error 样本。它实现的是 **task-level resume**，不是任意 trajectory step 的 checkpoint / replay。参见 [runner](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/runner.py#L136-L208)、[worker queue](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/tasks.py) 和 [result store](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/results/store.py#L910-L1070)。
+- Trajectory 记录每一步 reasoning / content、tool call、observation、token、延迟和 stop reason，使评测能从“最终几分”下钻到“为什么这样”。参见 [trajectory schema](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/runtime/models/trajectory.py#L21-L83)。
+
+**Reward hacking 检测要谨慎解释。** 当前 analyzer 默认只检查答对样本，先用正则规则高召回筛出可疑 step，再让 LLM 结合上下文复核；它本身仍是一个可误判的 grader。论文也明确采用行为性口径：出现疑似改测试、读取 golden patch 等行为即计入 suspected reward hacking，不要求证明该行为因果上带来了最终得分。因此应写“轨迹被判为疑似投机”，不能写成“模型被证明作弊”。参见 [two-stage analyzer](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/src/agentcompass/analyzers/hack_detection/analyzer.py#L41-L181)。
+
+**核心结论与边界：** 同一个模型换 harness 后分数可能明显变化，说明 harness 是实验 treatment，不是透明胶水；统一框架能暴露和控制混杂变量，却不会自动让不同 prompt、tool、budget、版本的结果可比。论文发布时写的是 20+ benchmark、5 个维度；[当前 README](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/README.md#L7-L7) 已变为 21 个 benchmark、4 个主维度，长期引用应绑定 commit 与配置，而不是只抄产品页数字。
+
+对 LoopX / Agent Harness，最值得直接采用的是 run identity：至少固化 `model + benchmark + harness + environment + prompt/tool/config version + budget`，并把 trajectory、artifact、grader 版本和失败分类一起写入证据账本。否则所谓“模型提升”很可能只是 harness 或评测环境漂移。
 
 #### GAIA: A Benchmark for General AI Assistants ([arxiv](https://arxiv.org/abs/2311.12983), NeurIPS 2023)
 
@@ -1927,6 +1955,65 @@ Stanford / TAMU / UCSD。将系统拆为 planner、executor、verifier、generat
 
 关键洞察：瓶颈不只是"planner 强不强"，而是 planner 是否在系统回路里被训练。优化对象应是整个 system 而非单模型。
 
+#### Dynamic Workflow：plan moved into code ([docs](https://code.claude.com/docs/en/workflows), [blog](https://claude.com/blog/introducing-dynamic-workflows-in-claude-code))
+
+Dynamic Workflow 把 workflow graph 从模型的隐式计划变成可读、可 diff、可重跑的 JavaScript execution artifact。Subagent / Skill / Agent Team 仍由 Claude 或 lead agent 逐 turn 决定下一步；Workflow 则由 script 持有 loop、branch、fan-out 和 intermediate result，LLM 退到 `agent()` worker / reviewer / refuter 调用点。`pipeline(items, fn)` 适合把同构或半同构 item 批量 fan-out，再由独立 verifier / adversarial reviewer 做 claims cross-check。
+
+它和 AFlow / AgentFlow 的关系是三种不同优化层：AFlow 搜索 workflow graph，AgentFlow 训练系统回路里的 planner，Dynamic Workflow 把选定的 orchestration 变成产品运行时可执行脚本。它的状态仍主要是单 run / 同 session 级：脚本变量保存中间结果，暂停后只能在同一 Claude Code session 内恢复；跨 session 的 goal、evidence、quota、gate 和 handoff 仍需要 LoopX / durable state kernel 一类项目级控制面。详细产品形态、代码例子和运行边界见 [AI-Agent-Product&PE.md - Dynamic Workflow](./AI-Agent-Product&PE.md#dynamic-workflow把-loop-编译成可重放脚本)。
+
+#### Recursive Agent Harnesses：递归带工具的完整 harness
+
+> 来源：[arXiv](https://arxiv.org/abs/2606.13643)、[HTML](https://arxiv.org/html/2606.13643v1)、[Coding Agents are Effective Long-Context Processors](https://arxiv.org/html/2603.20432)
+
+![Recursive Agent Harness：model recursion vs harness recursion](./AI-Applied-Algorithms/recursive-agent-harness-architecture.png)
+
+RAH 定义的递归单元是 **带 filesystem、shell / code execution、planning 和继续 spawn 能力的完整 agent harness**，不是一次裸模型调用。Parent agent 先检查任务规模：少量子任务可以直接发 `Task()` structured call；大量独立 item 则写出 Python script，用 `asyncio.gather` 并行启动 subagent harness，再从结构化 JSON / output file 聚合结果。每个 child 拥有隔离 context 和 workspace，不共享 sibling memory；child 也能写脚本继续 spawn grandchild，论文默认 recursion depth 上限为 3。
+
+这组形态可以按 recursive unit 区分：
+
+| 形态 | Recursive unit | 擅长什么 | 主要缺口 |
+|---|---|---|---|
+| Coding agent | 无递归，单个完整 harness | filesystem navigation、少量 item | 大量 item 只能退化为 regex / script heuristic |
+| Model recursion / RLM | 无工具的 model call | 不需要工具的语义分解 | 无 filesystem、code execution 和外部工具 |
+| Dynamic Workflow | script 启动的 subagent | 大规模、可复用 orchestration | 是产品执行形态，不负责跨 run durable project state |
+| Harness recursion / RAH | 带工具的完整 harness | 每个 item 都需要语义理解或工具操作的大规模任务 | 成本、并发治理和 aggregation error 会随 fan-out 放大 |
+
+**和 Claude Dynamic Workflows 的共同点：plan moved into code**
+
+两者都让 parent agent 把调度计划写成可执行代码：脚本决定如何切 item、并发多少 worker、输出写到哪里、完成后如何聚合，LLM / agent harness 变成代码里的调用点。Dynamic Workflows 是 Claude Code 中的产品 runtime；RAH 把同一种 code-first spawning 放进 model recursion 的研究脉络，并尝试用 benchmark 衡量“递归完整 harness”相对单 coding agent 和裸模型递归的增量。
+
+RAH 论文声称 child 具备继续 spawn 的能力，因此概念上是真递归；但本次实验明确展示的主要是 parent 生成 script 后的大规模一层 fan-out。论文没有报告实际 recursion depth 分布、child -> grandchild trace 或对应消融，所以实验更强地证明了 **code-first harness fan-out**，尚未单独证明多层递归本身贡献了多少。
+
+**Oolong-Synthetic：逐条语义判断后的全局聚合，不是 needle-in-a-haystack**
+
+Oolong-Synthetic 的输入是一份包含大量结构化 record 的长文档。每条 record 都可能需要先做语义理解或分类，最终问题再要求对所有记录做 count、comparison、group-by 或其它全局统计。一个代表性样本包含 1,772 组 sentence pair，labels 没有直接给出；系统要先逐条判断 `entailment / neutral / contradiction`，再统计哪个 user 的 `contradiction` 数量最多。
+
+因此它测试的链路是：
+
+```text
+parse thousands of records
+-> understand / classify each record
+-> persist structured per-item results
+-> aggregate over the complete set
+-> answer one global question
+```
+
+这与传统“大海捞针”不同。Needle benchmark 主要验证能否从超长 context 找到少量显著 span；Oolong-Synthetic 要求覆盖大量 item，漏掉一部分、把语义分类退化为简单 regex，都会污染最终全局统计。RAH 正好利用 workload 的可分解性：让每个 bounded child harness 处理一个或一组 item，再由 parent 做 deterministic aggregation。
+
+**实验结果与边界**
+
+- 数据：Oolong-Synthetic validation split 的 199 个样本，覆盖 13 个 context-length bucket，范围 1K 到 4M tokens，平均每个 instance 约 629K tokens。
+- 结果：Full-context 59.22%，RLM 64.38%，Codex No Retriever 71.75%，RAH + GPT-5 81.36%，RAH + Sonnet 4.5 89.77%。GPT-5 配置固定 parent、child 和 answer extractor 的 backbone，用于观察 harness 结构差异。
+- 任务类型：`USER / COMPARISON / LABEL / DATE / NUMERIC`；前四类 exact match，NUMERIC 使用下式，off-by-one 会降到 0.75，aggregation 的小计数误差会被直接放大：
+
+$$
+s(y, \hat{y}) = 0.75^{|y-\hat{y}|}
+$$
+
+- 证据边界：Codex / RLM baseline 来自前一篇论文的已发布汇总结果，作者没有拿到逐样本 baseline，也没有在同一实现里做 paired rerun；`+9.61` 支持“harness 结构有价值”，不能严格全部归因于 recursion。
+- bucket 边界：论文没有 Codex 的逐 bucket baseline，不能把 overall 71.75% 当成每个长度 bucket 的 matched control。GPT-5 RAH 在 262K、1M、2M、4M 上分别为 57.1%、53.3%、66.7%、66.7%，长度趋势还受到 item 数和 NUMERIC 样本占比影响。
+- 工程边界：论文未测 GPT-5 配置的精确 token / wall-clock，也未消融 recursion depth、每个 child 分配多少 item、script spawning 与 direct tool-call spawning。论文承诺的实现和 evaluation repo 在本轮读取时仍未发布。
+
 #### ICE：智能体赋能工作流优化
 
 ![image-20251003224343872](./AI-Applied-Algorithms/image-20251003224343872.png)
@@ -2021,6 +2108,14 @@ Agent Harness Engineering 适合放在 `Agent Memory：领域理论框架` 的�
 | V - Verification & Evaluation | 怎么判断做得对不对 | benchmark、replay、trace-native eval、grader、failure attribution | AppWorld、BFCL、Claw-Eval、GDPval、R2E-Gym、verifiers |
 | G - Governance & Security | 怎么限制权力 | permission、identity、policy、audit、human approval、security boundary | CaMeL、Contextual Agent Security、Agent Governance Toolkit、protected evaluator |
 
+NOOA 横跨 T/C/L/O/V：typed method 是工具与 loop contract，live object / context / event 是工作状态，普通 Python 负责 orchestration，typed trace 与 validated return 负责观测和终止校验；它的 E/G 则刻意留给外层 process sandbox。这种“执行接口很强、隔离边界外置”的组合必须一起理解。
+
+PydanticAI 同样横跨 T/C/L/O/V，但边界不同：Python type hint 被编译成 tool / output schema，`RunContext` 承载宿主依赖、消息、usage 和 run metadata，capability 组合 hook / tool / instruction / model setting，Pydantic validation 与 OpenTelemetry 负责终止校验和观测；durable execution 接给 Temporal / DBOS / Prefect，真实 E/G 边界仍由 sandbox、服务端鉴权和外部 control plane 承担。
+
+Temporal 主要属于 L/O，并为 E 提供可靠调度底座：History Service 持久化 Workflow 的 Event History 与当前投影，Matching Service 通过 Task Queue 把 Workflow / Activity Task 分发给 Worker，SDK 用 deterministic replay 恢复控制流。它能保证“流程跑下去”，但不定义目标是否值得、证据是否充分或预算是否该继续花；这些 V/G 语义仍属于 LoopX 一类上层 control plane。
+
+Loom 可以作为 T/C/L/O/V 的领域化工程案例：Rust `TransitionEngine` 从 project-local delivery state 计算 typed `ActionResult`，再用 `requestRef + readGroups + writeTargets + submitTool` 同时限定本轮上下文和回写权限；candidate 经过 schema、fingerprint 与 evidence 校验后才升为 canonical artifact。它比 Temporal 更懂软件交付语义，比 LoopX 更窄、更固定，但其 durable 目前主要是本地文件跨 session 恢复，不是分布式执行保证；更详细的源码笔记见 [Loom：把 Coding Agent 固化为可恢复的软件交付状态机](./AI-Agent-Product&PE.md#loom把-coding-agent-固化为可恢复的软件交付状态机)。
+
 Crabbox 可以作为 E/O/G 的工程案例：CLI 保留本地 repo 和命令体验，Coordinator 管 lease、provider credentials、expiry、cleanup、run records、telemetry、usage 和 cost guardrails，runner 只做短生命周期执行叶子。这个模式把 execution environment 从“一台机器”推进到可审计的 `lease + run + evidence` 记录；更详细的源码笔记见 [Crabbox：lease + sync + evidence 的远程执行控制面](./AI-Agent-Product&PE.md#crabboxlease--sync--evidence-的远程执行控制面)。
 
 LoopX 可以作为 C/L/O/V/G 的工程案例：registry / active goal state / run history / status queue / quota 把长程目标变成可恢复控制面，`quota should-run` 把 user gate、agent todo、capability gate、workspace guard、scheduler hint 合成下一轮是否该跑的机器判断；更详细的源码笔记见 [LoopX：长程 agent 的本地控制面](./AI-Agent-Product&PE.md#loopx长程-agent-的本地控制面)。
@@ -2038,6 +2133,174 @@ Arbor 可以作为 L/V/O/G 的工程案例：Coordinator 维护 Hypothesis Tree�
 ![Agent Harness taxonomy](./AI-Applied-Algorithms/agent-harness-engineering-taxonomy.png)
 
 Figure 4 可以压缩成一张工程主表：C 不是单独的 memory 论文集合，O/V/G 也不是“附属功能”。一旦 agent 能调用工具、写文件、访问浏览器、提交 PR 或长期运行，observability、verification 和 governance 就必须和 E/T/C/L 同时设计。
+
+### NOOA：把 Agent Harness 收敛成 Python 对象
+
+> 来源：[NVIDIA-labs OO Agents](https://github.com/NVIDIA-NeMo/labs-OO-Agents/tree/20e88725c80dec8f4e752a4f852a202ad223272e)、[论文](https://arxiv.org/abs/2607.20709)。源码读取 commit：`20e88725c80dec8f4e752a4f852a202ad223272e`。
+
+NOOA（NVIDIA Object-Oriented Agents）不是一种新的 multi-agent 拓扑，也不是 durable control plane。它首先是一种 **model-facing programming model**：把原本分散在 prompt template、tool schema、callback 和 workflow graph 里的概念，重新收敛成一个 Python class。
+
+| Python 构造 | Agent 语义 | Runtime 行为 |
+| --- | --- | --- |
+| class / class docstring | Agent 边界与系统提示 | class 同时承载 prompt surface、state、capability 和 contract |
+| typed field | 显式对象状态 | 每轮从 live object 重新渲染，不依赖从 transcript 猜状态 |
+| 普通 method | 确定性能力 / tool | 直接执行 Python；规则、计算和状态迁移留在模型循环外 |
+| `async def ...: ...` | generation method | [`AgentMeta`](https://github.com/NVIDIA-NeMo/labs-OO-Agents/blob/20e88725c80dec8f4e752a4f852a202ad223272e/src/nooa/metaclass.py#L25-L130) 在建类时识别 ellipsis body，包装成 LLM loop |
+| method name / docstring / annotation | task prompt 与 typed I/O contract | 参数进入任务上下文；返回值按 annotation 校验，失败则把错误送回模型重试 |
+| 普通 Python / `asyncio` | branch、loop、fan-out、subagent composition | 不再另造 workflow DSL；developer 和模型使用同一套控制流 |
+
+因此，“OO”最重要的不是继承、多态或角色建模，而是把 **一次 agent loop 变成一次有类型的方法调用**：
+
+```python
+class InventoryAgent(Agent, llm=llm):
+    inventory: dict[str, Item]
+
+    def get_stock(self, item: str) -> int:
+        return self.inventory[item].stock
+
+    async def can_fulfill(self, items: list[str]) -> Fulfillment:
+        """Check whether every item can be fulfilled."""
+        ...
+```
+
+真实执行链是：
+
+1. `AgentMeta` 发现 async ellipsis method，保留原 Python signature，挂上 generation strategy。
+2. 方法调用时，runtime 组装三段 context：可缓存的 static prefix、append-only typed event history、每轮重新计算的 dynamic state。
+3. 默认 `CodeActStrategy` 只向模型暴露 `execute_python(code)` 和 `return_result(...)`；模型在 Jupyter-like session 中使用 `self`、参数、普通方法、import 和 `asyncio`。[CodeAct 主循环](https://github.com/NVIDIA-NeMo/labs-OO-Agents/blob/20e88725c80dec8f4e752a4f852a202ad223272e/src/nooa/strategies/codeact.py#L704-L839)
+4. Python 输出、异常、tool call 和 return value 被写成 typed events；REPL locals 在当前 method 内跨 cell 保留，对 `self` 的修改则进入对象状态。
+5. `return_result` 按 return annotation 校验；不合法就继续 loop，而不是把一段貌似完成的自然语言当结果。
+
+它组合了六个真正有价值的 model-facing interface：
+
+- **Typed input / output**：method signature 既是 API，也是输入输出与终止契约。
+- **Pass by reference**：prompt 只显示对象类型、真实长度和 head / tail 等 bounded preview，完整对象仍以变量形式留在 REPL；模型可直接 slice、aggregate、继续传给下一方法，不必让大结果反复变成文本。
+- **Code as action**：模型输出 Python control flow，在一个 cell 内组合多个方法 / tool，而不是每个 JSON tool call 都让中间结果穿过 context。
+- **Programmable loop engineering**：外层编排和内层模型编排都使用普通 Python；`asyncio.gather` 可 fan-out generation function / subagent。
+- **Explicit object state**：重要状态是 `self` 上的 typed field，不必在长 transcript 中反复重建。
+- **Model-callable harness APIs**：`doc()` 按需展开未知对象的 API contract，`context` 和 `events` 允许模型管理上下文、查询与压缩历史；这比只给开发者 callback 更进一步。[`doc()` 实现](https://github.com/NVIDIA-NeMo/labs-OO-Agents/blob/20e88725c80dec8f4e752a4f852a202ad223272e/src/nooa/agentdoc/core.py#L45-L109)
+
+设计动机可以压成三句：
+
+1. **复用模型已经会的 Python，不再要求人和模型共同学习一套 Agent DSL。**
+2. **把语义判断留给 LLM，把精确规则、计算、状态迁移和编排拉回可测试的软件。**
+3. **让开发者和 Agent 看见同一个接口，使 prompt、tool、state 和 loop 都能被 refactor、type-check、trace、test 和 version control。**
+
+论文报告的证据需要分层读。接口能力测试覆盖 88 个 case、10 个模型、每项 5 次，共 4,400 条记录，总通过率 97.9%；但更接近 agentic work 的 stress subset 只有 84.7%，说明“模型看得懂这套接口”不等于复杂 bookkeeping 已经可靠。SWE-bench Verified 上，NOOA + GPT-5.5 xhigh 为 82.2%，OpenCode 为 78.6%，PI 为 78.2%；更值得记的 trace 结论是，NOOA 用 typed result 强制提交 root cause、evidence 和 verification command，把“结束”从自然语言惯例变成了可校验动作。
+
+边界同样明确：
+
+- **Pass-by-reference 与隔离存在结构性冲突**：NOOA 为保留 live object，在 Agent 自身进程执行模型生成的 Python。内置 AST validator 主要保护 loop，不是 host security boundary；生产使用必须把整个 Agent 进程放进 container / VM / permission sandbox。[论文限制](https://arxiv.org/html/2607.20709v1#S7)
+- **Object state 不等于自动跨 session 持久化**：默认是 [`InMemoryStorageManager`](https://github.com/NVIDIA-NeMo/labs-OO-Agents/blob/20e88725c80dec8f4e752a4f852a202ad223272e/src/nooa/agent.py#L188-L216)；跨 session 要显式接 `SQLiteStorageManager`、snapshot 或可选 long-term memory。论文里的“durable state”更准确地理解为不依赖 transcript 的显式 working state，不应直接等同于长期项目真相源。
+- **它解决 callable composition，不自动解决协作治理**：普通 Python 可以起 subagent、并行和嵌套调用，但没有因此自动获得 task ownership、claim、quota、evidence gate、heartbeat、handoff 和跨 run reconciliation。
+- README 明确把当前版本标为 research software；代码可读性和接口思想很强，但不宜把初次公开版本直接当生产 runtime。
+
+对 LoopX 来说，二者是互补关系：**NOOA 回答“一个 worker agent 如何被声明、调用和组合”，LoopX State Kernel 回答“目标为何继续、任务归谁、证据是否足够、预算如何花、跨 run 如何恢复”。** 最值得借的是 generation method 的 typed contract、`ResultWithEvidence` 式 validated termination、bounded live reference、`doc()` progressive disclosure 和 typed event trace；不应把长期 source of truth 塞回某个 Agent object。更合理的边界是：
+
+```text
+LoopX durable goal / task / evidence / quota / handoff state
+                         ↓ typed invocation
+NOOA-style worker object / generation method / local live state
+                         ↓ evidence-bearing result
+LoopX verifier gate / ledger writeback / next-run decision
+```
+
+我的评价：NOOA 最亮的点不是“用 class 写 Agent”这个表面语法，而是把 model-harness interface 从 **copy-as-text / JSON tool call** 推进到 **typed live-object programming**。这是一个很强的 harness 方向；但它优化的是 session 内执行和组合，不是长程交付控制面。
+
+### PydanticAI：把类型系统放到 Agent loop 的边界
+
+> 来源：[PydanticAI](https://github.com/pydantic/pydantic-ai/tree/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5)、[`Agent[DepsT, OutputT]` 源码](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/pydantic_ai_slim/pydantic_ai/agent/__init__.py#L198-L217)、[PydanticAI Harness](https://github.com/pydantic/pydantic-ai-harness/tree/95e132028c7a7d2c8e729633e679398af9916c3d)。源码读取时间：2026-07-25；PydanticAI V2 已于 2026-06-23 进入 stable，独立 Harness 仍采用 0.x 版本策略。
+
+PydanticAI 不只是“用 Pydantic 接住结构化输出”，而是一个 **typed application-facing Agent SDK**。它的稳定内核是 `Agent[DepsT, OutputT]`，把 Python 类型放在概率模型与确定性软件的交界处：
+
+| 构造 | 约束什么 | 模型实际看见什么 |
+| --- | --- | --- |
+| `deps_type` / `RunContext[DepsT]` | 数据库连接、HTTP client、密钥、usage、messages 等宿主资源 | 通常不直接看见依赖对象；只能通过 tool / instruction 使用其受控投影 |
+| tool 函数签名 | action 名称、参数、说明和返回值 | 由签名与 docstring 生成的 JSON schema |
+| `output_type` / output validator | run 的合法终态 | tool、provider-native schema、prompted schema 或 text output |
+| `ModelRetry` / `ToolFailed` | 可纠正错误 / 已确定失败 | 带上下文的失败结果；前者要求修正并消耗 retry budget，后者让模型改走别路 |
+
+```python
+agent = Agent[Deps, Answer](
+    model,
+    deps_type=Deps,
+    output_type=Answer,
+)
+
+@agent.tool
+async def lookup(ctx: RunContext[Deps], query: str) -> Record:
+    return await ctx.deps.store.search(query)
+```
+
+一次 run 可以压成：
+
+```text
+prompt + message history + deps
+-> 合并 capability，生成 tool / output schema
+-> 模型提出 tool call
+-> Pydantic 校验参数，tool 通过 RunContext 使用真实依赖
+-> tool result / ModelRetry 进入下一轮
+-> output schema + output validator 通过
+-> AgentRunResult[OutputT] + messages + usage + trace
+```
+
+设计动机有三点：
+
+1. **复用 Python 类型生态**：同一份 annotation 同时服务 IDE、静态检查、JSON Schema、运行时校验、文档和测试，追求的是类似 FastAPI 的开发体验。
+2. **把资源与模型隔开**：连接、credential 和 service object 留在宿主侧，模型只调用显式暴露的 typed action；这比把完整对象序列化进 prompt 更节省，也更容易测试和收窄权限。
+3. **把扩展从参数堆积变成 capability composition**：V2 的 [`Capability`](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/pydantic_ai_slim/pydantic_ai/capabilities/capability.py#L30-L93) 可组合 instruction、tool、toolset、hook 和 model setting，也可按需加载；memory、compaction、planning、filesystem、shell、subagent、Code Mode、Dynamic Workflow 等更厚能力则放在独立 Harness 中。
+
+几个容易混淆的系统边界：
+
+- **Deferred tool 是 typed suspension protocol**：`ApprovalRequired` / `CallDeferred` 产生 `DeferredToolRequests`，外部提交 approval / result 后，以原 message history 开一个新 `run_id`，并用同一 `conversation_id` 串联。[Deferred Tools](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/docs/deferred-tools.md#L1-L21)
+- **Approval 不是 authorization boundary**：它防止模型未经签核执行 action，但客户端身份、服务端权限和 tool 内鉴权仍必须独立实施。
+- **Durable execution 由外部 runtime 拥有**：Temporal、DBOS、Prefect 和 Restate 负责 checkpoint、retry、replay 与长等待，PydanticAI 提供适配层；它没有因此成为长期项目的 source of truth。[Durable Execution](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/docs/durable_execution/overview.md#L1-L12)
+- **Multi-agent 首先是 composition**：Agent delegation 是把 child agent 包成 tool；programmatic handoff 由宿主代码决定下一位；复杂控制流可交给 graph 或 Harness Dynamic Workflow。它们都不自动提供 durable task ownership、shared ledger 或 evidence gate。[Multi-agent Applications](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/docs/multi-agent-applications.md#L1-L23)
+
+与 NOOA、LoopX 的关系可以这样看：
+
+| 系统 | 最强的边界 | 不负责什么 |
+| --- | --- | --- |
+| PydanticAI | 宿主应用与 Agent loop 之间的 typed tool / output / dependency contract | 不让模型直接操作任意 live object，也不维护长期任务真相 |
+| NOOA | 模型与 Python live object 之间的 typed method / pass-by-reference interface | 不自动提供协作治理和 process sandbox |
+| LoopX | 跨 run 的 goal / task / evidence / quota / handoff control plane | 不必重新发明每个 worker 的模型适配和 tool loop |
+
+因此，PydanticAI 很适合作为 LoopX 的 **worker SDK**：用 typed output 强制返回 `ResultWithEvidence`，用 deferred tool 承载 human gate，用 capability 封装可复用 harness policy，用共享 `usage` 约束嵌套 Agent；LoopX 继续拥有 durable goal、claim、ledger、quota 与完成审计。
+
+评价：PydanticAI 最强的是把一个概率性的模型调用变成可组合、可观测、可测试的 Python 组件；[`TestModel` / `FunctionModel`](https://github.com/pydantic/pydantic-ai/blob/ed0f40c0e5061722f7d9f579ed7efff1b74e3ea5/docs/testing.md) 也让 contract test 不必调用真实模型。最大风险是 **type-safe theater**：schema 合法只证明形状正确，不证明事实正确、证据充分或目标完成。类型约束应与 evaluator、真实权限边界和长程 control plane 配合，而不是替代它们。
+
+### OpenAI ICML Q&A 图文线索：下一阶段竞争从单次推理转向长程系统能力
+
+> 来源：小红书《[OpenAI ICML Q&A 综合总结（下）](https://www.xiaohongshu.com/explore/6a50a094000000001700a691)》。来源状态：已读取网页 SSR metadata 与 11 张图片页；正文 metadata 只有 `#openai #icml`，核心内容来自图片。未追到原始 Q&A 逐字稿，因此这里只作为二级图文线索和路线判断，不把具体表述当作 OpenAI 官方逐字原话。读取时间：2026-07-11。
+
+这组图文的核心判断不是“某个新模型会更强”，而是下一阶段 agent 竞争会从单次推理能力，转向 **长程运行、动态环境、可信评估、样本效率、系统可靠性、个性化、可解释性和人机协作**。这和 Agent Harness 的 ETCLOVG 框架可以对上：模型能力只是第一层，真正难的是让模型在真实环境里持续工作，并把行为、证据、风险和价值接到系统里。
+
+技术路线可以压成六个抓手：
+
+- **Long-horizon RL / operating horizon**：目标从完成短任务推进到小时级、天级、周级持续运行。关键不只是“多跑几步”，而是 rollout 稳定性、状态持久化、中断恢复、稀疏信号、credit assignment、环境漂移、任务分解和长期目标保持。
+- **更强的 Eval 体系**：企业级 / 研究级 eval 至少需要 coverage、信号可靠性、可解释性与可审计性。实践上要组合快速小型 eval、少量昂贵金标准 eval、真实用户任务、长时程端到端评估，以及自动审计和人工逐条检查，避免 eval hacking。
+- **动态环境与动态数据**：未来训练环境不能只是静态题库，而要面对工具变化、真实软件系统、不完整信息、用户反馈、其他 agent、不断变化的目标和长周期实验结果。环境越真实，模型越难靠 shortcut 拿高分，也越有机会学到泛化能力。
+- **样本效率与主动实验能力**：进入科学和现实世界后，关键能力不是无限试错，而是从极少样本学习、选择信息量最高的实验、预测实验结果、管理实验预算，并根据中间结果调整方向。这会把 RL 和贝叶斯优化、主动学习、因果推断、实验设计、科学建模更紧密地接起来。
+- **Perception / 实时交互 / 具身化**：感知会成为基础能力之一。图像、音频、视频、屏幕状态、传感器信息和真实世界环境，会把 agent 推向 Computer Use、实时助手、环境常驻 agent、个性化、新型硬件和实验仪器交互。
+- **Agent 通信和技术写作**：agent 数量和任务复杂度上升后，通信本身成为能力：给其他 agent 传递高密度信息，给人类生成清晰摘要，把复杂过程压缩成报告、slide 和决策材料，区分事实、推测和不确定性，并记录可复现的实验过程。
+
+产品和商业方向也随之变化：
+
+- **编码仍有空间，但下一阶段是交互式创作**：当前 coding agent 成功的原因是反馈清晰、可验证、可自动化。下一阶段要更实时地交互、一边生成一边调整、直接操作 artifacts、自动理解项目 context，并从模糊目标逐步澄清需求。
+- **Agent 可能改变“上班”本身**：如果 agent 能承担完整项目、长期运行、连接企业系统、保持状态并在关键节点请求确认，工作组织形态和商业定价会从 token 计费，转向按任务、按结果、按节省成本或新增收入定价。
+- **AI for Science 会选择性推进**：更可能优先进入外部性较低、能体现强推理价值、能获得验证信号、可反哺模型 / RSI、并能与实验或产业伙伴形成闭环的方向。真正瓶颈往往不是“模型不会推理”，而是信号获取和实验运行速度。
+
+统一路线图可以写成五层：
+
+| 层 | 下一阶段问题 | 对 Agent Harness 的含义 |
+| --- | --- | --- |
+| 模型能力 | 推理、搜索、感知、代码和多模态能力持续提升 | 模型是底座，但不能替代环境、工具、eval 和治理 |
+| Agent 能力 | 扩展 operating horizon、工具使用、记忆、个性化、多 agent 协作 | 需要长期状态、任务分解、恢复、通信和协作协议 |
+| 环境与系统 | 稳定 rollout 环境、企业系统接口、实验工具、实时基础设施 | execution substrate 和 tool interface 要接近真实工作系统 |
+| Eval 与 Safety | coverage、可靠信号、reward hacking、legibility、长期对齐和审计 | eval 必须 trace-native、可解释、可回放，并和 governance 同时设计 |
+| 真实价值 | 软件、研究、科学发现、企业生产力和更强 human agency | 成功标准从 benchmark 分数转向可交付价值和人类主导权 |
+
+对 LoopX / Agent Harness 的直接启发是：下一阶段不能只优化单轮模型调用，也不能只做更长 context。控制面至少要显式记录 `operating_horizon`、`persistent_state`、`resume_boundary`、`dynamic_environment_refs`、`eval_coverage`、`signal_reliability`、`experiment_budget`、`human_control_gate`、`communication_artifact` 和 `value_metric`。这些字段把“长程运行”和“真实价值”从口号变成可被系统检查的状态。
 
 ### 三个 cross-layer 结论
 
@@ -2215,66 +2478,96 @@ LangGraph 还提醒了一个很工程化的副作用边界：resume 时包含 `i
 
 短期不需要引入 LangGraph 作为依赖。Goal Harness 应借的是 checkpointed decision、thread-level audit、resume intent 和 latest-state rebase，而不是把本地 durable control plane 改造成 graph runtime。
 
-### Temporal Durable Execution：event history as source of truth
+### Temporal Durable Execution：deterministic replay + side-effect boundary
 
-> 来源：[Temporal docs](https://docs.temporal.io/)、[What is Temporal?](https://docs.temporal.io/temporal)、[Temporal Workflow](https://docs.temporal.io/workflows)、[Event History](https://docs.temporal.io/encyclopedia/event-history)、[Activities](https://docs.temporal.io/activities)、[Workers](https://docs.temporal.io/workers)、[Task Queues](https://docs.temporal.io/task-queue)。用户 2026-06-05 读完。
+> 来源：[Temporal 概览](https://docs.temporal.io/temporal)、[Workflow Execution](https://docs.temporal.io/workflow-execution)、[Event History](https://docs.temporal.io/workflow-execution/event)、[Workflow determinism](https://docs.temporal.io/workflow-definition)、[Activities](https://docs.temporal.io/activities)、[Task Queues](https://docs.temporal.io/task-queue)。源码复核：[History Service](https://github.com/temporalio/temporal/blob/91929f4ed78c9e9644e0a97959a75ec0622d3b3b/docs/architecture/history-service.md#L9-L21)、[Matching Service](https://github.com/temporalio/temporal/blob/91929f4ed78c9e9644e0a97959a75ec0622d3b3b/docs/architecture/matching-service.md#L8-L17)、[Go SDK `a135ff3`](https://github.com/temporalio/sdk-go/tree/a135ff3c3f96ee7a92fba8898889804ab2f7f3a1)。原始材料 2026-06-05，源码复核 2026-07-26。
 
-Temporal 的核心主张是 Durable Execution：业务逻辑可以执行几秒、几天甚至几年，中间 worker 崩溃、网络断、机器重启，都不应该丢失进度。它靠的不是保存一大坨进程内存快照，而是 **Workflow code + Event History**。Event History 才是每个 Workflow Execution 的 source of truth。
+Temporal 不是普通任务队列，而是 **durable function runtime**：Workflow 用普通代码表达长流程；Temporal Service 持久化执行历史、定时器和待办任务；无状态 Worker 随时可以退出或替换。恢复不是还原进程快照，而是让 SDK 从头执行 Workflow code，并用 Event History 重放已经发生的结果。
 
-Event History 是完整、持久、按序的事件日志。Workflow 走到“调 Activity / 启 Timer / 收 Signal”等位置时，不应直接依赖进程内记忆继续，而是把 command 交给 Temporal Service；Temporal Service 生成 event 并持久化。恢复时 worker 可以从头重跑 workflow code，用 Event History 把状态重建到崩溃前；已经完成的 Activity 结果直接复用，不重新执行。
+一轮真实执行链是：
 
-这个模型对长期 agent 更通用的启发是：**执行进程、对话上下文、任务真相** 必须分层。agent 可以在一个很长的 session 里工作，也可以跨很多短 session 继续；但一旦任务进入多 feature、多实验、多 agent、多审批并行，聊天历史就不应该是唯一 source of truth。
+```text
+Client Start / Signal / Update
+  -> History Service：写 Event History，更新 Mutable State
+  -> internal task / transactional outbox
+  -> Matching Service / Task Queue
+  -> Worker 拉取 Workflow Task
+  -> SDK replay history，运行 Workflow code，返回 Commands
+  -> History Service 把 Commands 变成新 Events / Activity Tasks / Timers
+  -> Activity Worker 执行外部副作用，结果再写回 History
+```
 
-| Temporal 语义 | 长期 agent / harness 抽象 | 关键边界 |
+这里有两个容易混淆的“状态”：
+
+| 对象 | 真正语义 |
+| --- | --- |
+| `Event History` | 单个 Workflow Execution 的 append-only 执行事实：哪些 task 被调度、timer 何时触发、Activity 返回什么、收到什么消息。 |
+| `Mutable State` | History Service 持久化的当前状态投影，用于快速调度和查询；必要时可由 History 恢复，并非第二套业务真相。 |
+| `Workflow Task` | 让 Worker 推进一次 Workflow code 的短任务，不等于整个长期 Workflow。 |
+| `Task Queue` | Worker pull-based 的路由、负载均衡和限流面，不是长期项目看板或 evidence ledger。 |
+| `Activity` | 允许不确定性和外部副作用的边界：数据库、HTTP、shell、文件、LLM 调用都应放这里。 |
+
+**Deterministic replay 的关键不是“重新推理”，而是“重新生成相同 Command 序列”。** Worker 重放旧 Event 时，Workflow code 必须在相同位置再次产出 `ScheduleActivity`、`StartTimer` 等匹配的 Command；SDK 若发现 history 期待某个 Command，而新代码没有生成，就报告 nondeterminism。已完成 Activity 的结果来自 History，不会因 replay 再次调用外部系统。
+
+源码把这条链路写得很直接：
+
+- History Service 处理 Worker 返回的 Commands，并将其分派给不同 handler：[command loop](https://github.com/temporalio/temporal/blob/91929f4ed78c9e9644e0a97959a75ec0622d3b3b/service/history/api/respondworkflowtaskcompleted/workflow_task_completed_handler.go#L168-L223)、[command type dispatch](https://github.com/temporalio/temporal/blob/91929f4ed78c9e9644e0a97959a75ec0622d3b3b/service/history/api/respondworkflowtaskcompleted/workflow_task_completed_handler.go#L275-L330)。
+- `ScheduleActivity` 会同时追加 History Event、更新 Mutable State，并生成待分发的 Activity Task：[AddActivityTaskScheduledEvent](https://github.com/temporalio/temporal/blob/91929f4ed78c9e9644e0a97959a75ec0622d3b3b/service/history/workflow/mutable_state_impl.go#L4187-L4216)。
+- Go SDK 的 `ProcessEvent` 逐个消费 history event、推进 command state machine；Command 对不上时明确判定为不兼容代码：[replay event loop](https://github.com/temporalio/sdk-go/blob/a135ff3c3f96ee7a92fba8898889804ab2f7f3a1/internal/internal_event_handlers.go#L1248-L1338)、[nondeterminism check](https://github.com/temporalio/sdk-go/blob/a135ff3c3f96ee7a92fba8898889804ab2f7f3a1/internal/internal_command_state_machine.go#L1069-L1076)。
+
+**设计动机** 可以压缩成四点：
+
+1. **代码就是状态机定义**：开发者写顺序、分支、循环和等待，不必手工维护“当前第几步 + 每种失败如何恢复”的状态表。
+2. **决策与副作用分离**：Workflow 负责可重放的控制流；Activity 承担网络、数据库、LLM 等不可确定操作。
+3. **执行与调度解耦**：Service 持有 durable state，Worker 只拉取短任务，因此可以横向扩缩、滚动升级和故障迁移。
+4. **失败成为正常控制流**：retry、timeout、timer、Signal / Update、child workflow 和 Continue-As-New 都进入统一执行模型。
+
+**可靠性边界** 也必须说清：
+
+- Workflow 的 durable progress 不等于外部副作用 exactly-once。Activity 可能重试，仍需 idempotency key、去重或补偿；heartbeat 只能帮助长 Activity 从业务 checkpoint 继续。
+- Workflow `Completed` 只表示代码走到终态，不表示目标真的达成、证据充分或结果值得发布。
+- LLM 调用不能直接放进 Workflow code；它应是 Activity，返回结果会被记录并在 replay 时复用。
+- Event History 有大小限制；长流程需要 Continue-As-New。Workflow code 演进还要承担 patching / Worker Versioning 的兼容成本。
+- Signal / Update 是向运行中 Workflow 送入状态变化的通道，Query 主要读取当前状态；它们提供通信机制，不自动提供审批、权限或 evidence 语义。
+
+#### Temporal vs. LoopX：执行连续性与价值交付连续性
+
+| 问题 | Temporal | LoopX |
 | --- | --- | --- |
-| `Workflow Execution` | 一个长期任务实例 | 不是一次对话，而是一条可持续推进、可审计的执行线。 |
-| `Event History` | append-only task ledger | 选择、动作、产物、验证、等待、审批、失败、外部证据都应成为事件。 |
-| `Worker Process` | ephemeral executor | 具体 agent / thread / runner 可以替换；任务状态不应只存在于 worker 记忆里。 |
-| `Activity` | side-effect boundary | 文件写入、测试、实验启动、外部 API、通知、状态查询都要能识别是否已执行。 |
-| `Task Queue` | dispatch / scheduling surface | 调度入口可以换，但下一步任务应来自 durable state，而不是 prompt 里越堆越长的说明。 |
+| 核心责任 | 让一段 workflow 在崩溃、等待和重试后继续执行。 | 让长期目标跨 run 持续推进，并约束谁能做什么、何时算完成。 |
+| source of truth | 每个 Workflow Execution 的 Event History；Mutable State 是执行投影。 | shared event ledger、goal/task state、per-agent frontier、quota、claim、evidence graph、handoff gate。 |
+| 下一步 | deterministic Workflow code 产生 Command。 | agent / policy 依据最新目标、证据、预算和外部状态决定 action。 |
+| 完成语义 | Workflow closed / returned。 | 对 objective 做证据审计，满足 gate 后才能 settlement。 |
+| Worker 协作 | Task Queue、routing、retry、timer、child workflow。 | scoped claim、handoff、证据归并、冲突与所有权治理。 |
+| 人类介入 | Signal / Update / wait condition 提供 durable transport。 | gate id、freshness、权限、决策与后续验证定义业务语义。 |
 
-因此，通用原则不是“给 agent 更长上下文”，而是把聊天 thread 降级为 **execution context**，把长期任务的事实沉淀到 durable control plane。最小 schema 可以是：
+两者更适合上下组合，而不是二选一：
 
-```yaml
-durable_agent_event_history_v0:
-  event_id:
-  task_id:
-  run_id:
-  event_type: state_observed | action_selected | activity_started | activity_completed | artifact_written | validation | gate | evidence | blocker
-  actor: agent | subagent | tool | user | monitor
-  policy_version:
-  executor_version:
-  precondition:
-  payload:
-  result:
-  timestamp:
-  idempotency_key:
+```text
+LoopX State Kernel
+  goal / frontier / quota / claim / evidence / handoff gate
+                    |
+                    v
+Temporal Workflow
+  durable wait / retry / timer / routing / worker recovery
+                    |
+                    v
+Activity
+  agent loop / model / shell / browser / external system
+                    |
+                    v
+evidence-bearing result -> LoopX validation and settlement
 ```
 
-和它配套的 `agent_activity_idempotency_contract_v0` 是：
+最重要的边界是 **replay vs. re-evaluation**：Temporal replay 要忠实恢复旧决策；LoopX resume 往往必须读取最新 repo、policy、goal、quota 和外部证据后重新判断。可行的组合是：Temporal 只重放已经记录的执行事实；需要“看最新世界”的步骤通过 Activity 读取 LoopX canonical state，并把新的观察与决策结果写回，而不是让 Workflow 在 replay 时偷偷改变历史。
 
-```yaml
-activity:
-  kind: file_edit | validation | experiment_launch | status_poll | external_message | payment_or_budget_charge
-  idempotency_key:
-  before_state_ref:
-  command_or_intent:
-  side_effect_boundary:
-  retry_policy:
-  result_event_id:
-  replay_behavior: reuse_result | poll_again | regenerate_gate | fail_closed
-```
+对 LoopX 的阶段判断：
 
-这套语义能推广到很多长程 agent failure：
+- **现在值得借鉴**：Event History / Mutable State 分层、Workflow / Activity 副作用边界、Activity 幂等与 heartbeat、durable Signal、history budget 与 Continue-As-New。
+- **出现真实运行痛点后再集成**：跨进程运行数小时到数天、大量并发 goal、多 Worker 路由、可靠的人类等待、统一 retry / timeout、服务高可用。
+- **不应照搬**：把 Task Queue 当任务账本；把 agent 的动态判断硬塞进 deterministic Workflow；把大 transcript、artifact 或完整 evidence graph 直接塞进 Event History。
 
-1. **“我做过了”不能只靠聊天自述**：任何会影响外部世界、预算、实验、代码或用户通知的动作，都应有 precondition、artifact / validation ref、idempotency key 和 result event。
-2. **等待外部证据不是空转**：CI、eval、部署、审批、数据落盘这类状态可以被 bounded read-only poll；无新证据不推进，有新证据才写 evidence event 并更新 canonical state。这里需要明确的工具层原语：non-blocking start、session handle、incremental output、exit status、kill / resume；否则上层就会被迫用 `/loop`、cron prompt 或临时 shell 脚本补洞。
-3. **human gate 接 A318 的 checkpointed decision**：gate 前只写 pending / interrupt event；人的 `approve / reject / edit_params` 是 resume event；执行前仍要在最新状态上重新校验。
-4. **系统规则本身会演进**：长期 agent 的 prompt、policy、tool schema、runner 版本都可能升级。事件里应带 `policy_version / executor_version`，让新 worker 能区分“旧规则下的事实”和“新规则下的下一步”。
-
-Temporal 的 replay 是 deterministic code replay；长期 agent harness 不一定能、也不一定应该按旧 prompt 原样从头重放。更通用的迁移是 **event-history driven re-evaluation**：旧 event history 提供事实与审计锚点，新一轮 executor 读取最新 policy、工具、项目状态和外部证据后，选择下一条合法 transition。也就是说，长期任务的 source of truth 不是 growing transcript，而是一条能被新 worker 读懂、校验和继续写入的事件历史。
-
-映射到具体系统时，Goal Harness 只是其中一个实例：它的 registry、ACTIVE_GOAL_STATE、run history、quota ledger、gate event 和 evidence ledger 可以作为这个 durable control plane 的本地实现；但这套语言本身适用于 coding agent、research agent、实验调度 agent、CI / deploy monitor、workflow automation 和 multi-agent project manager。
+因此 Temporal 可以成为 LoopX 的 **durable execution backend**，但不会替代 State Kernel。短期更合适的是先定义可选 adapter 与稳定边界；在本地、单用户、低并发阶段直接引入 Temporal，会额外带来 Server、SDK determinism、workflow versioning、serialization 和运维成本，收益未必覆盖复杂度。
 
 ### OpenAI Agents SDK：model-native harness 与 sandbox runtime substrate
 
@@ -2385,9 +2678,336 @@ Sandbox agents 还能组合：handoff 适合把某个分支的 ownership 交给 
 3. `Manifest` 是 fresh-session workspace contract，不是长期任务真相；长期真相仍应是 event history、active goal state、artifact refs、validation refs 和 human gate events。
 4. harness-compute separation 是安全、持久、扩展性的共同边界：Goal Harness 应更像可信控制面，runner / sandbox / worker 才是 stateful execution plane。
 
-### Long-running agent 的 open problems
+### SubAgent / Agent-as-Tool / MultiAgent：从多开模型到上下文与证据控制
 
-**Multi-agent runtime governance**：Claude Code Agent Teams（见 [产品/系统设计笔记](./AI-Agent-Product&PE.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
+来源可参考公众号《[主流 Agent Harness 实现对比：SubAgent 与 MultiAgent](https://mp.weixin.qq.com/s/FdaYXvEDr8YfALGDErdUfA)》，以及作者前文《[Multi Agent终于不是噱头了么，展望下一代Agent架构设计（2）](https://mp.weixin.qq.com/s?__biz=Mzk0MDU2OTk1Ng==&mid=2247486066&idx=1&sn=ab190a5e6b4fbcb78c916d383f4632b4&scene=21#wechat_redirect)》。这里不要把术语混成“多 agent”：`SubAgent` 是父 agent 把一个有边界的子任务交给子 agent；`Agent as Tool` 是把子 agent 包装成一次工具调用，父 agent 仍负责最终回答；`MultiAgent` 是更大的集合，包括并行 worker、teammate、swarm、handoff、durable board 和 MoA。它们共享的动机不是“角色扮演更像组织”，而是控制 context、引入旁观者视角，以及在任务可分解时并行加速。
+
+更高层的表达可以从 **sharing model** 切入：multi-agent 的关键差异不是 agent 数量，而是 workspace / state 如何共享。一个 agent team 可以全量共享空间，也可以只通过 mailbox / ledger 共享关键状态，还可以让 session 之间直接对话。三种模式的成本、可靠性和产品形态不同：
+
+| Sharing model | 共享对象 | 适合场景 | 主要风险 |
+|---|---|---|---|
+| 全量 shared workspace / room | `workspaceId` 下的 conversation、file、app invocation、task、run、working state projection | 人和 agent 共用作业台，减少跨工具 handoff 损耗；Tutti 更接近这类 shared workspace | 容易变成 context soup；必须有 typed reference、permission、version、evidence、expiration |
+| Mailbox + task / event ledger | task、claim、blocked reason、decision、artifact ref、evidence ref、quota、heartbeat、handoff gate | Claude Code Agent Teams / LoopX 这类本地 agent team；多 worker 并行但保持 context isolation | mailbox 被误用成事实源；完成状态必须回写 ledger / event store / artifact store |
+| Session-to-session dialogue | agent session 之间的定向消息、review request、clarification | 临时澄清、peer review、局部协商 | 对话本身不耐久；没有写回 ledger 就不能作为长期事实 |
+
+这次讨论里的“共享会议室”更适合落在第二类：共享关键信息和任务，不共享全部空间。会议室里应该有 agenda、task、claim、decision、artifact pointer、evidence、quota 和 handoff gate；不应该默认把每个 agent 的完整 transcript、工具日志和隐含推理都合并到同一个 context。Tutti 的启发是把 session / app / task 的互相引用上提到 `workspaceId` 下的全局状态；LoopX 的短中期重点应是把 mailbox + ledger 做 solid，让共享状态可验证、可恢复、可审计。
+
+```yaml
+multi_agent_sharing_model_v0:
+  isolation_unit: agent_session
+  shared_room:
+    task_ledger:
+    mailbox:
+    artifact_refs:
+    evidence_refs:
+    decision_log:
+    scoped_claims:
+    heartbeats:
+    permission_leases:
+    quota_refs:
+    handoff_gates:
+  source_of_truth:
+    - task_ledger
+    - event_store
+    - artifact_store
+    - evidence_graph
+  non_goals:
+    - full_transcript_sharing_by_default
+    - mailbox_as_source_of_truth
+    - session_dialogue_as_durable_state
+```
+
+#### CooperBench：诊断 peer coordination，而非模拟真实集成工作流
+
+[CooperBench](https://arxiv.org/abs/2601.13295) 不测“多个 Agent 合起来是否比单 Agent 更聪明”，而是构造了一个很具体的协作问题：从同一个仓库和 base commit 出发，准备两个独立可实现、但可能修改重叠逻辑的 feature；`solo` 让一个 Agent 同时看到并完成两个 feature，`coop` 让两个 Agent 各自只看到一个 feature，在隔离 workspace 中并行工作，只能通过自然语言消息交流；最后再合并两份 patch，并运行两组测试。
+
+论文的主要发现是：通信能改善 **spatial coordination**，例如谁改哪个文件、哪几行、如何减少 Git conflict；但没有稳定改善 **semantic coordination**，例如接口契约、参数默认值、跨分支假设和双方实现合并后的整体行为。失败根因可归纳为 expectation、commitment、communication：Agent 即使收到同伴计划，也可能没有更新自己的 partner-state 模型；即使做出承诺，也可能没有兑现或无法被同伴核验；自然语言消息还会出现无回应、重复和错误共享上下文。
+
+需要特别注意论文的 merge evaluator。它依次尝试 standard merge、union merge，再用一个 LoRA 微调的 `Qwen2.5-Coder-0.5B` 清理局部 conflict marker。resolver 只看冲突块前后约 5 行，不读取两份完整 feature spec、隐藏测试或全局架构，因此不是 semantic integration agent。Table 6 显示，No-comm 平均成功率从 naive 的 8.64% 经 union 升到 16.87%，LLM resolver 只再升到 17.64%；With-comm 则从 10.71% 升到 15.97% 和 17.14%。因此更准确的结论是：
+
+> 通信对空间协调有帮助，但评测器也能事后修复大部分机械冲突；通信没有进一步改善评测器无法代偿的语义协调。
+
+这个 benchmark 很有诊断价值，但 external validity 有明显边界。它为了对称、可归因和保持部分可观测性，选择让两个 Agent 独立结束后再统一 merge；真实工程更常见的流程是 `Agent A 先合入 -> Agent B fetch / rebase -> 看见 A 的真实 diff -> resolve conflict -> 跑联合测试 -> 再合入`。后者把自然语言 self-report 替换成了真实 artifact visibility，并引入 checkpoint、顺序集成和后置修复，因此 A2A 不一定还会出现同样严重的性能下滑。它测试的已经不是 free-form peer coordination，而是 staged integration workflow。
+
+更值得做的后续问题是：**在必须 resolve conflict 的真实集成流程里，with / without A2A 能给最终成功率带来多少增量？** 可以把实验做成正交设计：
+
+```yaml
+cooperbench_integration_variant_v0:
+  integration_mode: final_merge | sequential_rebase | lead_integration
+  coordination_channel: none | free_text_a2a | typed_contract
+  shared_state: patch_only | mailbox | task_event_ledger
+  merge_order: a_then_b | b_then_a | randomized
+  visibility:
+    partner_diff: true
+    partner_feature_spec: false
+    partner_evidence: optional
+  metrics:
+    - rebase_conflict_resolved
+    - both_feature_tests_passed
+    - semantic_integration_failure
+    - duplicated_work
+    - unresolved_decision
+    - action_and_token_cost
+```
+
+其中最关键的对照不是“两个 Agent vs 一个 Agent”，而是：B 已经能看到 A 的真实 patch 和 rebase conflict 时，额外提供 A2A 意图、接口契约和证据，能否提高 conflict-resolution 与联合测试成功率。为了控制顺序优势，应同时运行 `A -> B`、`B -> A` 或随机化顺序，并统一总 action / token budget。
+
+对 LoopX 来说，CooperBench 证明的是问题空间，不是产品答案。更有说服力的 treatment 应比较 `patch-only sequential rebase`、`free-text A2A + rebase`、`typed commitment + evidence + semantic handoff gate`。LoopX 的 State Kernel 只有在最后一组显著提升联合测试成功率、降低语义冲突或减少无效通信成本时，才能形成比“共享 mailbox”更强的经验主张。
+
+#### 为什么需要主 Agent 之外的 Agent
+
+设计动机可以压成三点：
+
+- **控上下文**：把搜索、日志、文件阅读、候选方案这些噪音放进子上下文，让主线程保留目标、约束和决策。更根本地说，这是把 task 的 context 用量压回模型训练阶段更熟悉的范围，以缓解 long-context 下更容易出现的偷懒、跳步、伪完成和注意力漂移。
+- **换视角**：让子 agent 做 review、反证、方案比较和独立复核，避免主 agent 在自己的推理轨迹里自证其说。
+- **并行加速**：任务可分解时，用多个 agent 同时跑探索、测试、复核和候选实现；但并行首先适合 read-heavy / review-heavy 工作，写密集任务必须受文件范围、claim、worktree 和 verifier 约束。
+
+几个机制比平台名字更重要：
+
+- **fork vs fresh context policy**：fresh child 更干净、更省上下文，但要求父 agent 像给刚进房间的聪明同事交代任务一样，写清背景、已知事实、排除项、文件路径、行号、输出格式和边界；fork child 保留隐含背景，适合连续修复或同一分支跟进，但更贵，也更容易继承错误假设。LoopX 应按任务类型选择：探索 / 复核默认 fresh，连续修复 / 同一分支跟进用 resume / fork。
+- **child result is evidence, not truth**：子 agent 的结果只是报告，不是事实。凡涉及代码修改、外部副作用、实验结论或用户可见承诺，都必须返回可验证 handle：文件路径、commit、测试命令、URL、截图、trace id、run id 或 dashboard ref；父 agent / verifier 再验。否则只是线索，不能进入完成状态。
+- **main agent owns synthesis**：不能把“理解任务”外包。子 agent 可以搜索、比较、审查和生成候选，但主 agent 负责综合、冲突判断、风险边界、最终承诺和用户沟通。Claude / Kimi / Codex 的 subagent prompt 都在强调这一点：不要写“根据你的发现修 bug”，要写出能证明父 agent 已理解任务的具体委托。
+- **parallel is for read-heavy first**：并行 worker 是提升吞吐的工具，不是默认正确。研究、定位、triage、summarization、review 可以自由 fan-out；实现类任务应避免同一文件范围多 worker 同时写，最好通过 worktree、claim、conflict group、verifier gate 控制。
+- **durable teammate != synchronous subagent**：Hermes 的 `delegate_task` 更像一次函数调用：父 agent 发起、子 agent 在独立上下文里工作、返回 summary，生命周期绑定父 turn。Hermes Kanban 则更像持久任务队列：任务行带 `status / assignee / comments / evidence / heartbeat / dependencies`，可被 dispatcher、human 和不同 agent 反复读写。LoopX 如果要做长程价值交付，必须把短生命周期 subagent 与 durable workflow / State Kernel 分开建模。
+
+平台 prompt / 模式抓手也值得保留，但要带版本边界看。Claude Code non-fork 模式默认是 fresh child，不继承完整对话。AgentTool 的关键不是“多开”，而是启动专门 agent 处理复杂多步任务；常见 agent 类型包括 `general-purpose`、`Explore`、`Plan`、`claude-code-guide`、`statusline-setup`。它的使用边界很像一个 routing prompt：已知路径直接 `Read`，已知字符串 / 符号直接 `Grep`；只有跨代码库开放式搜索、复杂调研或匹配专门 agent 类型时才起 subagent。写 prompt 时，应把子 agent 当作“刚进房间的聪明同事”：交代正在做什么、为什么、已知 / 已排除事实、相关文件路径 / 行号、期望输出格式和回复长度。最重要的 guard 是：**不要委托理解**。父 agent 不能写“根据你的发现修 bug / 根据调研去实现”，而要先自己综合，给出具体可验证的委托。
+
+Claude Code 还有几个版本敏感的模式开关值得作为设计线索：`CLAUDE_CODE_FORK_SUBAGENT=1` 对应 fork context；`CLAUDE_CODE_COORDINATOR_MODE=1` 把主 agent 特化为 coordinator，自己不做 Edit / Bash，而是派 subagent、停 subagent、发消息和综合结果；`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 更接近 teammate / mailbox 协作。原文里最有价值的并发 prompt 不是具体环境变量，而是 rule：只读研究任务可自由 fan-out；写密集任务同一文件范围每次只给一个 worker；验证有时可以和不同文件区域的实现并行。这个模式可以直接转成 LoopX 的 `conflict_group / write_scope / verification_lane`。
+
+Codex Collab 体现的是“异步子任务”而不是一次 completion：文章记录的工具形态包括 `spawn_agent`、`wait_agent`、`send_input`、`close_agent`、`resume_agent`，因此 contract 里要有 `agent_session_ref / resume_policy / pending_input / result_handle`。MultiAgentV2 更接近 teammate mailbox；Agent Jobs 则是批量任务特化，可由表格 / CSV 批量创建 agent 并等待完成。Kimi AgentSwarm 与 Codex Agent Jobs 类似，是 Claude Dynamic Workflow 的单 step 退化版，适合同模板多 item fan-out，但要防重复劳动、冲突写和未验证 summary。Hermes 则把三种形态拆得更清楚：`delegate_task` 是 Agent-as-Tool，`Kanban` 是不绑定主 agent 生命周期的 durable board，`Mixture-of-Agents` 是多模型 proposer-aggregator。
+
+不同 harness 的形态可以理解成几类 reference design：
+
+| Harness | 形态 | 关键启发 |
+|---|---|---|
+| Claude Code non-fork SubAgent | fresh child，默认不继承完整上下文 | prompt 要像交代给未看过对话的同事；已知路径直接读，开放式跨库搜索才用 agent；永远不要委托理解 |
+| Claude Code fork / coordinator / Agent Teams | fork context、主 agent 特化为 coordinator、teammate mailbox | coordinator 自身不该变成万能执行者；只读任务可大规模并发，写密集任务每个文件范围一次只给一个 worker |
+| Codex Collab / MultiAgentV2 / Agent Jobs | 异步 spawn / wait / send_input / resume；批量 CSV 任务；V2 更接近 teammate mailbox | 子 agent 是可继续的异步 task，不是一次纯文本 completion；需要 session ref、resume policy 和结果验证 gate |
+| Kimi AgentSwarm | 批量 Agent-as-Tool / 单 step swarm | 适合 fine-grained fan-out，和 Codex Agent Jobs 或 Dynamic Workflow 的单步退化形态相近 |
+| Hermes delegate_task / Kanban / MoA | synchronous subagent、durable board、多模型 proposer-aggregator | 把短任务调用、持久任务队列、多模型综合拆开，不要用一种 primitive 吞掉所有协作形态 |
+
+这组材料对 LoopX 的直接 contract 可以写成：
+
+```yaml
+subagent_orchestration_contract_v0:
+  task_id:
+  parent_run_id:
+  role: tool | verifier | swarm_worker | teammate | orchestrator
+  context_mode: fresh | fork | resume | external
+  scope:
+  allowed_tools:
+  write_scope:
+  expected_output:
+  evidence_required:
+  result_handle:
+  verification_status: unverified | verified | contradicted
+  lifecycle: sync | background | durable
+  conflict_group:
+```
+
+LoopX 的正确方向不是把所有 runtime 变成同一个 Hermes-like agent，而是把 Codex / Claude Code / Cursor / Hermes / shell agent 这些 bounded loop 接成 `LoopX-managed Loop Agent`：executor 可以异构，控制面统一保存 goal、claim、quota、evidence、handoff、heartbeat 和 gate。换句话说，SubAgent 解决“这一小段工作交给谁做”，durable board / State Kernel 解决“这件事如何跨时间、跨角色、跨失败持续推进”。
+
+### Long-running control plane：workflow / goal / evidence / quota / handoff
+
+长程 agent 的关键不在“让模型多跑几轮”，而在把可恢复的工作状态拆成几类互相引用、但变更原因不同的 control state。一个稳妥的分类是：
+
+| 控制层 | 代表机制 | 主要问题 | 典型状态 |
+|---|---|---|---|
+| Runtime session bridge | ACP | Client 如何启动、驱动、观察和中断 Coding Agent session | protocol capability、session id、stream update、tool call、permission request、terminal ref |
+| Execution path | Dynamic Workflow、Temporal Durable Execution | 脚本如何 branch / fan-out；执行如何等待、重试和恢复 | step、script variable、timer、workflow event history |
+| Execution substrate | Shepherd | Agent 与环境的耦合执行状态如何观察、分叉、重放和结算 | task、effect、scope、trace commit、retained output、settlement |
+| Project control plane | LoopX | 谁能继续、下一轮是否该跑、证据写哪里 | registry、goal state、todo ownership、gate、quota、run history、evidence refs |
+| Goal audit | Codex / Claude / Kimi 的 goal mode | 能否宣称完成、是否真的 blocked、预算是否还能继续 | objective、completion evidence、blocked fuse、usage accounting |
+| Method trace | Flowtrace | 方法图、步骤证据和局部重跑边界如何从 transcript 外部化 | trace.json、state.json、replies、path-backed evidence |
+| Human / multi-agent gate | LangGraph Interrupts、Claude Code Agent Teams | 人类和多个 agent 如何接力、审批和恢复 | gate id、task ledger、mailbox、permission lease、artifact refs |
+
+LoopX 应在这一层被理解：它不是 goal mode 的替代，而是项目级 / 多轮 / 多 agent 的本地控制面。Goal mode 管“能不能结束”，Dynamic Workflow 管“路径怎么走”，Flowtrace 管“方法和证据怎么留”，LoopX 管“谁能继续、为何继续、带着什么状态继续、跑完写回哪里”。因此，LoopX 的 registry、active goal state、todo ownership、quota、run history、evidence 和 handoff，不应只放在产品笔记里，也应作为 long-running agent control plane 的代表案例进入 Agent Harness 总框架。
+
+#### Shepherd：Agent execution 的版本控制与事务层
+
+[Shepherd](https://arxiv.org/html/2605.10913v3) 不是“又一个 Agent loop”，而是在做 **Agent execution 的版本控制与事务层**：把模型上下文、工具调用、进程和环境状态组成可观察、可分叉、可回滚的执行对象，让 meta-agent 真正能操作另一个 Agent 的运行过程。
+
+三类系统的边界可以压成：
+
+- **Dynamic Workflow**：谁决定下一步，计划如何执行。
+- **Shepherd**：这一步产生了什么耦合状态，怎样 fork、replay、merge、discard。
+- **LoopX**：为什么执行、谁拥有任务、证据是否足够、跨 run 如何继续交付。
+
+因此 Shepherd 位于 executor loop 和 project control plane 之间。它不决定项目目标，也不替 Agent 做规划；它把一次执行从不可操作的 transcript 提升成可以被 supervisor、optimizer 和 trainer 共同使用的 runtime object。
+
+##### Task / Effect / Scope / Trace
+
+| 抽象 | 回答的问题 | 程序设计来源 | Runtime 能力 |
+|---|---|---|---|
+| Task | Agent 是什么 | typed function | 修改、替换或组合 Agent 行为 |
+| Effect | Agent 做了什么 | algebraic effect | 观察与拦截执行 |
+| Scope | 在哪个隔离世界运行 | scoped effect handler | 原子 fork Agent + environment state |
+| Execution Trace | 到目前发生了什么 | persistent data structure | 回到历史状态并 replay |
+
+**Task as value** 的目标，是让 Agent 像 typed function 一样可传入、返回、替换和组合。**Effect** 把一次动作拆成两个事件：
+
+- `intent`：Agent 想做什么，例如发起 tool call、写文件或发消息。
+- `outcome`：环境实际返回了什么，例如命令输出、文件变化或 API response。
+
+这使系统既能回答“为什么状态变成这样”，也能在 intent 真正 materialize 前安装 permission、safety、review 或 supervisor gate。只保存 tool log 不够，因为 log 往往发生在副作用之后；`intent -> gate -> outcome` 才给 runtime 留下干预窗口。
+
+**Scope** 是 agent state、sandbox handle、model provider、tool surface 和 effect-stream cursor 的隔离执行区域。论文中的四个基础操作是：
+
+```text
+emit(effect)   -> 把 typed effect 写入当前 scope
+fork(scope)    -> 从同一 Agent + environment 状态建立 copy-on-write 分支
+merge(child)   -> 接纳分支 effect，使其进入 parent
+discard(child) -> 放弃分支并清理隔离环境，parent 不变
+```
+
+`checkpoint / restore` 是在 effect stream 上截断并重算状态，`replay` 则是从历史 commit fork 后重新执行后缀。冻结实验 runtime 确实把 `fork / merge / discard / checkpoint / restore / materialize` 做成直接原语，见 pinned [Scope 实现](https://github.com/shepherd-agents/shepherd-experiments/blob/c12ebd1b774cf12f70ef2b4486e61e7052f3e3ab/code/agentic/packages/runtime/src/agentic_runtime/_scope/scope.py#L640-L895)，不只是论文里的比喻。
+
+**Execution Trace** 不是聊天日志。每个 model action、tool call 和 environment change 都成为 content-addressed commit，scope fork 成为 branch；trace 同时保存 Agent continuation 与环境状态之间的因果关系。只有 fork 的是 `agent + environment coupled state`，branch 才是真正的反事实分支；只复制 transcript、不复制文件系统和进程状态，或只 snapshot 环境、不恢复模型上下文，都不能保证从同一个历史点继续。
+
+##### Materialization 与可逆性边界
+
+Shepherd 将 effect 分为三类：
+
+| Effect tier | 例子 | 回滚语义 |
+|---|---|---|
+| Reversible | 文件系统、sandbox 内状态与进程 | scope 原生 restore / discard |
+| Compensable | 数据库写入、可撤销的外部状态变化 | 用户提供 compensation handler，执行反向操作 |
+| Irreversible | 已完成的模型请求、邮件、支付、真实外部调用 | 只能提前 gate 或事后审计，不能假装回滚 |
+
+关键原则是：**effect 在不可逆 materialization point 之前可以安全试错；越过之后，只能补偿或记录。** 更严谨地说，系统里可能有多个 materialization point，不是只有一个“最终提交点”；每个不可逆 effect 都会缩小后续 rollback 能力。`discard()` 只能撤销仍被 scope containment 持有的状态，无法让已经发送的邮件或已经发生的模型调用消失。
+
+##### 三种 meta-agent 应用
+
+![Shepherd 的三个 meta-agent 应用：runtime intervention、counterfactual optimization、Tree-RL](./AI-Applied-Algorithms/shepherd-meta-agent-applications.png)
+
+同一套 reversible trace substrate 支撑三种看似不同的上层系统：在线 supervisor 在运行时改路径，CRO 在运行后优化 workflow，Tree-RL 在训练时构造局部 credit assignment。共同原语都是 `observe -> choose fork point -> branch / intervene -> verify -> merge or discard`。
+
+###### Runtime Supervisor：完整观察加运行时干预
+
+论文在 CooperBench 上让两个 Claude Haiku 4.5 worker 位于隔离 scope 中并行开发；Sonnet 4.6 或 Opus 4.7 supervisor 直接订阅双方 effect stream，而不是只读 worker 主动发送的消息。Supervisor 有三种行为：
+
+| 行为 | 实际语义 | 成本与损失 |
+|---|---|---|
+| `inject` | 向原 session 追加 guidance，保留 conversation、tool trail、文件状态和 prompt cache | 最轻；适合漂移、缺信息和即将发生的局部冲突 |
+| `handoff` | 等 leader 形成可继承状态，再 fork leader scope 作为 follower 的新 root，并用新 session 继续 | follower 丢失原 session memory，但从 leader 的真实 working tree 和状态继续，不再靠自然语言转述重做 |
+| `discard` | 终止失败 branch，丢弃其 OverlayFS 变化，再从干净状态启动新 session | 最重；同时丢失 session context 与分支文件修改 |
+
+`handoff` 的重点不是“让 B 等 A 回一句话”，而是 **A 完成可继承前缀后，B 从 A 的真实 agent-environment state 继续**。它把 CooperBench 的两个平行 patch 改成 staged integration：leader 的实现成为 follower 的起点，follower 再完成第二个 feature 和联合验证。
+
+结果上，coop baseline 的 pair pass rate 为 28.8%，solo ceiling 为 57.2%；Sonnet supervisor 达到 45.3%，Opus 达到 54.7%，关闭了 91% 的 coordination gap。这个实验支持“完整 effect visibility + 强 supervisor + runtime intervention 可以修复并行协作”，但仍只是 proof of existence：强 supervisor 的 token 成本、模型差异和 CooperBench evaluator 都会影响外推。
+
+###### Counterfactual Replay Optimization：只重跑受影响后缀
+
+![Counterfactual Replay Optimization 算法](./AI-Applied-Algorithms/shepherd-counterfactual-replay-optimization.png)
+
+CRO 对 workflow 做后验优化：
+
+```text
+分析失败 trace
+-> 选择 parent workflow
+-> 提出 edit + fix set + guard set
+-> 定位 edit 首次影响到的 trace commit
+-> 从那里 fork
+-> 只重跑受影响后缀
+-> 通过 fix / guard 后再跑 dev
+-> 把通过者加入 candidate pool
+```
+
+这里的 `fix set` 是编辑声称要修复的训练样本，`guard set` 是不得回归的样本。候选先过小范围 targeted gate，再消耗完整 dev evaluation；proposer 不能自己宣布修复成功。
+
+“只重跑后缀”也不是按文本位置粗暴截断。实现用 `(source hash, typed inputs hash)` 给 task output 建 cache，并让上层 pipeline key 包含 transitive subtask source hash。修改某个 subtask 时，该 subtask 与依赖它的 DAG 后缀失效；不受影响的 sibling subtask 继续命中历史结果。若改的是全局 system prompt、共享输入 schema 或 pipeline 主逻辑，first affected commit 可能退回轨迹开头，几乎等于全量重跑。
+
+CRO 在 HoVer、MATH、IFBench、LiveCodeBench、Terminal-Bench 2.0 五组任务中四组最好；相对 MetaHarness 的 wall-clock 节省为 27% 到 58%，LiveCodeBench 后期 computation reuse 超过 60%。它的价值不只是更快，而是更干净的实验方法：**评估 prompt / tool / workflow edit 时，固定未受影响的随机前缀，只比较编辑真正改变的后缀。**
+
+承重墙是 dependency analysis。只要“第一个受影响 commit”定位错误，所谓 counterfactual 就混入了旧状态污染，结果不再可信。论文也明确承认 CRO 假设 workflow edit 与外部 side effect 弱耦合；编辑影响全轨迹时，replay 收益会塌回全量执行。
+
+###### Meta-Agent Guided Tree-RL：共享前缀下的局部 credit assignment
+
+每条 root trajectory 先由强 meta-agent 选择 fork turn $t^*$，再从同一个 agent-environment state 采样 $K=4$ 个 sibling continuation。Credit assignment 分两段：
+
+$$
+A_{b,g}^{\text{inter}}
+= R_{b,g}^{\text{root}}
+- \frac{1}{G}\sum_{g'=1}^{G}R_{b,g'}^{\text{root}}
+$$
+
+fork 前的 prefix action 使用跨 root 的普通 GRPO advantage；fork 后每条 branch 使用共享前缀 sibling group 内的局部 advantage：
+
+$$
+A_{b,g}^{\text{intra},(k)}
+= R_{b,g}^{(k)}
+- \frac{R_{b,g}^{\text{root}}+\sum_{k'=0}^{K-1}R_{b,g}^{(k')}}{K+1}
+$$
+
+branch 复制的 prefix token 不计算 loss，只训练真正分叉的 suffix。它的核心不是“树搜索天然更聪明”，而是：**共享同一历史前缀的多个后续结果，提供了更局部的 credit assignment。** 独立 rollout 的差异同时包含早期状态和后续动作噪声；sibling 的差异主要来自 fork 后选择。
+
+| 模型 | Base | Flat GRPO | Tree-GRPO |
+|---|---:|---:|---:|
+| Qwen3.5-35B-A3B | 26.1 | 34.2 | 39.4 |
+| Nemotron-3-Super-120B-A12B | 30.3 | 33.8 | 37.2 |
+
+结果说明 reversible environment 不只是 debugging substrate，也可以成为 agentic RL 的 rollout / credit-assignment substrate。但 fork-point policy 由强 meta-agent 给出，收益中包含其诊断能力；论文没有证明这是最优 branch policy。
+
+##### 论文 substrate 与 v0.3.0 产品边界
+
+阅读 Shepherd 最容易踩的坑，是把论文里的完整 meta-agent programming model 当成当前安装包已经全部提供。二者关系是：论文与冻结实验 repo 证明机制可运行；当前主 repo v0.3.0 先收敛为更窄的 **settlement machine**。
+
+v0.3.0 的已交付流程是：
+
+```text
+声明 task 与 named-binding permission
+-> Agent 在 jail / isolated workspace 中执行
+-> 修改成为 retained output，parent workspace 暂不变化
+-> 人或系统检查 trace 与 per-binding changeset
+-> 对 output 执行一次且仅一次 settlement
+```
+
+| Settlement | 语义 |
+|---|---|
+| `select` | 接纳候选；fast-forward only，要求 parent 仍处于 run 开始时的 fork basis，否则 fail closed |
+| `apply` | parent 已前移时，尝试将 whole-output delta 应用到当前状态；v0.3.0 仅接受 path-disjoint 变化，不做内容级自动综合 |
+| `release` | 不选入 parent，结束 retained custody，不把它标成接受 |
+| `discard` | 明确拒绝候选，并记录 discarded settlement |
+
+每个 retained output 都是 consume-once：四种 verb 只能成功一次，重复 settlement 会被拒绝。这比“Agent 改完直接落进 worktree”多了一层事务语义：**run 产生 proposal，review 读取 changeset，settlement 才决定是否进入 parent world。** 详见 pinned [v0.3.0 roadmap](https://github.com/shepherd-agents/shepherd/blob/2d86248884b8a4ec10f7283681cbcb8f0773af8e/docs/shepherd/roadmap.md#L24-L96)。
+
+当前尚未完整产品化的，是 returned world-resource handle、typed value projection、durable child、task-to-task delegation、公开 replay API，以及论文中“一个 task 把另一个 task 当 value 直接监督”的完整高阶形态。普通 Python run 的 formal claim 默认也是 `runtime_only`；Lean mechanize 的是受限 algebraic-effects trace machine 与 proof envelope，不是整个 Python、shell、filesystem、Docker、调度、恢复和模型输出栈。
+
+##### 对 LoopX 的直接启发
+
+LoopX 没必要整体“引入 Shepherd”或把 State Kernel 重写成 trace runtime。更高价值的是保持分层，并先借鉴三组 contract：
+
+```yaml
+loopx_shepherd_bridge_v0:
+  control_plane:
+    goal_ref:
+    owner_claim_ref:
+    quota_ref:
+    evidence_requirement:
+    handoff_gate_ref:
+  execution:
+    run_ref:
+    parent_trace_commit:
+    scope_ref:
+    effect_cursor:
+    reversibility_tier:
+    materialization_state: contained | compensable | irreversible
+  intervention:
+    action: none | inject | handoff | discard
+    target_session_ref:
+    reason:
+  settlement:
+    retained_output_ref:
+    changeset_ref:
+    decision: select | apply | release | discard
+    verifier_evidence_refs:
+```
+
+短期最值得抄的是：`effect visibility + inject/handoff/discard` 的 supervisor surface、retained output + explicit settlement，以及 benchmark / prompt 修改时的 affected-suffix replay。最不该急着抄的是完整 task-as-value DSL、通用 compensation framework 和 Tree-RL trainer；它们需要 LoopX 先拥有真实 executor adapter、trace identity、sandbox snapshot 与可验证 benchmark case。
+
+#### Multi-agent runtime governance
+
+Claude Code Agent Teams（见 [产品/系统设计笔记](./AI-Agent-Product&PE.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
 
 ```yaml
 multi_agent_runtime_contract_v0:
@@ -2411,13 +3031,131 @@ multi_agent_runtime_contract_v0:
   human_approval_boundary:
 ```
 
-**Execution environment**：runtime substrate 正在变成安全、扩展性和可移植性的交汇点。SandboxEscapeBench 这类工作说明 frontier model 可能利用 sandbox 弱点；SWE-World 这类方向则尝试用 Docker-free surrogate environment 降低大规模并行轨迹的 reset / replay 成本。未来 harness 需要能比较 container、microVM、OS permission boundary、desktop VM、browser environment、learned surrogate 等执行底座的安全性、成本和可复现性，而不是把 sandbox 当产品偏好。
+#### Execution environment
 
-**Reliable state**：长期 agent 的 context 问题不是“多塞 token”，而是如何保持 agent 的 working state 与真实 task state 对齐。Anthropic context management、prompt-cache-aware ordering、tool-result clearing、compaction、retrieval、externalization 都是实用机制，但 Context Rot 和 memory benchmark 都提醒：更长上下文和更大 memory store 不自动等于更好的 task-state tracking。因此 context management 应被看作 state estimation：要估计每次压缩、检索、遗忘造成了多少任务信息损失，并给 remembered facts 加 provenance、staleness、contradiction handling 和 recovery procedure。Temporal Durable Execution 进一步补上一层：durable truth 应是 append-only event history，而不是聊天 thread 或某次压缩摘要。
+runtime substrate 正在变成安全、扩展性和可移植性的交汇点。SandboxEscapeBench 这类工作说明 frontier model 可能利用 sandbox 弱点；SWE-World 这类方向则尝试用 Docker-free surrogate environment 降低大规模并行轨迹的 reset / replay 成本。未来 harness 需要能比较 container、microVM、OS permission boundary、desktop VM、browser environment、learned surrogate 等执行底座的安全性、成本和可复现性，而不是把 sandbox 当产品偏好。
 
-**Trace-native diagnosis**：未来 eval 应从 trace 直接计算 outcome score、trajectory quality、failure attribution 和 regression tests。诊断对象不只是 model，还包括 tool interface、context manager、execution environment、orchestration loop、benchmark spec 和 evaluator。Observability 记录“发生了什么”，verification 判断“对不对”，二者不能断开。
+在程序设计层，runtime 还可以借鉴 Functional Programming 的 [algebraic effects / effect handlers](./Functional-Programming.md#algebraic-effects-与-effect-handlers分离做什么和如何执行)：Agent 只描述 model / tool / environment operation，由 scoped handler 决定执行、记录、拒绝或 replay；Shepherd 的 effect stream / scope 是这套抽象在 Agent execution 上的映射。
 
-**Standard handoff**：planner、executor、subagent、tool、sandbox、evaluator、human 之间不能只传一句文本 summary。更标准的 handoff 应包含 intent、constraints、permission、artifact、provenance、budget state、risk level、trace history 和 unresolved decisions。人类审批也是 handoff 的一种，至少应保留 `created_state_ref / latest_state_ref / gate_id / resume_intent / precondition_check`。OpenAI Symphony、Anthropic long-running harness、LangGraph interrupts 和 Temporal Durable Execution 共同指向同一件事：issue / repo / durable progress artifact / gate event / run event history 才是 agent work 的 control plane。
+##### 权限声明必须编译成执行边界
+
+Agent 权限不能只写在 system prompt 里。Prompt 只能表达策略意图，无法阻止模型误判、越权工具调用或通过 shell 间接写入；可信边界必须位于 Agent 无法自行绕过的 runtime / OS 层。一个完整的权限链路应是：
+
+```text
+task signature / control-plane scope
+    -> capability lowering
+    -> sandbox / OS enforcement
+    -> denied effect + audit evidence
+```
+
+[Shepherd v0.3.0 的 permission contract](https://github.com/shepherd-agents/shepherd/blob/2d86248884b8a4ec10f7283681cbcb8f0773af8e/docs/shepherd/concepts/permissions.md#the-grant-lowers-to-the-syscall-jail) 是一个清楚的实例：`May[GitRepo, ReadOnly]` / `May[GitRepo, ReadWrite]` 直接进入 task signature；在 jailed placement 中，runtime 将 grant lower 成本次 run 的 writable roots，并通过 macOS Seatbelt 或 Linux Landlock 在 syscall 层执行。未显式授予写权限的 repository 默认只读；即使 Agent 通过 shell 尝试越界写入，也会被 OS 拒绝，而不是等到 merge gate 才发现。
+
+工程上应把它拆成四层：
+
+| 层 | 职责 | 失败时的正确行为 |
+|---|---|---|
+| Declaration | task signature、`write_scope`、resource handle 声明最小权限 | 缺失或歧义时默认 deny |
+| Lowering | 把抽象 capability 编译成 writable roots、sandbox profile、mount / syscall policy | 无法可靠 lower 时 fail closed，不把 prompt 约束冒充强制权限 |
+| Enforcement | 由 Seatbelt、Landlock、container、microVM 或等价可信边界拦截真实副作用 | 返回结构化 permission denial |
+| Evidence | trace 记录申请的 capability、实际 effect、拒绝原因和 enforcement backend | 无 enforcement evidence 时只能声称 advisory policy |
+
+当前 Shepherd 的粒度仍是 **whole-profile per named binding**：一个不重叠的 repository binding 要么整体 `ReadOnly`，要么整体 `ReadWrite`；尚未稳定支持 `where(path="src/foo/**")` 这类 sub-root grant。因此“权限已由 OS 强制”不等于“已经具备任意细粒度 capability”。通用 runtime contract 还需要记录 `grant_granularity / enforcement_backend / enforced_roots / denied_effect_ref`，避免把粗粒度隔离包装成细粒度授权。
+
+对 LoopX，这意味着 `required_write_scopes` 是控制面的授权意图，executor grant 才是执行面的实际权限；必须满足 `runtime_grant <= approved_write_scope`。如果 runtime 不能安装对应 jail，应降级为显式的 `advisory_only` capability，并阻止高风险自动执行，而不是仅把 scope 继续写进 prompt。
+
+#### Reliable state
+
+长期 agent 的 context 问题不是“多塞 token”，而是如何保持 agent 的 working state 与真实 task state 对齐。Anthropic context management、prompt-cache-aware ordering、tool-result clearing、compaction、retrieval、externalization 都是实用机制，但 Context Rot 和 memory benchmark 都提醒：更长上下文和更大 memory store 不自动等于更好的 task-state tracking。因此 context management 应被看作 state estimation：要估计每次压缩、检索、遗忘造成了多少任务信息损失，并给 remembered facts 加 provenance、staleness、contradiction handling 和 recovery procedure。Temporal Durable Execution 进一步补上一层：执行事实应进入可恢复的 Event History，而不是只留在聊天 thread 或某次压缩摘要；目标、证据和权限等领域真相仍应由上层 State Kernel 管理。
+
+**Feedback-conditioned retry：失败要进入下一次输入。** LLM generation 的失败不全是网络瞬态错误。若 summary 因输出上限被截断，继续发送完全相同的 prompt 和限制，通常只会再次截断。下一次尝试应保持目标与格式不变，同时消费失败证据：保留 continuation-critical intent、约束、决策、精确字面量和 immediate next step，逐次删除重复时间线、已完成背景与解释性叙述，并给 reasoning token 留出预算。
+
+| 失败 | 下一次 generation | 必须保持的边界 |
+| --- | --- | --- |
+| provider 瞬态错误 | 原 prompt 原样重放，配合 backoff | 不因网络错误改变 summary 语义 |
+| 输出长度截断 | 追加递进式压缩指导 | `max_tokens` 和最大尝试次数仍由配置拥有 |
+| schema / 必填 section 不合法 | 注入结构化 repair feedback | 原目标、输出 contract 和 evidence 不缩水 |
+| 鉴权、非法配置 | fail fast | 不用生成重试掩盖控制面错误 |
+
+这里要区分 **soft guidance** 与 **hard limit**：prompt 可以要求模型更短，但 runtime 不应静默翻倍 token 上限、增加 retry budget 或替换模型。数值策略如果需要变化，应从显式配置注入，而不是藏在错误分支里。某些 provider 还把不可见 reasoning token 计入同一输出预算，因此“可见摘要少于上限”也不代表预算仍足够。
+
+安全的 compaction loop 可以压成：
+
+```text
+generate candidate
+-> classify failure
+-> mutate only the failure-relevant input
+-> validate completeness / structure / length / quality
+-> install complete candidate | discard failed candidate
+```
+
+截断结果不能先写进主 history 再等待后续补全；它只是一次 failed candidate。Trace 也应区分总 `attempt_index` 与 `length_retry_index`：前者回答一共调用了几次，后者回答多少次尝试是由长度反馈驱动。只要 retry prompt 会改变模型行为，就应像代码和 schema 一样版本化，回归测试至少覆盖“连续截断后提示递进”“瞬态错误前后 prompt 字节一致”“耗尽配置预算后不安装候选”。
+
+#### Goal-mode audit：把“继续”变成目标审计
+
+`/goal` 这类能力不应被理解成 planner，而更像目标审计 / 终态判定控制面。来源可参考公众号《[主流Agent Harness实现对比——Goal命令](https://mp.weixin.qq.com/s/yJ67spzRuizW_21ldsYu8g)》的横向比较；其中 Codex 部分以官方源码为准：[`create_goal / get_goal / update_goal`](https://raw.githubusercontent.com/openai/codex/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/ext/goal/src/spec.rs) 把 objective、status、token budget、usage accounting 做成 thread-level durable state，[`continuation.md`](https://raw.githubusercontent.com/openai/codex/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/ext/goal/templates/goals/continuation.md) 负责续跑时的忠实度、证据审计和 blocked 熔断约束，[protocol](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/protocol/src/protocol.rs#L3661-L3701) 中的 `ThreadGoalStatus` 体现了 Active、Paused、Blocked、BudgetLimited、UsageLimited、Complete 这组控制面状态。
+
+普通 agent loop 是：用户给任务，模型执行，模型自己判断何时结束。这个结构在长程任务里天然脆：模型会过早停、把目标缩水、用局部证据宣布完成、卡住后反复解释困难，或者在预算耗尽时假装收尾。Goal mode 的本质是把“目标是否已经达成”从 prompt 里的自然语言愿望，提升成 runtime 里的持久控制状态和 completion grader：它不是替 agent 规划每一步，而是审计原始目标是否仍被保持、当前证据是否足够、失败是否真的到达 blocked，以及预算是否仍允许继续。
+
+这个机制可以压成几条 runtime 原则：
+
+- 目标要外部化：长程任务不能只存在模型上下文里，要有持久 goal state，否则续跑、压缩或换轮次时很容易丢目标、改目标。
+- 续跑不是重复 prompt：continuation 应提醒 agent 保持原始目标、读取当前 worktree / 外部状态、继续推进，而不是重新生成一个看似合理的新计划。
+- 完成必须由证据证明：文件、命令输出、测试、PR 状态、渲染产物、运行时行为等当前状态才是权威；弱证据、间接证据和“没发现剩余工作”都不能证明完成。
+- blocked 是熔断，不是抱怨：困难、慢、不确定、需要澄清都不是 blocked；同一阻塞连续出现多轮且无用户输入或外部状态变化就无法推进，才进入 blocked。
+- 预算是控制面的一部分：token / turn / wall-clock 不是统计装饰，而会影响是否继续、是否 budget-limited、以及如何向用户报告进度。
+
+`continuation.md` 的关键不是“再催模型干活”，而是把下一轮变成一次目标审计：objective 是用户提供的数据和任务目标，不是更高优先级指令；目标跨 turn 持久，不允许把成功重定义成更小、更安全、更容易测试的子集；每轮要以当前真实状态为准，而不是凭早先对话记忆；`update_plan` 只是进度可见性工具，不能替代实际推进；完成审计要从 objective、引用文件、计划、规格、issue 和用户指令中拆出显式需求，对每个 artifact、命令、测试、gate、不变量和交付物找权威证据；证据可以证明完成、反驳完成、显示未完、太弱或缺失，弱证据一律按未完成处理；阻塞审计则要求至少三轮连续同一阻塞，且确实没有可继续推进的动作。除非完成或严格 blocked，都不应调用 terminal update；更不能因为预算将尽或本轮要停，就把目标标成 complete。
+
+不同实现落在不同控制面取向：
+
+| 实现 | 机制重心 | 关键状态 / 接口 | 设计含义 |
+|---|---|---|---|
+| Claude Code | Stop hook + active condition | 文章中记录的 `ActiveGoal` 包含 `condition`、`iterations`、`setAt`、`tokensAtStart`、`lastReason`；token target 近似硬下限，Stop hook 阻止过早停止 | 最薄的一层是“结束前再检查”，适合把自然语言完成条件挂到 session 上 |
+| Codex | persisted thread goal + strict terminal update | `create_goal`、`get_goal`、`update_goal`；`update_goal` 只允许 `complete` / `blocked`，Paused、BudgetLimited、UsageLimited 由系统控制 | 把目标、预算和终态声明做成 runtime state，completion / blocked 都需要审计 |
+| Kimi Code | 独立 goal loop + queue | 文章中记录 `GoalState` 含 `goalId`、`objective`、`status`、`turnsUsed`、`tokensUsed`、`wallClockMs`、`budgetLimits`、`terminalReason`；支持 `/goal next <prompt>` | 更像一个顺序目标队列，主 loop 之外有独立 goal loop 推进 |
+| Hermes Agent | 独立 grader / judge | judge 读取 goal 与最近响应，返回类似 `done` / `reason` 的结构化判断 | 更强调外部评判，但若只看 response，不看文件 / 测试 / trace，容易评判叙事而不是评判证据 |
+| Pi / OpenCode / openai-agents-js | 文章版本中未形成 goal command | 更多依赖普通 loop、任务提示或框架层 orchestration | 说明“长程目标控制面”不是 agent framework 天然自带能力 |
+
+最小 contract 可以写成：
+
+```yaml
+goal_mode_runtime_contract_v0:
+  objective: user_visible_original_goal
+  completion_criterion: explicit_requirements_and_success_evidence
+  status: Active | Paused | Blocked | BudgetLimited | UsageLimited | Complete
+  budget:
+    token_budget: optional
+    turn_budget: optional
+    wall_clock_budget: optional
+  usage:
+    tokens_used: number
+    turns_used: number
+    wall_clock_ms: number
+  continuation:
+    preserve_original_scope: true
+    current_state_is_authority: true
+    forbid_goal_shrinking: true
+  audit:
+    requirements: list
+    evidence_refs: list
+    weak_or_missing_evidence_blocks_completion: true
+  blocked_fuse:
+    repeated_same_blocker_threshold: 3
+  judge:
+    mode: self_audit | stop_hook | independent_grader | human_gate
+  queue:
+    next_goal_ref: optional
+```
+
+和 LoopX 的区别：流程引导 vs 结果判定。LoopX 偏流程引导，回答“谁该继续、怎么继续、状态 / quota / evidence 写哪里、handoff gate 怎么过、任务如何分支 / 恢复 / 回滚”；Goal mode 偏结果判定，回答“是否仍是原目标、是否有足够证据完成、是否真的 blocked、是否还值得继续消耗预算”。两者互补：LoopX 的 state kernel / workflow supervisor 可以承载 long-running work 的过程结构，Goal-mode audit 则可以作为每轮结束、human gate、resume 和 budget gate 前的终态审计层。
+
+#### Trace-native diagnosis
+
+未来 eval 应从 trace 直接计算 outcome score、trajectory quality、failure attribution 和 regression tests。诊断对象不只是 model，还包括 tool interface、context manager、execution environment、orchestration loop、benchmark spec 和 evaluator。Observability 记录“发生了什么”，verification 判断“对不对”，二者不能断开。
+
+#### Standard handoff
+
+planner、executor、subagent、tool、sandbox、evaluator、human 之间不能只传一句文本 summary。更标准的 handoff 应包含 intent、constraints、permission、artifact、provenance、budget state、risk level、trace history 和 unresolved decisions。人类审批也是 handoff 的一种，至少应保留 `created_state_ref / latest_state_ref / gate_id / resume_intent / precondition_check`。OpenAI Symphony、Anthropic long-running harness、LangGraph interrupts 和 Temporal Durable Execution 共同指向同一件事：issue / repo / durable progress artifact / gate event / run event history 才是 agent work 的 control plane。
 
 因此，中心问题会从“怎么 build 一个 agent”转向“怎么 operate 一组长期 agent，使它们的行动能被持续检查、追溯和回滚”。
 
@@ -2426,6 +3164,182 @@ multi_agent_runtime_contract_v0:
 ## Context Engineering 与 Agent Runtime
 
 ### Agent Runtime：上下文状态与 API substrate
+
+#### ACP（Agent Client Protocol）：Client 与 Coding Agent 的 session 协议
+
+[ACP](https://agentclientprotocol.com/get-started/introduction) 解决的是一个很具体的互操作问题：**编辑器、IDE、桌面应用或 headless client，如何用统一协议连接不同 Coding Agent**。它类似 LSP 消除了“每个编辑器分别适配每个语言服务器”的 `N x M` 集成，但协议对象不再是静态语言能力，而是有上下文、工具调用、权限请求和流式状态的 Agent session。
+
+ACP 当前稳定 wire protocol 为 v1，基于 [JSON-RPC 2.0](https://agentclientprotocol.com/protocol/v1/overview)：request / response 表示需要结果的方法调用，notification 表示不等待响应的单向事件。最常见的本地形态是 Client 拉起 Agent 子进程，通过 `stdin / stdout` 传 newline-delimited JSON；Agent 的日志只能写 `stderr`，否则会污染协议流。一个 connection 可以承载多个并发 session。
+
+```text
+User
+  -> Client（IDE / editor / desktop app / headless runner）
+       <-> ACP：session、prompt、update、permission、fs、terminal
+       <-> Agent process（model loop + agent-owned state）
+              <-> MCP：tools / resources / external systems
+```
+
+这张图最重要的边界是：**ACP 连接 Client 与 Agent，MCP 连接 Agent 与工具。** Client 可以在 `session/new` 时把 MCP server 配置交给 Agent，但 Agent 随后直接连接 MCP server；ACP 与 MCP 不应硬塞进同一个 socket。
+
+##### 一次 session 如何运行
+
+典型生命周期是：
+
+```text
+initialize
+-> authenticate?
+-> session/new | session/load | session/resume
+-> session/prompt
+-> session/update* + client-side tool / permission requests*
+-> session/prompt response(stopReason)
+-> next prompt | session/cancel | session/close
+```
+
+- `initialize`：双方协商 protocol version、Client / Agent capabilities、实现信息和认证方式。version 只承担 breaking-change 边界；可选能力通过 capability negotiation 演进，字段缺失就表示不支持，调用方不能猜。
+- `session/new`：Client 提供绝对路径 `cwd` 和 MCP server 列表，Agent 返回 opaque `sessionId`。支持 `additionalDirectories` 时，可声明额外 workspace roots。
+- `session/load`：恢复持久 session，并把历史对话完整 replay 成 `session/update`。
+- `session/resume`：恢复同一个 session，但不 replay 历史。**load 是“恢复并重建 Client 视图”，resume 是“恢复运行上下文后继续”。**
+- `session/list`：只负责发现已有 session；真正恢复仍需 load / resume。`session/close` 取消正在进行的工作并释放 active resources，和删除持久 session 也不是一回事。
+- `session/prompt`：一次完整 turn，可以内部经历多次 model / tool call；Agent 持续发 update，最终用 `stopReason` 结束这一轮。
+- `session/cancel`：Client 发 notification 中断当前处理，不等待 response。
+
+[session setup](https://agentclientprotocol.com/protocol/v1/session-setup) 规定 `cwd` 是不可随意漂移的 primary filesystem context，所有协议路径必须是绝对路径，行号从 1 开始。`[cwd, ...additionalDirectories]` 是协议建议的 tool-operation root set，但这仍只是约定边界，不等于 OS sandbox 已经强制执行。
+
+##### `session/update`：把 Agent 行为变成可渲染事件
+
+ACP 的价值不只是“能发 prompt”，而是把原本只能从 PTY 文本猜测的运行过程变成 typed update：
+
+| Update | Client 可以如何使用 |
+|---|---|
+| user / agent / thought message chunk | 流式渲染对话和思考状态 |
+| tool call / tool call update | 展示工具名称、状态、输入输出、影响位置和 diff |
+| plan | 展示 Agent 当前计划及 pending / in-progress / completed 状态 |
+| available commands / config update | 动态更新 slash command、模型、模式、reasoning 等选项 |
+| usage update | 展示 context used / size，以及实现可选的费用信息 |
+
+[tool call](https://agentclientprotocol.com/protocol/v1/tool-calls) 有稳定的 `toolCallId`，并把 `read / edit / delete / move / search / execute / think / fetch / other`、`pending / in_progress / completed / failed`、文件位置、diff、terminal id、raw input / output 做成结构化状态。Client 因此可以渲染“正在改哪个文件”“这次命令是否完成”，而不必解析 Agent 的自然语言旁白。
+
+Agent plan 也只是一次 **完整替换的 session projection**：它适合 UI 展示，不是 durable task ledger，更不是项目 source of truth。Agent 重启、session 丢失或计划改变时，ACP 不负责证明项目任务仍然一致。
+
+##### Permission 是交互协议，不是安全边界
+
+Agent 可以通过 `session/request_permission` 向 Client 请求一次或长期允许 / 拒绝某个 tool call；Client 也可以提供 `fs/read_text_file`、`fs/write_text_file` 和 terminal lifecycle 等能力。这解决的是“谁向用户提问、UI 如何展示选择、选择怎样返回 Agent”。
+
+但 capability negotiation 只说明“能不能调用”，permission response 只说明“用户如何决策”，都不自动构成可信隔离。Agent 仍可能通过 shell、未受控工具或实现漏洞绕过 advisory policy。真正的权限链仍然是：
+
+```text
+ACP permission decision
+-> runtime capability lowering
+-> Seatbelt / Landlock / container / microVM enforcement
+-> denied effect + audit evidence
+```
+
+因此 ACP permission 应接入前文的[权限声明必须编译成执行边界](#权限声明必须编译成执行边界)，不能把 `allow_once` 误写成 syscall-level grant。
+
+##### ACP、CMA、MCP、A2A、Workflow 与 LoopX 的边界
+
+| 机制 | 连接 / 控制对象 | 核心状态 | 不负责什么 |
+|---|---|---|---|
+| ACP | Client ↔ Coding Agent | session、prompt turn、stream update、tool call、permission、terminal | 工具生态、Agent 间协作、项目级 durable truth |
+| CMA（Claude Managed Agents） | application ↔ 托管 Agent runtime | agent、environment、session、event、sandbox、deployment | 跨厂商 Agent 互操作、项目级 goal / evidence / quota governance |
+| MCP | Agent / model ↔ tool / resource | tool schema、resource、prompt、server connection | Agent UI、session lifecycle、项目控制面 |
+| A2A | Agent ↔ Agent | identity、task、message、artifact、handoff | IDE 如何渲染单个 Agent 的执行过程 |
+| Dynamic Workflow | script ↔ 多次 Agent invocation | step、loop、branch、fan-out、script variable | 跨项目的 durable goal / evidence / quota governance |
+| LoopX State Kernel | project ↔ 多 session / 多 executor / human gate | goal、ledger、frontier、claim、quota、evidence graph、handoff gate | 替每种 Agent 定义 prompt / terminal / tool-call wire protocol |
+
+最容易混淆的是“ACP 有 session persistence，所以是否已经等于 long-running Agent control plane”。答案是否定的：ACP 的 session state 主要服务 conversation continuity 和 Client rendering；它没有定义项目目标、todo ownership、completion evidence、quota policy、跨 session claim、rollback lineage 或 human gate。**session 是一次 Agent 运行上下文，project state 才是跨运行持续交付的事实。**
+
+对 LoopX，ACP 最适合放在 executor adapter 层：LoopX 决定 goal、claim、quota、gate 和 evidence writeback；ACP 负责启动 / 恢复 Agent session、发送 prompt、接收 typed update、转发 permission，并把必要的 runtime handle 写回 State Kernel。控制面只需保留紧凑引用，不应把完整 transcript 复制成新的 source of truth：
+
+```yaml
+acp_runtime_ref_v0:
+  protocol_version:
+  agent_info:
+  negotiated_capabilities:
+  session_id:
+  lifecycle: active | closed | lost
+  workspace_scope_ref:
+  last_stop_reason:
+  usage_ref:
+  runtime_event_cursor:
+  evidence_refs:
+```
+
+工程评价：ACP 的最大价值是把 Coding Agent 从“只能用 PTY 抓输出的 CLI 黑盒”提升为可互换、可观察、可嵌入产品的 session runtime。它的克制也很重要：协议专注 UX 与 interoperability，并明确采用 trusted-agent 前提；安全执行、durable workflow、目标审计和多 Agent coordination 仍应由其他层负责。
+
+[`QwenAudio/qwen-audio-agent`](https://github.com/QwenAudio/qwen-audio-agent) 是一个很具体的 ACP 落地样本：语音 Gateway 按 `owner + backend` 恢复一个固定 Coordinator Session，把 `session/update` 投影成有界进度和权限事件；对支持 client-supplied MCP 的 Agent，再注入五个 Session 工具，让 Coordinator 异步新建、继续、查询或取消独立 Project Session。[Coordinator Session 恢复与串行化](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-backend-adapter.mjs#L270-L329)、[client-supplied Session MCP](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-session-tools.mjs#L32-L133)、[delegation lifecycle](https://github.com/QwenAudio/qwen-audio-agent/blob/ea29524b61cb9e909c3f200cd4229f78db4735c7/server/src/agent/acp-backend-adapter.mjs#L1241-L1295)。它同时验证了 ACP 的边界：session continuity、typed updates 和 permission transport 可以标准化，但 Work ledger、异步结果 claim / playback ack、重启恢复和前端公开 projection 仍是宿主产品自己实现的语义。
+
+#### Custom Tool 与 CLI：调用接口和执行位置是正交维度
+
+Custom Tool 是一份 **typed call contract**，不是“工具一定在 Agent 沙箱内执行”的 placement 声明。工具的名称、描述和输入 schema 可以注册在云端 Agent 上，真正的实现则可以运行在用户电脑、私网 runner、自托管 sandbox 或普通云服务中。**云端 Agent + 本地工具是一等用法。**
+
+官方 client-executed Custom Tool 的调用链是：
+
+```text
+云端 Session 运行
+  -> agent.custom_tool_use(name, input)
+  -> Session 进入 status_idle(requires_action, event_ids)
+  -> 本地应用通过 event stream 收到调用
+  -> 本地函数 / CLI / 文件 / 数据库 / 私网服务真正执行
+  -> 本地应用回传 user.custom_tool_result(custom_tool_use_id, content)
+  -> 阻塞事件全部解决，云端 Session 恢复 running
+```
+
+本地机器不需要向公网暴露一个入站 endpoint；本地应用主动订阅 / 轮询 Session 事件，并通过 API 回传结果即可。如果本地执行器离线，Session 就会停在 `requires_action`，而不是神奇地穿透网络。[Custom Tool 定义](https://platform.claude.com/docs/en/managed-agents/tools#custom-tools)、[Custom Tool 事件往返](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#handling-custom-tool-calls)。
+
+容易混淆的是三种不同 placement：
+
+| 形态 | 模型 / 编排在哪里 | 工具在哪里 | 关键通道 |
+|---|---|---|---|
+| 云端 Agent + client-executed Custom Tool | 云端 | 本地应用、VPC runner 或任意客户服务 | `custom_tool_use -> requires_action -> custom_tool_result` |
+| 云端编排 + self-hosted sandbox | 云端 | 整个 tool / process / filesystem / network egress 都在客户基础设施 | environment work queue + worker |
+| 云端 Agent + 私网 MCP | 云端 | 私网 MCP server | MCP tunnel，或由客户 worker 包装成 Custom Tool |
+
+self-hosted sandbox 是更重的边界：它不只执行某个 Custom Tool，而是把 Agent 的文件系统、进程与网络出口一起移到客户环境。但模型和 orchestration 仍在云端，tool input / output 仍会进入 control plane。[Self-hosted sandbox 边界](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes)、[在 worker 中执行 Custom Tool](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes#serve-custom-tools-from-your-sandbox)。
+
+Custom Tool 和 CLI 也不是互斥选项。一个本地 Custom Tool handler 完全可以在内部调用现有 CLI：Custom Tool 是云端 Agent 到本地执行器的结构化 bridge，CLI 是本地 executor。反过来，若给 CLI 自己加上 RPC / queue、correlation ID、result callback 和 pause / resume，它也能构成功能接近的远程调用通道。差别主要在协议是否已成为 Agent runtime 的一等状态，不在于 CLI 能不能跨网络。
+
+安全上要注意：
+
+- Custom Tool 可以让本地凭证和网络权限不离开本地，但 tool name、input 和 result 通常仍会进入云端 control plane 和模型上下文。不能外流的原始数据应在本地聚合 / 脱敏，或只回传 opaque handle。
+- Custom Tool **不天然自带逐次审批**。官方 built-in / MCP permission policy 不会自动约束 Custom Tool；本地 handler 必须自己做用户确认、参数校验、权限限制、超时、幂等、审计和结果脱敏。
+- “本地执行”不等于“可信执行”。模型参数可能有误，tool result 也可能包含 prompt injection；本地执行器仍需要 capability allowlist 和最小权限。
+
+“CLI + 轻量 Skill”解决的则是动作空间问题：当 Agent 本就有本地 shell 时，少量稳定命令配合按需加载的 Skill 往往比同时暴露大量语义重叠的 Tool schema 更简单。当 Agent 在云端而工具必须在本地，则需要 Custom Tool 事件回路或等价的自建 bridge；只有一个本地 CLI 二进制文件，云端 Agent 并不能凭空调用它。
+
+#### CMA（Claude Managed Agents）：应用与托管 Agent Runtime 的事件契约
+
+这里的 `CMA` 是 **Claude Managed Agents** 的工程简称。更准确地说，它是 Anthropic Managed Agents 的 beta API / wire contract，不是像 HTTP、JSON-RPC 那样的通用协议标准。它把“调用一次模型”提升成“创建并持续驱动一个托管 Agent 运行实例”。官方将资源拆成四类：[Agent](https://platform.claude.com/docs/en/managed-agents/quickstart) 定义 model、system prompt、tools、MCP servers 和 skills；Environment 定义托管或自托管 sandbox；Session 是 Agent 与 Environment 配对后的运行实例；Events 是应用与 Session 双向交互的事实流。
+
+```text
+create Agent + Environment
+-> create Session（配置并准备 sandbox）
+-> send user.* / system.* event
+-> Agent 执行 model / tool loop
+-> stream agent.* / session.* / span.* event over SSE
+-> steer | interrupt | tool confirmation
+-> idle 后继续下一轮，或 archive / delete
+```
+
+[Session event stream](https://platform.claude.com/docs/en/managed-agents/events-and-streaming) 是 CMA 的核心：应用发送 `user.message`、`user.interrupt`、`user.tool_confirmation` 等事件；runtime 返回 `agent.message`、`agent.tool_use`、`agent.tool_result`、`session.status_*`、`span.model_request_*` 等事件。事件历史保存在 Agent 进程之外，因此同一 Session 可以被重新读取、继续驱动和逐步审计；`idle / running / rescheduling / terminated` 则把执行状态从自然语言旁白变成机器可判断的 lifecycle。
+
+CMA 与 ACP 都在连接“宿主”和 Agent，但抽象层不同：
+
+| 维度 | ACP | CMA |
+|---|---|---|
+| 主要宿主 | IDE、编辑器、桌面端、本地 runner | Web / SaaS 后端、控制台、调度服务 |
+| 运行位置 | 通常是 Client 拉起的 Agent 进程 | 托管或自托管 sandbox 中的 Managed Agent |
+| 交互形态 | JSON-RPC session + notification | HTTP resource API + persisted event stream + SSE |
+| 持久对象 | Agent 自己维护的 session；Client 可 load / resume | 服务端保存 Agent、Environment、Session、Event、输出与 sandbox 状态 |
+| 核心价值 | 让不同 Client 可替换地连接 Coding Agent | 让应用可创建、观察、干预和恢复长时 Agent execution |
+
+最值得借鉴的设计不是字段数量，而是三条边界：
+
+- **configuration != execution**：Agent 是可版本化配置，Environment 是执行边界，Session 才是某次具体运行；不要把 prompt、sandbox 和 run state 塞进一个对象。
+- **command and observation share one event model**：用户输入、工具确认、状态变化、模型调用与 Agent 输出都进入 typed event stream，避免宿主从日志文本猜状态。
+- **wire contract != internal state machine**：对外事件结构可以严格兼容 CMA，内部仍应保留更丰富的 command / event ADT，再通过 projection 输出 public wire；否则外部 schema 会反向绑死 runtime 的领域模型。
+
+CMA 仍然不是项目级长程控制面。它能保存 Session history、sandbox state、memory 和 scheduled deployment，但不天然定义跨多个 Session / executor 的 goal ownership、claim、evidence graph、quota、handoff gate 与完成审计。这些状态仍属于 LoopX 一类 project control plane；CMA 更适合作为其下方的 managed executor protocol。
 
 #### 火山方舟 Context API：把 context 变成 runtime resource
 
