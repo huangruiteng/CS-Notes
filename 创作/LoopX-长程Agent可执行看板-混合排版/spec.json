@@ -53,6 +53,10 @@
           {"number": "2", "title": "列", "text": "canonical state 的 projection"},
           {"number": "3", "title": "移动", "text": "有前置条件的 typed transition"}
         ]},
+        {"type": "cards", "columns": 2, "size": 31, "gap": 14, "items": [
+          {"title": "状态带", "text": "runnable → claimed → waiting → review → terminal", "fill": "#F4F7FF", "outline": "#BFCDF8"},
+          {"title": "执行链", "text": "observe → claim → execute → validate → writeback", "fill": "#F4F7FF", "outline": "#BFCDF8"}
+        ]},
         {"type": "heading", "text": "真实 goal 已跨越 200+ hours", "color": "blue", "size": 58},
         {"type": "note", "text": "200+ hours 指同一 goal 的控制面窗口，不是模型连续推理时长。", "gap": 10}
       ],
