@@ -232,6 +232,8 @@ Some of you may wonder about [Tor](https://www.torproject.org/). Keep in mind th
 
 #### Web Security
 
+> 架构层补充来源：[Cloudflare Project Glasswing](https://blog.cloudflare.com/cyber-frontier-models/)。漏洞防御不能只优化 patch 速度；更重要的是让 bug 存在时也难以被利用：在应用前用输入验证、WAF / protocol guard 阻断可达路径；用最小权限与组件隔离限制单点缺陷的横向影响；用统一 rollout 让修复同时抵达所有运行实例。披露窗口的风险更接近 `external reachability × blast radius × rollout inconsistency`，而不只是 `time-to-patch`。完整 agent 漏洞发现与验证漏斗见 [Cloudflare Vulnerability Harness](./AI-Applied-Algorithms.md#cloudflare-vulnerability-harness从-security-skill-到跨仓库控制面)。
+
 So, you want to go on the Web too? Jeez, you’re really pushing your luck here.
 
 Install [HTTPS Everywhere](https://www.eff.org/https-everywhere). SSL/TLS is [critical](https://www.troyhunt.com/ssl-is-not-about-encryption/) (已读, **Login Landing Page Must Use SSL**), and it’s *not* just about encryption, but also about being able to verify that you’re talking to the right service in the first place! If you run your own web server, [test it](https://www.ssllabs.com/ssltest/index.html). TLS configuration [can get hairy](https://wiki.mozilla.org/Security/Server_Side_TLS). HTTPS Everywhere will do its very best to never navigate you to HTTP sites when there’s an alternative. That doesn’t save you, but it helps. If you’re truly paranoid, blacklist any SSL/TLS CAs that you don’t absolutely need.

@@ -235,4 +235,28 @@ def _merge_conf(custom_conf: dict, default_conf: dict):
     return new_conf
 ```
 
+### HOCON
+
+* 定位：Human-Optimized Config Object Notation，Lightbend 为 Scala/Akka/Play 生态设计的配置格式；JSON 超集 + properties 风格，强调**手写友好、机器可读**。
+* 关键特性：
+  * JSON 超集：合法 JSON 都是合法 HOCON；
+  * 宽松语法：可省引号、逗号，甚至花括号（用缩进表达层级），支持 `//` 和 `#` 注释；
+  * 变量替换：`${path}` 引用其他配置项，`${?path}` 表示“有就用、没有就跳过”，常用于环境变量覆盖；
+  * 多源自动合并：默认配置、环境覆盖、命令行参数等按加载顺序 merge，后者覆盖前者；
+  * `include` 拆文件；
+  * 内建单位：时间（ms/s/m）、大小（KB/MB），如 `timeout = 5s`；
+  * 字符串拼接：`base-url = "https://"${host}`。
+
+```hocon
+server {
+  host = "localhost"
+  port = 8080
+  timeout = 5s
+}
+
+client.url = ${server.host}
+```
+
+* 对比：比 JSON 适合手写（注释、少符号）；比 YAML 少缩进歧义和隐式类型魔法；主要出现在 JVM 生态（Akka / Play / sbt），也有非 JVM 工具采用。
+* 坑：`${path}` 引用未定义值会直接报错，只有 `${?path}` 才可选；merge 语义（对象递归合并、标量覆盖）要先理解再覆盖配置。
 
