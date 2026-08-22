@@ -1,0 +1,536 @@
+{
+  "style": {
+    "width": 1440,
+    "height": 1800,
+    "margin": 80,
+    "left_rule": 56,
+    "bottom_rule_offset": 96,
+    "bg": "#FCFCFB",
+    "text": "#383838",
+    "muted": "#5F5F5F",
+    "blue": "#0068B7",
+    "line_blue": "#B8D7E4",
+    "font_path": "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "title_font_index": 1,
+    "body_font_index": 6,
+    "meta_size": 36,
+    "title_size": 100,
+    "heading_size": 60,
+    "body_size": 49,
+    "note_size": 36,
+    "footer_size": 32,
+    "title_line_gap": 12,
+    "body_line_gap": 24,
+    "paragraph_gap": 32,
+    "bullet_gap": 16,
+    "bullet_size": 22,
+    "bullet_indent": 58,
+    "texture": true,
+    "show_rules": true,
+    "footer_align": "left",
+    "card_fill": "#FFFFFF",
+    "card_outline": "#DCE7EE",
+    "card_text": "#33383D",
+    "card_radius": 12,
+    "card_padding": 24,
+    "card_gap": 16,
+    "card_shadow": false,
+    "label_fill": "#E9F3FA",
+    "label_text": "#0068B7"
+  },
+  "pages": [
+    {
+      "meta": "OPEN SOURCE  ·  AGENT CONTROL PLANE  ·  01 / 09",
+      "title": "LoopX：超长程 Agent\n自主运行 200+ 小时，\n状态不漂移",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "两个真实 goal 已超长程自主运行 220.7 / 272.9 小时：无人时跑得稳，反馈进入后跑得更好。"
+        },
+        {
+          "type": "cards",
+          "columns": 1,
+          "size": 35,
+          "items": [
+            {
+              "title": "Open source",
+              "text": "状态协议、CLI、控制面实现和真实 long-running loops 全部进入开源仓库。"
+            },
+            {
+              "title": "长程任务控制面",
+              "text": "维护 goal / todo / evidence / gate / quota / handoff，跨轮次状态不漂移。"
+            },
+            {
+              "title": "数字员工技术底座",
+              "text": "无人时自主 run / wait / replan；有人时吸收反馈、修改 frontier、继续交付。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "下一页：200+ 小时后，系统保持什么",
+          "color": "blue",
+          "size": 57
+        },
+        {
+          "type": "paragraph",
+          "text": "一次 agent loop 可以很短；goal identity、状态变更和证据引用必须跨轮次恢复。"
+        }
+      ],
+      "filename": "01-cover.jpg"
+    },
+    {
+      "meta": "REAL LOOP #1  ·  02 / 09",
+      "heading": "运行轨迹一：OpenViking issue-fix，220.7 小时",
+      "heading_color": "blue",
+      "heading_size": 57,
+      "blocks": [
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 30,
+          "items": [
+            {
+              "title": "控制面窗口",
+              "text": "9 天 4 小时 42 分"
+            },
+            {
+              "title": "Run history",
+              "text": "1,638 条控制面记录"
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "path": "创作/LoopX-200小时长程任务-小逸排版/openviking-trajectory-original.png",
+          "max_width": 860,
+          "gap": 18
+        },
+        {
+          "type": "note",
+          "text": "同一个 goal 同时维护 Focused PR 交付、review / merge 状态、可复用知识与 LoopX 自身能力演进。图中大多数 issue→PR 路径已进入 merged 终态。",
+          "gap": 16
+        }
+      ],
+      "filename": "02-openviking-evidence.jpg"
+    },
+    {
+      "meta": "REAL LOOP #2  ·  03 / 09",
+      "heading": "运行轨迹二：Auto ML 实验，272.9 小时",
+      "heading_color": "blue",
+      "heading_size": 57,
+      "blocks": [
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 30,
+          "items": [
+            {
+              "title": "控制面窗口",
+              "text": "11 天 8 小时 51 分"
+            },
+            {
+              "title": "Run history",
+              "text": "238 条控制面记录"
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "path": "创作/LoopX-200小时长程任务-小逸排版/ml-experiment-trajectory-original.png",
+          "max_width": 1280,
+          "gap": 24
+        },
+        {
+          "type": "paragraph",
+          "text": "这条轨迹同时保留正向结果、失败分支、人工决策、guardrail 与 serving 目标。后续 agent 读取的是证据谱系，不需要从头猜测实验历史。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 32,
+          "items": [
+            {
+              "title": "Positive evidence",
+              "text": "可晋级结果进入下一轮验证。"
+            },
+            {
+              "title": "Negative evidence",
+              "text": "失败路线保留，避免重复试错。"
+            },
+            {
+              "title": "Human decision",
+              "text": "用户选择改变实验 frontier。"
+            },
+            {
+              "title": "Guardrail / serving",
+              "text": "质量、成本与上线边界分开决策。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "下一页：LoopX 外部开发群 User Feedback",
+          "color": "blue",
+          "size": 49
+        }
+      ],
+      "filename": "03-ml-evidence.jpg"
+    },
+    {
+      "meta": "GOOD CASE  ·  04 / 09",
+      "heading": "超长程 Agent\nLoopX 外部开发群 User Feedback",
+      "heading_color": "blue",
+      "heading_size": 56,
+      "blocks": [
+        {
+          "type": "image",
+          "path": "创作/LoopX-200小时长程任务-小逸排版/good-case-feedback-long-run.png",
+          "max_width": 1280,
+          "gap": 14
+        },
+        {
+          "type": "image",
+          "path": "创作/LoopX-200小时长程任务-小逸排版/good-case-feedback-replan.png",
+          "max_width": 1280,
+          "gap": 20
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 31,
+          "items": [
+            {
+              "title": "跑得稳",
+              "text": "13+ 小时多阶段执行没有明显偏航，也没有退回细节调参和原地打转。"
+            },
+            {
+              "title": "跑得好",
+              "text": "整体精度明显提升，过程解释清楚，实验与决策证据保留充分。"
+            },
+            {
+              "title": "自主换路",
+              "text": "执行中途转向 public research，并找到新的外部工具继续推进。"
+            },
+            {
+              "title": "因果边界",
+              "text": "是否由 LoopX replan 直接触发，仍需结合 trace / run history 复核。"
+            }
+          ]
+        },
+        {
+          "type": "note",
+          "text": "用户反馈 good case：主动找到 codebase-memory-mcp；replan 因果仍需 trace 复核。",
+          "gap": 12
+        }
+      ],
+      "filename": "04-good-case.jpg"
+    },
+    {
+      "meta": "LoopX State Kernel  ·  05 / 09",
+      "heading": "1. 超长程自主运行，保持的是同一条因果链",
+      "heading_color": "blue",
+      "heading_size": 60,
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "一次 agent loop 可以很短。只要 goal identity、状态变更和证据引用可恢复，下一次 wake 仍能从同一个任务位置继续。"
+        },
+        {
+          "type": "cards",
+          "columns": 1,
+          "size": 36,
+          "items": [
+            {
+              "number": "1",
+              "title": "Durable goal identity",
+              "text": "goal 跨 session、agent 和 runtime 保持稳定，不用 chat thread 充当任务身份。"
+            },
+            {
+              "number": "2",
+              "title": "Append-only event ledger",
+              "text": "event_id 幂等、冲突检测、append_sequence 单调递增；旧事实不被新 summary 覆盖。"
+            },
+            {
+              "number": "3",
+              "title": "Source state / projection 分离",
+              "text": "todo index、task graph、status、dashboard 都能从 canonical state 重建，不反向拥有 truth。"
+            }
+          ]
+        },
+        {
+          "type": "rule",
+          "text": "goal identity → ordered events → derived projections",
+          "size": 53,
+          "gap": 34
+        },
+        {
+          "type": "heading",
+          "text": "2. Todo 完成，不等于长程 Goal 完成",
+          "color": "blue",
+          "size": 57
+        },
+        {
+          "type": "paragraph",
+          "text": "长程状态最容易在“这一步做完了”之后丢失：todo 被关掉，未满足的 acceptance 和下一步 successor 一起消失。"
+        }
+      ],
+      "filename": "05-causal-state.jpg"
+    },
+    {
+      "meta": "Goal / Vision / Replan  ·  06 / 09",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "LoopX 把 goal、当前 vision、可执行 todo、evidence 与 successor 分开维护。todo 只是当前有界动作，不能替代长期目标。"
+        },
+        {
+          "type": "rule",
+          "text": "goal → vision → todo → evidence → successor / replan",
+          "size": 51,
+          "gap": 34
+        },
+        {
+          "type": "cards",
+          "columns": 1,
+          "size": 36,
+          "items": [
+            {
+              "title": "Vision checkpoint",
+              "text": "material closeout 必须写 patched / unchanged_with_reason / retired / missing_required。"
+            },
+            {
+              "title": "Acceptance gap",
+              "text": "frontier 已空、acceptance 仍未满足时，系统把缺口投影成下一轮的 replan obligation。"
+            },
+            {
+              "title": "Bounded replan delta",
+              "text": "有效 replan 要写回 vision、todo、acceptance 或 no-follow-up；只有 ACK 会被判为 replan_noop。"
+            }
+          ]
+        },
+        {
+          "type": "cards",
+          "columns": 1,
+          "size": 39,
+          "items": [
+            {
+              "text": "todo closed + acceptance open → replan_required",
+              "fill": "#F3F8FB",
+              "outline": "#B8D7E4",
+              "text_fill": "#0068B7"
+            },
+            {
+              "text": "replan ACK without state delta → replan_noop",
+              "fill": "#F3F8FB",
+              "outline": "#B8D7E4",
+              "text_fill": "#0068B7"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "3. 无人干预时，控制面决定什么时候花算力",
+          "color": "blue",
+          "size": 56
+        }
+      ],
+      "filename": "06-vision-replan.jpg"
+    },
+    {
+      "meta": "Unattended Runtime  ·  07 / 09",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "每次 wake 先读取公共状态，再编译一份 interaction contract。执行顺序固定，scheduler 只负责触发，不替控制面做决定。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 34,
+          "items": [
+            {
+              "number": "1",
+              "title": "health / safety",
+              "text": "先检查状态与工作区边界。"
+            },
+            {
+              "number": "2",
+              "title": "operator gate",
+              "text": "只冻结被 gate 覆盖的动作。"
+            },
+            {
+              "number": "3",
+              "title": "evidence / focus wait",
+              "text": "外部证据未到时进入等待。"
+            },
+            {
+              "number": "4",
+              "title": "quota decision",
+              "text": "输出 must_attempt / quiet_noop。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Monitor 不靠重复唤醒制造进展",
+          "color": "blue",
+          "size": 55
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "每次 poll 必须写 result_hash；结果未变时必须给 next_due_at 或 cadence。",
+            "consecutive_no_change 驱动 stateful backoff；相同状态不会高频热循环。",
+            "只有 material change 才创建 successor agent todo 或 user gate。",
+            "quota slot 只在 artifact 验证、state refresh 和证据写回之后消耗。"
+          ]
+        },
+        {
+          "type": "rule",
+          "text": "artifact → validation → refresh → quota spend",
+          "size": 53,
+          "gap": 32
+        },
+        {
+          "type": "heading",
+          "text": "4. 有人介入时，反馈直接改写 frontier",
+          "color": "blue",
+          "size": 56
+        }
+      ],
+      "filename": "07-unattended.jpg"
+    },
+    {
+      "meta": "Human-in-the-loop  ·  08 / 09",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "人工干预进入外部状态：修改 vision / acceptance、打开或解除 gate、补充证据、指定 successor。下一次 wake 读取的是新 frontier，而不是聊天里一句临时提醒。"
+        },
+        {
+          "type": "cards",
+          "columns": 2,
+          "size": 34,
+          "items": [
+            {
+              "title": "Vision patch",
+              "text": "方向变化进入可继承状态。"
+            },
+            {
+              "title": "Acceptance delta",
+              "text": "验收标准跟着目标演化。"
+            },
+            {
+              "title": "Scoped gate",
+              "text": "只阻塞需要用户决策的范围。"
+            },
+            {
+              "title": "Successor replan",
+              "text": "反馈落成下一条可执行工作。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "人负责高价值决策，数字员工继续工作",
+          "color": "blue",
+          "size": 55
+        },
+        {
+          "type": "paragraph",
+          "text": "user_channel.action_required=true 与 agent_channel.must_attempt=true 可以同时成立。需要人判断的 scope 暂停，安全且独立的工作继续推进。"
+        },
+        {
+          "type": "paragraph",
+          "text": "反馈改变后续 frontier，旧 event 和旧 evidence 仍然保留。系统既能纠偏，也能解释为什么改、从哪一步开始改。"
+        },
+        {
+          "type": "rule",
+          "text": "人在环的价值：修改状态，而不是接管每一步执行。",
+          "size": 52,
+          "gap": 35
+        },
+        {
+          "type": "heading",
+          "text": "下面两张图，是这套状态在真实任务中的投影",
+          "color": "blue",
+          "size": 55
+        }
+      ],
+      "filename": "08-human-in-loop.jpg"
+    },
+    {
+      "meta": "OPEN SOURCE  ·  09 / 09",
+      "heading": "5. 开源 Agent Control Plane：数字员工的技术底座",
+      "heading_color": "blue",
+      "heading_size": 57,
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Codex、Claude Code、Cursor 继续执行短 loop；LoopX 在 executor 外维护跨小时、跨天、跨 agent 的动态目标状态。"
+        },
+        {
+          "type": "cards",
+          "columns": 1,
+          "size": 36,
+          "items": [
+            {
+              "title": "Agent runtime",
+              "text": "读代码、改文件、跑实验、产出 bounded delivery。"
+            },
+            {
+              "title": "LoopX control plane",
+              "text": "维护 goal / vision / todo / evidence / gate / quota / handoff / replan。"
+            },
+            {
+              "title": "Digital worker",
+              "text": "可管理、可复盘、可接手，也能在人工反馈后继续演化。"
+            }
+          ]
+        },
+        {
+          "type": "rule",
+          "text": "长程任务控制面：让目标跨轮次持续",
+          "size": 52,
+          "gap": 24
+        },
+        {
+          "type": "rule",
+          "text": "数字员工技术底座：让执行可管理、可复盘、可接手",
+          "size": 52,
+          "gap": 36
+        },
+        {
+          "type": "paragraph",
+          "text": "LoopX 已开源：状态协议、CLI、控制面代码和真实运行轨迹都在仓库中。长程 agent 可以自主运行，也能把关键判断留给人。",
+          "gap": 22
+        },
+        {
+          "type": "paragraph",
+          "text": "Open source：github.com/huangruiteng/loopx",
+          "size": 40,
+          "gap": 14
+        },
+        {
+          "type": "cards",
+          "columns": 3,
+          "size": 27,
+          "gap": 12,
+          "items": [
+            {
+              "title": "MIT License"
+            },
+            {
+              "title": "Local-first"
+            },
+            {
+              "title": "Runtime-agnostic"
+            }
+          ]
+        }
+      ],
+      "filename": "09-loopx.jpg"
+    }
+  ]
+}
