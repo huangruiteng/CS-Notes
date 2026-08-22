@@ -41,8 +41,20 @@ For CS-Notes, a managed authority pointer under
 archive Markdown files are immutable legacy content backing. Never append a
 candidate, archive an item, or edit the old Top30 in those files. Use the
 project-local `loopx-material` workflow and the private managed intake adapter.
-An explicit `素材：` request authorizes candidate intake only; it does not
-authorize a ranking change.
+An explicit `素材：` request authorizes candidate intake plus a ranking
+settlement in the same user workflow. Keep intake and ranking as separate
+receipts and, when ranking changes, separate authority revisions so CAS,
+preview, rollback, and audit remain independent.
+
+Every intake must end with one explicit disposition: `top_window`,
+`ranked_backlog`, or `no_change`. Determine high value from exact-read evidence,
+S/A/B tier, current Decision Context, overlap, and artifact convertibility rather
+than tier alone. A high-value material must gain verified ranked membership in
+the Top30 or ranked backlog; it may not remain only an unranked candidate.
+`no_change` requires a reason and is reserved for lower-value or substantially
+duplicative material. If the Top30 is full, move displaced entries into the
+ranked backlog without loss. Do not move protected anchors without a changed
+Decision Context or explicit owner instruction.
 
 The installed project skill does not itself activate Material Lifecycle.
 Without an explicit goal-scoped todo/profile and declared private source
@@ -371,7 +383,7 @@ When the user provides a numbered/bulleted readout, quoted phrase, prompt snippe
    - A: Codex summary is enough unless the theme becomes active.
    - B: useful background, tool lead, or product observation.
    - Unread: not read; never pretend.
-5. If Material Lifecycle is active, write exact-read evidence and staged content, then use `.local/material-lifecycle/managed_candidate_intake.py` to prepare/apply one candidate. Verify the current authority revision advanced by one record. Do not rerank unless a separate Decision Context proposal authorizes it.
+5. If Material Lifecycle is active, write exact-read evidence and staged content, then use `.local/material-lifecycle/managed_candidate_intake.py` to prepare/apply one candidate. Verify the candidate authority revision advanced by one record, then create the separate Decision Context-backed ranking revision in the same workflow. Verify the disposition, ranked membership when required, authority readback, readable projection, audit receipt, and rollback path before reporting completion.
 
 ## Active Research Workflow
 

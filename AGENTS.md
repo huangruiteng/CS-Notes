@@ -146,12 +146,22 @@ owner-gated apply 与 rollback 统一遵循项目级受管的 `loopx-material` s
 `.local/LEARNING_MATERIAL_ARCHIVE.md` 仅作为原 777 条记录的只读内容
 backing / rollback source。任何线程都不得直接向旧文件追加材料、修改生命周期或
 编辑其中的旧 Top30；新素材必须走 exact-read evidence -> managed candidate
-intake -> authority CAS/readback/receipt。`素材：`只授权 candidate intake，
-不自动授权 Top30 重排；排序变化必须另走 Decision Context-backed bounded rerank。
+intake -> authority CAS/readback/receipt -> Decision Context-backed ranking
+settlement。`素材：`授权 candidate intake 与同一工作流内的排序结算；两者仍使用
+独立 receipt，发生排序变化时使用独立 authority revision，以保留 CAS、预览、回滚
+和审计边界。
+
+每次 intake 都必须给出 `top_window | ranked_backlog | no_change` disposition。
+高价值素材（由材料证据、S/A/B 分层、当前 Decision Context、重复度和可转化 artifact
+共同判断，不只看分档）必须进入 Top30 或显式 ranked backlog，不能只停在未排序候选；
+非高价值或与现有条目高度重复时可以 `no_change`，但必须写明理由。Top30 已满时，
+被替换条目下沉 ranked backlog，不得丢失；受保护锚点除非用户明确要求或 Decision
+Context 已改变，否则不动。ranking apply / readback / projection / audit 未闭环前，
+不得把高价值素材 intake 报告为完成。
 
 **指令约定**
 
-- `素材：<链接/文本>`：用户投喂材料。读取、保留原始链接、分档、摘要；本仓库通过项目级 `loopx-material` 将 exact-read 结果写入 managed candidate store。读不到则保留 Unread 状态并说明需要用户补正文/截图/导出。
+- `素材：<链接/文本>`：用户投喂材料。读取、保留原始链接、分档、摘要；本仓库通过项目级 `loopx-material` 将 exact-read 结果写入 managed candidate store，并在同一工作流完成 ranking disposition。高价值材料进入 Top30 或 ranked backlog；读不到则保留 Unread 状态并说明需要用户补正文/截图/导出。
 - `调研：<问题/方向>`：主动调研指令。围绕问题做多源召回、追一手来源、去噪分档，并给出下一步学习/产出建议。
 - `整理笔记：<链接/文本>` 或“整理笔记 + 点名文件 / 主题”：直接进入 `Notes/` 笔记整合流程。用户点名目标和材料主领域优先，不默认入候选库，也不默认映射到 Agent infra / 职业主线。
 - `请你读：<材料 id / 链接 / 标题>`：Codex 先读原文 / repo / 数据入口，再给精要内容、核心设计、用户本人是否需要继续读、对当前 artifact 的改造点；输出时必须区分“材料值得 Codex 读透 / 落成设计语言”和“用户本人需要亲自精读原文”，并尽量细分到 section / figure / table / code / doc page 粒度，不要把二者混成一个判断；若判断“读 Codex 摘要即可 / 用户不用亲读”，摘要必须达到替代用户首读的密度，覆盖核心机制、关键字段 / schema、实验或证据、局限和 artifact 映射，而不是只给结论；若材料有关键数学机制或指标定义，在原有讲解基础上补核心公式 / 数学直觉，但不要为了公式而公式；`精读` 保留为兼容别名。
@@ -162,7 +172,7 @@ intake -> authority CAS/readback/receipt。`素材：`只授权 candidate intake
 3. 对近期动态、社媒评价、热点追踪、作者动态这类广域召回需求，SenSight 优先作为主召回层；Codex 负责二次验证、去噪、分档和落盘。
 4. Agent-Reach 这类本地互联网工具脚手架作为补位：适合读具体 URL、视频字幕、GitHub、RSS、Reddit 等 source-level 内容；不替代 SenSight 的跨平台聚合与质量筛选。
 5. 召回后必须追一手来源：论文、官方文档、代码仓库、release note、原始访谈或产品页优先；社媒和公众号只作为线索或二级解读。
-6. 入库先检查 managed authority：本仓库默认写受管 catalog 与 immutable managed-native content backing，并生成 intake receipt；只有未启用 Material Lifecycle 的其他项目才回退到其旧候选库。
+6. 入库先检查 managed authority：本仓库默认写受管 catalog 与 immutable managed-native content backing，并生成 intake receipt；随后基于当前 Decision Context 生成并应用 ranking settlement，验证 membership / readback / projection / audit。只有未启用 Material Lifecycle 的其他项目才回退到其旧候选库。
 7. 对用户最重要的固定方向：Agent infra / OpenClaw / ArkClaw / Agent Harness / OpenViking / agent memory / RL infra / verl / Ray / vLLM / SGLang / RecSys+LLM。
 
 **SenSight 调研执行流**
