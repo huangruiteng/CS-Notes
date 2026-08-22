@@ -12,10 +12,10 @@
 | --- | --- | --- |
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
-| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、Workflow agent、trace-first eval | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
-| Agent Harness / Agent Infra：总框架 | ETCLOVG、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ATIF 轨迹格式、Workflow agent、trace-first eval | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
+| Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
-| Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
+| Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
 | Online Learning、持续学习与反馈优化 | Online learning、in-context vs in-weights、算力挑战 | 从反馈信号走向持续改进 / 个性化 agent |
 | 多模态 Search / Agent | 多模态检索、视觉 backbone、image rerank、M3-Agent | 多模态搜索和多模态 agent |
 | AI Search：搜索、Query 理解与生成式排序 | 召回融合、AI Search 推理链路、Query 理解、Query Rewrite、NL2SQL | 搜索业务与 LLM ranking / generation 的结合 |
@@ -1016,7 +1016,7 @@ https://hazyresearch.stanford.edu/blog/2025-06-08-cartridges
 
 * **Agent Data Protocol (ADP)** ([arxiv](https://arxiv.org/abs/2510.24702), ICLR 2026 Oral)：CMU / OSU。提出轻量 interlingua，用 Pydantic schema 统一动作（API / Code / Message）与观察（Text / Web），将 13 个已有数据集转换到 ADP，兼容 OpenHands、SWE-Agent、AgentLab。Protocol 标准化本身是 agent 工程的重要基础设施。
 
-* **mini-SWE-agent** ([GitHub](https://github.com/SWE-agent/mini-SWE-agent))：SWE-bench/SWE-agent 团队。核心 ~310 行 Python，SWE-bench verified 74%+。极简架构：唯一工具=bash、无状态执行（`subprocess.run`）、线性消息历史、Protocol 替代继承、策略编码在 prompt 而非代码。核心洞察——当 LLM 足够强时，agent 框架应做减法而非加法，复杂度与性能甚至可能负相关。详见 [AI-Agent-Product&PE.md - 极简 Agent 架构](./AI-Agent-Product&PE.md)
+* **mini-SWE-agent** ([GitHub](https://github.com/SWE-agent/mini-SWE-agent))：SWE-bench/SWE-agent 团队。核心 ~310 行 Python，SWE-bench verified 74%+。极简架构：唯一工具=bash、无状态执行（`subprocess.run`）、线性消息历史、Protocol 替代继承、策略编码在 prompt 而非代码。核心洞察——当 LLM 足够强时，agent 框架应做减法而非加法，复杂度与性能甚至可能负相关。详见 [AI-Agent-Engineering.md - 极简 Agent 架构](./AI-Agent-Engineering.md)
 
 ![agent-overview](./AI-Applied-Algorithms/agent-overview.png)
 
@@ -1299,7 +1299,7 @@ Thought:{agent_scratchpad}
 
 ### Agent 评估与安全
 
-这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、GDPval、AppWorld、BFCL-v3 等具体任务世界。
+这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、ALE、LHTB、GDPval、AppWorld、BFCL-v3 等具体任务世界。
 
 #### AgentCompass：评测对象不是裸模型，而是完整执行配置
 
@@ -1354,6 +1354,22 @@ OpenAI。基于 75 个 Kaggle 竞赛构建 benchmark，覆盖数据准备、训�
 OSU NLP Group。构建 hybrid sandbox（OSWorld VM + Docker 化 WebArena/TheAgentCompany），提出 Decoupled Eval：将 agent 直接放到注入点附近，避免导航能力不足掩盖真实风险。RTC-Bench 含 864 个测试用例。结果：Claude 3.7 Sonnet CUA 的 ASR 达 42.9%，最安全的 Operator 仍有 7.6% ASR。
 
 关键洞察：不能因为 agent 没走到注入点就误判其"更安全"，能力与安全必须分离评估。benchmark 应显式拆分导航失败、工具失败、推理失败、安全失败。
+
+#### Stealing Reasoning Traces 与 external thinking：推理记录是可提取的侧信道
+
+> 来源：JackCui 公众号《[太刑了，GPT-5.6、Fable 5 被 Oh My Pi 作者攻破：完整导出模型推理记录！](https://mp.weixin.qq.com/s/cMrtKodPly2XqjV7Nvc-Pw)》（2026-08-13）；论文 [Stealing Reasoning Traces from Proprietary LLM APIs](https://arxiv.org/abs/2608.09867)（Panfilov et al.，2026）；[stolen-thoughts 仓库](https://github.com/mitkox/stolen-thoughts)。
+
+**定位**：专有 LLM API 的“加密推理数据”不是安全边界。已出现两条完整提取推理记录的路径：
+
+1. **跨模型解码（论文）**：强模型（GPT-5.6 / Claude Opus 等）产生的加密推理数据，可被带到其他请求里交给同一厂商防护更弱的模型，在特定提示诱导下当“解码器”把强模型推理还原成明文——不需要破解加密，因为加密块没有严格绑定原用户 / 对话 / 模型。论文称从 Kimi-K3 提取某些 Claude / GPT 推理片段可能比其他模型容易近 100 万倍。更危险的是反方向注入：弱模型把恶意指令写进加密推理数据，强模型会把它当成自己之前的思路继续执行，用户完全看不到。
+2. **外部思考工具（can1357 的直接方法）**：关闭原生隐藏推理（reasoning=off），给模型挂一个 `deep_think` 工具，模型会把本应走隐藏通道的分析写进工具参数；工具参数随 API 返回给开发者，等于直接拿到一份“重写的推理草稿”。已在 GPT-5.6 Luna、Claude Fable 5 上验证，切换思考等级（off / low）仍然有效。思考等级本质是 system prompt 里的一个数字，开发者可以调整数字控制思考投入，不必重新打开厂商隐藏通道。
+
+**安全 / 工程含义**：
+
+- **工具调用参数是模型内部状态的外部化侧信道**：凡是模型能写进工具参数的内容，都可能变成可被保存、复制、转发的明文数据。
+- **推理记录可能包含源码、个人信息、账号凭证甚至私钥**：agent runtime 的日志 / trace / telemetry 必须把 tool args 当敏感数据处理——脱敏、最小留存、访问控制，不能默认“推理是内部不可见”。
+- **对 agent runtime 是双刃剑**：external thinking 能成为可观测性来源（定位错误、优化 prompt、理解决策），但代价是扩大暴露面；“看得见意味着更容易控制，也意味着信息暴露给更多人和系统”。
+- **安全边界要从模型本身扩展到整套工具系统**：“厂商封得住一段隐藏推理，未必封得住模型通往外部世界的每一条路。”
 
 #### Agent Evaluation：把 agent eval 做成自动化测试系统
 
@@ -1468,6 +1484,68 @@ task:
 | User-response judge | 用模型读取用户对 agent 初次输出后的反馈，判断用户是否满意 | 用户继续做下一个 feature 是强正信号；粘贴 stack trace 或报错是强负信号。 |
 
 这说明 agent eval 不能只看 benchmark 分数。真实产品里的改动应同时看 `offline controlled eval -> online experiment -> usage-derived regression signal`，并把失败样本回流成 regression suite。
+
+模拟用户评测基础设施的工程实现见 [MatrAIx：人格驱动的模拟用户评测基础设施](#matraix人格驱动的模拟用户评测基础设施)。
+
+#### Agents' Last Exam（ALE）：专业工作流的广度基准
+
+> 来源：[ALE 官网](https://agents-last-exam.org/)、[论文](https://arxiv.org/abs/2606.05405)、[评估框架 GitHub](https://github.com/rdi-berkeley/agents-last-exam)、[ALE Phase II 协作路线图（Google Doc）](https://docs.google.com/document/d/1KCOT-DOP4xgc1cnBmBF3A1Qxo2YDMX8eknlM2K0S_bM/edit)。整理时间 2026-08-16。
+
+**定位**：Berkeley RDI 牵头、300+ 行业专家共建，目标是“最大规模、最广覆盖”的 agent 评测：长程、有经济价值的真实专业工作，结果可验证。已收集 1,500+ 任务（官网目标 5,000），覆盖 55 个目标 sub-industry，论文按 13 个 industry cluster 组织。Phase I 已投 NeurIPS 2026，发布一个月内 100+ 媒体报道，并出现在 OpenAI GPT-5.6、ByteDance Seed2.1 Pro 的发布材料中。
+
+**任务形态**：不是答题，而是在真实专业软件里完成工作流——After Effects（动效/VFX）、Siemens NX（3D 建模）、Unreal Engine（游戏场景）、Moldex3D（模流分析）、Rhino 3D（建筑与能耗）、FSLeyes（脑成像）等，CLI 与 GUI 混合。
+
+**评估框架**：harness / agent sandbox / task 分离；hidden reference 在 agent 完成后才注入；`evaluate()` 返回 [0,1]；runner 统一收 trajectory 与 artifact，支持 sandbox 内 CLI 与 sandbox 外 harness。ALE 明确保留各家 harness 自己的 loop、tool、memory、sub-agent，不做统一 scaffold——所以它适合回答“控制面 / harness 能否迁移到真实专业工作”，但 broad outcome 不能自动归因到某个具体机制。
+
+**Phase II（Google Doc 路线图）**：目标 2026-12 / 2027-Q1 做到 15,000+ 任务（10x），冲 Nature-family 投稿。三条规模化路径：
+1. **Scalable task pipeline**：领域专家 + AI 研究者把“一类反复出现的真实工作”模板化（如用公开论文的数据 / 代码复现图表结果），统一 verifier，一条 pipeline 理想产出 20+ 任务；
+2. **Domain coordinating leads**：健康 / 生物、机器人、量子物理、金融等领域组队，覆盖主要 subdomain 与工具；lead 一般需先自投 20+ 任务，并有扩到 200+ 的路径；
+3. **Referral**：扩散 contributor onboarding。
+作者署名按任务、pipeline、协调、工程、评审、推荐的实际贡献排序。
+
+**价值与边界**：广度带来强外部效度；但任务异质、licensed 软件环境贵，重复 factorial study 成本高；harness 级比较会同时动多个变量，必须固定 tool / capability surface；hidden reference 与原始专业材料不能进公开状态。
+
+#### LHTB：Long-Horizon Terminal Benchmark
+
+> 来源：[GitHub README](https://github.com/zli12321/LHTB)、[benchmark report](https://zli12321.github.io/LHTB/index.html)、[论文](https://arxiv.org/abs/2607.08964)。整理时间 2026-08-16。结果数字为 2026-07 快照，后续硬化版 run 需单独报告。
+
+**定位**：46 个 containerized terminal 任务，测 agent 能否在“有状态环境里持续数百步有效工作”，而不是写一个 artifact 就停。任务覆盖 9 类：交互游戏 / 谜题（8）、多模态与影像分析（6）、软件与逆向（6）、科学计算（6）、地球 / 气候 / 能源（6）、系统 / 性能 / 安全（5）、论文复现与 ML（5）、APEX 专业工作流（4）。与 Terminal-Bench 2.0 同构（Harbor 五件套：task.toml / instruction.md / environment / hidden tests / solution；跑批产生的轨迹即 [ATIF](#atifagent-trajectory-interchange-format轨迹交换标准) 格式）。
+
+**核心设计**：
+- **Hidden rebuild-from-artifact verifier**：从 agent 留下的 artifact 重建并检查，自报进度不算数；reward 为 [0,1] 连续分，0.95 才算 solved。
+- **continue-until-timeout**（30/46 任务）：agent 说“做完了”不算完，harness 继续跑到 timeout；中间 verifier 未过就 resume，只给 binary rejection，不透露失败串、reward、测试输出、路径和 gate 数。
+- **Verifier isolation**：中间 verifier 若跑在 agent 沙箱里，grader 材料会泄漏——审计发现 46 任务 sweep 中 17 个满分有 14 个是读 grader 而不是解题（pytest.log、scorecard.json、/tmp/pytest-of-root、轮询复制 /tests）。修复：verifier 期间冻结 agent 进程树、清 /logs/verifier、独立 verifier 不挂 log 目录。
+
+**结果（2026-07，21 个 frontier 模型，90 分钟 / 任务，同一 Terminus-2 harness）**：
+- 最强模型也只解约 28%（Grok 4.5：mean 0.505，13/46 solved，$11.19 / 任务）；29/46 没有任何模型解出；约 55% 的 model×task 落在 reward < 0.25——agent 卡住、空转或提前放弃，远在预算耗尽前。
+- **排名度量敏感**：按 partial mean reward 排与按 solve rate 排结果会重排，几个高 reward 模型在严格 solved 下掉队。
+- **能力不跟价格走**：Hy3（$2.47 / 任务）、MiniMax M3（$6.13）与贵 5-10 倍的 Claude 模型（$60-73）同场竞争。
+
+**对 harness 研究的启发**：dense reward + checkpoint 能暴露 progress shape（reward AUC、time-to-threshold），适合测 semantic replan 是否真的带来新方向；但 LHTB 的中间 verifier feedback 是 benchmark 合同，不能泛化成生产 oracle。verifier isolation 的教训对所有长程 eval 通用：grader 材料必须与 agent 权限域隔离。
+
+#### 长程 agent benchmark 的方法论要点（ALE / LHTB / DeepSWE 组合）
+
+> 提炼自 [LoopX long-horizon-harness-benchmark-research-program RFC](https://github.com/huangruiteng/loopx/blob/main/docs/architecture/rfcs/long-horizon-harness-benchmark-research-program-v0.zh-CN.md)（2026-08-16，Draft）。去掉 LoopX 品牌后，这些是做 agent eval / harness 对比的通用纪律。
+
+**为什么用组合而不是总榜**：单一 benchmark 各有盲区——纯软件 benchmark 证明不了专业工作迁移，宽 CUA benchmark 外部效度强却难归因机制，binary-only 会隐藏部分进展，dense-reward 又可能过度强调 verifier cadence。ALE（专业工作广度）/ LHTB（terminal 长 loop 与 dense progress）/ DeepSWE（113 个原创长程软件工程任务、91 个活跃 repo、5 种语言，hand-written verifier 验证功能而非参考 patch）互补，但三个分数不能平均成一个数，必须各自在 native metric space 报告。
+
+**Claim ladder（主张阶梯）**：
+- C0 复现与 adapter fidelity：原生 runner 能跑、不改任务语义；
+- C1 控制可观测性：只读记录不干预，能证明 auditability，不能证明 uplift；
+- C2 benchmark 内因果证据：匹配重复比较显示原生指标改善或 cost-normalized non-inferiority；
+- C3 跨 benchmark 一般性：同一 typed 机制在两类不同 benchmark family 复现，第三类的 null result 也要报告；
+- C4 产品 promotion：还需 model-behavior / state-machine qualification + 非 benchmark canary，benchmark 证据本身不能改生产默认。
+
+**实验四 arm**：native baseline（reference scaffold）、passive（只加只读观察）、governed（声明过的控制 profile）、mechanism ablation（只改一个机制）。assisted human / simulator 是独立 study family，不能伪装成 autonomous arm。
+
+**完整性纪律**：
+- 比较 identity 至少固定 benchmark + revision、task + stratum、environment digest、verifier revision、model + revision、harness + revision、policy profile、seed、budget；
+- hidden answer / verifier material 可见 = invalid，无论分数多高；integrity 是独立 qualification 轴，不能评分后补备注；
+- treatment 没送达 = non-compliance，不是 treatment failure；task 选择与 primary metric 要在看 outcome 前登记；重复比较用 paired task + seed，promotion cell 默认 N≥5；
+- 内部 control score 只能诊断行为，不能加进原生分、不能把失败变成功；
+- 防过拟合：discovery 与 eval task set 分离，task body / verifier detail / trajectory 不进 reusable memory 或 capability，promotion 要非 benchmark 验证。
+
+**要测什么**：原生 score 之外，效率（wall time、token、provider cost、tool call、agent step、score per cost、reward AUC、time-to-threshold、未用 budget）和长程控制质量（重复工作切片、idle maintenance loop、trigger-to-new-direction / material-delta 延迟、evidence delivered / used / contradicted、中断后 recovery loss、protocol tax 拆成 token / time / cost / call / attention）。prose similarity 和 keyword matching 不能当 semantic truth。
 
 #### GDPval / ClawWork：真实工作交付物与经济压力型 agent benchmark
 
@@ -1665,6 +1743,50 @@ lifecycle_update
 ```
 
 因此更合理的系统分层是：标准字段用 `gen_ai.*` / `openinference.*` 对齐行业生态，自定义 memory / eval / replay 字段用业务命名空间扩展。
+
+#### ATIF：Agent Trajectory Interchange Format（轨迹交换标准）
+
+> 来源：[ATIF RFC（Harbor, v1.7）](https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format.md)、[Harbor ATIF 文档](https://www.harborframework.com/docs/agents/trajectory-format)、[atifact（HAR / CLI 日志转换器）](https://github.com/waldekmastykarz/atifact)、[harbor-atif2otel](https://github.com/harbor-framework/harbor/tree/main/packages/harbor-atif2otel)。整理时间 2026-08-16。
+
+**定位**：ATIF 是标准化 JSON 轨迹格式，记录 LLM agent 的完整交互历史（用户消息、agent 回复、内部推理、tool call、环境反馈、LLM 指标），目标是统一对话日志、显式动作序列（mini-swe-agent）和可重放数据结构（OpenHands）三类需求，让同一份数据直接用于 debug、可视化、SFT 和 RL。由 Harbor 维护（RFC 0001，Active，当前 v1.7），Harbor 跑批（含 LHTB / Terminal-Bench）的轨迹就是这种格式。
+
+**Schema 骨架**：
+
+```text
+Trajectory
+  schema_version / session_id（run-scoped）/ trajectory_id（document-scoped，v1.7）
+  agent（name / version / model_name / tool_definitions / extra）
+  steps[]
+    step_id / timestamp / source（system | user | agent）
+    message（字符串或 v1.6+ 多模态 ContentPart[]）
+    reasoning_content / reasoning_effort
+    tool_calls[]（tool_call_id / function_name / arguments / extra）
+    observation{results[]}（source_call_id / content / subagent_trajectory_ref / extra）
+    metrics（prompt / completion / cached tokens、cost_usd、token_ids、logprobs / extra）
+    llm_call_count / is_copied_context / extra
+  final_metrics（total tokens / cost / steps / extra）
+  continued_trajectory_ref / subagent_trajectories[]（v1.7 单文件嵌入）
+  notes / extra
+```
+
+**关键设计决策**：
+- **one-LLM-per-step 约定**：能拆就一个 LLM 调用一步；`llm_call_count=0` 表示确定性 dispatch（无 LLM 的编排），此类步骤必须无 metrics / reasoning，SFT 要过滤；>1 表示聚合指标、无法按 call 归因。
+- **is_copied_context**：跨 compaction / 压缩边界复制过来的旧步骤必须标 True，SFT 消费端必须过滤，避免把已训练的旧交互重复喂给训练。
+- **context_management 约定**（v1.7，写在 system step 的 extra）：compaction / pruning / injection + boundary（replace / append / truncate）。boundary=replace 时，boundary 之后的上下文窗口 = 该步 observation 内容 + 后续新步骤，之前的步骤仅保留审计用——这让“事后重建 agent 实际看到了什么”从启发式变成规范。
+- **token 口径**：prompt_tokens 含缓存与非缓存，cached_tokens 是其子集；格式不绑定计价表，cost 只记录执行时快照；Anthropic cache_creation 等额外计费项放 metrics.extra。
+- **session_id vs trajectory_id**：session_id 是 run 级（父子 subagent 可共享），不能当 subagent 引用解析键；v1.7 引入 document 级 trajectory_id，subagent ref 用 trajectory_id（嵌入）或 trajectory_path（外部文件）解析。
+- **版本演化**：v1.0 初始 → v1.1 root extra → v1.2 system observation + token 口径澄清 → v1.3 completion_token_ids（RL 防 retokenization drift）→ v1.4 prompt_token_ids → v1.5 tool_definitions（SFT）→ v1.6 多模态 ContentPart / ImageSource（图片存外部文件）→ v1.7 subagent 嵌入、llm_call_count、context_management。
+
+**生态**：
+
+| 项目 | 作用 |
+| --- | --- |
+| Harbor | 参考实现：Pydantic 模型 + trajectory validator（CLI / API）；Terminus-2、OpenHands、Mini-SWE-Agent、Gemini CLI、Claude Code、Codex 自动产出 ATIF 轨迹 |
+| atifact | 把 HAR（OpenAI / Anthropic API）与 Claude Code / Copilot CLI / Codex CLI 日志转成 ATIF v1.7；支持 subagent 嵌入 / 外链 |
+| NVIDIA NeMo-Agent-Toolkit | 以 ATIF trajectory 为核心类型；profiler / evaluator 可脱离 live workflow 直接消费轨迹 JSON |
+| harbor-atif2otel | ATIF → OpenTelemetry spans（AGENT root → LLM / TOOL / 子 AGENT 树），可上传 MLflow 等 OTel 后端 |
+
+**与 OpenTelemetry 的关系**：OTel / OpenInference 是 live telemetry 的 record layer，ATIF 是完整运行的可交换存储格式（重放、训练、事后 eval 都需要完整轨迹）；两者可桥接（atif2otel），但 OTel span 偏链路观测，ATIF 偏“一条可重放的完整历史”。对 harness 的意义：标准化轨迹 + 类型化 validator 让 debug / eval / SFT / RL 共用同一数据源，context boundary 语义是长程 benchmark 方法论里 post-hoc memory attribution / replay 需要的基础设施。
 
 ### Coding Agent
 
@@ -1959,7 +2081,29 @@ Stanford / TAMU / UCSD。将系统拆为 planner、executor、verifier、generat
 
 Dynamic Workflow 把 workflow graph 从模型的隐式计划变成可读、可 diff、可重跑的 JavaScript execution artifact。Subagent / Skill / Agent Team 仍由 Claude 或 lead agent 逐 turn 决定下一步；Workflow 则由 script 持有 loop、branch、fan-out 和 intermediate result，LLM 退到 `agent()` worker / reviewer / refuter 调用点。`pipeline(items, fn)` 适合把同构或半同构 item 批量 fan-out，再由独立 verifier / adversarial reviewer 做 claims cross-check。
 
-它和 AFlow / AgentFlow 的关系是三种不同优化层：AFlow 搜索 workflow graph，AgentFlow 训练系统回路里的 planner，Dynamic Workflow 把选定的 orchestration 变成产品运行时可执行脚本。它的状态仍主要是单 run / 同 session 级：脚本变量保存中间结果，暂停后只能在同一 Claude Code session 内恢复；跨 session 的 goal、evidence、quota、gate 和 handoff 仍需要 LoopX / durable state kernel 一类项目级控制面。详细产品形态、代码例子和运行边界见 [AI-Agent-Product&PE.md - Dynamic Workflow](./AI-Agent-Product&PE.md#dynamic-workflow把-loop-编译成可重放脚本)。
+它和 AFlow / AgentFlow 的关系是三种不同优化层：AFlow 搜索 workflow graph，AgentFlow 训练系统回路里的 planner，Dynamic Workflow 把选定的 orchestration 变成产品运行时可执行脚本。它的状态仍主要是单 run / 同 session 级：脚本变量保存中间结果，暂停后只能在同一 Claude Code session 内恢复；跨 session 的 goal、evidence、quota、gate 和 handoff 仍需要 LoopX / durable state kernel 一类项目级控制面。详细产品形态、代码例子和运行边界见 [AI-Agent-Engineering.md - Dynamic Workflow](./AI-Agent-Engineering.md#dynamic-workflow把-loop-编译成可重放脚本)。
+
+#### Recursive Language Models：把超长 prompt 变成可编程外部状态
+
+> 来源：[论文](https://arxiv.org/abs/2512.24601)、[作者解读](https://alexzhang13.github.io/blog/2025/rlm/)、[官方实现](https://github.com/alexzhang13/rlm/tree/72d6940142ddfb84ee6be573dc999a37e633e671)、[runtime architecture](https://github.com/alexzhang13/rlm/blob/72d6940142ddfb84ee6be573dc999a37e633e671/docs/architecture.md)
+
+Recursive Language Model（RLM）是一种 inference-time scaffold。它不把完整长 prompt 塞进模型窗口，而是把 prompt 保存成 REPL 中的 `context` 变量；root LM 只看到问题、代码和受限输出，自己编写程序去 `peek / grep / slice / map`，并在代码循环里对选出的片段调用 `llm_query()` 或子 RLM。中间结果继续留在变量中，最后从变量返回答案。
+
+```text
+long prompt -> REPL context variable
+            -> root LM writes a context-processing program
+            -> code slices / transforms context and launches sub-calls
+            -> intermediate values stay in REPL
+            -> final variable becomes the response
+```
+
+关键不是普通的“代码工具 + Agent 工具”，而是 **symbolic recursion**：模型调用本身成为代码里的函数，可以被循环、批处理并作用于程序动态生成的上下文片段。`depth=0` 只有 REPL、没有 sub-call，用于分离 context offloading 的收益；`depth=1` 表示 root RLM 调用普通 leaf LM；更深时 child 本身也是 RLM。
+
+RLM 的价值取决于任务复杂度，而不只取决于 token 数：needle retrieval 只需检查少量证据；OOLONG 要对近乎每条记录做语义判断，处理量近似 `O(N)`；OOLONG-Pairs 还要组合记录对，近似 `O(N^2)`。REPL 让系统越过单次 context 上限，sub-call 则为每个 item 提供 bounded semantic reasoning。GPT-5 的 `depth=1` 在论文主表中相对 base model 将 OOLONG 从 44.0 提升到 56.0、OOLONG-Pairs 从 0.1 提升到 58.0；但 CodeQA 上 `depth=0` 已经很强，说明不是所有任务都需要递归调用。
+
+递归深度也不单调：GPT-5 在 OOLONG-Pairs 上从 depth 1 到 3 继续提升，但 Qwen3-Coder 的更深版本反而下降；论文将其部分归因于代码 / 语法错误向子调用传播。RLM 轨迹还有明显的成本和时延长尾，第一轮 decomposition 质量尤其关键。训练的重点因此不是让所有 leaf 都学会复杂递归，而是让 root 学会操作 REPL、选择分解方式、判断何时值得 sub-call。
+
+边界上，RLM 是一次推理调用内部的 **adaptive context program**：RAG 更适合可复用知识库的预索引检索，Dynamic Workflow 把确定性 orchestration 固化成可重放脚本，RAH 将 recursive unit 扩展为带 filesystem / shell / workspace 的完整 harness，LoopX / durable state kernel 则管理跨 run 的目标、证据和恢复。官方实现默认使用同进程 Python `exec()`，只属于 soft sandbox；处理不可信输入时必须切到 Docker / cloud sandbox 等隔离环境。
 
 #### Recursive Agent Harnesses：递归带工具的完整 harness
 
@@ -1974,7 +2118,7 @@ RAH 定义的递归单元是 **带 filesystem、shell / code execution、plannin
 | 形态 | Recursive unit | 擅长什么 | 主要缺口 |
 |---|---|---|---|
 | Coding agent | 无递归，单个完整 harness | filesystem navigation、少量 item | 大量 item 只能退化为 regex / script heuristic |
-| Model recursion / RLM | 无工具的 model call | 不需要工具的语义分解 | 无 filesystem、code execution 和外部工具 |
+| Model recursion / RLM | model call over selected context | REPL 驱动的语义分解 | 递归单元没有完整 filesystem / tool / workspace harness |
 | Dynamic Workflow | script 启动的 subagent | 大规模、可复用 orchestration | 是产品执行形态，不负责跨 run durable project state |
 | Harness recursion / RAH | 带工具的完整 harness | 每个 item 都需要语义理解或工具操作的大规模任务 | 成本、并发治理和 aggregation error 会随 fan-out 放大 |
 
@@ -2070,6 +2214,27 @@ $$
     * 任何安装了此类 Agent（及 AdbKeyBoard）的手机，其输入内容都暴露在被所有 App 监听和篡改的风险下。
     * AutoGLM 请求 ADB 权限本身也带来了巨大的攻击面（自动获得大量敏感权限）。
 
+#### MatrAIx：人格驱动的模拟用户评测基础设施
+
+> 来源：GitHub [MatrAIx-Persona-8B README（zh-CN）](https://github.com/MatrAIx-ai/MatrAIx-Persona-8B/blob/main/docs/i18n/README.zh-CN.md)；论文 [MatrAIx: Simulating the World with 8.3 Billion Persona Agents](https://arxiv.org/abs/2608.04205)；数据集 [Persona 1M](https://huggingface.co/datasets/MatrAIx2026/MatrAIx_Persona_1M_Public_Release)。读取时间：2026-08-13。
+
+**定位**：面向异构模拟用户的人口级、人格驱动评测基础设施：把「通用可互换用户假设」升级为「人格记录 → LLM Agent → 可复现任务」，用于评估 AI 系统与交互式产品。slogan 是 *Simulate before reality*，同时明确：模拟世界只用于探索、压力测试和假设生成，不能替代真实人群证据。
+
+**核心机制**：
+
+1. **人格 Schema + 生成 + 过滤**：共享 1,290 维人格 Schema（背景 / 心理 / 能力 / 行为）；人格由依赖感知的合成生成 + 证据感知的人类 grounding 组合而来，再经确定性、质量过滤得到 Persona 1M 共集（约 100 万，HF 公开）。论文标题声称 8.3B 虚拟人，公开交付的是 1M 质量过滤 coreset。
+2. **人格 Agent 实例化**：从 cohort 抽样人格，实例化为 LLM Agent（persona 条件化），跑可复现任务；任务固定 agent + model（`generate_application_job.py`），评测对象不是裸模型。
+3. **四类任务环境**：Survey（问卷）、AI Chatbot（对话）、Web、App（原生桌面 / 移动，含 macOS / iOS）——评测面从低成本受控到真实 GUI 交互逐级展开。
+4. **任务契约与验证**：任务 = `task.toml + instruction.md + input/ + verifier`；共享 task spec 约束任务格式，任务自有验证 + 共享遥测 + 报告能力，把个体响应 / 轨迹聚合到子群体和总体层面的结论。
+5. **运行基座**：Docker 环境、`harbor` CLI / Playground GUI、外部适配器（如 SimpleQA）、rewardkit / harbor-langsmith 等包；仓库内只有约 200 条 dev sample，真实运行需导入 Persona 1M。
+
+**对 Agent eval 的直接启发**：
+
+- 评测单位应是 `persona cohort × agent × model × task × environment × verifier` 的组合，每次 job 固化 agent + model，保证可复现——与 AgentCompass 的「评测对象是完整执行配置」一致。
+- 模拟用户要有用，必须先做人格异构性（1,290 维）和质量过滤，而不是让一个通用 user 代表所有人；这补的是 agent eval 方法论「环境与任务可组合」之上的一层：谁在被测系统上行动。
+- 任务环境按 Survey → Chat → Web → OS-app 分层，是低成本到高成本、受控到真实执行的可扩展评测梯度，适合从窄 eval 逐步扩面。
+- 边界要写进结论：模拟用户自洽 ≠ 真实用户证据，需额外验证模拟与真实的分布 / 偏好一致性；大规模 Web / App 环境运行成本高。
+
 ## Agent Harness / Agent Infra：总框架
 
 > 来源：[Agent Harness Engineering: A Survey](https://openreview.net/pdf?id=eONq7FdiHa)、[project page](https://picrew.github.io/LLM-Harness/)、[implementation-first catalog](https://github.com/Picrew/awesome-agent-harness)。用户 2026-05-25 读完。
@@ -2089,6 +2254,8 @@ Agent Harness Engineering 适合放在 `Agent Memory：领域理论框架` 的�
 因此，TIMG / SkillX / MemGovern 仍归在 `Agent Memory`，但它们在总框架中对应 C/V：从 trajectory 生成、治理和服务 experience。OpenTelemetry / OpenInference / agentevals 对应 O/V：记录 trace 并消费 trace。AEvo 对应 L/V/G：用 protected evaluator 和 meta-edit 改进 harness 机制。AppWorld、BFCL、TAU2、OpenViking 属于 V，但只有连接 E/T/C/L 才能解释结果。
 
 一句话：**Prompt engineering 解决“怎么说”，Context engineering 解决“给模型看什么”，Harness engineering 解决“模型如何在受控环境里持续行动、被观测、被评估、被治理”。**
+
+再往基础设施层压一层，Agent 带来的核心变化是 **new execution semantics**：模型在运行时参与规划、选择工具和分支判断后，执行路径从预先确定的程序变成含概率节点的 effectful computation graph。可靠性设计因此从“代码写对并稳定运行”上移到 constraint、validator、effect / commit boundary、semantic checkpoint 与 recovery；Context、Memory、Lifecycle、Observability、Verification 和 Governance 共同构成同一套恢复模型，而不只是相邻功能。
 
 ![Agent Harness timeline](./AI-Applied-Algorithms/agent-harness-engineering-timeline.png)
 
@@ -2114,13 +2281,13 @@ PydanticAI 同样横跨 T/C/L/O/V，但边界不同：Python type hint 被编译
 
 Temporal 主要属于 L/O，并为 E 提供可靠调度底座：History Service 持久化 Workflow 的 Event History 与当前投影，Matching Service 通过 Task Queue 把 Workflow / Activity Task 分发给 Worker，SDK 用 deterministic replay 恢复控制流。它能保证“流程跑下去”，但不定义目标是否值得、证据是否充分或预算是否该继续花；这些 V/G 语义仍属于 LoopX 一类上层 control plane。
 
-Loom 可以作为 T/C/L/O/V 的领域化工程案例：Rust `TransitionEngine` 从 project-local delivery state 计算 typed `ActionResult`，再用 `requestRef + readGroups + writeTargets + submitTool` 同时限定本轮上下文和回写权限；candidate 经过 schema、fingerprint 与 evidence 校验后才升为 canonical artifact。它比 Temporal 更懂软件交付语义，比 LoopX 更窄、更固定，但其 durable 目前主要是本地文件跨 session 恢复，不是分布式执行保证；更详细的源码笔记见 [Loom：把 Coding Agent 固化为可恢复的软件交付状态机](./AI-Agent-Product&PE.md#loom把-coding-agent-固化为可恢复的软件交付状态机)。
+Loom 可以作为 T/C/L/O/V 的领域化工程案例：Rust `TransitionEngine` 从 project-local delivery state 计算 typed `ActionResult`，再用 `requestRef + readGroups + writeTargets + submitTool` 同时限定本轮上下文和回写权限；candidate 经过 schema、fingerprint 与 evidence 校验后才升为 canonical artifact。它比 Temporal 更懂软件交付语义，比 LoopX 更窄、更固定，但其 durable 目前主要是本地文件跨 session 恢复，不是分布式执行保证；更详细的源码笔记见 [Loom：把 Coding Agent 固化为可恢复的软件交付状态机](./AI-Agent-Engineering.md#loom把-coding-agent-固化为可恢复的软件交付状态机)。
 
-Crabbox 可以作为 E/O/G 的工程案例：CLI 保留本地 repo 和命令体验，Coordinator 管 lease、provider credentials、expiry、cleanup、run records、telemetry、usage 和 cost guardrails，runner 只做短生命周期执行叶子。这个模式把 execution environment 从“一台机器”推进到可审计的 `lease + run + evidence` 记录；更详细的源码笔记见 [Crabbox：lease + sync + evidence 的远程执行控制面](./AI-Agent-Product&PE.md#crabboxlease--sync--evidence-的远程执行控制面)。
+Crabbox 可以作为 E/O/G 的工程案例：CLI 保留本地 repo 和命令体验，Coordinator 管 lease、provider credentials、expiry、cleanup、run records、telemetry、usage 和 cost guardrails，runner 只做短生命周期执行叶子。这个模式把 execution environment 从“一台机器”推进到可审计的 `lease + run + evidence` 记录；更详细的源码笔记见 [Crabbox：lease + sync + evidence 的远程执行控制面](./AI-Agent-Engineering.md#crabboxlease--sync--evidence-的远程执行控制面)。
 
-LoopX 可以作为 C/L/O/V/G 的工程案例：registry / active goal state / run history / status queue / quota 把长程目标变成可恢复控制面，`quota should-run` 把 user gate、agent todo、capability gate、workspace guard、scheduler hint 合成下一轮是否该跑的机器判断；更详细的源码笔记见 [LoopX：长程 agent 的本地控制面](./AI-Agent-Product&PE.md#loopx长程-agent-的本地控制面)。
+LoopX 可以作为 C/L/O/V/G 的工程案例：registry / active goal state / run history / status queue / quota 把长程目标变成可恢复控制面，`quota should-run` 把 user gate、agent todo、capability gate、workspace guard、scheduler hint 合成下一轮是否该跑的机器判断；更详细的源码笔记见 [LoopX：长程 agent 的本地控制面](./AI-Agent-Engineering.md#loopx长程-agent-的本地控制面)。
 
-Arbor 可以作为 L/V/O/G 的工程案例：Coordinator 维护 Hypothesis Tree，Executor 在独立 git worktree 中实现单个 idea，dev signal 负责迭代，held-out `eval_cmd_test` 负责合入门禁，protected paths / required outputs 约束实验污染。它把 agent loop 从“多试几次”推进到 `hypothesis lineage + branch + metric evidence + insight backprop + guarded merge`；更详细的源码笔记见 [Arbor：Hypothesis Tree 驱动的研究优化 runtime](./AI-Agent-Product&PE.md#arborhypothesis-tree-驱动的研究优化-runtime)。
+Arbor 可以作为 L/V/O/G 的工程案例：Coordinator 维护 Hypothesis Tree，Executor 在独立 git worktree 中实现单个 idea，dev signal 负责迭代，held-out `eval_cmd_test` 负责合入门禁，protected paths / required outputs 约束实验污染。它把 agent loop 从“多试几次”推进到 `hypothesis lineage + branch + metric evidence + insight backprop + guarded merge`；更详细的源码笔记见 [Arbor：Hypothesis Tree 驱动的研究优化 runtime](./AI-Agent-Engineering.md#arborhypothesis-tree-驱动的研究优化-runtime)。
 
 源码阅读后的主观工程评分，10 分最高：
 
@@ -2133,6 +2300,164 @@ Arbor 可以作为 L/V/O/G 的工程案例：Coordinator 维护 Hypothesis Tree�
 ![Agent Harness taxonomy](./AI-Applied-Algorithms/agent-harness-engineering-taxonomy.png)
 
 Figure 4 可以压缩成一张工程主表：C 不是单独的 memory 论文集合，O/V/G 也不是“附属功能”。一旦 agent 能调用工具、写文件、访问浏览器、提交 PR 或长期运行，observability、verification 和 governance 就必须和 E/T/C/L 同时设计。
+
+### Agent Loop 是 effectful program：用 A => F[B] 看框架
+
+> 来源：[小红书《主线一：Agent Loop 是 effectful program(1)》](https://www.xiaohongshu.com/discovery/item/6a01d501000000003700c5de)，作者齐梦星空，2026-05-11；正文 + 4 张长图。整理时间：2026-08-09。
+
+最朴素的 agent loop 不是“模型会用工具”这种口号，而是一个外部 runtime 驱动的循环：
+
+```text
+while true:
+  response = llm.invoke(messages)
+  if response.tool_calls 为空: return final answer
+  observations = [tool.invoke(call) for call in response.tool_calls]
+  messages += observations
+```
+
+更精确的形状是：
+
+```text
+model -> effect request -> harness interprets effect -> observation -> model
+```
+
+这里只有三个核心角色：模型根据当前上下文输出“下一步动作请求”；harness / runtime 负责解释并执行该请求；observation 把外部世界的结果带回下一轮模型输入。工具调用、memory 读写、文件系统、网络、人类审批、trace、预算、取消和失败恢复，都是模型对外部世界发出的 effect request，不是模型自己完成的事情。
+
+把概念收紧一点：
+
+```text
+A -> B      普通计算
+A -> F[B]   带 effect context 的计算
+```
+
+Agent loop 属于后者。`F` 的价值不是把类型变复杂，而是把藏在函数体里的外部交互放回函数签名里。纯函数要求同样输入得到同样输出、计算过程不改变也不依赖外部世界；而 Agent 的每一步都可能调模型、执行工具、写状态、失败、取消、产生日志和成本。
+
+一个最小 typed effect interface 可以写成：
+
+```text
+EffectRequest:
+  CallModel(messages)
+  CallTool(call)
+  ReadState(key)
+  WriteState(key, value)
+  AskHuman(req)
+  WriteTrace(event)
+
+Observation:
+  ModelReturned(msg)
+  ToolReturned(msg)
+  HumanApproved(decision)
+  Failed(error)
+```
+
+不同语言只是把 `F[B]` 的写法换了一套：Scala 直接写 `A => Either[AgentError, B]`、`A => Future[B]` 或 `A => IO[B]`；Python 没有统一内置的 `F[_]`，通常用 `Awaitable[B]`、`Result[B]`、自定义 `IO[B]`、异常协议或返回对象表达；Java 常见 `CompletableFuture`、`Either` / `Try`、自定义 `IO` 或 result 类型。名字是次要的，关键是 **agent loop 的每一步输出都是带 effect 的承诺**。
+
+#### LangChain middleware：agent loop 的挂载点
+
+LangChain 很适合当第一个实例：`create_agent` 在背后用 LangGraph runtime 构建 graph-based agent runtime，里面有 model node、tools node 和 middleware。用户只调 `agent.invoke(...)`，实际执行的是“调模型 -> 模型选工具 -> 执行工具 -> observation 回到消息 -> 再调模型”的循环。
+
+middleware 本质是挂在 agent loop 各阶段的解释器：
+
+| effect 角色 | 例子 | 挂在 loop 的哪里 |
+|---|---|---|
+| 改模型输入输出 | `dynamic_prompt`、summarization | model node 前后 |
+| 控制是否继续 / 是否调用 | tool filtering、human-in-the-loop、rate limiting | tools node / 循环 gate |
+| 状态外部化 | `state_schema`、store、conversation history | state 与消息之间 |
+| 嵌套 agent loop | subagent | 一个 effect 内部启动另一个循环 |
+| 旁路观测 | tracing、logs、metrics、cost accounting | 不改变主路径，只记录 |
+
+动态选模型那段代码表面是“换模型”，放到 loop 里看，就是在 model request 进入 model node 前插入了一个解释器；工具错误 handler 表面是“处理工具报错”，本质是把 tool effect 的失败重新编码成模型能消费的 `ToolMessage` observation。
+
+#### 用这把尺评估 Agent framework
+
+面对任何框架，先定位它的 agent loop，再问五个问题：
+
+1. loop 在哪里：driver、graph cycle、turn loop 还是 Pregel tick？
+2. 谁真正执行工具调用、检查权限、记录结果、处理失败？
+3. observation 怎么回流：进 messages，还是写独立 state？
+4. middleware 插在哪：改输入输出、控制权限预算、外部化状态、启动子 loop，还是只做旁路观测？
+5. 失败和取消是否是一等公民：结构化进入循环，还是最后变成一个字符串或被吞掉？
+
+结论可以压成一句：
+
+> Agent harness 的本质，是解释 agent loop 里的 effect request。
+
+LangChain 用 `create_agent`、graph runtime、middleware、tools node 把它包起来；其他框架只是把 graph / workflow / runner / loop / driver / middleware / hook / node / state / command / event 这些名字换了一套。名字不同，对应的是同一个结构。
+
+multi-agent 也一样。不能只用 master-slave、parallel、serial、debate 几个词分类，而要问：每个 agent 是不是独立 agent loop？子 agent 有没有自己的 state 和 tool 权限？父 agent 等待的是最终答案还是中间 observation？失败和取消如何传播？多个 agent 的 trace、memory、artifact 如何隔离和合并？一旦这样问，multi-agent 就不再是“多个角色聊天”，而是多个 `A => F[B]` 形态的 effectful program 如何组合。
+
+这篇笔记是 Agent Harness 总框架的语言级入口：ETCLOVG 给分层地图，本小节给判断尺；[Shepherd](./AI-Applied-Algorithms.md#shepherdagent-execution-的版本控制与事务层) 和 [Functional-Programming](./Functional-Programming.md) 把 effect / observation 落到可观察、可拦截、可重放的 runtime；PydanticAI、NOOA 把 loop 边界类型化；LoopX 则负责这些 effect 的 durable governance。
+
+### Tool Calling 是 Kleisli arrow：把 A => F[B] 组合起来
+
+> 来源：[小红书《主线一：Tool Calling 是 Kleisli arrow (2)》](https://www.xiaohongshu.com/discovery/item/6a02f388000000003502b2d6)，作者齐梦星空，2026-05-12；正文 + 18 张长图。上一篇：[Agent Loop 是 effectful program](./AI-Applied-Algorithms.md)。
+
+真实 tool 不是 `ToolInput => ToolOutput`，而是 `ToolInput => F[ToolOutput]`：search、read_file、call_api、run_shell 都依赖外部世界，会失败、超时、取消、触发权限审批、写 trace、耗成本。`F` 不是副作用本身，而是 **effect context / effect 的边界和容器**；LLM call、memory、human approval、trace 同样都是 `A => F[B]`。
+
+核心问题是组合：
+
+```text
+普通函数：   f: A => B, g: B => C          => A => C
+带 effect：  f: A => F[B], g: B => F[C]    => A => F[C]
+组合规则：   a => f(a).flatMap(b => g(b))
+```
+
+`flatMap` 不是语法糖，它保证 effect context 在组合中不丢失。组合必须同时覆盖成功和失败：前一步失败时后一步不执行，失败、取消、超时、权限拒绝继续留在 `F` 里，不吞成字符串或 null。核心直觉是：现在没有裸的 `B`，只有 `F[B]`，但可以先写好 `B => F[C]`，再组合成 `F[C]`——**未来才会产生的值也能参与现在的组合**。
+
+没有 Kleisli 视角，异步逻辑也能写，但会退化成 callback hell：正常路径嵌套、失败散落、取消手动传、trace / 权限 / 预算靠人维护。
+
+显式写成 `A => F[B]` 带来五个工程价值：
+
+1. 组合规则由箭头类型决定，非正常路径也有位置。
+2. `F` 在组合后仍保留，失败、取消、权限、trace、预算不丢。
+3. 可换解释器：真实运行、fake、replay、审计。
+4. 编排复杂度可拆解，workflow 才有意义。
+5. 评价框架更硬：只数 callback / hook 不够，要看有没有统一 effect context。
+
+评估框架时问：effect context 是否显式建模？失败 / 取消 / 超时 / 权限 / trace 是否结构化传播？组合后语义是否保留？能否替换解释器？是在组合 Kleisli arrow，还是拼接回调和字符串？
+
+未来 parallel tool calls 演进为 serial / graph 时，表面是新 API，深层仍是 Kleisli composition。serial 不只是“按顺序排工具”，还要回答：`toolA` 失败 `toolB` 还跑吗？超时是整体失败、降级还是回模型？权限何时检查？取消如何穿链？trace、成本、artifact 归属怎么定义？混合图 / DAG / conditional / nested agent 也一样：哪些节点可并行、哪些必须等、错误累积或短路、取消传播、结果合并。只提供顺序执行而不讲这些语义，只是更复杂的 callback。
+
+下一阶段：普通 function composition、`map` / `flatMap` / `andThen` / `compose`、Functor / Monad / Kleisli category 的关系，再回到 multi-tool、workflow 和 multi-agent。
+
+### Middleware 的本质：`(A => F[B]) => (A => F[B])`
+
+> 来源：[小红书《主线一：Agent Loop 里的小魔法：函数组合 (3)》](https://www.xiaohongshu.com/discovery/item/6a057524000000003701f6aa)，作者齐梦星空，2026-05-14；正文 + 13 张长图。上一篇：[Tool Calling 是 Kleisli arrow](./AI-Applied-Algorithms.md)。
+
+hook / middleware / interceptor 不是“在某个时机插一段代码”，而是把一个 step 改写成同形状的增强 step。关键是 handler：它就是继续执行主流程的原始调用。LangChain 的 wrap 风格可以抽象成：
+
+```text
+around:  (A, A => F[B]) => F[B]
+curried: (A => F[B]) => (A => F[B])
+```
+
+所以 LangChain 表面给 `(request, handler) => response`，从组合视角等价于 `handler => enhancedHandler`。包之前是 `A => F[B]`，包之后仍然是 `A => F[B]`，这是 middleware 能继续叠加的根本原因。拿到 handler 后可以决定是否调用、改 request、调用多次、retry、fallback、short-circuit、改 response；before / after 只是更弱的点位。
+
+这一节建立了第三种组合视角：
+
+```text
+function composition:    A => B, B => C            => A => C
+Kleisli composition:     A => F[B], B => F[C]      => A => F[C]
+middleware composition:  (A => F[B])               => (A => F[B])
+```
+
+三种都叫 composition，但组合对象不同：值到值的函数、带 effect 的函数、函数的改写器。
+
+middleware 能叠，是因为每层都保持“输入一条调用，输出一条调用”。组合要求 associativity 和 identity law，通常不要求 commutativity：`g after f` 对应 `f.andThen(g)`，也等价于 `g.compose(f)`。怎么加括号不影响结果，但顺序通常重要：`auth -> trace -> retry` 与 `trace -> retry -> auth` 会改变“拒绝是否被记录”“失败是否被重试”等语义。
+
+真正难的不是能 wrap，而是 wrap 后 effect context 仍然可信：失败有没有被吞？取消有没有被当成普通异常？权限拒绝是否结构化返回？trace 有没有断？资源释放是否保证？retry 会不会重复执行不可重入 tool？fallback 会不会掩盖真实错误？short-circuit 后后续 middleware 还能不能感知？
+
+评价框架的 hook / middleware 机制，可问七个问题：
+
+1. 只是 before / after，还是 wrap / around？
+2. 有没有拿到 handler？
+3. 能不能 short-circuit、retry、fallback？
+4. 包完以后是否仍保持 `A => F[B]`？
+5. 有没有吞掉失败、取消、权限拒绝？
+6. 多个 middleware 叠加时顺序是否清楚？
+7. trace、预算、资源释放是否连续？
+
+前提是数据形状可见。如果到处都是 `Any` / `dict` / JSON blob，A、B、F 都看不见，组合只能靠人肉约定和运行时测试兜底。FP 里 `Unit` / `void` / `None` 是副作用信号：调用它不是拿值，而是“做一件事”；动态语言里 `A => B` 看起来像纯函数，但函数体仍可读文件、打日志、改全局、发请求。所以 effect 要显式表达为 `A => F[B]`，否则副作用会藏在普通函数里，到组合时才暴露。
 
 ### NOOA：把 Agent Harness 收敛成 Python 对象
 
@@ -2678,6 +3003,107 @@ Sandbox agents 还能组合：handoff 适合把某个分支的 ownership 交给 
 3. `Manifest` 是 fresh-session workspace contract，不是长期任务真相；长期真相仍应是 event history、active goal state、artifact refs、validation refs 和 human gate events。
 4. harness-compute separation 是安全、持久、扩展性的共同边界：Goal Harness 应更像可信控制面，runner / sandbox / worker 才是 stateful execution plane。
 
+### Cloudflare Vulnerability Harness：从 Security Skill 到跨仓库控制面
+
+> 来源：[Project Glasswing: what Mythos showed us](https://blog.cloudflare.com/cyber-frontier-models/)、[Build your own vulnerability harness](https://blog.cloudflare.com/build-your-own-vulnerability-harness/)。前者发布于 2026-05-18；用户 2026-08-14 读完并补充关注点。
+
+核心判断：企业级漏洞研究系统不是“把一个更强的 coding agent 指向仓库”，而是把高召回、概率性的模型放进一个持续过滤的控制面。攻防共享同一套 exploit reasoning 和 PoC 能力，但系统 authority 与最终 outcome 应面向防御：模型负责提出和攻击假设；确定性代码、独立 Validator、数据库、依赖图、回归 gate 和人类 review 负责把它们收敛成可信修复队列。模型应当是可替换部件，harness 才是长期资产。
+
+![集中推理与确定性控制面示意图](./AI-Applied-Algorithms/centralized-reasoning-control-plane-user-figure.png)
+
+上图是用户提供的概念示意图，表达 `deterministic signal -> centralized reasoning -> knowledge-graph control plane -> bounded investigation loop`。截至整理时未检索到图中所署论文的公开入口，因此只把它作为架构示意，不把标题、作者、单位和效果数字当作已核验事实。它与 Cloudflare 的共同点是确定性信号和控制面拥有事实、边界与搜索空间；不同点是 Cloudflare 没有把全部推理压给单个中心 agent，而是用大量窄任务扩大覆盖，再由 VVS 集中收敛。
+
+**为什么通用 coding agent 不够。** Coding agent 擅长围绕一个 feature / bug / refactor 持有单一假设并连续迭代；漏洞研究却要把“组件 × trust boundary × attack class”拆成数千个彼此独立的窄问题。Cloudflare 估计，一个 session 即使带 subagent，在十万行仓库里也只能有意义地覆盖约 `0.1%` 的 surface，之后 context 填满、compaction 开始丢失早期发现。第二个瓶颈是 throughput：单流 agent 一次只追一个假设，真实仓库则需要大规模 fan-out，并在出现新线索时继续分叉。
+
+因此 harness 固化了四条模型行为规律：窄 scope 比“扫完整个仓库”更有效；用不同 prompt / model 的独立 agent 对抗性反驳，比要求发现者“更仔细”更有效；“代码是否有 bug”和“攻击者能否从外部抵达它”应拆给不同阶段；很多窄任务并行，再统一 Dedup，比一个穷尽式 agent 更容易获得覆盖。
+
+**信噪比不是附属指标。** Cloudflare 观察到两类主要噪声源：C / C++ 等内存不安全语言产生的误报更多；模型又有目标偏置——让它找漏洞，它就倾向于返回大量 `possibly / potentially` 的猜测，而不会自然给出校准置信度。Harness 故意偏 high recall，真正的目标不是让 raw findings 看起来多，而是让未确认发现接近零地抵达人类队列。Mythos 的价值也在这里：它能把多个 primitive 连成 exploit chain，并用可运行 PoC 把“可能存在”推进到“可以复现”。
+
+**最初的 skill 与渐进式架构。** Cloudflare 从约 450 行的 `security-audit` skill 起步；prompt 里的 attacker scenario、bug class 和 anti-pattern 基本沿用到生产 harness：
+
+| 最初 skill 的阶段 | 后来的 harness 映射 |
+| --- | --- |
+| 3 个并行 Recon agent 研究仓库并写 `architecture.md` | Recon |
+| 每个 attack class 启动一个 Hunter，目标是主动打破代码 | Hunt |
+| 对抗性 Validator 尝试推翻每条发现 | Validate |
+| 幸存项写成人类可读漏洞报告 | Report |
+| 输出符合 schema 的 `findings.json`；普通代码只检查 schema、行号和函数是否存在 | Mechanical validation |
+| fresh agent 回到最新源码独立复核 | Independent validation |
+| 幸存项提交 ingest API | VVS intake |
+
+单次 skill 只能找到多次运行可发现漏洞的大约一半，而且偏简单；继续“跑十遍、人工 diff”暴露了三个系统瓶颈：context exhaustion、崩溃后无法恢复、单仓 session 看不到跨仓依赖。解决办法是把状态完全外置，把 LLM 当 stateless compute engine。最小可用 harness 只需要 `Recon + Hunt + Validate + database + 不能自行提交新发现的独立 Validator`；只有当多个仓库真的重要、噪声真的淹没系统时，再加入 Trace 和专用 Dedup。不要为了“像平台”而提前建设。
+
+Cloudflare 从第一次 slash-command 到覆盖 128 个仓库、能自动寻找并审问依赖的 fleet scanner，大约用了六周。编码化大多是机械迁移：每个 skill phase 提升成独立 agent，后面放数据库，前面放 orchestrator。真正的差异化不是对 Rust / Go / C / Lua / TypeScript / Python 做逐语言规则适配，而是跨仓依赖追踪和安全编排。
+
+**VDH：用 fan-out 换覆盖，用控制面压噪。**
+
+| Agent / 阶段 | 主要职责 | 子 agent / 工具与控制 |
+| --- | --- | --- |
+| Recon | 描绘目标架构、build command、入口、trust boundary 和潜在攻击面 | 3 个并行 Recon subagent 写 `architecture.md`，并生成初始任务队列 |
+| Hunt | 按 `attack class × scope hint` 主动攻击、编译片段、探测二进制 | 通常约 50 个 Hunter 并发；可派生 sibling；调用 Wishlist；每任务有 scratch directory 和 PoC 执行工具 |
+| Validate | 机械检查发现，再对抗性反驳 | 第一遍由普通代码检查 schema / path / function / test / patch；第二遍由隔离 agent 尝试推翻，且无权提交新 finding |
+| Gapfill | 为覆盖空白生成新 Hunt | 对仍偏薄的 `area × attack class` 单元重新入队，抵消模型只追成功类别的偏差 |
+| Dedup | 识别和折叠重叠发现 | 确定性候选生成 + agent 根因聚类；variant analysis 保留，队列只留 canonical root cause |
+| Trace | 遍历依赖图并在消费仓库派生任务 | 结合跨仓符号索引，判断外部 attacker-controlled input 是否能抵达 shared-library bug |
+| Feedback | 用失败和漏报改进后续任务 | validation failure、浅运行、反复漏报会立即重写尚未执行的 queued prompt |
+| Report | 渲染人类可读报告 | 纯脚本，不需要模型 |
+
+广度不足由 Hunt / sibling fan-out 补，覆盖空洞由 Gapfill 补，重复和变体由 Dedup 收敛，多仓暴露路径由 Trace 补。这里的关键不是“多 agent 越多越好”，而是每个 stage 都有不同 authority、输入 schema 和完成条件。
+
+Hunter 也不能停在读源码。C 等底层语言里的 undefined behavior 只有在压力和具体内存布局下才显现，因此 Hunter 会编译片段、构建最小版本并实际攻击。Cloudflare 称质量跃升最大的一步，是给 Hunter 一个基于 `unshare`、允许安全崩溃二进制的 sandbox；Docker 嵌套运行为什么会被 seccomp / AppArmor 拦住，以及 `unconfined` 的安全代价，见 [Agent Sandbox 与运行环境](./AI-Agent-Engineering.md#嵌套-unshare-sandbox为什么-docker-里要放宽-seccomp--apparmor)。
+
+**Micro-fork 与 Wishlist。** Hunter 遇到当前 scope 外但值得继续追的路径时，不应自己漂移，而是用精确 structural seed fork 一个 sibling；这占全 fleet 任务约 9%，不同模型从接近 0 到约 20% 不等。缺 VM、特定 build environment、production config 或验证工具时，则写入中央 Wishlist，保留足够上下文，待人补齐依赖后精确重放原任务。Wishlist 加入后，在 128 个仓库中累计写入 25,472 次，是 agent 向控制面反馈能力缺口的主要通道；相比之下，提前接入的 Semgrep 在一个月里被 Hunter 调用 0 次。
+
+Wishlist 不应只是自由文本愿望单，最小状态可写成：
+
+```yaml
+wishlist_item:
+  task_id: stable task identity
+  need: FreeBSD VM | build env | prod-safe config | tool
+  why: blocked evidence or hypothesis
+  exact_replay_ref: prompt + repo revision + scope + prior artifacts
+  status: requested | provisioning | ready | replayed | obsolete
+  resume_when: dependency receipt exists
+  provided_artifact_ref: optional
+```
+
+这是一种 durable blocked-state / resume contract：当前 run 可以结束，调查意图、输入版本和重放条件不会丢。部分依赖还能由通用 coding harness 读取日志后自动重建容器，自愈完成后再恢复任务。工程判断是：观察 agent 实际伸手拿什么，再投资工具；不要先把自己熟悉的静态分析器塞满工具箱。
+
+**可信 finding 的最低证据。** Harness 必须主动防止模型“改源码制造自己的漏洞”、写同义反复式测试，或在错误 threat model 上跑通无意义 exploit：
+
+1. 提交前先声明 attacker、被跨越的 trust boundary / 被破坏的 invariant。
+2. PoC 必须作为测试运行在原始、未修改代码上；没有 working PoC 就按 fake 处理。
+3. 幸存 finding 同时携带 proposed patch，而不是只有文字描述。
+4. 普通代码验证文件 / 路径 / 函数存在，test 和 patch 可解析；独立 Validator 只能反驳，不能自己新增发现。
+5. Hunter、Validator、VVS 尽量使用不同模型 / prompt，避免同一组逻辑权重同时出题和判卷。
+
+**VVS：把 discovery 变成生产可达、可修复的队列。** VDH 输出只是 triage 起点；多个 harness 的 finding 进入共享 VVS，再走三个窄任务：
+
+| Agent / 阶段 | 主要职责 | 确定性与概率性分工 |
+| --- | --- | --- |
+| Dedup | 判断系统或内部 ticket 是否已有同一漏洞 | 普通代码对 file、function、trust boundary、rare token 建倒排索引，为每条 finding 生成短候选；Dedup agent 只在短列表上判断根因，stable cross-run key 可重开既有记录，避免 `O(N^2)` 全量模型比较 |
+| Judgment | 判断生产可达性、适用性和最新状态 | 单 agent 通过 MCP 读取 wiki、ticket、git、config 等生产上下文，判断 bug 是否适用于真实部署、据此评分，并验证 latest main 是否仍存在 |
+| Fixing | 生成补丁并做 regression gate | 补丁前后运行受影响测试；无法按 test 过滤时跑全量。只有目标测试 clean `fail -> pass` 才能自动过关；post-patch failure 或全局下游 regression 会阻止提交并转人工 |
+
+Fixer 不会自行 merge；人类必须 review branch，任何 production write 也需要对 dry run 签字。这里的确定性代码负责缩小候选、维护记录和验证机械事实，模型只处理“是不是同一根因”“生产是否可达”这类语义判断。
+
+**漏斗指标与证据边界。** Recon 更好的上下文注入让初次验证拒绝率从 40% 降到 11%，high-integrity finding 占比从 35% 升到 58%（约 12,057 条 lifetime findings）。文章发布时的完整漏斗是：
+
+| 漏斗节点 | 数量 | 含义 |
+| --- | ---: | --- |
+| VDH raw candidates | 20,799 | 独立验证前的高召回原始候选 |
+| survived validation | 约 12,057 | 通过 threat model / exploit path / source / evidence 反驳 |
+| VVS central pool | 13,841 | 加入另一套 harness 的 finding 后，共覆盖 145 个仓库 |
+| folded as duplicates | 5,442 | Dedup 合并到 canonical root cause / ticket |
+| wrong repo / low risk 等 | 1,154 | 误归属、defense-in-depth、latent risk 等分流或回收 |
+| actionable findings | 7,245 | 可交给工程团队修复的清洁队列 |
+
+核心指标不是难以观测的“理论 recall”，而是让未确认 finding 尽量不消耗真实人类。Coverage 则按 `repo × area × attack class` cell 迭代 Gapfill，直到不再产生新 finding；底层 prompt 更新要在 held-out repo 上验证，避免只记住已有仓库。
+
+成本也服从这个结构：绝大多数 compute 花在 Hunt，Gapfill 每次追加 pass 约为首次 Hunt 成本的一半；Cloudflare 按 repo 设 task cap，并使用 50–200 个 worker，复杂仓库完整扫描可持续数小时，最慢略超 14 小时。因此大扫描更像周期性 backlog sweep，不应直接等同于每个 PR 都跑的轻量 gate。
+
+最后，修得更快仍不足以解决攻防窗口。更稳的架构要让 bug 存在时也难以成为 exploit：在应用前放输入验证、WAF / protocol guard 等 reachability defense；按最小权限与 compartmentalization 限制单组件失陷后的 lateral movement；让修复能在所有运行位置同步 rollout，而不是等待各团队分别部署。`time-to-patch` 只是一个指标，`external reachability × blast radius × rollout consistency` 才决定披露到修复之间的真实风险。
+
 ### SubAgent / Agent-as-Tool / MultiAgent：从多开模型到上下文与证据控制
 
 来源可参考公众号《[主流 Agent Harness 实现对比：SubAgent 与 MultiAgent](https://mp.weixin.qq.com/s/FdaYXvEDr8YfALGDErdUfA)》，以及作者前文《[Multi Agent终于不是噱头了么，展望下一代Agent架构设计（2）](https://mp.weixin.qq.com/s?__biz=Mzk0MDU2OTk1Ng==&mid=2247486066&idx=1&sn=ab190a5e6b4fbcb78c916d383f4632b4&scene=21#wechat_redirect)》。这里不要把术语混成“多 agent”：`SubAgent` 是父 agent 把一个有边界的子任务交给子 agent；`Agent as Tool` 是把子 agent 包装成一次工具调用，父 agent 仍负责最终回答；`MultiAgent` 是更大的集合，包括并行 worker、teammate、swarm、handoff、durable board 和 MoA。它们共享的动机不是“角色扮演更像组织”，而是控制 context、引入旁观者视角，以及在任务可分解时并行加速。
@@ -2689,6 +3115,8 @@ Sandbox agents 还能组合：handoff 适合把某个分支的 ownership 交给 
 | 全量 shared workspace / room | `workspaceId` 下的 conversation、file、app invocation、task、run、working state projection | 人和 agent 共用作业台，减少跨工具 handoff 损耗；Tutti 更接近这类 shared workspace | 容易变成 context soup；必须有 typed reference、permission、version、evidence、expiration |
 | Mailbox + task / event ledger | task、claim、blocked reason、decision、artifact ref、evidence ref、quota、heartbeat、handoff gate | Claude Code Agent Teams / LoopX 这类本地 agent team；多 worker 并行但保持 context isolation | mailbox 被误用成事实源；完成状态必须回写 ledger / event store / artifact store |
 | Session-to-session dialogue | agent session 之间的定向消息、review request、clarification | 临时澄清、peer review、局部协商 | 对话本身不耐久；没有写回 ledger 就不能作为长期事实 |
+
+WakeLoop 展示了一种值得单列的产品混合形态：**shared Space + private local execution + explicit outcome settlement**。它不把每个 Agent 的完整 workspace / transcript 同步到共享上下文，而是让 Space 保存目标和公共工作记录，通过 Project binding 把同一逻辑项目解析到成员各自的本地 clone / worktree，再用 Wake 做可追踪委托；Agent 最后显式返回 `reply / handoff / status / failure`。这比 session dialogue 多了一条可靠的 dispatch / return path，但公开能力仍不等于带 claim、quota、evidence 和 checkpoint 的 durable State Kernel。产品与实现细节见 [WakeLoop：给本地 Agent 补上团队级 dispatch 与 return path](./AI-Agent-Engineering.md#wakeloop给本地-agent-补上团队级-dispatch-与-return-path)。
 
 这次讨论里的“共享会议室”更适合落在第二类：共享关键信息和任务，不共享全部空间。会议室里应该有 agenda、task、claim、decision、artifact pointer、evidence、quota 和 handoff gate；不应该默认把每个 agent 的完整 transcript、工具日志和隐含推理都合并到同一个 context。Tutti 的启发是把 session / app / task 的互相引用上提到 `workspaceId` 下的全局状态；LoopX 的短中期重点应是把 mailbox + ledger 做 solid，让共享状态可验证、可恢复、可审计。
 
@@ -2822,6 +3250,57 @@ LoopX 的正确方向不是把所有 runtime 变成同一个 Hermes-like agent�
 | Human / multi-agent gate | LangGraph Interrupts、Claude Code Agent Teams | 人类和多个 agent 如何接力、审批和恢复 | gate id、task ledger、mailbox、permission lease、artifact refs |
 
 LoopX 应在这一层被理解：它不是 goal mode 的替代，而是项目级 / 多轮 / 多 agent 的本地控制面。Goal mode 管“能不能结束”，Dynamic Workflow 管“路径怎么走”，Flowtrace 管“方法和证据怎么留”，LoopX 管“谁能继续、为何继续、带着什么状态继续、跑完写回哪里”。因此，LoopX 的 registry、active goal state、todo ownership、quota、run history、evidence 和 handoff，不应只放在产品笔记里，也应作为 long-running agent control plane 的代表案例进入 Agent Harness 总框架。
+
+#### Agent 原生身份与外部通信：DSH + AWiki 的实现样本
+
+> 来源：公众号《[我们给 DSH 里的 Agent，接入了智能体原生身份](https://mp.weixin.qq.com/s/kyEN4P32IPy6arnxyHmtmQ)》（长山的随笔，2026-08-19）；开源仓库 [dsh-awiki](https://github.com/AgentConnect/dsh-awiki)、[awiki-open-server](https://github.com/AgentConnect/awiki-open-server)、[awiki-cli-rs2](https://github.com/AgentConnect/awiki-cli-rs2)、[awiki-lite-cli](https://github.com/AgentConnect/awiki-lite-cli)。文章已 exact read 全文（2657 字，图片未读）；四个仓库本轮未逐行核验，实现细节以仓库为准。
+
+AWiki 插件回答的不是“给 DSH 加一个聊天窗口”，而是 **Agent 如何拥有一个长期、可发现、可验证、可连接外部世界的身份**：DSH 里的 Agent 注册 Handle（如 `cgw.awiki.ai`）+ DID，重启不丢；消息、邮箱、第三方登录都是建在这个身份之上的能力，而不是身份本身。
+
+五个可复用机制：
+
+1. **身份优先，与消息解耦。** Handle/DID 是 Agent ID，别人可以按 Handle 找到它、向它发消息，即使不知道底层 DID 细节。当前一个 DSH 部署共用一个身份，根 Agent 与子 Agent 共享；每个 Agent 独立身份是明确路线图（研究/销售/客服各有 Handle、联系人和权限）。
+2. **外部无需改习惯即可触达。** 每个 Handle 有对应邮箱，外部人员不装 AWiki 也能发邮件；AWiki 原生消息与邮件进入同一个消息体系，客户反馈、项目通知、合同、订单都由 Agent 统一查看和处理。
+3. **Agent 处理消息，但发送前必须人确认。** Agent 可读会话/历史、总结“对方说了什么/有哪些待办/哪些没回复/接下来做什么”、起草回复并准备附件；发送前先把内容展示给用户，确认后才发出，最终控制权留在人手里。这和 LangGraph 的 checkpointed interrupt 语义互补：出站副作用应绑在 human gate 之后，gate 前只写可审计的 pending state。
+4. **身份是授权入口。** 同一 DID 可用于登录第三方服务、认证和拿权限；已实现模型代理服务，用户/Agent 无需另建账号或自管密钥。路线图继续扩展数据服务、云端工具、企业系统和面向 Agent 的 API——这是“身份即底座”的产品化方向。
+5. **插件化接入，不侵入 harness 核心。** 安装命令 `dsh plugin --profile web add @awiki/dsh-plugin@latest`；server / client / CLI 分层开源，说明外部通信能力可以通过插件协议接入 DSH，而不是改写 loop 核心。
+
+对 Agent Harness / LoopX 的直接映射：
+
+```yaml
+agent_identity_and_inbox_v0:
+  identity: handle + did | persistent | verifiable | per_agent_roadmap
+  inbound: awiki_message | email -> unified message events
+  outbound: draft -> human confirmation gate -> send (message | attachment)
+  auth: same_identity_login -> model proxy / third-party services
+  plugin_boundary: dsh plugin interface; server / client / CLI layers
+```
+
+边界与待办：这是产品发布/经验分享文，DID 验证、权限模型、消息确认失败路径都没展开；“体验比 OpenClaw 插件更好”是作者主观判断，无对比证据。要抄实现细节，下一步应 exact read `dsh-awiki` 与 `awiki-cli-rs2` 的插件接口、身份注册和消息事件 schema。
+
+#### DeepSeek Harness 插件生态：Awesome DSH Plugin 目录
+
+> 来源：[Awesome DSH Plugin](https://awesome-dsh-plugin.com/)（2026-08-20 快照，页面标注收录 1691 个插件、20 个分类，持续更新）；目录仓库 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 与 [contributing.md](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md)。本小节是生态索引级整理：目录描述是插件作者自述，未逐仓库 exact read，机制结论以“目录能证明哪些分面已经出现”为限。
+
+定位：这不是一篇论文或一个产品，而是 DSH 生态的**能力地图**。上一小节的 AWiki 已经证明 `dsh plugin --profile web add ...` 能接入身份与外部通信；这个目录进一步证明 seam 已经长成 1691 个条目、20 个分类的生态，并且出现了治理插件自身的“元插件”（market / manager / doctor / find-plugin）。
+
+| 生态分面 | 代表条目 | 目录能证明的事实 |
+|---|---|---|
+| 记忆 / 上下文 | [OpenViking DSH memory bundle](https://github.com/volcengine/OpenViking/tree/main/examples/dsh-memory-plugin)、[Hindsight](https://github.com/vectorize-io/hindsight)、[Mnemon](https://github.com/omdsh-dev/dsh-mnemon)、[Engramory](https://github.com/tinqiao-oss/engramory)、[dsh-context](https://github.com/bowenliang123/dsh-context) | 记忆已是独立基础设施：pre-step auto-recall、profile 注入、session capture、跨 agent 共享、纯文本可审计、context 生命周期面板。Engramory 还示范了硬上限由 `ctx.tools.guard()` 强制（超限写入被拒、收缩重写放行） |
+| 视觉 / 多模态 | [ModLens](https://github.com/liustack/modlens)、[dsh-vision-router](https://github.com/ysr666/dsh-vision-router)、[dsh-vision-toolkit](https://github.com/Anionex/dsh-vision-toolkit) | 纯文本模型可以经 vision bridge 获得 OCR / layout / grounding / pixel diff，不必换模型；部分默认无 key，但走作者托管免费服务，有配额与隐私边界 |
+| 沙箱 / 执行环境 | [Mirage](https://github.com/strukto-ai/mirage/tree/main/typescript/packages/dsh)、[SandBase Harness](https://github.com/sandbaseai/sandbase-harness)、[dsh-computer-use](https://github.com/Anionex/dsh-computer-use) | 文件系统、bash、MCP runtime、computer use 都可以替换/外包：Mirage 把 host disk 换成 RAM / S3 / Redis / Slack / Gmail / Notion / Postgres 挂载，per-mount 控制 rwx、per-command 选择 sandbox 路由；computer use 强调 fresh observations、stale-state rejection、scoped permissions |
+| 通知 / IM / 远程 | [dsh-notifier](https://github.com/THEWOLFWALKER/dsh-notifier)、[dsh-im](https://github.com/xmanrui/dsh-im)、[dsh-lark-bot](https://github.com/PlutoKeating/dsh-lark-bot) | `notify()` 统一 API + 25+ channel、9 个 IM 通道、入站审批按钮、手机命令中心（`!status / !stop / !retry`）；notifier 通过 `ctx.notifier` 注入、其他插件订阅 `dsh-notifier/sent` 事件复用，且 secrets redacted、tool rate-limited |
+| 多 agent / 编排 | [dsh-agent-teams](https://github.com/NanmiCoder/dsh-agent-teams)、[dsh-agent-team-gui](https://github.com/toolclub/dsh-agent-team-gui)、SandBase | 持久 multi-model squads：Settings 配置、per-member model/tool 策略，主 Agent 把每次发送规划成 bounded DAG 并带 reviewer/repair loop，Run Center 追踪 retry 与 per-member tokens |
+| 治理 / 成本 / 安全 | [dsh-market](https://github.com/dsh-market/dsh-market)、[plugin-registry console](https://github.com/vlln/plugin-registry)、[TokenLedger](https://github.com/zh667/TokenLedger)、[api-relay-audit](https://github.com/toby-bridges/api-relay-audit)、[dsh-webui-auth](https://github.com/Yuuz12/dsh-webui-auth)、[dsh-turn-rewind](https://github.com/Anionex/dsh-turn-rewind) | 插件市场、token 归因、AI relay 安全审计（prompt injection / model substitution / tool-call rewriting / error leakage）、HTTP 层认证、Change Ledger 回滚都长成了独立插件类 |
+| UI / 分发 / 趣味 | [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI)、[dsh-genui](https://github.com/omdsh-dev/dsh-genui)、[deepseek-harness-genui](https://github.com/pengyue-polaron/deepseek-harness-genui)、[oh-dsh](https://github.com/hust-open-atom-club/oh-dsh) | TUI / 桌面 / Web UI 发行版并存；inline 交互式 UI（charts / forms / mermaid / 3D）和 React task apps 把交互状态留给后续 agent turn；skin / pet 说明生态已在做人格化运营 |
+
+对 Agent Harness / LoopX 的机制启示：
+
+1. **能力默认 inert，配置后激活。** 多处 MCP row “stays disabled until token set”、approval-gated MCP/API、per-mount 权限、secrets redacted、tool rate-limited——插件可以安装，但执行要等 profile / 授权 / 凭据条件满足。这比“装了就全通”更接近 LoopX 的 capability gating：把可安装性与可执行性拆成两个状态。
+2. **服务注入 + 事件订阅是两个稳定 seam。** `ctx.notifier` 注入、`dsh-notifier/sent` 事件、`ctx.tools.guard()` 写保护，说明跨插件复用靠协议而不是复制代码。若 LoopX 做插件生态，第一版协议应只定义 service registry + typed events + guard，而不是暴露整个 loop。
+3. **元插件治理。** market / manager / doctor / find-plugin 的出现说明生态规模超过手工管理后，管理自身也要插件化。对应 LoopX 的 catalog constraints、material intake、ranking 结算同样可以做成插件接口，而不是长进核心代码。
+4. **生态分面先于核心功能。** 记忆、视觉、沙箱、通知都被外包成插件，核心 loop 保持小而稳；判断 harness 竞争力的指标是 seam 是否稳定，而不是自带功能数量。
+5. **边界。** 目录是自述式索引：作者托管免费服务带来隐私/稳定性风险，同类别存在大量重复实现和未维护条目；采纳前应 exact read 目标仓库的 plugin manifest、权限 schema、事件 schema，不能把目录描述当代码证据。
 
 #### Shepherd：Agent execution 的版本控制与事务层
 
@@ -3007,7 +3486,7 @@ loopx_shepherd_bridge_v0:
 
 #### Multi-agent runtime governance
 
-Claude Code Agent Teams（见 [产品/系统设计笔记](./AI-Agent-Product&PE.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
+Claude Code Agent Teams（见 [Agent 工程笔记](./AI-Agent-Engineering.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
 
 ```yaml
 multi_agent_runtime_contract_v0:
@@ -3067,12 +3546,37 @@ task signature / control-plane scope
 
 长期 agent 的 context 问题不是“多塞 token”，而是如何保持 agent 的 working state 与真实 task state 对齐。Anthropic context management、prompt-cache-aware ordering、tool-result clearing、compaction、retrieval、externalization 都是实用机制，但 Context Rot 和 memory benchmark 都提醒：更长上下文和更大 memory store 不自动等于更好的 task-state tracking。因此 context management 应被看作 state estimation：要估计每次压缩、检索、遗忘造成了多少任务信息损失，并给 remembered facts 加 provenance、staleness、contradiction handling 和 recovery procedure。Temporal Durable Execution 进一步补上一层：执行事实应进入可恢复的 Event History，而不是只留在聊天 thread 或某次压缩摘要；目标、证据和权限等领域真相仍应由上层 State Kernel 管理。
 
-**Feedback-conditioned retry：失败要进入下一次输入。** LLM generation 的失败不全是网络瞬态错误。若 summary 因输出上限被截断，继续发送完全相同的 prompt 和限制，通常只会再次截断。下一次尝试应保持目标与格式不变，同时消费失败证据：保留 continuation-critical intent、约束、决策、精确字面量和 immediate next step，逐次删除重复时间线、已完成背景与解释性叙述，并给 reasoning token 留出预算。
+**概率执行改写可靠性假设。** 来源：[Runta《Agents aren't software》](https://runta.com/blog/agents-arent-software/)，Guanlan Dai 基于与 Jeff Dean 的谈话整理，2026-08-05。传统软件可以在写代码时基本确定执行路径；当模型进入生产执行链路，系统变成由 model、tool、filter、evaluator、branch 和 fallback 组成的 computation graph，其中部分节点和路径在运行时才确定。Agent 对基础设施更深的影响因此是新的执行语义，而不只是多了一类应用或 API。
+
+执行单元不稳定时，可靠性可能需要更重的机制：让独立模型实现或检查同一逻辑，并行跑多条候选路径，对结果投票，在真实副作用提交前使用更强 validator。它们会增加 token、延迟和工程成本，不适合无差别铺开；高权限、不可逆或高损失 effect 更值得使用 redundancy，把工程重心放到 constraint、validator、commit boundary 与 recovery path。
+
+Computation graph 还把 resumability 与 reproducibility 连到一起。文章转述 Jeff Dean 的判断：ML 研究者追求的目标是 reproducibility，synchrony 只是代价较高的一种实现；有价值的恢复状态是 ML computation 的因果位置，例如哪些节点参加同一次 all-reduce、step 如何对齐，而不是 packet-level 网络快照。Google 的公开材料能旁证技术路线的演进：[DistBelief](https://research.google/pubs/large-scale-distributed-deep-networks/) 用异步 Downpour SGD 扩展到大量 model replica；后续 [Revisiting Distributed Synchronous SGD](https://research.google/pubs/revisiting-distributed-synchronous-sgd/) 则通过 synchronous SGD + backup workers 改善异步噪声、精度和 wall-clock convergence。需要保留证据边界：“为了 reproducibility”是这次谈话的概念性总结，公开论文没有把它写成从异步转向同步的唯一原因。
+
+**故障恢复单元从 process 上移到 semantic state。** 主流 Agent stack 常把 workflow、memory、retry、checkpoint 和 snapshot 分别补在应用层，但进程重启只能恢复机器状态，无法回答 Agent 已确认了什么、排除了什么、外部世界已被怎样修改、下一步为何仍然成立。Agent-native runtime 需要把 execution intent、semantic state 与 side-effect state 放进同一个恢复模型，让系统能停下、重入、fork、回滚到有意义的 checkpoint，再从清楚的因果位置继续。
+
+![Agent runtime 从执行崩溃恢复到 semantic root state](./AI-Applied-Algorithms/agent-runtime-semantic-recovery.png)
+
+Memory 在这里更接近 **reentrant state model**，而不是持续膨胀的 prompt。网页 HTML、长日志、stack trace 和 transient conversation 属于体积大、短生命周期、可重建的 raw / derived state；已确认约束、当前工作假设、排除路径、未提交 effect 和 resume intent 才应由 Agent 显式提升为紧凑、持久的 semantic root state。保存 root state、按需重建 derived state，能比整段 process snapshot 提供更小、更有结构的恢复面。
+
+![从大规模 derived context 凝练 durable root state](./AI-Applied-Algorithms/agent-runtime-root-derived-state.png)
+
+这套 state 思路与 LoopX 的方向一致，但需要分清 control plane 与 executor runtime：
+
+| Runta 的恢复对象 | LoopX 中的对应设计 | 当前边界 |
+| --- | --- | --- |
+| Semantic root state | goal、todo / claim、evidence、gate、quota、handoff、append-only event ledger | 跨 run 保存项目级 canonical state，不依赖单个聊天或 worker 记忆 |
+| Derived state | status、todo index、task graph、review packet、dashboard | 作为 projection 展示和调度，可由 source state 重建，不拥有 truth |
+| Stop / re-enter / fork / resume | checkpoint、run history、replan、handoff、rollback packet | 支持价值交付语义的连续性和分支选择 |
+| State + side effect + intent | write scope、operator gate、evidence writeback、quota spend、settlement | 仍需 executor adapter、幂等 / 补偿、sandbox snapshot 或 Temporal / Shepherd 一类底层 substrate，才能恢复 in-flight execution 和真实外部副作用 |
+
+因此，LoopX 已经在做 semantic state / State Kernel 这一层：把“当前为何继续、什么为真、谁能修改、完成需要哪些证据”外置成可恢复事实面。它不需要复制整个进程；下一步要补强的是 state checkpoint 与真实 effect commit 的绑定，使每次 resume 都能验证前置状态、已提交副作用与回滚 / 补偿边界。
+
+**Feedback-conditioned retry：失败要进入下一次输入。** LLM generation 的失败不全是网络瞬态错误。若 summary 因输出上限被截断，继续发送完全相同的 prompt 和限制，通常只会再次截断。下一次尝试应保持目标与格式不变，同时消费失败证据：保留 continuation-critical intent、约束、决策、精确字面量和 immediate next step，删除重复时间线、已完成背景与解释性叙述，并给 reasoning token 留出预算。
 
 | 失败 | 下一次 generation | 必须保持的边界 |
 | --- | --- | --- |
 | provider 瞬态错误 | 原 prompt 原样重放，配合 backoff | 不因网络错误改变 summary 语义 |
-| 输出长度截断 | 追加递进式压缩指导 | `max_tokens` 和最大尝试次数仍由配置拥有 |
+| 输出长度截断 | 追加带 retry index 的压缩指导 | index 递增不等于约束自动变强；`max_tokens` 和最大尝试次数仍由配置拥有 |
 | schema / 必填 section 不合法 | 注入结构化 repair feedback | 原目标、输出 contract 和 evidence 不缩水 |
 | 鉴权、非法配置 | fail fast | 不用生成重试掩盖控制面错误 |
 
@@ -3088,7 +3592,33 @@ generate candidate
 -> install complete candidate | discard failed candidate
 ```
 
-截断结果不能先写进主 history 再等待后续补全；它只是一次 failed candidate。Trace 也应区分总 `attempt_index` 与 `length_retry_index`：前者回答一共调用了几次，后者回答多少次尝试是由长度反馈驱动。只要 retry prompt 会改变模型行为，就应像代码和 schema 一样版本化，回归测试至少覆盖“连续截断后提示递进”“瞬态错误前后 prompt 字节一致”“耗尽配置预算后不安装候选”。
+截断结果不能先写进主 history 再等待后续补全；它只是一次 failed candidate。Trace 也应区分总 `attempt_index` 与 `length_retry_index`：前者回答一共调用了几次，后者回答多少次尝试是由长度反馈驱动。只要 retry prompt 会改变模型行为，就应像代码和 schema 一样版本化，回归测试至少覆盖“连续截断后 index 递增且重新渲染提示”“瞬态错误前后 prompt 字节一致”“耗尽配置预算后不安装候选”。仅把递增 index 填入同一个模板，并用自然语言要求 progressively shorter，仍属于 soft guidance；若每一级没有不同规则、目标长度或 runtime validator，就不能声称系统实施了逐级增强的硬约束。
+
+**多层恢复必须共享统一的成本边界。** 一个异步执行单元可能同时包含结果重算、远端请求透明重试、结果校验与修复、阶段重跑和跨轮续跑。每层局部上限单独看都合理，组合后仍可能把真实副作用次数乘法放大，因此要分别建模：
+
+| 层 | 回答的问题 | 正确边界 |
+| --- | --- | --- |
+| Semantic retry | 结果本身是否值得重算 | 只有结果不完整、格式不合法或质量检查失败，才改变下一次输入 |
+| Transport retry | 同一个远端动作是否遇到瞬时故障 | 复用 typed classifier 与 backoff；鉴权、非法配置等确定性错误 fail fast |
+| Operation attempt cap | 一次逻辑操作最多触发几次真实动作 | semantic 与 transport retry 共用物理尝试计数，不能形成 `outer attempts x inner retries` |
+| Scope side-effect budget | 一个执行作用域最多产生多少次外部副作用 | 所有子阶段都在副作用发生前消费同一预算 |
+| Cross-cycle recovery | 本轮已失败，但上层工作是否仍可继续 | 保留原失败事实，通过严格 gate 创建新的执行轮次并获得新预算 |
+
+错误匹配也应“具体事实优先”：远端响应中的稳定业务 code / type 优先于宽泛协议状态，具体状态又优先于某类状态的聚合规则。这样，默认的认证失败快速返回，与某个远端系统复用同一协议状态表达可恢复故障，可以同时成立。底层模块只报告错误事实；重试、退避和次数上限由策略层拥有。
+
+作用域熔断的计数单位应是**真实外部副作用**，并在副作用前扣减。Task-local scope 很适合隔离并发 execution 与嵌套 child execution：同一逻辑执行内的深层调用共享余额，新执行建立新 scope；已经配置有限预算却缺少 scope 时应 fail closed，不能静默退化成无限。局部副作用预算与上层任务的总时间、总轮次或资源预算是不同控制面。
+
+跨轮自动恢复还要保持事件顺序：
+
+```text
+ExecutionFailed(run N, stable error)
+-> ExecutorQuiescent(run N)
+-> StartFreshRun(run N+1)
+```
+
+先等匹配同一 `correlation_id` 的静止事件，是为了保证新执行不会插进旧执行的 canonical 终态之前。恢复动作不能把失败改写成成功；只有真实成功才重置连续恢复计数。全局连续上限与 same-code 上限要同时存在，分别阻止交替错误循环和同一确定性错误循环。
+
+最后要标清 durable 边界：若 pending recovery 和连续计数只在进程内存里，进程恰好在失败事件与静止事件之间重启，就不会自动补发。它只是 bounded liveness aid，不是 durable retry queue；跨重启续跑仍要由持久状态、journal 或上层控制面拥有。
 
 #### Goal-mode audit：把“继续”变成目标审计
 
@@ -3159,7 +3689,25 @@ planner、executor、subagent、tool、sandbox、evaluator、human 之间不能�
 
 因此，中心问题会从“怎么 build 一个 agent”转向“怎么 operate 一组长期 agent，使它们的行动能被持续检查、追溯和回滚”。
 
+#### AgentSwap：订阅/提供方韧性层与跨 harness 会话搬迁
 
+> 来源：[bojieli/agentswap](https://github.com/bojieli/agentswap)（Go、MIT、零第三方依赖；2026-08-15 创建，快照 2026-08-20，commit `bed7ece`）；已读 [README](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/README.md)、[architecture](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/docs/architecture.md)、[sessions](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/docs/sessions.md)、[accounts](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/docs/accounts.md)、[configuration](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/docs/configuration.md)、[SECURITY](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/SECURITY.md)、[acceptance](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/docs/acceptance.md)、[CHANGELOG](https://github.com/bojieli/agentswap/blob/bed7ecea3b08909ca3e827c6c3c6a7c7f700e660/CHANGELOG.md)；未逐行核验源码，机制描述以文档为准。
+
+定位：给 coding agent 补两层它自己不会有的韧性。第一层是 **本地 HTTP 代理 + 凭据池**：Claude Code / Codex 仍以原生 CLI 方式运行，但请求先经过 `127.0.0.1:8420` 的代理，由池选账号、失败时 retry / rotate / park。第二层是 **离线会话搬迁**：`teleport / handoff` 把 Claude Code JSONL、Codex rollout、OpenCode、Kimi 会话互译为 canonical event stream，再写成目标原生格式。它解决的问题正是“订阅额度在长重构中耗尽、两个订阅都到周限、Codex API Key 与订阅不能混在一个轮转池”这一族场景。
+
+关键机制：
+
+1. **engine loop 只返回两种东西：值得返回的成功，或换到任何账号都会同样失败的 client error。** `engine.Execute` 的循环是 select → send → classify → decide。classify 把看起来相似的失败拆成五类：`Relay`（成功流）、`RetrySame`（短限流，等同一账号以保留 prompt cache）、`Rotate`（窗口耗尽，标记 exhausted 直到 reset）、`RefreshAuth`（401/403 刷新一次）、`Fatal`（其他 4xx 原样交还）。难点在于 429 到底属于“每分钟限流”还是“窗口用完”，用 `burst_cutoff`（默认 2m）区分；且 status line 只是声明——Krill 这类网关会在 200 的流头夹带 `error` / `response.failed` 终态事件，代理要先采样 2xx 头部、在吐给 client 之前按 HTTP 等价类吸收。
+2. **retry budget 属于 request，exhausted window 属于 account。** 每个请求记录试过哪些账号、overload streak；每个账号记录配额利用率和 reset 时间，超过 `drain_above`（默认 98%）就预测性退役，除非池里没有更健康的账号。sticky（默认 30m）让同一会话尽量留在上次服务的账号，因为 prompt cache 是 per-account 的，为轮转而轮转会烧 cache。全部账号耗尽后 park 到最早 reset，最多 `park.max_hold`（默认 30m）；超时返回 503 + `Retry-After` + resume ticket，由 `agentswap run` 在 reset 后调用原生 resume（`codex resume` / Claude 自身 resume），CLI 的 timeout 也随 `max_hold` 派生。
+3. **会话搬迁搬的是 recorded event stream，不是 summary prompt。** 保留 messages、recorded reasoning、tool calls / results / errors / call ids、plans、timestamps、model metadata 和支持的 inline media；source 只读，validation 在 write 之前完成，未知 conversation block、悬空结果、不支持的分支转录一律 fail closed，不产生“看起来能 resume 但实际坏的”目标。**不搬** credentials、provider KV cache、hidden/encrypted state、approvals、live shell / background jobs、plugin memory——目标是一个带自己权限和 provider 配置的新原生进程。OpenCode 会话通过它自己的 `export / import` 边界读写，代理不碰 SQLite schema。
+4. **credential-holding process 的信任面。** 默认 loopback-only，`Host` header 检查防 DNS rebinding；client 发来的凭据被丢弃、由池中凭据替换，占位符不是秘密；文件 0600 + 原子替换；错误响应体限 64 KiB 且从记录/返回中剥离账号凭据；OAuth refresh 按账号 coalesce（两个上游都会轮换 refresh token，并发刷新会把第二个账号退掉）。整个项目因此坚持零第三方依赖。
+
+对 LoopX / harness 的借鉴：
+
+- **“什么不该透传”是代理层最值钱的设计。** coding agent 把任何错误都当停止理由，所以恢复语义必须在 agent 之下、代理层内做完：短限流同账号等待、窗口耗尽换账号、overload 退避、in-band 失败吸收、401 刷新一次，五类失败各自有相反的应对。
+- **Standard handoff 的落地样本。** canonical event stream + fail-closed validation + 原生 resume 命令，正是上文 `Standard handoff` 想要的保真度。但边界同样清楚：“保真”不等于“可继续”——provider state、approval、live process 不搬，目标仍是新进程；因此 handoff 是用户显式决策，代理层永远不自动跨 harness 搬迁。
+- **与 CPA 类工具的分界。** CPA（CLIProxyAPI）把订阅 OAuth 包装成 OpenAI/Claude 兼容 API 并 round-robin，本质是“订阅转 API”的协议翻译，Codex 订阅与 API Key 两条计费路径不能混池；AgentSwap 不做协议翻译、不做并行乘数，只做同 lane 内 failover（Codex 订阅 + API Key + 同协议 provider 可同池、订阅优先）+ 离线会话搬迁，并明确 failover-only、ToS 风险由用户自担。
+- **边界与待办。** 部分输出后的流失败无法透明重试；项目很新（2026-08-15 创建），acceptance 显示 316 个测试入口、12 个方向 teleport 实测全过、真实 credential failover PASS，但仍是 early software；下一步 exact read 应聚焦 `internal/engine` 的 classify/park、`internal/session` 的 canonical schema 和 Claude/Codex reader-writer 的 event 保真边界。
 
 ## Context Engineering 与 Agent Runtime
 
@@ -3396,7 +3944,7 @@ OpenTelemetry GenAI / OpenInference / agentevals 不属于 memory 方法本身�
 
 一个较稳的分层是：OTel / OpenInference 负责通用 trace 语言，例如 `LLM / RETRIEVER / RERANKER / TOOL / EVALUATOR` span、model、token、cache、error、conversation id；Agent Harness 再扩展 `memory_candidate_id`、`retrieved`、`reranked`、`injected`、`cited_or_followed`、`caused_action`、`outcome_delta`、`lifecycle_update`。这样 memory learning loop 既能接入行业 observability，又不会把内部 memory 语义硬塞进 `gen_ai.*`。
 
-Flowtrace 提醒这里还有第二类 trace：它不是 runtime event trace，而是 **task-method trace**。它用 `trace.json` 保存 step DAG 和 deliverable，用 `state.json` 保存 run 状态，用 `replies/NNNN.json` 保存结构化结论和 evidence，用 git commit 保存每次声明性写入。对 memory learning loop 来说，这类 trace 可以成为 raw trajectory 与 procedure memory 之间的中间层：既保留方法图、证据和局部重跑边界，又不把它硬编译成 workflow engine。详见 [AI-Agent-Product&PE.md - Flowtrace](./AI-Agent-Product&PE.md)
+Flowtrace 提醒这里还有第二类 trace：它不是 runtime event trace，而是 **task-method trace**。它用 `trace.json` 保存 step DAG 和 deliverable，用 `state.json` 保存 run 状态，用 `replies/NNNN.json` 保存结构化结论和 evidence，用 git commit 保存每次声明性写入。对 memory learning loop 来说，这类 trace 可以成为 raw trajectory 与 procedure memory 之间的中间层：既保留方法图、证据和局部重跑边界，又不把它硬编译成 workflow engine。详见 [AI-Agent-Engineering.md - Flowtrace](./AI-Agent-Engineering.md)
 
 ### Agent memory 调用的两种范式
 
@@ -4082,6 +4630,49 @@ feedback_event
 ```
 
 而不是照搬 user simulator。真正重要的是 feedback event 如何被归因、选择、检索、注入，以及注入后是否带来 outcome delta。
+
+### AML：Agent Memory Leaderboard 首期榜单与评测契约
+
+> 来源：[机器之心《Agent走向长线协作的关键一战：AML首期揭榜》](https://mp.weixin.qq.com/s/r7UCsnon-zCZIbkTlbAVIQ)（2026-08-14，读取于 2026-08-14）。本文是媒体转述，榜单分数以 [AML 官方 Hugging Face 组织](https://huggingface.co/agent-memory-leaderboard) 与论文 / 代码为准；不同媒体转述的数字已有出入（例如 Show HN 首期结果显示 MemOS 45.89、NTES-MEMORY-SMART 44.21），所以分数仅作为首期 snapshot，不作为长期结论。
+
+**背景判断**：长上下文窗口不能替代长期记忆。把全部历史塞进上下文会带来指数级 API 成本、噪音放大幻觉、失效规则反复执行、过期偏好无法清除、上一轮教训下一轮重演。Agent 长期记忆是“长线协作”的基础，评测的缺位则让“记性好”无法被归因：高分可能来自更强的下游生成模型，或对特定 prompt / judge 的过拟合。
+
+**AML 是什么**：2026-08-12 由牛津大学、清华、北大等近 30 所机构联合发布在 Hugging Face Space 的首期 Agent 长期记忆评测榜单。上线两周点击量破 20 万，首届收到 100+ 参赛申请；工业榜与开源方法榜分开揭榜。
+
+**评测契约：三重隔离**
+
+| 隔离层 | 设计 | 解决的问题 |
+| --- | --- | --- |
+| 接口边界隔离 | 参评系统只暴露 `Add`（写入）与 `Search`（检索）两类接口；Answer 与 Eval 由平台用统一模型、流程和聚合规则完成 | 把“记忆能力”和“生成能力”解耦，分数尽可能归因于记忆系统本身 |
+| 数据源隔离 + 能力重构 | 整合 PersonaMem、LoCoMo-Refined、BEAM 等 10+ 基准与平台私有测试集，>1500 对话 / 任务、约 1.5 亿字符长程历史、近 5000 道题；人工重构映射到统一能力维度 | 避免单一数据集的偶然性，输出可诊断的能力剖面而非一个名次 |
+| 评测治理隔离 | 多评审系统（Multi-Agent Judging System）打分；统一封装模型、参数与日志；完整保留检索证据、平台答案与评审记录；私有测试集 + 人工标注校准 | 可复核、可追溯，压低刷榜与过拟合空间 |
+
+**首期榜单要点**
+
+| 榜单 | 排名 | 系统 | 分数 / 特点 |
+| --- | --- | --- | --- |
+| 工业榜 | 1 | MemoraX | 58.0，7 个能力维度全部第一；路线是“可学习记忆策略引擎 + 记忆基模 + 自演进 Agent Harness”，强调持续自进化、动态更新、跨场景复用，区别于向量库相似度检索的“可搜索笔记本” |
+| 工业榜 | 2 | MemOS | 事实召回、多跳推理、时间推理、记忆治理稳定；个性化与规则执行偏弱 |
+| 工业榜 | 3 | NTES-MEMORY-SMART（网易） | 黑马；个性化 57.0，事实召回 / 多跳 / 规则执行中上；适配长期陪伴、个性化客服、内容服务、虚拟角色、个人助理 |
+| 工业榜 | 8 | TencentDB Agent Memory | 41.5；规则与工作流执行 28.7（工业第二），适合企业知识库、工单、审批、流程型 Agent |
+| 工业榜 | 9/10/15 | Mem0 / MemPalace / Supermemory | 高阶记忆能力短板明显 |
+| 开源榜 | 1/2/3 | InvMem / ReFind / ActiveMemoryIndex | 约 45.1 / 45.0 / 44.8，竞争胶着；InvMem 是精细优化的混合检索（多跳 / 时间 / 规则更强）；ReFind 用模型驱动迭代搜索调检索方向（证据定位强，代价是多轮模型调用与延迟成本）；ActiveMemoryIndex 在记忆治理、个性化、安全隔离与细粒度查询改写的作用域控制上突出 |
+
+**记忆正在从附属品走向基础设施层的信号**：AWS、Azure 等云厂商把记忆管理模块内置进 Agent 开发平台；Mem0、Graphiti、Supermemory 等开源项目达到数万到数十万星标，创业与融资持续升温。这与“评测范式成熟”一起，构成记忆成为独立基础设施层的两条证据线。
+
+**三个演进趋势**
+
+1. **从“被动存储检索”到“主动记忆治理”**：竞争点不再是向量检索，而是自主理解、筛选、压缩、遗忘、归纳；让记忆生命周期自主运转，被视为通用 Agent 智能跃迁的核心瓶颈。
+2. **从“混放共处”到“工程级隔离管控”**：用户、任务、场景、仓库多维隔离成为默认架构，权限 / 隐私 / 生命周期精确管控；谁做到工程级可控谁才能承接企业级市场。
+3. **从“单点指标”到“真实场景全链路闭环”**：评测标准升级为融合时序演化、状态迭代、逻辑一致性、隐私约束、动态纠错的全链路闭环。
+
+**对 Agent Harness / OpenViking 的可迁移判断**
+
+- AML 的接口隔离思路与现有 `memory utility` 分层（task-execution / user-preference / evaluator-preference）一致：只有固定 answer / judge，才能把分数归因回 memory 系统；对应到本仓库，`memory_feedback_event_v0` 应记录 retrieval evidence、注入前后 action delta，而不是只存最终分数。
+- “能力剖面”比单点分数更适合做记忆系统诊断：7 维能力（事实召回、多跳推理、时间推理、个性化、规则执行、记忆治理、安全 / 隔离等）可映射为 OpenViking / agent-harness 的 memory eval 维度表。
+- 防刷与治理设计（私有测试集 + 人工标注校准 + 完整证据保留 + 多评审）与当前 material lifecycle / eval 契约的 authority readback、receipt、rollback 思路同构；评测公信力来自可复核的证据链，而不是榜单运营方的承诺。
+- 三个趋势分别对应已有框架的 **lifecycle 层**（consolidation / forgetting / oversight）、**scope 隔离层**（per-user / per-task / per-repo 作用域控制）和 **outcome 层**（时序演化 + 状态迭代 + 逻辑一致性 + 隐私约束 + 动态纠错的全链路评测）。
+- 边界：本文为媒体转述，未包含 AML 的接口 schema、7 维定义、评分聚合公式与测试集访问方式；需要进一步追一手材料（Hugging Face Space、论文、代码、官方 release note）后再把评测契约落成可复用 schema / benchmark adapter。
 
 ### Feedback / credit assignment：如何从反馈中学 memory
 

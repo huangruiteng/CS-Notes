@@ -978,6 +978,35 @@ print(f"Prompt的token数量为: {token_count}")
 ![image-20251005214806732](./LLM-MLSys/image-20251005214806732.png)
 
 
+#### Agentic State Reuse：面向 Agent 上下文编辑的状态复用
+
+> 来源：[机器之心：单卡5090跑满血DeepSeek V4Flash，已开源，Token自由了！](https://mp.weixin.qq.com/s/Hz-mm3Izi8M2uMZHL3wx5w)、[FreeToken: Efficient Edge-Native MoE Serving with Bandwidth-Adaptive Execution（arXiv 2608.16157）](https://arxiv.org/abs/2608.16157)、[FlashML-org/FreeToken](https://github.com/FlashML-org/FreeToken)（commit `0ab982f`，Apache-2.0）。整理时间：2026-08-22。
+
+**一句话**：传统 Prefix Cache 假设“请求前缀不变”，但 Agent 每轮都会在语义边界处编辑上下文（删 thinking、替换 tool output、截断旧 observation），前缀一改缓存就失效。Agentic State Reuse 的核心是把“缓存节点”从任意 token 位置升级为语义锚点（special-token 边界），让全注意力层的 KV 与循环/线性层的 recurrent state 一起在该锚点 checkpoint；上下文编辑后只回退到最近仍存活的锚点，增量 prefill 真正的新后缀。
+
+**为什么需要**：
+
+- prefill 是 Agent 每轮 TTFT 的瓶颈。消费级 GPU 的 dense BF16 吞吐只有 H100 的约 1/5、B200 的约 1/10，重复 re-prefill 数千 token 会让 GPU 忙几十秒。
+- MoE 的 prefill 会摧毁稀疏性：一个长 prompt 的所有 token 路由到专家集合，几乎覆盖每层全部专家，所以每轮 prefill 都要搬接近完整专家池（如 DeepSeek-V4-Flash 部署 FP4 约 140GB 专家权重）。
+- 混合注意力模型（Qwen3.6 的 gated DeltaNet、Kimi-K3 的 KDA、DeepSeek-V4-Flash 等）把前缀压成单个 evolving state，不能像 KV 一样按 token 部分复用，只能靠 checkpoint；一个 checkpoint 的内存相当于几百 token 的 KV，只能存少量，位置必须足够“抗编辑”。
+
+**机制（FreeToken 的做法）**：
+
+1. full-attention 的 KV 用 radix prefix tree 管理（沿用 SGLang RadixAttention 思路）。
+2. 在语义锚点（thinking 段、tool call、tool output、conversation turn 等 special-token 边界）挂 recurrent-state checkpoint。这些位置正是 agent harness 编辑/截断上下文的边界：OpenClaw 只保留最新一轮 thinking、OpenCode 把旧 tool output 替换成 placeholder、SWE-agent 只留最近 n 个 observation。
+3. 新请求 match prefix 后，从“最深仍存活的 snapshot 边界”恢复：KV 从锚点复用，recurrent state 从该 checkpoint 恢复，只 re-prefill 新增后缀。
+4. checkpoint 池独立于 KV 池做 LRU；循环层 checkpoint 按 chunk/page 对齐挂到 radix 节点，内部节点也可持有，失效时 tombstone 保留 KV、释放 state slot。
+5. 代码入口：[radix_cache.py](https://github.com/FlashML-org/FreeToken/blob/0ab982f10905fa775962a4eddcb44caa50065251/python/freetoken/kvcache/radix_cache.py)（RadixTreeNode 的 `mamba_value` snapshot slot）、[hybrid_radix_cache.py](https://github.com/FlashML-org/FreeToken/blob/0ab982f10905fa775962a4eddcb44caa50065251/python/freetoken/kvcache/hybrid_radix_cache.py)（full-attn KV + GDN linear state 双币种 radix，match 时截断到最深 live snapshot）、[linear_state_pool.py](https://github.com/FlashML-org/FreeToken/blob/0ab982f10905fa775962a4eddcb44caa50065251/python/freetoken/kvcache/linear_state_pool.py)（conv + SSM recurrent state 的 per-request slot，COW-on-restore）。
+
+**对 Agent runtime 的启发**：
+
+- Agent harness 的 context 编辑是 serving 可复用的语义信号，不是随意文本操作。要吃到状态复用，删除/替换/截断应落在 special-token 标记的整块边界，保留从 anchor 到编辑点的稳定前缀。
+- 这正好回应 [AI-Agent-Engineering.md - Context Management](./AI-Agent-Engineering.md#context-management-与-token-效率) 里“Session Context 构造未考虑 Cache 复用”的判断：context 构造顺序、resume 逻辑、thinking 清理都会直接影响 cache 命中；Agent 与 inference 不是无状态 API 的两端。
+- 可以显式化 `cache_anchor` / `semantic_block_boundary`：harness 记录哪些 block 被替换、哪个前缀稳定、允许 serving 从哪个 token 位置 checkpoint；serving 据此做 checkpoint 放置与失效传播。
+
+**FreeToken 结果（供参考，非结论）**：RTX 5090 上 Qwen3.6-35B 77-83 tok/s、DSV4-Flash 22-25 tok/s，较最强端侧基线高 1.5-2.3x；agentic 负载下 decode 率保持在单轮值的 12% 以内，而 KTransformers 在 W2 已掉 31%。机器之心转述称多次工具调用/CoT 迭代的后续 TTFT 降 65-80%；论文报告 worst-case TTFT 低于 44s，各 baseline 至少在一个 workload 超 150s。
+
+**边界**：论文 2026-08-17 发布、未 peer review；结果基于特定硬件/模型/harness。状态复用的收益依赖 agent harness 的编辑模式——如果每次整体重写上下文、不保留稳定前缀，锚点会全部失效。checkpoint 保存的是循环层完整状态，只能放少量，语义锚点的选择本质是容量 vs 命中率的权衡。
 
 ### 访存优化
 

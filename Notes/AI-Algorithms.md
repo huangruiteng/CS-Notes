@@ -70,7 +70,7 @@
 
 ### Claude Fable 5 / Mythos 5
 
-参考：[Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+参考：[Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)、[Cloudflare Project Glasswing](https://blog.cloudflare.com/cyber-frontier-models/)
 
 **定位**：Anthropic 2026-06-09 发布的 Mythos-class 模型。Fable 5 是面向一般用户开放的版本；Mythos 5 是同一底层模型，但在部分高风险领域解除 safeguard、走 trusted access 的版本。这里更值得记录的是模型能力谱系，而不是产品权限设计。
 
@@ -82,11 +82,14 @@
 - **原生视觉推理**：可以从科学图表中抽取精确数字、从截图重建 Web App 代码；官方还给出只依赖原始游戏画面的 Pokémon FireRed 案例，说明模型对视觉状态、导航和任务进展的理解减少了对外部 harness 的依赖。
 - **Memory / long-context 使用能力**：Fable 5 可以在数百万 token 的长程任务中保持聚焦，并利用自己写下的 notes 改进后续输出；在 Slay the Spire 测试中，persistent file-based memory 对 Fable 的增益显著高于 Opus 4.8。
 - **科学研究与生物推理**：Mythos 5 被用于 protein design、bioinformatics、分子生物学假设生成和 genomics research。这里体现的是模型能在工具辅助下完成“选目标、选工具、运行、失败恢复、形成假设”的科研闭环，而不是只回答已有知识。
+- **漏洞利用链与可执行证明**：Cloudflare 在 50 多个仓库上的 Project Glasswing 测试显示，Mythos Preview 能把 use-after-free、任意读写、控制流劫持、ROP 等低层攻击 primitive 组合成完整 exploit chain；它还会写 PoC、在 scratch environment 编译运行，并根据失败结果修正假设。能力跃迁不只是“找到更多疑似 bug”，而是把分散线索闭合成可复现证据。
 - **自我检查与反思**：早测反馈中多次提到 high effort 下模型会 reflect and validate its own work。这对应 inference-time scaling 的实际价值：额外 thinking token 不只是让答案更长，而是提高长程自主任务中的错误发现和路线修正能力。
 
 **模型能力设计判断**
 
 Fable / Mythos 这类模型的核心趋势是：LLM 能力正在从“语言、知识、代码”扩展成 `reasoning + coding + vision + memory + tool-use + scientific problem solving` 的组合能力。评估这类模型时，单一 benchmark 分数不够，要看任务长度、模态复杂度、是否需要外部工具、是否需要跨轮 memory、是否能自我纠错，以及能否在陌生工具 / 真实代码库 / 科研流程中维持稳定行动。
+
+安全研究中的边界同样明显：模型不会像成熟研究员一样主动给出校准后的置信度，容易在“请找漏洞”的目标偏置下返回大量带 `possibly / potentially` 的猜测；C / C++ 等内存不安全语言又比 Rust 等内存安全语言产生更多误报。PoC 能提高可行动性，但生产使用仍需要独立验证、确定性检查和分层 triage，完整工程闭环见 [Cloudflare Vulnerability Harness](./AI-Applied-Algorithms.md#cloudflare-vulnerability-harness从-security-skill-到跨仓库控制面)。
 
 ## 算法 Overview
 
