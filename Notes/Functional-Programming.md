@@ -2,6 +2,93 @@
 
 [toc]
 
+## 纯函数、Functional Effect 与 ZIO
+
+来源：Scalac，[Introduction to Programming with ZIO Functional Effects](https://scalac.io/blog/introduction-to-programming-with-zio-functional-effects/)（2021-02 首发，已随 ZIO 2.0 更新）。
+
+![Scalac ZIO 文章封面](./Functional-Programming/zio-cover.jpg)
+
+整体：程序是纯函数的组合；但真实应用必须读写控制台、调 API、查数据库。文章用 Hangman 演示矛盾怎么解：领域模型全部写成纯函数，交互写成 functional effect（对外部世界的“描述”），最后在 `run` 这个“世界尽头”由 ZIO Runtime 真正执行。
+
+### 纯函数三性质
+
+- **Total（全函数）**：每个输入都有定义好的输出。`def divide(a: Int, b: Int): Int` 在 `b = 0` 时抛异常，签名等于撒谎；改成 `Option[Int]` 后失败显式化，编译器强制调用方处理 `None`。
+- **Deterministic（确定性）**：同一输入必然同一输出。`generateRandomInt(): Int` 隐藏了对 `scala.util.Random` 的依赖，两次调用结果不同；改成 `RNG(seed) => (Int, RNG)` 后随机状态显式传入并返回新状态，同一 seed 永远得到同一结果。
+- **无副作用**：不改内存、不打控制台、不调 API / DB；只能基于不可变值、只返回输出。
+
+收益：局部推理（local reasoning）、更少 bug、易测试、行为可预测、并发安全（没有共享可变状态就没有 race condition）。
+
+![FP vs OOP 对比图](./Functional-Programming/fp-vs-oop.png)
+
+### 描述世界交互，而非直接执行
+
+> instead of writing functions that interact with the outside world, we write **functions that describe interactions with the outside world**, which are executed only at a specific point in our application, (usually called the **end of the world**) for example the main function.
+
+副作用描述本身是不可变值，可以像普通数据一样做纯函数的输入输出，因此不违反“无副作用”原则。“end of the world”就是程序边界（`main` / `ZIOAppDefault.run`）：功能世界在这里结束，描述被真正执行，越晚越好。这些描述就是 **functional effect**。
+
+### ZIO：`R => Either[E, A]`
+
+`ZIO[-R, +E, +A]` 是不可变的 functional effect，心智模型：
+
+```text
+R => Either[E, A]
+```
+
+- `R`：运行所需 context（DB 连接、REST client、config），逆变；
+- `E`：可能失败的错误类型，协变；
+- `A`：成功时返回的值，协变。
+
+只看签名就能知道：依赖什么环境、会不会失败、失败类型是什么、成功返回什么。常用别名：
+
+| Alias | 展开 | 含义 |
+|---|---|---|
+| `Task[A]` | `ZIO[Any, Throwable, A]` | 无需环境，可失败 |
+| `UIO[A]` | `ZIO[Any, Nothing, A]` | 无需环境，不可失败 |
+| `RIO[R, A]` | `ZIO[R, Throwable, A]` | 需要环境，可失败 |
+| `IO[E, A]` | `ZIO[Any, E, A]` | 无需环境，可失败 |
+| `URIO[R, A]` | `ZIO[R, Nothing, A]` | 需要环境，不可失败 |
+
+Hangman 里用到的组合方式：
+
+- `flatMap` / for-comprehension：顺序组合，后一步依赖前一步结果，前一步失败则短路；
+- `<*>`（zip）/ `*>`（zipRight）：组合两个 effect，ZIO 2 的 Compositional Zips 会自动丢弃 `Unit`，所以 `Console.printLine(msg) <*> Console.readLine` 直接得到 `String`；
+- `<>`（orElse）：第一个 effect 失败时才执行第二个（输入校验失败后重试）；
+- `ZIO.succeed / ZIO.from / ZIO.attempt`：把纯值、`Option`、可能抛异常的表达式提升为 effect；
+- `orDie / orDieWith`：把“逻辑上不可能失败”的失败视为 defect，直接崩溃，不进入业务错误路径。
+
+`ZIOAppDefault.run` 只返回一个 effect；ZIO Runtime 负责把它真正翻译成副作用。失败则记日志并返回非零退出码，这就是应用的 end of the world：
+
+```scala
+val run: IO[IOException, Unit] =
+  for {
+    name <- Console.printLine("Welcome to ZIO Hangman!") <*> getName
+    word <- chooseWord
+    _    <- gameLoop(State.initial(name, word))
+  } yield ()
+```
+
+### Smart constructor：让非法状态不可构造
+
+领域对象想保证不变量（Name 非空、Guess 恰好一个字母），但 case class 自动生成的 `apply` / `copy` 会绕过校验，递进方案：
+
+1. `final case class Name(name: String)` + companion 的 `make` 做校验 → `apply` / `copy` 仍可造出非法值；
+2. `final case class private Name(...)` → 原生构造器私有，但 `apply` / `copy` 还在；
+3. `sealed abstract case class Name private (...)` → 不生成 `apply` / `copy`，唯一构造入口是 `make`。
+
+```scala
+sealed abstract case class Guess private (char: Char)
+object Guess {
+  def make(str: String): Option[Guess] =
+    Some(str.toList).collect {
+      case c :: Nil if c.isLetter => new Guess(c.toLower) {}
+    }
+}
+```
+
+`make` 本身是纯函数：total（用 `Option` 表达失败）、deterministic（只依赖 `str`）、无副作用。`c :: Nil` 要求恰好一个字符，`isLetter` 排除数字和符号，`toLower` 统一小写——业务代码拿到 `Guess` 后无需再校验。`Word.make`、`State.addGuess` 同理；`GuessResult` 用 sealed trait 表达枚举，pattern match 漏分支时编译器会警告。
+
+与 [Algebraic Effects 与 Effect Handlers](#algebraic-effects-与-effect-handlers分离做什么和如何执行) 对照：ZIO 是 functional effect 的工程化实现，把“描述 effect”与“执行 effect”分离成类型和 Runtime；同一套思想在 Agent runtime 里对应 intent 与 handler。
+
 ## Algebraic Effects 与 Effect Handlers：分离“做什么”和“如何执行”
 
 函数式编程并不等于“完全没有副作用”。更实用的目标是把纯计算与外部作用分开描述：程序声明自己需要读取文件、发送消息或查询状态，但不在业务逻辑里固定这些操作如何到达真实世界。`algebraic effects` 用抽象 operation 表达“做什么”，`effect handler` 决定“如何解释”。
@@ -96,6 +183,8 @@ handle ReadFile(path, k):
 | Persistent effect record | execution trace / effect stream |
 
 Worker 只表达 `ToolCall`、`FileWrite`、`SendMessage` 等 intent；runtime handler 决定真实执行、记录、拒绝或模拟。Supervisor 从外部读取 immutable effect stream，便不必要求 worker 把每一步塞回自身 context；换一个 handler，还可以对同一段执行做 dry-run、审计或 counterfactual replay。
+
+更偏工程化的入门路径，从朴素 `while true` agent loop 一步步推到 `A => F[B]` 和 middleware 判断尺，见 [AI-Applied-Algorithms：Agent Loop 是 effectful program](./AI-Applied-Algorithms.md)。
 
 这个映射解释了 Shepherd 为什么强调“Agent execution 是 first-class object”：只有 model call、tool call、环境变化和 continuation 都能被 runtime 持有，meta-agent 才能观察、拦截、暂停、分叉或恢复另一个 Agent。
 

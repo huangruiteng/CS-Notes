@@ -107,7 +107,30 @@ Do not start Explore merely because the current list feels incomplete. Explore
 begins only from a named evidence gap, bounded query plan, budget, and stop
 condition.
 
-### 4. Rebuild Ranked Entries
+### 4. Settle Candidate Ranking
+
+Before reporting candidate intake complete, settle its ranking against the
+current Decision Context:
+
+- record exactly one disposition: `top_window`, `ranked_backlog`, or
+  `no_change`;
+- let the project adapter classify value from exact-read evidence, current
+  objectives, overlap, and artifact convertibility rather than tier alone;
+- require high-value materials to gain verified membership in the Top-N or
+  explicit ranked backlog;
+- require a reason for `no_change` and use it only for standard-value or
+  substantially duplicative materials;
+- keep candidate intake and ranking as separate receipts and, when ranking
+  changes, separate authority revisions; then join them with an intake-ranking
+  settlement receipt;
+- preserve displaced Top-N entries in the ranked backlog and preserve protected
+  anchors unless changed Decision Context or explicit owner authority moves
+  them.
+
+If ranking apply, readback, projection, or rollback readiness fails, repair or
+roll back before reporting the intake as complete.
+
+### 5. Rebuild Ranked Entries
 
 A ranked entry must represent one independently sortable reading or action
 unit, not a display bucket.
@@ -125,7 +148,7 @@ Splitting is semantic, not mechanical. Group materials only when they jointly
 support one decision or learning outcome; separate materials whose value,
 urgency, reader action, or evidence maturity differs.
 
-### 5. Propose A Bounded Rerank
+### 6. Propose A Bounded Rerank
 
 Rerank from revision-bound Decision Context evidence.
 
@@ -136,7 +159,7 @@ Rerank from revision-bound Decision Context evidence.
 - Emit a no-change proposal when evidence does not justify movement.
 - Keep proposal and apply receipt separate.
 
-### 6. Build A Readable Projection
+### 7. Build A Readable Projection
 
 The managed catalog remains authority, but operators need a readable view.
 Build that view from exact-read-backed presentation records:
@@ -153,7 +176,7 @@ LoopX owns validation, rendering, and the content-free receipt contract. The
 project adapter owns source parsing and supplies already-promoted display
 records. One-time legacy parsing and migration scripts remain project-local.
 
-### 7. Apply With A Lossless Gate
+### 8. Apply With A Lossless Gate
 
 Preview first. Apply only when all are true:
 
@@ -193,10 +216,12 @@ A complete material operation reports:
 - backup and source-digest verification;
 - parsed and canonical counts;
 - lifecycle-count delta;
+- intake ranking disposition and value classification;
 - ranked-entry count and maximum primary-member count;
 - exact coverage and duplicate count;
 - promoted/rejected exact-read evidence;
 - proposal and apply receipt references;
+- intake-ranking settlement receipt reference;
 - rollback result;
 - next bounded action or explicit no-change.
 

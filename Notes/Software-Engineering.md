@@ -8,6 +8,8 @@
 > todo 《A Philosophy of Software Design》
 >
 > todo 《Software Design X-Rays》
+>
+> 开源项目运营、许可与商业价值 → [Software-开源项目成功之道.md](Software-开源项目成功之道.md)
 
 ### Intro
 
@@ -138,6 +140,7 @@ YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需�
 - **工程价值**：把运行时错误前移到编译期、构造期或校验期。
 - **常见误用**：为了追求类型完美而引入过重模型，使简单业务难以演进。
 - **agent 要求**：涉及状态流转时，先列合法状态和转移；优先用 enum / dataclass / schema / invariant 表达约束，而不是靠散落的 if 判断兜底。
+- Rust 配置解析示例：enum 按 variant 分流、类型保证校验完成（见 [Rust.md](Rust.md#配置解析先按-variant-分流再施加对应不变量)）。
 
 #### Tests, Observability, Documentation：验证闭环
 
@@ -348,6 +351,20 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 
 一句话：瀑布式开发的本质是用计划和阶段门降低管理不确定性；敏捷的本质是用更早、更频繁的工作软件和用户反馈降低产品 / 技术不确定性。关键不在流程标签，而在反馈是否早于不可逆承诺。
 
+### 前后端协作与接口联调
+
+前后端联调指前端页面与后端服务在开发阶段进行接口数据对接、调试与验证的过程。核心是“契约先行”：先约定 URL、方法、参数、返回结构，再并行开发，联调阶段验证一致性。
+
+* 接口契约（API contract）
+  * 先定义再开发：用 Swagger / OpenAPI、YApi、Apifox 等工具沉淀文档；前端可先用 Mock 数据开发，后端完成后切真实接口
+  * 变更管理：字段变更尽量收敛到适配层，不直接散落到业务组件；联调期用 Network 面板 / Postman / 抓包工具核对请求与响应
+* 常见联调问题：参数名/类型不一致、返回结构漂移、跨域（CORS）、鉴权/token、空值语义、重复请求、环境根地址配置
+* TOP 接口 / top 接口
+  * 大写 TOP：Taobao Open Platform（淘宝开放平台）的缩写，指淘宝/阿里系对外开放数据和能力的 HTTP API；外部服务、小程序、千牛插件都会调用
+  * 调用特点：REST 风格，大部分接口支持 GET/POST，写操作只支持 POST；用 app key + 签名请求 TOP 服务器，返回业务数据
+  * 前端调用常见入口：千牛插件用 `QN.top.invoke()` / `QN.top.batch()`，小程序用 `cloud.topApi.invoke()`；涉及权限/敏感数据的接口一般要在服务端转发
+  * 联调语境里若看到小写 `top`，多半不是淘宝 TOP：可能是 `window.top`（iframe 嵌套时返回最顶层窗口，常配合 postMessage 做跨层通信），也可能是团队内部对“顶层聚合接口/BFF 入口”的简称；先看上下文再判断
+
 
 
 ## DevOps --> 「云原生-ToB.md」
@@ -433,6 +450,31 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
         *   **设定明确的截止日期**: 这是确保项目完成的最有效手段。
         *   **停止支持旧系统**: 在截止日期后，正式停止对旧系统的维护，推动剩余部分完成迁移。
         *   **清理旧代码**: 迁移完成后，务必将旧代码和基础设施彻底移除。
+
+#### Strangler Fig：绞杀式逐步替换
+
+> 来源：[Martin Fowler - Strangler Fig Application](https://martinfowler.com/bliki/StranglerFigApplication.html)、[TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)。
+
+**模式**：Strangler Fig（绞杀榕）是 Martin Fowler 提出的应用现代化模式。名字来自绞杀榕：种子落在宿主树冠上，根系沿树干向下包裹，最终宿主枯死、榕树独存。对应到软件：**不一次性重写旧系统，而是用新系统在旧系统旁边/前面逐步绞杀它**，直到旧系统不再被调用后拆除。它专门反对 Big Bang rewrite——重写周期长、期间零交付、需求漂移后回不来。
+
+**“逐步替换”怎么执行**：
+
+1. 旧系统继续运行，入口加一层 facade / router 拦截流量；
+2. 按模块或功能切片，把一部分请求路由到新实现，新老并行；
+3. 验证一块、替换一块，通过 feature flag / 比例放量逐步扩大新系统接管范围；
+4. 旧系统只剩“还在被调用”的最后几块时集中替换；
+5. 确认零调用后彻底拆除旧系统（对应迁移三阶段的 Finish）。
+
+**为什么有效**：每步都有交付、可回滚、风险局部化；替换顺序按边界清晰度而非架构美观排序；旧系统里稳定的部分可以留到最后甚至保留。
+
+**关键条件与坑**：
+
+- 接口兼容与数据一致性：新老实现共享同一份数据或做好迁移同步，否则分流后行为分裂；
+- 从 bounded context 边界清晰处开切：边界糊的地方先划边界，再谈替换；
+- 可观测性必须能回答“旧系统是否还在被调用”，否则不知道何时收尾；
+- 收尾必须拆旧代码，否则变成“新系统 + 僵尸旧系统”双倍维护。
+
+**工程约束变体（LoopX / TypeScript）**：Strangler Fig 只规定替换顺序，不规定“谁在改”。LoopX 在此基础上加硬约束：**每个 revision、每个语义块只有一个 owner**——同一语义块同时只允许一个 agent / 进程拥有写入权，从控制面杜绝并发改写同一块导致状态漂移。TypeScript 的 [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) 则把 bounded context 变成编译期边界：composite project + 显式 references + 构建顺序，让“哪块依赖哪块、谁可以引用谁”由类型系统把关，逐块替换在编译层面可控。机制详见 [AI-Agent-Engineering.md - LoopX](./AI-Agent-Engineering.md#loopx长程-agent-的本地控制面)。
 
 
 

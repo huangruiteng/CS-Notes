@@ -786,6 +786,33 @@ Queues with Random Arrival Processes (Queueing Theory)
   * 推荐 Postman 工具
 * [AF_INET域与AF_UNIX域socket通信原理对比](https://blog.csdn.net/sandware/article/details/40923491)
 
+#### HTTP `401 Unauthorized` 与 `403 Forbidden`
+
+> 参考：[RFC 9110：401](https://www.rfc-editor.org/rfc/rfc9110.html#name-401-unauthorized)、[RFC 9110：403](https://www.rfc-editor.org/rfc/rfc9110.html#name-403-forbidden)、[RFC 6750：Bearer Token Error Codes](https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1)。
+
+先区分两个问题：**Authentication（认证）回答“你是谁”**，**Authorization（授权）回答“你能否做这件事”**。
+
+| 状态码 | 协议语义 | 常见原因 | 下一步 |
+| --- | --- | --- | --- |
+| `401 Unauthorized` | 请求缺少目标资源认可的有效认证凭证；名字虽叫 Unauthorized，实际更接近 **Unauthenticated** | 没带 token、token 过期/无效、签名错误 | 根据 `WWW-Authenticate` challenge 登录、刷新或更换凭证；不要用同一凭证盲重试 |
+| `403 Forbidden` | 服务端理解请求，但拒绝执行 | 身份有效但权限/scope 不足，也可能是 IP、租户、资源策略或 WAF 拒绝 | 改权限、身份、资源或策略；原样重试通常无效 |
+
+标准的 `401` response 必须带至少一个 `WWW-Authenticate` challenge：
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer realm="example"
+```
+
+OAuth Bearer Token 中，`invalid_token` 通常对应 `401`，`insufficient_scope` 对应 `403`。但现实服务不总严格遵守：有些系统会用 `403` 表达临时风控或限流；客户端应结合 response body 中的稳定错误码和服务文档判断，标准限流状态应优先使用 `429 Too Many Requests`。
+
+两个边界容易记错：
+
+- `403` 不保证服务端已经认证出具体用户，它只保证服务端拒绝请求；匿名访问被策略禁止也可能返回 `403`。
+- 为避免泄露资源是否存在，服务端可以用 `404 Not Found` 隐藏本应返回的 `403`，所以 `404` 也不总能证明资源不存在。
+
+排障时，`401/403` 往往反而说明 DNS、TCP、TLS、路由和 HTTP 服务已经打通，问题已经进入认证/授权或应用策略层；它们与连接超时、DNS 失败、TLS handshake 失败不是同一层故障。
+
 ```c++
 #include <sys/types.h>
 #include <unistd.h>
