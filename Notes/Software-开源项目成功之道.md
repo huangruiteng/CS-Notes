@@ -3,7 +3,7 @@
 # 开源项目成功之道
 
 > 原书：John Mertic《Open Source Projects - Beyond Code: A Blueprint for Scalable and Sustainable Open Source Projects》（Packt, 2023）；中译《开源项目成功之道》（人民邮电出版社，孙振华、林旅强译，ISBN 978-7-115-65575-2）。
-> 已读第 1–10 章。整理时间 2026-08-17；2026-08-21 增补 Kimi K3 License 与「开源上的再次发布」（我的拓展）；2026-08-23 补齐第 5、6、8、9、10 章。部分内容按我的理解补充拓展（Zowe 一致性计划、TiVo 化、Blender 募资等）。
+> 已读第 1–14 章。整理时间 2026-08-17；2026-08-21 增补 Kimi K3 License 与「开源上的再次发布」（我的拓展）；2026-08-23 补齐第 5、6、8、9、10 章；2026-08-24 补齐第 11–14 章（含 OpenOffice/LibreOffice 调研详版）。部分内容按我的理解补充拓展（Zowe 一致性计划、TiVo 化、Blender 募资等）。
 > 相关已有笔记：非技术知识.md「开源」小节（Log4j 维护者、许可证速览）、Software-Engineering.md。
 
 ## 1 什么是开源，为什么要开源
@@ -126,16 +126,19 @@
 
 * 公司开源不是慈善，而是投资：通过开放非核心层换取生态红利，集中资源投入差异化核心。
 
-### 4.2 公司开源的动机
+### 4.2 公司开源的动机与价值
 
-* 摊薄开发成本；
-* 更快支持客户想要的新功能；
-* 更快推向市场；
-* 公司可以集中投资核心内容。
+开源给公司带来的四种核心价值：
+
+* **降低研发成本**：复用成熟开源组件（Mac OS X 基于 FreeBSD 与 Mach 构建，不必从零造操作系统）；社区贡献者分担开发与维护，公司不必独自供养整条技术栈。
+* **更快进入市场**：组件即插即用 + 标准接口减少集成时间；开放生态降低客户接入成本，缩短从启动到上线的周期（更快推向市场）。
+* **吸引更多客户**：开源即获客入口——客户可以先自己跑起来、再决策采购，降低试用与评估摩擦；社区就是潜在客户池。现代形态是「开源内核负责获客与试用，云托管 / 企业版负责收费」（呼应第 10 章商业化）。
+* **增加新产品功能**：客户和社区反馈直接驱动功能（更快支持客户想要的新功能）；生态伙伴与贡献者围绕开放扩展点补功能，公司聚焦核心（集中投资核心内容）。
+
 * 例子：
-  * Meta/Facebook：开源 PHP 运行时 HHVM、React、PyTorch 等共性设施，生态共建，自己聚焦产品与差异化。
-  * Mac OS X：基于 FreeBSD 与 Mach 构建（抢占式多任务、受保护内存、访问控制、多用户），不必从零造操作系统。
-  * Cloud Foundry → Pivotal Software：把 Cloud Foundry 打造成适用于任何云的多云 PaaS 标准，围绕标准建公司。
+  * Meta/Facebook：开源 PHP 运行时 HHVM、React、PyTorch 等共性设施，生态共建，自己聚焦产品与差异化（降低研发成本 + 增加功能）。
+  * Mac OS X：基于 FreeBSD 与 Mach 构建（抢占式多任务、受保护内存、访问控制、多用户），不必从零造操作系统（降低研发成本）。
+  * Cloud Foundry → Pivotal Software：把 Cloud Foundry 打造成适用于任何云的多云 PaaS 标准，围绕标准建公司（更快进入市场 + 吸引生态客户）。
 
 ### 4.3 什么代码值得开源（决策因素）
 
@@ -272,11 +275,86 @@
   * 品牌和知识产权管理；
   * 认可与一致性计划：认可供应商；一致性计划能帮项目从市场营销拿预算、募集资金（呼应 3.5 与 Zowe 附录）。
 
-## 11 开源上的“再次发布”（我的拓展）
+## 11 开源与人才生态
+
+主线：开源是「个人作品集信号 + 公司人才战略」的双向市场——个人用它积累可验证的能力证明，公司用它筛选、培养和留住人才。
+
+**个人侧：开源作为作品集**
+
+* 员工看重公司文化和工作的趣味性；支持开源能留住人才，参与开源符合开发者的价值主张。
+* 2010 年之前大部分软件开发者是全栈开发者（一人包揽前后端）；此后专业化分工，开源作品集成为「可验证的能力证明」，比简历更可信。
+* 作者例子（深度参与 PHP 社群）：用 wix 帮 PHP 在 Windows 上更方便安装 → 微软主动联系作者开发 feature——路径是「先成为推动者，再成为领导者」；心态：谦虚、善良、享受；持续展示工作、寻找别人忽视的机会。
+
+**公司侧：在开源中寻找人才**
+
+* 参与社群；赞助与项目相关的基础设施（GitHub / GitLab / SonarCloud / 1Password / Confluence / JIRA / Netlify 等工具链见 [Software-Engineering.md](./Software-Engineering.md#开发协作工具链github--gitlab--sonarcloud--1password--confluence--jira--netlify)；专业硬件、网络会议工具、Swag（stuff we all get，周边纪念品））。
+* 举办线下活动、赞助会议演讲、公司演讲、办公室用作聚会、hackathon、导师培训实习生的活动。
+* 留住和认可来自开源社群的人才。
+* **innersource（内部开源）**：把开源协作方式引入公司内部——跨部门共享代码、文档与 review 文化。
+* **OSPO（开源项目管理办公室）**：统一对外开源策略、合规与衡量。
+
+* 拓展判断：公司参与开源是低成本高回报的人才福利——开发者看重技术声誉、归属感、与顶级同行协作；「innersource 练内部 + OSPO 管对外」是把人才战略制度化，衡量方式呼应第 9 章的 CHAOSS 社区健康度。
+
+## 12 为开源营销、宣传和外展
+
+主线：营销 = 让产品在特定时间点与市场相关；开源营销的受众是开发者，「营销即帮开发者完成任务」，少广告、多可验证内容。
+
+* e.g. OpenStack 的营销比 Apache CloudStack 做得好（呼应第 6 章）。
+* 手段：开源、媒体、分析师、数字推广、活动。
+* Mautic 案例（几部曲）：1）获取用户——国际化、针对小型企业；2）社群活动和论坛形成社群结构，输出季度社群报告。
+* 营销目标：获客成本 CAC 和客户终身价值 CLV（详见 [非技术知识.md](./非技术知识.md#营销的核心目标cac获客成本与-clv客户终身价值)）。
+* 原则：1）在项目的正确阶段传递正确的信息；2）与社群协作的市场营销；3）真实与包容。
+* 营销跑道：网站和博客；讨论群（欢迎新社群成员）；社交媒体（包容、开放、热情、支持、建设性，避免攻击、贬低、有害行为）。
+* 高级外展：活动、聚会和演讲（针对特定技能的跨行业活动、垂直行业活动、广泛聚焦技术的活动如拉斯维加斯消费电子展 CES）；PR/AR（媒体与分析师关系）；案例研究与用户故事。
+
+* 拓展判断：阶段要和信息匹配——早期讲认知，成长期讲采用与贡献，成熟期讲案例与企业采用（呼应第 9 章）；开源下载是低 CAC 的获客入口，但转化率与云 / 企业版的 CLV 才是商业核心（呼应第 10 章）。
+
+## 13 领导者的过渡
+
+主线：项目从「个人权威」走向「制度治理」，继任是组织成熟度的测试。
+
+* 服务型领导力（servant leadership，呼应第 5 章「领导者为社群服务」）。
+* 案例：Ruby、Python、PHP 从仁慈独裁者（BDFL）过渡到供应商中立的基金会治理模式。
+* 制定继任计划：
+  * 记录项目运营：写好文档（curl 的文档被公认优秀）；
+  * 类似上市公司的 CEO 继任计划。
+* 从容退居幕后：成为项目后援，为新领导者背书、建立支持网络。
+
+* 拓展判断：继任的本质是从「个人魅力」到「制度」——RFC、治理文档、决策记录、基金会托管，消除单点依赖（呼应第 5 章 Mozilla 裁员直接打击 Rust）；与公司 CEO 继任不同，开源是「共识 + 任命 + 选举」混合，继任者必须已被社区信任；退居幕后不是消失，而是转型为顾问与背书人，新领导失败时兜底。
+
+## 14 开源项目的落幕
+
+主线：用三个维度判断项目是否放缓，再用「体面落幕」让资产和用户延续。
+
+**判断项目是否放缓（三个维度）**
+
+* 项目维度：OpenOffice vs LibreOffice（详版见下）；Palm Pilot / BlackBerry——平台没落，生态随硬件消亡。
+* 产品维度：Camino 转向 Mozilla Firefox 开发（并入主流产品）；MeeGo、Google Wave——产品被终止或方向转移。
+* 利润维度：OpenSolaris（Oracle 停发，社区 fork 出 illumos / OpenIndiana）；CyanogenMod → LineageOS（公司停服后社区续命）。
+
+**OpenOffice / LibreOffice：同一个代码基的两种结局（调研详版）**
+
+* 起源：StarOffice（Star Division 公司）→ 1999 年 Sun Microsystems 收购 → 2000 年 7 月开源改名 OpenOffice.org → 2002 年 5 月 1.0 发布。
+* 分叉：2010 年 1 月 Oracle 收购 Sun → 2010 年 9 月 28 日 Document Foundation（TDF）fork 出 LibreOffice，多数外部开发者出走 → 2011 年 1 月 25 日 LibreOffice 3.3 首发，Debian / Ubuntu / openSUSE 等主流发行版转投。
+* 移交：2011 年 4 月 Oracle 停止 OpenOffice.org 开发并裁掉团队 → 2011 年 6 月把商标与源码捐赠给 Apache → 2012 年 5 月 Apache OpenOffice 3.4（Apache-2.0）→ 2012 年 10 月毕业为 Apache 顶级项目；IBM 2012 年捐赠 Lotus Symphony，2014 年前后退出。
+* 现状：LibreOffice 活跃——TDF 基金会治理、MPL-2.0，约 2 亿活跃用户，约 73% 的 commit 来自 Collabora / Red Hat / CIB 等商业伙伴雇佣的开发者；Apache OpenOffice 自 2014 年 4.1 后基本停滞（只有维护版），安全响应长期滞后——2025 年 7 月 Apache 安全团队把风险标红，4.1.16 修的一个 CVE 早在 2023 年就被 LibreOffice 修过。
+* 启示：同一个代码基两种结局，差在「治理 + 社区 + 商业支撑」；fork 不是项目失败，而是生态的权力转移；许可与商标也是战场（Apache-2.0 vs MPL、TDF vs ASF）。
+* 来源：[Wikipedia LibreOffice](https://en.wikipedia.org/wiki/LibreOffice)、[Wikipedia Apache OpenOffice](https://en.wikipedia.org/wiki/Apache_OpenOffice)。
+
+**结束项目（体面的落幕）**
+
+* Ubuntu Unity → Unity8 → Lomiri：Canonical 放弃后由社区（UBports）接盘续命并改名 Lomiri。
+* Firebug：主动引导用户迁移到 Firefox DevTools 内置工具。
+* 为资产所有权找到归属：代码、文档和商标。
+* 处理资产的目标：确保作品得以长期保留以供未来使用，并确保用户和贡献者了解项目状况及可能的替代方案。
+
+* 拓展判断：「结束」有三种形态——终止（Google Wave）、接管（CyanogenMod → LineageOS、Unity → Lomiri）、并入（Camino → Firefox）；体面落幕 = 公开声明 + 归档代码 / 文档 / 商标 + 迁移指引 + 替代方案 + 交接给社区；落幕是「资产的转移」不是「价值的消失」——代码开源后即使项目停止，fork 也能续命，这正是开源的价值。
+
+## 15 开源上的“再次发布”（我的拓展）
 
 * 核心观察：开源产品的“发布”不是一次性事件。每当行业出现一个新概念（agent harness、platform、统一模型格式），同一产品都有机会借这个概念窗口再发布一次——重写定位、收口入口、补文档和案例，重新获得一轮新闻 / 搜索 / GitHub Trending 曝光。旧 star 与旧社区是现成流量池，重启叙事的成本远低于开新项目。
 
-### 11.1 OpenAI Codex：从开源 CLI 到 “Codex as a platform”
+### 15.1 OpenAI Codex：从开源 CLI 到 “Codex as a platform”
 
 * 时间线：2025-04-13 创建仓库并开源 Codex CLI（Apache-2.0，[github.com/openai/codex](https://github.com/openai/codex)，2026-08-21 约 109k stars）；2026-08-18/19 官方博客《[Codex as a platform: build on the open agent harness](https://developers.openai.com/blog/codex-as-a-platform)》（Nicolas Bonamy、Derrick Choi）宣布平台化。
 * 这次“再次发布”的实质是平台化收口，源码本身此前已逐步开放：
@@ -290,7 +368,7 @@
   * 落地信号：[GitHub / JetBrains 把 Codex 作为 IDE 的 agent provider](https://github.blog/changelog/2026-07-07-codex-as-agent-provider-and-agentic-enhancements-in-jetbrains-ides/)、[Cisco App Builder 使用 Codex SDK](https://blogs.cisco.com/ai/from-an-idea-to-a-live-app-on-cisco-in-minutes)、[Thrive Holdings & Crete 的税务 agent pilot 处理 7000 份报税、时间降约 1/3](https://openai.com/index/building-self-improving-tax-agents-with-codex/)。
 * star 表现：2026-04 约 75.6k → 5-10 约 81.9k（[zengineer 周报](https://zengineer.blog/blog/tech/ai-agentic-weekly-github-20260510/)）→ 7-14 约 97.7k（[dev.to](https://dev.to/theagentbeat/the-33000-token-tax-a-30-hour-star-race-and-where-agents-actually-fail-468p)）→ 7-22 约 100.4k（[whatstrending](https://whatstrending.ai/repos/openai/codex)）→ 8-21（平台化发布后数日）约 107.4k（[cnblogs](https://www.cnblogs.com/vibecodinghuanzhe/p/22608989)）→ 8-21 GitHub API 快照 109,384。曲线在发布前就已陡增，这次再发布的增量更多在定位、入口和生态叙事，而非 star 爆发。
 
-### 11.2 DeerFlow 2.0：从 Deep Research 到 Super Agent Harness
+### 15.2 DeerFlow 2.0：从 Deep Research 到 Super Agent Harness
 
 * v1（2025-05 发布）：定位 Deep Research 框架，7 天 10k stars，累计约 15.8k 后热度回落。
 * 2.0（2026-02-28）：README 明确 “a ground-up rewrite. It shares no code with v1”；叙事是社区把 v1 用成了 harness（数据 pipeline、slide deck、dashboard、内容自动化），所以从 “framework you wire together” 重造为 “super agent harness — batteries included, fully extensible”（基于 LangGraph / LangChain）。
@@ -301,7 +379,7 @@
 * star 表现：发布当日登 [GitHub Trending #1](https://github.com/bytedance/deer-flow)；3-29 48k+（发布一个月内，[网易解读](https://www.163.com/dy/article/KP68FDIR05568W0A.html)）→ 4-03 57.9k+（[h3blog](https://www.h3blog.com/article/758/)）→ 5-27 约 70k（[cnblogs：三个月逼近 7 万](https://www.cnblogs.com/itech/p/20206290)）→ 6-28 73.8k（[腾讯云开发者](https://cloud.tencent.cn/developer/article/2699825)）→ 8-21 GitHub API 快照 80,442。与 v1 平台期形成鲜明对比，是“同一产品第二次陡增”的典型曲线。
 * 来源：[DeerFlow README（From Deep Research to Super Agent Harness 一节）](https://github.com/bytedance/deer-flow/blob/main/README.md)、[v1 发布：7 天 10k star 回顾](https://zhuanlan.zhihu.com/p/2021122968340764270)。
 
-### 11.3 更多例子（支持与对照）
+### 15.3 更多例子（支持与对照）
 
 * 口径说明：以下 star 数字均为对应日期的第三方报道或 GitHub API 快照（8-21），非精确历史曲线，用于看量级和趋势。
 * vLLM V0 → V1（2025-01，随 v0.7.0 发布）：核心引擎 ground-up rewrite，用 “V1 engine” 概念再发布并成为默认引擎（[官方博客](https://vllm.ai/blog/2025-01-27-v1-alpha-release)，吞吐最高提升 1.7x）。star 增长：2024-12 约 31k（[PyTorch 博客](https://pytorch.org/blog/vllm-joins-pytorch/)）→ 2025-09 超 77k（[CSDN 转载报道](https://www.python88.com/topic/187158)）→ 2026-08-21 API 快照 89,596；Linux Foundation 口径下 2025-05 起一年内新增约 53.4k stars（[LFX Insights](https://insights.linuxfoundation.org/project/vllm/popularity?timeRange=past365days&start=2025-05-01&end=2026-05-01&widget=stars)）。V1 没有营销化包装，靠工程口碑和默认引擎切换，增长与推理/agent 需求大盘同步，难以把增量单独归因给某次发布。
@@ -309,7 +387,7 @@
 * llama.cpp：GGML → GGMF → GGJT → GGUF 格式迭代（GGUF 于 2023-08-21 合并进主仓，[PR #2398](https://github.com/ggerganov/llama.cpp/pull/2398)），同一引擎随“统一模型格式”概念反复发布，成为本地推理事实标准。star 增长：2023-06 超 30k（[eeworld 报道](https://en.eeworld.com.cn/mp/QbitAI/a217505.jspx)）→ 2024-10 超 65k（[NVIDIA 博客](https://developer.nvidia.cn/blog/accelerating-llms-with-llama-cpp-on-nvidia-rtx-systems/)）→ 2026-08-21 API 快照 124,935。缺 GGUF 前后周级精确快照，单次格式发布难以单独归因；增长更依赖生态地位与本地推理需求。
 * 对照 AutoGPT：2023-03 现象级首发；2024-05 约 156k（[OpenUK fireside](https://openuk.uk/thought-leadership/fireside-chat-toran-bruce-richards-2024-phase-one/)）→ 2024-12 约 169k+（[ITU：State of open (UK 2024)](https://aiforgood.itu.int/ai_digital_library/state-of-open-the-uk-in-2024-phase-four-ai-openness-end-of-year-update-2024/)）→ 2026-08-21 API 快照 186,694。2024-09 以 “AutoGPT Platform”（无代码 agent 平台）概念再发布，但发布前 4 个月到 2024 年底仅增约 13k，2024 年底到 2026-08 约 20 个月增约 17.7k，都远慢于首发期——说明再次发布 ≠ 自动获得第二曲线；概念窗口必须有真实交付物支撑。
 
-### 11.4 为什么有效 / 风险
+### 15.4 为什么有效 / 风险
 
 * 新概念 = 新心智入口：每个新词（harness、platform、V2、V1 engine、统一格式）都是一次新的搜索 / 新闻 / Trending 窗口；旧 star 与社区是现成分发基础。
 * 再次发布通常做三件事之一：定位/概念重写（DeerFlow）、入口与文档收口（OpenAI Codex）、核心架构换代（vLLM V1、OpenHands 1.0）。
@@ -364,6 +442,7 @@
 * 治理上：统一架构/方向（大教堂）+ 开放 RFC/贡献（集市）可以共存。
 * 衡量上：用渐进式社区指标代替“star 数崇拜”；把用户/贡献者当开发过程的一部分。
 * 价值捕获：开源创造的价值 ≠ 自己捕获的价值；要设计互补收入或生态话语权，否则价值外溢（Mozilla × Rust 为反面案例）。
-* 概念窗口再发布：LoopX 的 harness / benchmark / conformance 能力也应在新概念出现时收口重发（新入口 + 新文档 + 真实案例），而不是只开新仓库；参考第 11 节，避免 AutoGPT 式“只有概念没有交付”。
+* 概念窗口再发布：LoopX 的 harness / benchmark / conformance 能力也应在新概念出现时收口重发（新入口 + 新文档 + 真实案例），而不是只开新仓库；参考第 15 节，避免 AutoGPT 式“只有概念没有交付”。
+* 人才与营销（第 11、12 章）：把开源项目当作品集信号与获客入口——LoopX 的 benchmark、案例研究与开发者文档就是「营销跑道」；star 之外要经营讨论群、案例故事与阶段匹配的信息（呼应 CAC/CLV 目标，见非技术知识.md）。
 * 商业化校准（第 10 章）：用「服务支持 / 开放核心 / 生态组件」三个模式对照 LoopX——哪些继续开放（harness 内核、benchmark 口径），哪些适合形成托管控制面、企业治理和连接器；一致性计划既服务生态，也能从市场预算为项目募资（呼应 Zowe 附录）。
 * 治理与冲突（第 5、8 章）：早期用行动至上 + 单一权威快速推进，成熟后向技术委员会 / 基金会过渡；冲突处理先让情绪落地（边缘系统），再做包容性决策，注意沉默多数与信噪比。
