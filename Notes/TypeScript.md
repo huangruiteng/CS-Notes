@@ -986,6 +986,71 @@ PR-1 采用纵向切片：
 
 > 把它迁到 TS 后，能否删除旧规则、收紧状态合同，并让下一次修改更容易定位、验证和回滚？
 
+### assert.throws：测试「必须失败」的路径
+
+```ts
+test("runtime input and validation receipts fail closed", () => {
+  assert.throws(
+    () =>
+      reduceTodoCompletionTransaction(
+        request({ requested_no_followup: "true" }),
+      ),
+    /requested_no_followup must be a boolean/,
+  );
+
+  assert.throws(
+    () =>
+      reduceTodoCompletionTransaction(
+        request({
+          todo: { ...baseTodo, validation_command: "true" },
+          validation_receipt: {
+            schema_version: "issue_fix_validation_command_v0",
+            command_label: "unsafe receipt",
+            exit_code: 0,
+            passed: true,
+            stdout_captured: true,
+            stderr_captured: false,
+            local_path_captured: false,
+          },
+        }),
+      ),
+    /stdout_captured must be false/,
+  );
+
+  assert.throws(
+    () =>
+      reduceTodoCompletionTransaction(
+        request({
+          requested_no_followup: true,
+          requested_has_successor: true,
+        }),
+      ),
+    /cannot record both no_followup and a successor/,
+  );
+});
+```
+
+这段语法有三层，从外到内拆：
+
+1. **`test("名字", () => {...})`**：声明一个测试用例。第一个参数是测试名（失败时会在报告中显示），第二个是执行体——`assert` 抛错时 `test` 会把这个用例标记为失败。
+2. **`assert.throws(fn, /正则/)`**：断言「调用 `fn` 必须抛出异常」，并且抛出的错误消息要匹配第二个参数的正则字面量 `/.../`。
+3. **`() => reduceTodoCompletionTransaction(request({...}))`**：**延迟执行的关键**。`assert.throws` 接收的是「一个函数」，由它内部去调用并捕获异常。如果不包这层箭头函数、直接写 `reduceTodoCompletionTransaction(request({...}))`，函数会当场执行，异常在 `assert` 之外抛出——测试用例直接崩掉，`assert.throws` 根本没机会断言。
+
+为什么要断言「错误消息」而不只是「会抛」：`/requested_no_followup must be a boolean/` 验证的是「不仅失败，而且以正确的方式失败」——错误消息点出了具体字段和期望类型。如果只写 `assert.throws(fn)`，任何异常都能通过，可能掩盖「字段校验根本没走到、错误从别处冒出来」的假失败。
+
+三段都在测 **fail-closed（防御式拒绝）**，和「边界校验」「让非法状态无法构造」是同一主题的测试形态：
+
+- 第一段：`requested_no_followup` 传了字符串 `"true"` 而不是 boolean → 边界运行时校验拒绝类型错误，而不是悄悄接受（呼应「TS 类型只在编译期存在，外部输入必须 runtime 校验」）；
+- 第二段：构造非法 `validation_command`（字符串）配一个可疑的 `validation_receipt`，断言这类「command 与 receipt 字段组合」被拒绝，错误消息指向 `stdout_captured` 字段——测的是 receipt 内部的交叉约束，而不是单个字段；
+- 第三段：`no_followup` 和 `successor` 是互斥语义，同时设置必须被拒绝（呼应「判别联合 / 让非法状态无法表达」——类型层面没拦住时，运行时校验兜底）。
+
+其它语法细节：
+
+- 多行函数调用 + 尾逗号：`request({...})` 跨多行、嵌套调用闭括号对齐，都是纯格式，不影响语义；
+- `{ ...baseTodo, validation_command: "true" }`：对象展开构造「在基础对象上覆盖单个字段」的变体，是测试里构造合法基线的常用手法（和 `Partial<T>` 测试 helper 是同一思路）。
+
+（`test` / `assert.throws` 来自 Node 内置 `node:test` 或 Vitest / Jest 等测试框架，写法一致。）
+
 ## TS 不会自动解决什么
 
 1. **类型在运行时不存在**：外部 JSON 仍可能传 `{"step_kind": 12345}`，RPC、文件、插件输入必须有 runtime decoder。

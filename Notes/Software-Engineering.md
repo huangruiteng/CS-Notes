@@ -365,6 +365,49 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
   * 前端调用常见入口：千牛插件用 `QN.top.invoke()` / `QN.top.batch()`，小程序用 `cloud.topApi.invoke()`；涉及权限/敏感数据的接口一般要在服务端转发
   * 联调语境里若看到小写 `top`，多半不是淘宝 TOP：可能是 `window.top`（iframe 嵌套时返回最顶层窗口，常配合 postMessage 做跨层通信），也可能是团队内部对“顶层聚合接口/BFF 入口”的简称；先看上下文再判断
 
+### 开发协作工具链：GitHub / GitLab / SonarCloud / 1Password / Confluence / JIRA / Netlify
+
+一套典型 SaaS 研发链路的串联视角：代码托管（GitHub / GitLab）→ 质量门禁（SonarCloud）→ 凭据管理（1Password）→ 团队文档（Confluence）→ 任务跟踪（JIRA）→ 前端部署（Netlify）。
+
+**GitHub**
+* 定位：全球最大代码托管与协作平台（git 仓库 + PR / issue + 社交化开源）。
+* 核心：PR review 流程、GitHub Actions（CI/CD）、Codespaces、Packages、Copilot / AI 助手、开源生态（stars / forks / discussion）。
+* 适合：开源项目与默认云端托管；生态最全但平台有绑定。
+
+**GitLab**
+* 定位：DevOps 一体化平台，一个应用内包含 repo + CI/CD + 安全扫描 + 容器 / 部署 + wiki。
+* 核心：Single Application 理念；支持自托管（CE / EE），数据不出内网；内置 CI/CD（`.gitlab-ci.yml`）、代码质量、SAST / 依赖扫描。
+* 对比 GitHub：GitHub 偏「生态 + 协作」，GitLab 偏「一体化 + 可自托管」，适合数据合规 / 私有化要求高的团队。
+
+**SonarCloud**
+* 定位：代码质量与安全静态分析云服务（SonarQube 的 SaaS 版）。
+* 核心：扫描 Bug、漏洞、坏味道、重复代码、测试覆盖；质量门禁（Quality Gate）决定能否合入；支持主流语言并与 GitHub / GitLab CI 集成。
+* 对比：GitHub 自带 CodeQL / secret scanning 偏安全；Sonar 偏「可维护性 + 质量门禁」；本地 lint 只管语法风格，Sonar 管跨文件与历史趋势。
+
+**1Password**
+* 定位：团队密码与密钥管理（password manager）。
+* 核心：密码 / 密钥 / SSH key 集中存储，按团队保险库（Vault）共享，浏览器 + CLI 集成，2FA，开发者工具（`op` CLI、CI secret 注入）。
+* 边界：只管理「凭据」，不替代 `.env` 或云 Secret Manager——本地开发用 `.env`（不入库），生产 / CI 用平台 Secret Manager（Vault / AWS Secrets Manager），1Password 偏「人与开发者的凭据」。已有提及见 [Security-Privacy-Cryptography.md](./Security-Privacy-Cryptography.md)「密码管理器」。
+
+**Confluence**
+* 定位：团队知识库 / 协作文档（Atlassian）。
+* 核心：空间（Space）+ 页面层级 + 权限 + 模板（技术方案、周报、API 文档）+ 与 JIRA 双向引用。
+* 对比：Notion 更灵活 / 个人向；Confluence 适合按团队空间做权限与审计。文档原则：可检索、有 owner、定期清理。
+
+**JIRA**
+* 定位：项目与问题跟踪（Atlassian），敏捷开发事实标准之一。
+* 核心：issue / 史诗 / 故事 / 任务 + 看板 / 冲刺 + 自定义工作流 + 与 Git 集成（提交 → issue 关联 → PR 自动关闭）。
+* 对比：GitHub Issues 轻量够用（开源 / 小团队）；JIRA 强在规模化流程与报表；Linear 体验更现代但生态浅。
+
+**Netlify**
+* 定位：前端 / 静态站点托管与部署平台（Jamstack 代表）。
+* 核心：Git 推送即部署、PR 预览部署（Preview Deployments）、CDN + 边缘、Serverless Functions、表单 / 身份、回滚。
+* 对比：Vercel 同为前端部署平台（更偏 Next.js 生态）；Netlify 偏静态站 / 内容站点；个人轻量站也可用 GitHub Pages。已提及见 [Web-基础.md](./Web-基础.md)「部署到 Vercel、Netlify、Cloudflare 这类平台」。
+
+选型一句话：开源 / 云原生协作选 GitHub；私有化 / 合规一体化选 GitLab；质量门禁接 SonarCloud；人与开发者凭据用 1Password；规模化文档与任务用 Confluence + JIRA；前端发布用 Netlify / Vercel。
+
+来源：各官方站点 [GitHub](https://github.com)、[GitLab](https://about.gitlab.com/)、[SonarCloud](https://www.sonarsource.com/products/sonarcloud/)、[1Password](https://1password.com/)、[Confluence](https://www.atlassian.com/software/confluence)、[JIRA](https://www.atlassian.com/software/jira)、[Netlify](https://www.netlify.com/)。
+
 
 
 ## DevOps --> 「云原生-ToB.md」
