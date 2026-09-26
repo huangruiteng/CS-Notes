@@ -208,7 +208,29 @@
 
 #### IaC (Infrastructure as Code)
 
-https://aws.amazon.com/cn/what-is/iac/
+概念参考：https://aws.amazon.com/cn/what-is/iac/
+
+用声明式配置描述「基础设施应该长什么样」，再由工具对照真实环境计算差异并执行变更；好处是基础设施能像应用代码一样进版本库、走代码审查、自动验证与回滚，并接入 CI/CD。
+
+##### Terraform：声明式 IaC 的工作模型
+
+> 来源：[Intro to Terraform](https://developer.hashicorp.com/terraform/intro)、[State](https://developer.hashicorp.com/terraform/language/state)、[State Locking](https://developer.hashicorp.com/terraform/language/state/locking)、[Modules](https://developer.hashicorp.com/terraform/language/modules)、[Lifecycle](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle)、[Terraform vs. Alternatives](https://developer.hashicorp.com/terraform/intro/vs)、[OpenTofu FAQ](https://opentofu.org/faq/)。
+
+* **三阶段工作流 Write → Plan → Apply**：写声明式配置；`plan` 对比「真实基础设施 vs 配置」生成执行计划，说明将要创建 / 修改 / 销毁什么；批准后 `apply` 按依赖顺序执行。配套命令：`init`（拉 provider 与 module）→ `validate` / `plan` → `apply`，回收用 `destroy`。
+* **声明式 + 不可变取向**：写的是终态而不是步骤，diff 与依赖排序交给 Terraform 计算——例如改 VPC 属性同时调整其中 VM 数量时，会先重建 VPC 再扩缩 VM；同一份配置可在多环境重复执行，减少手工操作带来的漂移。
+* **Provider / Resource / Data Source**：provider 是某个平台 API 的适配插件（registry 上已有大量现成 provider，也可自写）；resource 表示受管对象，data source 做只读查询；provider 地址与版本在 `required_providers` 中声明，实际解析结果写入 `.terraform.lock.hcl`。
+* **State 是整套模型的支点**：Terraform 把「配置对象 ↔ 真实资源」的映射存进 state（JSON），它既是环境的事实来源，也是 diff 的依据。官方要求把它放在支持**状态锁定与访问控制**的远程 backend（Consul、HCP Terraform 等；S3 backend 传统上依赖 DynamoDB 表做锁），不要进普通版本库、不要手改文件——修改走 `terraform state`、`import`、`moved` 等受控入口；state 中可能包含密钥等敏感值。
+* **漂移（drift）与 plan 的语义**：`plan` 会先刷新真实状态再比对，因此任何绕过 IaC 的控制台手改都会显示成待修正差异；「唯一事实源」成立的前提是没人绕过程序改基础设施。
+* **模块与复用**：module 把一组资源封装成可复用单元（本地或 registry），对外只暴露 `variable` / `output` 接口；「一份配置多环境」通常靠 module + 变量 + 独立 state/backend 实现。
+* **依赖与并行**：资源之间的引用自动构成依赖图，互不依赖的资源并行创建；需要人为约束顺序时用 `depends_on`。
+* **生命周期控制**：`lifecycle` 元参数决定重建与保护策略——`create_before_destroy`（先建后删，减少重建空窗）、`prevent_destroy`（防误删）、`ignore_changes`（容忍真实环境中被外部修改的字段）。
+* **常见坑**：state 并发写（必须锁定）；用 `count` 按下标索引，增删元素时引用漂移（优先 `for_each` + 稳定 key）；把密钥写进配置或 state；手工改线上资源造成 drift；把 Terraform 当配置管理工具用（装包、下发配置文件属于 Ansible 这类工具的职责）。
+* **生态与替代**：HashiCorp 把 Terraform 从开源协议切到 BUSL 后，社区分叉出 **OpenTofu**（现由 Linux Foundation 项目托管、MPL-2.0、与 Terraform 保持兼容）；此外 Pulumi（用通用语言写 IaC）、AWS CDK（语言 + CloudFormation）、Crossplane（把云资源做成 K8s CRD 持续调谐）、Ansible（过程式配置管理）各占不同位置。
+* **托管形态**：不想自己维护 state 与运行环境，可以用 HCP Terraform（原 Terraform Cloud）/ Terraform Enterprise；自建则要自己解决远程 backend、锁、凭据管理与 CI 集成。
+
+##### 厂商实现示例：火山引擎 cc 版本 Terraform
+
+火山引擎基于 CCAPI 自动生成 `volcenginecc` provider（与旧 `volcengine` provider 完全独立），官方推荐 cc 版本；provider 声明、AK/SK 环境变量与资源命名规律（`volcenginecc_<产品>_<资源>`）见 [了解 cc 版本的 Terraform](https://docs.volcengine.com/docs/6706/2275239?lang=zh) / [快速安装和使用 Terraform](https://docs.volcengine.com/docs/6706/2275240?lang=zh)。
 
 #### CNCF (Cloud Native Computing Foundation) 的定义
 
@@ -640,6 +662,59 @@ docker-compose up -d
 
 
 
+#### 云原生联调：从声明配置到真实行为
+
+**联调的核心是逐层核对构建产物、集群声明、Pod 有效状态和真实运行行为。** 构建成功不代表部署正确，部署成功不代表应用已加载新配置，入口成功也不代表整条业务链路通过。
+
+##### 控制面与数据面
+
+```text
+控制面：操作者身份 → Kubernetes API → 配置对象与工作负载声明
+                                     ↓ 控制器 / kubelet 落实
+数据面：业务客户端 → 网关 → Service / 服务网格 → 业务 Pod → 下游服务
+```
+
+控制面管理 Secret、ConfigMap、镜像、探针和发布状态，也提供对象、事件与日志查询；数据面承载实际请求，Pod 使用自身运行时凭据访问下游。
+
+[kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) 保存集群地址、上下文和身份配置，短期有效的通常是其中引用的令牌或证书。**操作者凭证过期，不会自动删除已创建的对象或停止服务**：控制器和 kubelet 使用各自身份继续工作，业务流量也通常不依赖操作者的凭证。失效的是操作者后续访问 API 的能力；Pod 自身凭证的有效期需独立管理。
+
+##### 配置对象与更新语义
+
+| 对象 | 职责 |
+| --- | --- |
+| Secret | 保存 API Key、Token、证书等敏感数据，由工作负载通过引用使用 |
+| ConfigMap | 保存路由、功能开关等非敏感配置 |
+| Deployment / Rollout 等工作负载对象 | 声明镜像、资源、探针及配置引用，决定 Pod 如何创建和更新 |
+
+Secret 的 `data` 字段使用 Base64 编码，**编码不等于加密**；保护仍依赖最小权限、RBAC、审计和静态存储加密。凭据通过 `secretKeyRef` 或卷提供，避免进入代码、发布参数和日志。[Secret 文档](https://kubernetes.io/docs/concepts/configuration/secret/)
+
+配置更新要区分三种情况：
+
+- **环境变量**：不会随 Secret / ConfigMap 更新自动刷新，通常通过滚动重建 Pod 生效。
+- **`subPath` 文件挂载**：不会接收对应配置对象的自动更新，通常需要重建 Pod。
+- **普通配置卷挂载**：文件最终会更新，但有传播延迟；应用还必须支持重新读取或热加载，文件变了不代表内存配置已变。
+
+仅修改 Secret / ConfigMap 内容通常不会自动触发 Deployment 滚动更新；应明确配置变更如何触发重建或应用重载。[ConfigMap 更新语义](https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically)
+
+##### 路由与四层验收
+
+一次调用依次受到**环境入口、实例选择、应用内部路由和下游身份授权**约束。它们是组合条件，不是一个“切环境”开关；凭据主要决定访问权限，有时也决定租户或资源范围。
+
+| 层次 | 核验依据 | 常见错位 |
+| --- | --- | --- |
+| 构建产物 | 代码 revision、镜像 digest、Chart 版本与 values | 镜像来自功能分支，Chart 仍来自默认分支 |
+| 集群声明 | 目标集群 / namespace、工作负载模板、配置引用与路由规则 | 新代码配了旧开关或缺少 Secret 引用 |
+| Pod 有效状态 | 当前 Pod 的实际镜像、挂载文件、非敏感环境变量与应用加载版本 | 配置对象已更新，进程仍使用旧值 |
+| 真实运行行为 | 关联 ID、目标 Pod 访问记录、下游完成事件与业务结果 | 网关接受请求，却进入默认实例或在请求转换阶段失败 |
+
+排障从失败所在层建立证据：Pod 直连下游成功只证明该路径可用，不能排除业务代码的协议转换、凭据选择或响应解析错误；日志命中目标字符串，还需确认它来自输入回显、异常消息还是实际输出。以结构化事件、明确字段和请求关联 ID 证明行为，避免仅靠全文搜索。检查配置时只输出非敏感字段，不直接打印全部环境变量或 Secret。
+
+##### 热修复与可重建修复
+
+**运行时持久**是当前集群状态能继续工作；**声明持久**是源配置能够在下一次发布后重建同样状态。两者需要同时成立。
+
+完整修复顺序：恢复当前有效状态 → 回写 Git / Chart / 发布平台的配置来源 → 验证下一次滚动发布仍能重建并通过业务验收。只修改 Pod 可能被工作负载控制器替换；只修改集群声明，则可能被 GitOps 自愈或后续发布覆盖。普通 Kubernetes 控制器不会自行读取 Git，覆盖取决于实际配置所有者和调和机制，见 [GitOps 与 ArgoCD](#gitops--argocd)。
+
 #### k8s with MLSys
 
 * Persia: https://github.com/PersiaML/tutorials/blob/main/src/kubernetes-integration/index.md
@@ -903,6 +978,8 @@ rclone copy README.txt tos:ABC --s3-no-head-object
     * **解释**：Kubevpn 虽然劫持了集群内的业务流量（Service IP）转发到本地，但监控系统通常直接通过 Pod IP 抓取数据。本地开发机的进程并不存在于 K8s 集群的网络平面中（没有 Pod IP），且 VMP Server 无法主动建立到本地开发机的连接，导致采集失败。
 
 ### GitOps & ArgoCD
+
+Git 与集群一致只证明声明同步；发布验收还需核对 Pod 有效配置与真实业务行为，见 [云原生联调](#云原生联调从声明配置到真实行为)。
 
 #### GitOps 理念
 

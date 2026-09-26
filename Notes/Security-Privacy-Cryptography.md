@@ -243,6 +243,64 @@ Install [uBlock Origin](https://github.com/gorhill/uBlock). It is a [wide-spectr
 If you’re using Firefox, enable [Multi-Account Containers](https://support.mozilla.org/en-US/kb/containers). Create separate containers for social networks, banking, shopping, etc. Firefox will keep the cookies and other state for each of the containers totally separate, so sites you visit in one container can’t snoop on sensitive data from the others. In Google Chrome, you can use [Chrome Profiles](https://support.google.com/chrome/answer/2364824) to achieve similar results.
 
 
+### AI 服务供应链与 Agent 滥用
+
+来源：[Anthropic 威胁情报报告，2026 年 9 月](https://www.anthropic.com/threat-intelligence-report-september-2026)。报告选取 2025 年 12 月至 2026 年 8 月发现并处置的突出案例，属于服务商调查材料，不代表典型使用情况；组织归因与数据流转指控未经本文独立核实。
+
+**AI 放大的既有能力，也有执行规模。** 工具调用、并行 agent、跨会话记忆和反馈重试，让少数操作者能持续处理多个陌生环境。复杂工作流不再能单独证明操作者技术高超；评价增益要分别看速度、规模和能力深度。Agent 评测还需区分请求、生成、执行与现实结果，见 [Agent 评估与安全](./AI-Applied-Algorithms.md#agent-评估与安全)。
+
+#### 供应链既是入口，也是资产
+
+AI API key 和会话令牌有三重价值：转卖获利、使用受害者的计算额度、借合法账户掩盖来源。模型代理、客户端、评测沙箱及其生产凭证因此都进入攻击面。
+
+报告中的代表案例：
+
+- **评测沙箱泄密（GTG-50020）**：Anthropic 称，恶意指令使某 AI 厂商的自动评测沙箱交出其持有的生产 API 密钥。关键边界是“不可信任务内容能否触达真实凭证”，而不仅是模型能否识别恶意请求。
+- **伪装低价 AI 服务（GTG-50021）**：报告描述了冒充折扣模型服务、替换实际模型并窃取用户凭证的活动。价格和界面名称都不能证明后端身份与客户端可信性。
+- **虚假约会应用（GTG-15001）**：报告称某应用网络使用大量 AI 身份与用户交谈，却宣传真人服务。风险来自规模化运营和身份欺骗，不要求模型先获得突破性能力。
+
+工程原则：生产凭证留在受信执行层，模型侧只得到受限工具或不透明句柄；沙箱按任务授予最小权限，限制网络出口、预算与敏感数据访问。模型拒绝、环境隔离和异常检测分别承担不同职责，不能互相替代。
+
+#### 模型名称不等于数据处理边界
+
+**工程师内部系统案例（GTG-16002）**：Anthropic 称，一名工程师使用 Kimi 开发企业内部系统时提交了内部代码和多家企业的有效访问凭证，相关请求被转发到 Claude。`live credentials` 表示当时仍可用于认证的凭证；公开材料没有说明具体权限，也没有证明这些凭证随后被用于入侵。
+
+这个案例涉及两道独立授权：**允许把数据提交给某服务，不等于允许该服务再转交其他处理方。** 报告对用户是否获告知存在不确定表述，因此不能把所有客户均未获告知、所有请求均被转发写成已证实事实。
+
+调用链可拆为：
+
+```text
+用户 → 应用 / 模型路由 → 名义供应商 → 实际推理供应商 → 返回结果
+                         └→ 交互保存 / 数据整理 / 训练用途（需分别核验）
+```
+
+推理转发、交互留存、用于训练是三种不同处理行为，不能仅凭发生第一种就认定后两种。数据治理应核对实际处理方、路由与 fallback、保存期限、训练用途和删除机制；凭证应在请求、工具参数、日志与附件入口统一脱敏。
+
+#### 反蒸馏与证据边界
+
+蒸馏本身是正常训练方法；报告针对的是未经授权的能力提取及其伴随的账户、凭证和数据滥用。Preserved thinking 通过约束受保护推理之前的上下文改写，缩小诱导模型重新输出推理轨迹的路径；最终答案仍可能提供训练信号，不能据此声称阻止所有蒸馏。协议机制见 [推理记录与上下文绑定](./AI-Applied-Algorithms.md#stealing-reasoning-traces-与-external-thinking推理记录是可提取的侧信道)。
+
+读取威胁报告时保留三条证据纪律：**观察到请求不等于任务成功；使用 AI 不等于证明净增益；封禁账户不等于受害系统恢复。** 服务商案例能揭示具体风险路径，但缺少对照实验与总体分母时，不能据此计算全社会风险增长或模型的因果贡献。
+
+#### 主动模型归因：用生成数字偏差反推后端身份（ModelTrace）
+
+> 来源：[ModelTrace 浏览器本地版](https://xqy2006.github.io/ModelTrace/) 与 [xqy2006/ModelTrace](https://github.com/xqy2006/ModelTrace)（MIT，2026-09-15 读取，commit `3f0dd2f4`；含 `static/` 纯前端版与 Codex 插件 `codex-plugin/modeltrace-guard/`）；前置工作参考 [hlwy-ai-checker](https://github.com/hanlinwenyuan/hlwy-ai-checker)。整理时间：2026-09-17。
+
+上一节 GTG-50021 的边界是「价格和界面名称都不能证明后端身份」。ModelTrace 把这条边界变成可操作的检测：**不问供应商要证据，而是让模型自己产出可统计的偏差**。做法是三条独立的「长整数生成」挑战（每次 218–333 个 `[1, 355]` 区间整数，要求逐项凭第一反应、禁止工具 / 计算器 / 搜索 / 计数递增 / 等差 / 循环 / 重复区块），把输出分布当成指纹，在候选库里做归因。
+
+- **指纹表示**：`355` 维计数分布（取值区间 `[1, 355]`，α = 0.5 平滑）做 Hellinger 特征，叠加有序块特征（序列切 4 段各 16 桶 + 末位数字分布）。总分 `0.75 × Hellinger 模型中心相似度 + 0.25 × 有序块特征`（库内 `ordered_block_weight = 0.25`）。
+- **环境去偏是核心设计**：建库时把各共享环境下特征的平均偏移做 SVD，取前 `2` 个方向当 nuisance basis；归因时先投影掉这些方向再与全部模型中心比较。这样「换了 system prompt / 中英文 / 上下文长度」造成的整体位移不会被误算成模型差异。挑战套件本身也刻意铺了 12 组环境（通道 `clean / user / system` × 格式 `json / 中文 / 英文` × 前缀 `96 / 512 / 2048` 词）。
+- **概率与校准**：三份回答分别打分取平均，再用与查询数配套的温度做全局 softmax（库内 β：1 次查询 `6.84`、2 次 `12.0`、3 次 `12.0`；对应分组交叉验证准确率 `0.955 / 0.996 / 1.000`）。家族概率是该家族具体模型概率之和；单次检测要求至少 80 个有效数字。
+- **闭集边界**：结果是「当前候选库内、均匀先验」的闭集概率，**库外模型照样会被归到最相似的候选**，这是最常见的误用点。当前库 13 个模型（GPT 6：`gpt-5.4 / 5.5 / 5.6-sol / -terra / -luna / gpt-6-astra`；Claude 7：`haiku-4-5 / sonnet-4-6 / sonnet-5 / opus-4-6 / -4-7 / -4-8 / opus-5`）。GPT 采自官方订阅 Codex，Claude 采自第三方中转 OAIPro——**Claude 侧指纹刻画的是那条渠道的行为，不等于官方 API 特征**。
+- **作者自述的失效条件**：结果仅供参考、不是决定性证据；system prompt 会强烈影响数字偏好，因此在 Claude Code 里测得的结果偏差较大，官方建议不要在 Claude Code 内测试。API 自动测试支持 OpenAI Chat Completions 与 Anthropic Messages 两种格式，Key 只用于当次请求、不落盘。
+
+对工程判断的意义：
+
+- **模型身份是需要主动验证的运行时属性，而不是配置项**：路由、fallback、渠道替换、量化版本差异都会改变实际后端，而客户端能拿到的只有行为，所以「行为统计 + 参考库」是少数可落地的证据形式。
+- **它的证据强度由可探测能力决定**：只有三条挑战、闭集候选库、且依赖环境去偏，因此适合当 canary / 可疑信号，不适合当判定结论；把它当开放集识别使用会系统性高估把握度。
+- 与上面 [模型名称不等于数据处理边界](#模型名称不等于数据处理边界) 是同一问题的两面：那一节说「名义供应商 ≠ 实际处理方」，这一节给的是「用输出行为反推实际处理方」的一个具体手段。
+- 同一指纹库还被封装成任务内监测（按工具调用间隔 fork 快照做后台复测），用于发现**任务进行中后端模型被静默替换**，机制见 [AI-Agent-Engineering.md - ModelTrace Guard](./AI-Agent-Engineering.md#modeltrace-guard把后端模型被静默替换做成任务内可探测信号)。
+
 ### Cryptography I, Stanford University, Dan Boneh
 
 * [coursera课程](https://www.coursera.org/learn/crypto/home/welcome)

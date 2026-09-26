@@ -22,7 +22,7 @@ python3 snippets/check-learning-material-queue.py
 
 ## Workflow Checklists
 
-- [read-done-closure-checklist.md](read-done-closure-checklist.md)：`读完` 材料后的固定闭环清单，避免漏掉上层同步、归档、主控转发稿和下一步动作。
+- [read-done-closure-checklist.md](read-done-closure-checklist.md)：`读完` 材料后的固定闭环清单，覆盖笔记落盘、上层同步、归档、可复用表达和下一步动作。
 - [lark-derived-doc-sync-checklist.md](lark-derived-doc-sync-checklist.md)：从本地 canonical section 同步派生飞书文档时的检查清单，覆盖 revision、标题层级、公式/图片和远端校验。
 
 ## Workflow Utilities

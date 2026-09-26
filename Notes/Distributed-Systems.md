@@ -98,6 +98,7 @@
 
 * 异步确保（无事务消息）
 * 异步确保（事务消息）
+  * [Transactional Outbox：提交、投递与投影水位](./Software-Engineering.md#outbox把业务提交与异步投递绑定)：业务数据与待发送消息同事务提交；relay 可重试，消费端仍需原子去重。迁移中的 shadow capture 要绑定源事务，promotion 后的兼容投影要防止旧 revision 覆盖新 revision。
 * [补偿交易 (Compensating Transaction)](https://docs.microsoft.com/en-us/azure/architecture/patterns/compensating-transaction)
 * 消息重试
 * 幂等（接口支持重入）：数据库唯一键挡重入
@@ -115,6 +116,9 @@
 | 鉴权失败、非法配置、确定性前置条件不满足 | fail fast，等待配置或用户修复 | 重试无法消除根因 |
 
 * **Retry budget 属于 policy**：最大尝试次数、deadline、输出或资源上限应由配置层拥有。执行器可以根据错误改写下一次策略，但不应偷偷提高上限、追加次数或换模型，否则会破坏成本边界和可复现性。
+* **超时先看计时范围**：连接超时、单次尝试超时、空闲超时和整体 deadline 约束不同阶段，起算点与重置条件也不同，不能只比较数字大小。以 Envoy 为例，route timeout 在完整接收请求后开始等待完整上游响应；stream idle timeout 约束无活动时长。[超时类型与计时语义](https://www.envoyproxy.io/docs/envoy/latest/faq/configuration/timeouts)
+* **外层愿意等，不代表内层也会等**：调大客户端或任务执行器的等待时间，无法撤销代理已经作出的超时响应。连续出现近似固定耗时只能作为计时器线索，不能据此认定某个默认配置就是根因。
+* **单次 timeout 不等于端到端预算**：例如 Python Requests 的 `timeout` 不是整个响应下载的总时限；多次重试、退避和响应处理仍需受整体 deadline 约束。流式传输持续有数据可避免空闲超时，但不保证避开整体时限。[Requests timeout 语义](https://requests.readthedocs.io/en/latest/user/quickstart/#timeouts)
 * **只有完整结果才能提交**：失败尝试可以进入 trace，但不能安装为正式状态。带副作用的调用还需要 idempotency key、去重或补偿，避免“响应丢失后重试”把同一操作执行两次。
 * **风险**：过载时的大量重试会形成 retry storm，并把下游压力放大成 cascading failure。
 

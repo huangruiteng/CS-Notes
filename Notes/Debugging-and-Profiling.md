@@ -50,6 +50,13 @@ for R in $(seq 0 20 255); do
 done
 ```
 
+#### HTTP 调用：保留原始错误与关联证据
+
+- **先保留 HTTP 事实，再解释解析异常**：记录状态码、Content-Type、耗时，以及按白名单保留的响应头和脱敏、限长的正文摘要，再尝试解析预期格式。网关可能返回文本或 HTML，盲调 `response.json()` 会产生第二层解析错误；反过来，JSON 解码成功也不等于 HTTP 请求成功。[Requests：JSON 与状态码的区别](https://requests.readthedocs.io/en/latest/user/quickstart/#json-response-content)
+- **标识的生成、传播、回传是三件事**：客户端自带 request ID 不保证服务端采纳或原样返回；没有响应 ID，只说明调用方没拿到它，不能证明服务端没生成 ID、没记录日志或没收到请求。以 Envoy 为例，请求 ID 生成、外部 ID 保留、响应回传分别配置；需要用接收端日志验证关联，而不是把客户端标记当成已确认的服务端 ID。[HTTP connection manager](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto)
+- **Request ID 不天然等于 Trace ID**：请求关联标识的作用域由系统约定；W3C `traceparent` 携带 trace-id、parent-id 与 flags，服务必须正确传播并记录才能关联调用。仅有一个响应头或一个 ID，不足以还原完整调用链。[W3C Trace Context](https://www.w3.org/TR/trace-context/#traceparent-header)
+- **软件标识不是节点身份证明**：`Server` 响应头描述软件产品，可能被省略或改写；同类代理也可以部署在多个位置。定位需结合受控时间窗口、请求关联记录和实际处理日志，不能仅凭产品名称锁定故障节点。[RFC 9110 §10.2.4](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.4)
+
 #### Third party logs
 
 * 一个简化版 Google's logging

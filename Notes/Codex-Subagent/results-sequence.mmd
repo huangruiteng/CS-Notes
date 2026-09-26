@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant A as /root/a 请求者
+  participant C as AgentControl
+  participant B as /root/b 执行者
+  participant R as /root 直接父节点
+  A->>C: followup_task(message)
+  C->>B: 投递输入
+  C-->>A: 工具投递成功（非业务答案）
+  B->>B: 当前轮接收或新 turn 执行
+  B-->>A: Completed activity 关联发起 turn（有有效归属时）
+  B-->>R: 标准最终结果，queue-only mailbox
+  Note over A,B: A 需要正文时，必须另约定结果接收方
+  B-->>A: 显式 send_message(result)，若任务有此约定

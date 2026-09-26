@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex Thread Reader"
+  short_description: "Locate and read codex://threads/<id> rollouts across all local CODEX_HOMEs"
+  default_prompt: "Use $codex-thread-reader to locate the thread, summarize it, list its turns, and read the pivotal turns in full before answering."
+
+policy:
+  allow_implicit_invocation: true

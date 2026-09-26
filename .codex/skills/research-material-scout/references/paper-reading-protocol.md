@@ -28,6 +28,7 @@ No reliable dedicated generated skill was found for the exact combination of S. 
 `请你读:<material>`:
 
 - Read first, then answer. Do not give a generic reading plan.
+- Deliver an illustrated explanation in the conversation. Do not organize or edit `Notes/`, note indexes, or material lifecycle/ranking during reading; save only source caches, image assets and reading evidence under `.local/` or task artifacts. Implementation and note integration require a separate explicit request such as `整理笔记` or `读完`.
 - Default depth: Keshav pass 1 + targeted pass 2 on sections that determine the user's decision.
 - If the material is high-value for the current Agent infra / OpenViking / RL runner / serving line, escalate selected parts to pass 3.
 - Return a reader map only after applying the personal-reading value gate below, so the user knows what they personally still need to read and why.
@@ -94,6 +95,7 @@ Pass 2 - Content and Evidence:
 
 - Read main method/system sections, key figures/tables, experiments, ablations, limitations, and appendix sections needed for the claim.
 - For key figures/tables, capture the source identifier, caption, axes/columns, raw values or qualitative content, and the exact claim it supports before interpretation.
+- Display selected images inline in the final answer and explain them next to the image. Follow the SKILL.md "Illustrated Reading Output" contract: prefer inspected original figures/table screenshots; label any derived diagram, preserve attribution, and keep image assets outside `Notes/` during reading. Merely extracting captions or linking to images does not satisfy the visual output requirement.
 - Prefer 3-8 key figures/tables for high-value papers: architecture/framework, core algorithm flow, main results, ablations, failure analysis, qualitative examples, or cost/latency tables.
 - If making a filtered or merged view, label it as a derived subset rather than treating it as the original figure/table.
 - For each main claim, attach evidence:
@@ -178,7 +180,7 @@ For `请你读` / `精读`, produce this shape unless the user asks for a differ
 5. Claim map: 2-5 main claims with evidence, confidence, and scope.
 6. Mechanism-first summary: problem -> core design -> why it works -> where it breaks.
 7. AI research checklist: paper type, data, model/system, objective, eval, baselines, limitations.
-8. Artifact delta for the user: concrete schema / benchmark / TODO / note / interview point.
+8. Proposed artifact delta for the user: concrete schema / benchmark / TODO / note / interview point, explained in the conversation without writing notes or implementing changes.
 9. Reader map: exact sections, figures, tables, appendix, source files, repo paths marked `user-must-read`, `Codex-summary-enough`, `optional`, or `skippable`, with a one-line incremental-value reason for every `user-must-read`.
 10. Sharp verification questions: 3-6 questions to ask while reading or implementing.
 

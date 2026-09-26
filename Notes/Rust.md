@@ -2,14 +2,14 @@
 
 ## 阅读地图
 
-1. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏和 Serde wire 状态的基础。
+1. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏、Serde wire 状态与 JSON Schema 构造的基础。
 2. “表达式、模式匹配与闭包”解决 `Result`、`match`、`=>`、`self` 和 `|x|` 等常见语法。
 3. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
 4. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
 5. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
 6. “错误处理、Option 与重试”集中整理 `?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
-7. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait` 和 boxed Future。
-8. “Runtime 工程模式与验证”把语言机制放回 shallow/deep merge、Actor、event replay、双写与测试。
+7. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
+8. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
 
 ## 类型系统、结构体与反序列化
 
@@ -371,6 +371,55 @@ struct CompletionRequest {
 - 如果透传字段和结构体显式字段同名（比如 `model`），语义容易变得微妙，序列化可能产生重复 key；通常约定透传字段只承载结构体没有显式声明的服务商方言。
 - 解析侧同样可以用 flatten 收集未声明字段；若协议要求严格，再结合 `#[serde(deny_unknown_fields)]` 决定是否拒绝。
 
+### 用 Rust 构造 JSON Schema：数据结构与参数契约
+
+> 来源：Codex `/goal` 文章固定 commit `04483f4` 的 [`spec.rs`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/spec.rs#L61-L93)、[`JsonSchema` 定义与 `string_enum`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/tools/src/json_schema.rs#L40-L168)。
+
+下面这段 Rust 构造的是“允许哪些 JSON 参数”的描述数据。它不执行 goal 状态迁移；真正的迁移在工具 handler 中发生。
+
+```rust
+JsonSchema::string_enum(
+    vec![json!("complete"), json!("blocked")],
+    Some(
+        "Required. Set to `complete` only when the objective is achieved and no required work remains. Set to `blocked` only after the same blocking condition has recurred for at least three consecutive goal turns and the agent is at an impasse. After a previously blocked goal is resumed, the resumed run starts a fresh blocked audit."
+            .to_string(),
+    ),
+)
+```
+
+| 代码 | 实际含义 |
+| --- | --- |
+| `JsonSchema::string_enum(...)` | 调用 `JsonSchema` 的关联函数；没有 `self` 参数，也没有宏调用的 `!`，返回一个普通 Rust 结构体 |
+| `json!("complete")` | `serde_json` 宏，产生 `serde_json::Value` 的字符串值；不是把字符串作为 Rust 代码执行 |
+| `vec![...]` | 标准宏，构造 `Vec<JsonValue>`；这里的 JSON Schema `enum` 表示允许值列表，不是在声明 Rust `enum` 类型 |
+| `Some(text.to_string())` | 把 `&str` 转为拥有型 `String`，放进 `Option<String>`；`Some` 表示提供 description，`None` 表示不提供 |
+| `BTreeMap::from([("status".to_string(), schema)])` | 把属性名映射到属性 schema；BTreeMap 按键排序，便于稳定输出，它本身不做参数校验 |
+| `Some(vec!["status".to_string()])` | 传入对象 schema 的 `required` 列表，要求调用参数包含 `status` |
+| `Some(false.into())` | 将 `false` 转成 `additional_properties` 所需类型，再放进 Option；序列化为 `"additionalProperties": false` |
+
+`string_enum` 的实现只是填充 `schema_type`、`description`、`enum_values`，再用 `..Default::default()` 填其余字段。`#[derive(Serialize)]` 配合 `#[serde(rename = "type")]`、`#[serde(rename = "enum")]` 将字段名转换成 JSON Schema 关键字；`skip_serializing_if = "Option::is_none"` 让缺省字段不出现在 JSON 中。
+
+把它放到 `status` 属性后，对象 schema 相当于下面这样（description 为节选）：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["complete", "blocked"],
+      "description": "Set to complete only when achieved; blocked only after three consecutive goal turns."
+    }
+  },
+  "required": ["status"],
+  "additionalProperties": false
+}
+```
+
+三个层次要分开：Rust 类型保证 schema 构造代码符合类型要求；JSON Schema 描述工具参数的形状和允许值；description 用自然语言提醒模型何时调用。`string_enum` 接收通用 `Vec<JsonValue>`，甚至不会在这个构造函数里逐项证明所有值都是字符串；更不会证明“任务完成”或“同一阻塞已持续三轮”。**构造了一份契约，不等于已经执行了契约校验。**
+
+该版本工具声明 `strict: false`，handler 仍需通过 Serde 解析并显式限制状态。完整的 schema / handler / 模型自审分工见 [Goal-mode audit](./AI-Applied-Algorithms.md#goal-mode-audit把继续变成目标审计)。
+
 ### 什么时候用 `String` / `&str`
 
 结构体字段里常用 `String`，因为它拥有字符串数据，适合从外部配置中反序列化出来后长期保存：
@@ -665,6 +714,32 @@ let kept: Vec<_> = values
 ```
 
 这里 `value` 是调用 `filter` 时传入的参数，`minimum` 则来自闭包外部。编译器会根据捕获方式让闭包实现 `Fn`、`FnMut` 或 `FnOnce`；初读源码时可先看三件事：竖线里有哪些参数、函数由谁调用、闭包是否读取或移动了外部变量。
+
+#### 用闭包注入最小依赖
+
+模块只需要读取一份配置时，可以接收读取操作，避免持有包含任务调度、写入等能力的完整上下文句柄（示例命名已脱敏）：
+
+```rust
+struct Formatter<F>
+where
+    F: Fn() -> Option<FormatSettings> + Send + Sync,
+{
+    read_settings: F,
+}
+
+// 组装层负责将自己的上下文适配成读取操作。
+let formatter = Formatter {
+    read_settings: move || context.current_format_settings(),
+};
+```
+
+* **收窄依赖面**：模块知道“如何取得配置”，无需知道上下文的结构及其他方法；运行时实现变化由组装层吸收。
+* **测试更轻**：可传入 `|| None` 或 `|| Some(sample_settings())`，无需构造完整运行环境。
+* **按需读取**：闭包在调用时执行，可获取当时的配置；若捕获的是预先生成的快照，则仍返回旧快照，时效性取决于适配实现。
+
+`Fn()` 表示可通过共享引用调用的无参操作，不保证纯函数或无副作用；`Send + Sync` 约束闭包及捕获环境的跨线程使用，不保证读取结果不变，也不自动约束返回值为 `Send`。示例使用泛型静态分派，无需额外装箱。
+
+设计重点是模块只依赖必要操作。单一操作适合闭包；多个相关操作或需要明确领域合同，可定义小 trait。闭包仍使用 `Fn` trait，且捕获的完整上下文仍可能被保活；这种收窄属于模块接口约束，不是运行时安全隔离。
 
 ## 源码阅读方法与综合例题
 
@@ -1252,6 +1327,19 @@ let store_b = Arc::clone(&store_a);
 
 `Arc<T>` 只有在 `T` 满足相应约束时才是 `Send` / `Sync`。它不会把一个本来不支持跨线程使用的类型“包装成线程安全”。
 
+#### `Arc<[T]>`：共享不可变快照，clone 只加引用计数
+
+当快照是一次 resolve、多处共享的只读数据（如能力 catalog、turn 的不可变上下文）时，用 `Arc<[T]>`：
+
+```rust
+capability_catalog: Arc<[Capability]>
+```
+
+- `[T]` 是长度固定、不可增删的 slice；`Arc` 是共享所有权——父任务、子任务、多个处理阶段都可以廉价持有同一份 catalog；
+- `Arc::clone` 只增加引用计数，不复制整个数组——与 `Vec<T>`（复制成本随长度）和 `Arc<Vec<T>>`（多一层指针间接）区分；
+- 类型上没有 `&mut` 入口：运行时拿不到对数组内容的可变借用，进入处理阶段后无法偷偷改能力表；
+- 对应 Actor 分层原则：Actor 拥有 session mutable state；进入 turn 后只消费已经冻结的不可变事实——可变的归 Actor，只读快照用 `Arc<[T]>` 共享。
+
 ### `Send` 与 `Sync`
 
 - `Send`：值的所有权可以安全地移动到另一个线程。
@@ -1370,6 +1458,19 @@ enum RuntimeMode {
 若直接写成 `Active(ActiveRuntime)`，每个 `RuntimeMode` 都要按大型 variant 预留空间，即使当前值是 `Disabled`。改成 `Box<ActiveRuntime>` 后，`Active` payload 只在 enum 内保存固定大小的 heap pointer，不再内嵌整个大对象；大对象在真正构造 `Active` 时才分配。
 
 这也是 Clippy `large_enum_variant` 常见修法。代价是一次 heap allocation 和一次指针间接访问；适合尺寸差异悬殊、创建频率低或生命周期长的 variant，不要为了“看到大 struct”就在高频路径机械装箱。
+
+### `mem::replace`：从 `&mut` 借用中 move 大对象
+
+`item` 是 `&mut MessageContent` 时，Rust 不允许直接把 enum 值从借用里 move 出来。需要先放入一个临时合法值，再取走原值所有权：
+
+```rust
+let original = std::mem::replace(item, MessageContent::Text(Text::new("")));
+*item = self.project_user_content(original);
+```
+
+- `mem::replace` 取得原值 ownership，并按值 `match` 处理——能直接移动大块 payload（如 Base64 / URL），避免 clone 整个结构；
+- 与 `Option::take` 的区别：`take` 是 `Option` 专用、原位留 `None`；`mem::replace` 是任意类型通用、原位放你指定的替换值；
+- 逐 block 替换时保持原顺序；多个来源要聚合成单一 tool identity 时，用一条占位文本（保留 id / call_id）代替散落的媒体块。
 
 ## 异步 Rust：Future、Tokio 与任务
 
@@ -1888,6 +1989,19 @@ async fn dispatch(
 设计时仍要问：锁是否真的应覆盖整个后台阶段。若锁只保护 admission，就应尽早释放；若同一 session 的 projection 必须在下一条命令前完成，才应把 guard 一起移入 task，持有到 canonical event 路由结束。错误路径也必须显式释放，不能只写成功路径。
 
 一句话：**同步等待到“可以诚实回复成功”的最小权威边界，再把其余工作异步化。**
+
+admission 的顺序决定「拒绝」会不会留下半状态：
+
+```text
+结构 / MIME / Base64 校验
+→ materialization
+→ capability admission
+→ reserve active turn
+→ 生成 UserMessage
+→ persistence
+```
+
+在 capability admission 明确 Unsupported 时直接 fail closed：不占 active turn、不产生 canonical UserMessage、不调用 provider、不留半个 session turn。拒绝点越靠前，越不需要补偿逻辑。错误信息只含「model X 不支持 fresh input 媒体类型 image=1, video=1」，不含媒体源内容。
 
 ### 没有 `.await`，不自动等于 fire-and-forget
 
@@ -2421,6 +2535,39 @@ match error {
 
 加入新的 `ServiceError::BudgetExhausted` 后，这段代码仍能编译，但新错误会被静默降级成 `internal`。在错误码、状态机和协议转换等边界，优先显式列出 variant；只有“未来任何新值都确实应采用同一语义”时才使用 `_`。
 
+三态还可以表达“事实未知”，这是 bool / 两态 `Option` 覆盖不了的第二类场景：
+
+```rust
+enum FeatureSupport {
+    Supported,   // 可信事实源明确声明支持
+    Unsupported, // 可信事实源给出完整非空声明，但没列出该模态
+    Unknown,     // 字段缺省、空数组、身份没匹配上、老版本上游无信息
+}
+```
+
+**兼容性支点：Unknown != Unsupported。** 假如把缺省误判成 Unsupported，上游还没下发新字段时，所有历史请求都会被突然拒绝。策略是：`Unknown` → 沿用旧行为先发给 provider；`Unsupported` → 确定性提前拒绝。未识别的新 literal 先规范化、去重并保留用于告警，而不是直接失败（前向兼容）。
+
+转换示例：`input_features` 缺省或 `[]` → 全部 `Unknown`；`["text"]` → image / audio / video 全部 `Unsupported`；`["text", "image"]` → image `Supported`、audio / video `Unsupported`。可见「无信息」与「明确不支持」必须区分成两个 variant。
+
+#### 带数据的枚举：状态与证据绑定
+
+```rust
+enum DocumentLookup {
+    NoSelection,
+    NotIndexed { chosen: DocumentKey },
+    Found { entry: Box<IndexEntry> },
+}
+```
+
+这是带数据的 enum（和类型）：一个值只能处于一种 variant；无数据分支直接写名称，有数据分支可用 `{ 字段: 类型 }` 表达具名 payload。这里分别表示“尚未选择文档”“已选文档但未找到索引”“已取得索引记录”（示例命名与领域均已替换）。
+
+* **状态与必需数据一起构造**：`NotIndexed` 必须携带文档标识，`Found` 必须携带记录；比 `status + Option<key> + Option<entry>` 少了“成功却没有记录”等非法组合。
+* **保留失败原因与已有信息**：两个未取得记录的状态仍可区分，调用方能分别提示选择、尝试补建索引，不必从空值猜原因。
+* **匹配即解构**：`match &lookup` 中写 `DocumentLookup::Found { entry } => …`，即可借用该分支的数据；完整枚举各分支时，新增状态会触发遗漏检查。
+* **大 payload 按需装箱**：`Box<IndexEntry>` 独占堆上记录，避免大型记录撑大整个枚举的内联尺寸；代价是分配和间接访问，详见 [Box](#boxt缩小大型-enum-的外层尺寸)。具体类型的 `Box<T>` 不涉及动态分派。
+
+类型保证形态一致，记录是否真实、标识是否匹配仍需构造入口校验。枚举也不会自动限制状态转移顺序；若需要，只通过受控方法产生下一状态。
+
 #### 配置解析：先按 variant 分流，再施加对应不变量
 
 配置解析的两种做法对比：
@@ -2470,6 +2617,21 @@ let thread_id = ThreadId("thread-1".to_string());
 - 存储记录主键。
 
 这些对象看起来都是 ID，却有不同生命周期和连续性语义。
+
+### 具名 product：把相关值绑成不可拆分的一体
+
+当两个值必须「一起走、一起变」时，用具名 struct 而不是 tuple：
+
+```rust
+struct RuntimeSnapshot {
+    provider: Arc<ProviderSnapshot>,
+    capability_catalog: Arc<[Capability]>,
+}
+```
+
+为什么不用 `(Arc<ProviderSnapshot>, Arc<[Capability]>)`？tuple 容易在调用点按位置解构、分别传递给不同函数，之后产生「endpoint 已切到 B、能力表还停在 A」的半更新状态。具名 struct 把「二者不可拆分」变成类型语义，调用点必须整体携带。
+
+判断标准：如果「只更新其中一个、另一个不跟着换」就是 bug，就把它们绑成 named product；如果只是临时一起传参、各自有独立生命周期，tuple 够用。
 
 ### 快照包装类型：私有字段、访问器与 `From`
 
@@ -2633,7 +2795,174 @@ trait RetryGate: Send {
 
 这类接口适合依赖反转：领域模块只询问“宿主是否批准重试”，HTTP 分类、metrics 和 backoff 仍由宿主拥有。每次操作创建一个新的 stateful gate，可避免不同请求意外共享连续失败计数。
 
+### 用 supertrait 组合两个能力：`trait A: B + C<X>`
+
+一个类型常常要同时扮演两个角色：既对外**声明自己提供什么**，又能被**某类输入调用**。把两件事塞进一个 fat trait 会让“描述”和“执行”耦在一起；用 supertrait 可以把它们组合成一个稳定的角色契约：
+
+```rust
+/// 只负责“我提供哪些能力”
+pub trait ComponentCatalog: Send + Sync {
+    fn definitions(&self) -> &[Definition];
+}
+
+/// 只负责“用什么输入调用我”
+pub trait Invoke<Input> {
+    type Output;
+    type Error;
+
+    fn invoke(&self, input: Input) -> Result<Self::Output, Self::Error>;
+}
+
+/// 角色契约：可登记，且可用 CapabilityRequest 调用
+pub trait CapabilityComponent: ComponentCatalog + Invoke<CapabilityRequest> {}
+```
+
+名字可以换成任何领域（能力表 / 工具表 / 处理器），形状不变：**一个没有方法的 trait，用 supertrait 把「静态描述」和「可调用性」绑成一个角色**。
+
+要点：
+
+- **supertrait 是约束，不是继承实现**：写 `impl CapabilityComponent for T` 的前提是 `T` 已经实现 `ComponentCatalog` 与 `Invoke<CapabilityRequest>`；组合 trait 本身可以没有任何方法，它在类型系统里的作用是「角色标记 + 约束打包」。
+- **调用方只依赖需要的那一半**：管理台 / 序列化只需要 `&dyn ComponentCatalog`，执行器才需要 `Invoke<...>`，于是登记面和执行面可以各自演进。
+- **泛型参数让调用协议可变**：`Invoke<SearchRequest>` 和 `Invoke<UpdateRequest>` 是两个不同的 trait，同一个类型可以分别实现；也可以用它表达「这个组件只接受这一类请求」。
+- **契约收口**：需要完整角色时写 `T: CapabilityComponent`，不必在每个签名里重复 `T: ComponentCatalog + Invoke<CapabilityRequest>`；将来调整角色的组成只有一个地方要改。
+
+给这个空 trait 提供实现有两种写法，且二者互斥：
+
+```rust
+// 1) blanket impl：任何同时满足两半的类型自动获得这个角色
+impl<T> CapabilityComponent for T where T: ComponentCatalog + Invoke<CapabilityRequest> {}
+
+// 2) 显式空 impl：由实现者自己声明“我承担这个角色”
+impl CapabilityComponent for LocalRegistry {}
+```
+
+| 写法 | 好处 | 代价 |
+|---|---|---|
+| blanket impl | 新类型只要实现两半就自动符合角色，不用逐个补写 | 之后不能再为「已满足两个 supertrait 的类型」写显式 impl（coherence 冲突）；等于把角色的实现权交给约束本身 |
+| 显式空 impl | 谁在哪个模块承担了这个角色一目了然，也能配合额外约束 | 每处都要多写一行，漏写不会被自动补齐 |
+
+常见坑：
+
+- **方法名冲突**：两个 supertrait 若有同名方法，调用时要写完全限定语法（如 `ComponentCatalog::name(&x)`）；在组合 trait 里再声明同名方法并不能消除歧义。
+- **dyn 兼容性**：像 `Invoke<Input>` 这种带泛型参数的 trait，只有把参数具体化之后才可能作为 trait object 使用。要把不同实现放进同一个集合，通常还得在 dyn 类型里固定关联类型（`dyn Invoke<CapabilityRequest, Output = Value, Error = Err>`），并额外做一层类型擦除，把各实现的结果统一成公共响应类型。
+- **可见性**：`pub trait` 的 supertrait 也必须对调用方可见；私有 supertrait 出现在公开接口上会触发 `private_bounds` / E0445 类错误。反过来，这个性质常被用来做 sealed trait：用私有 supertrait 把实现限制在本 crate 内。
+- **扩展成本**：给组合 trait 新增一个 supertrait 属于破坏性变更，所有实现点都得同时具备新能力。因此组合 trait 适合表达稳定角色；试验性能力更适合放独立 trait，用 `where T: A + B<C>` 在需要处就地组合。
+
+判断标准：这两个能力是否**总是成对出现**、并且希望调用方用一个名字表达这个完整角色？是，就用组合 trait；否，就保留两个独立 trait，按需写 `where` 约束——签名啰嗦一点，但不会凭空造出新的破坏性变更面。
+
+### 转发 trait 实现：delegation impl 与 UFCS 消歧
+
+组合体（把若干子组件打包在一起的结构体）对上层暴露某个能力，而能力实际由其中一个字段提供时，常见做法是写一个**转发实现**：不复制逻辑，直接把 trait 方法转给内部字段。
+
+```rust
+use futures::future::BoxFuture;
+use crate::store::{Entry, EntrySeq, RecordStore, StoreError, StoredEntry};
+
+/// 组合体：把若干子组件聚成一个对象对外使用
+impl<E, P, B, S> RecordStore<E> for Composite<P, B, S>
+where
+    E: Entry,
+    P: Send + Sync,
+    B: Send + Sync,
+    S: StoreComponent<E>,
+{
+    fn append<'a>(
+        &'a self,
+        scope: &'a str,
+        entry: &'a E,
+    ) -> BoxFuture<'a, std::result::Result<EntrySeq, StoreError>> {
+        self.store.append(scope, entry)
+    }
+
+    fn load<'a>(
+        &'a self,
+        scope: &'a str,
+    ) -> BoxFuture<'a, std::result::Result<Vec<StoredEntry<E>>, StoreError>> {
+        self.store.load(scope)
+    }
+
+    fn clear<'a>(&'a self, scope: &'a str) -> BoxFuture<'a, std::result::Result<(), StoreError>> {
+        // 显式指定“调用 RecordStore 的实现”，落在内部组件上
+        RecordStore::<E>::clear(self.store.as_ref(), scope)
+    }
+
+    fn ping<'a>(&'a self) -> BoxFuture<'a, std::result::Result<(), StoreError>> {
+        RecordStore::<E>::ping(self.store.as_ref())
+    }
+}
+```
+
+要点：
+
+- **转发而不复制**：`append` / `load` 直接返回内部字段的 future。因为接口本身是 `fn -> BoxFuture`（而不是 `async fn`），内部产生的 future 可以原样传出，不需要再包一层 `async move { ... .await }`。
+- **只约束用到的参数**：`E` 要满足 `Entry`，`S` 要满足 `StoreComponent<E>`；而 `P`、`B` 只是组合体的其它部分，只给 `Send + Sync`（它们要跨线程共享）。泛型结构体的定义处不必堆 bound，把约束放到真正需要的 impl / 方法上，类型才不会一路把约束传播给所有使用者。
+- **`BoxFuture<'a, _>` 与借用生命周期**：`&'a self`、`&'a str`、`&'a E` 都会被返回的 future 捕获，所以 future 的生命周期参数必须是 `'a`。这正是上一节「用 boxed Future 给 `dyn Trait` 定义异步方法」的用法——`dyn RecordStore<E>` 能用，而原生 `async fn` 在这里不行。
+- **UFCS 消歧，避免自己调自己**：
+
+  ```rust
+  RecordStore::<E>::clear(self.store.as_ref(), scope)
+  ```
+
+  这行等价于「把内部字段当作 `RecordStore<E>` 来调用」，而不是调用 `Composite` 自己的 `clear`。如果写成 `self.clear(scope)`，解析到的就是本 impl 自身，结果是无限递归（或意外的借用错误）。当同一个 trait 名可以在多个接收者上解析时，`Trait::<泛型>::method(receiver, args)` 这种完全限定语法（UFCS）是最直接的消歧手段。
+- **`as_ref()` 决定分派方式**：`self.store.as_ref()` 把持有的组件（或智能指针）转成 `&dyn RecordStore<E>`，这一次调用才是动态分派。要读得准，需要确认组件类型提供了哪种转换：字段是 `Arc<dyn RecordStore<E>>` 时 `as_ref()` 来自 `Arc`；否则通常由组件 trait 通过 `AsRef<dyn RecordStore<E>>` 之类的约束提供。如果省略 `as_ref()`，`self.store.clear(...)` 走的就是泛型静态分派。
+- **一个组合体可以服务多种条目类型**：trait 以 `E` 为参数（`impl<E, P, B, S> RecordStore<E> for Composite<...>`），因此同一个组合体可以为不同的 `E` 各实现一次，只要内部组件满足对应约束。
+- **`std::result::Result` 写全路径**：当 crate 自己定义了 `Result<T>` 别名（只固定一个错误类型）时，公共 trait 签名里写全路径可以避免歧义，也让签名在任何上下文都能编译。
+
+边界与代价：
+
+- 转发 impl 让组合体与内部字段共享同一套语义：内部换实现，上层行为跟着变，所以要保证两边一致（错误类型、幂等性、顺序保证、清理范围）。
+- trait 里若有默认方法，转发实现要逐个确认是否需要覆盖，否则默认实现可能绕过内部委托。
+- 转发层会多一次动态分派（用 `dyn` 时），也在类型上多一层包装；它换来的是「上层只依赖组合体这一个名字」，以及替换内部实现时不改调用方。
+
+与上一节的关系：supertrait 那节解决「内部字段如何声明自己具备完整角色」，这一节解决「组合体如何把该角色原样转出去」，两者常成对出现。
+
 ## Runtime 工程模式与验证
+
+### Rust 中的 SQL：字符串、SQLx 与 SQLite 的分工
+
+> 参考：Codex commit `9d87b771` 的 [`account_thread_goal_usage`](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/state/src/runtime/goals.rs#L411-L523)、[SQLx 依赖配置](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/Cargo.toml#L380-L390)、[Rust raw string](https://doc.rust-lang.org/reference/tokens.html#raw-string-literals)、[SQLx QueryBuilder](https://docs.rs/sqlx/0.9.0/sqlx/struct.QueryBuilder.html)。
+
+`.rs` 文件里可以出现 SQL，因为 SQL 是传给库函数的字符串。Rust 编译器处理字符串和函数调用；SQLx 负责绑定参数、调用数据库、返回结果；SQLite 引擎负责解析和执行 `UPDATE / CASE / WHERE`。这与 Python 调用 `sqlite3.execute(...)`、Java 通过 JDBC 执行 SQL 是同一种分工。
+
+```text
+Rust 业务逻辑 → SQLx（SQL 字符串 + 参数）→ SQLite 引擎 → 本地数据库文件
+```
+
+Codex 这里使用 `QueryBuilder::<Sqlite>` 动态构造查询。下面只保留“累加 token 用量”，用于展示调用方式；完整实现还包含状态判断、时间记账、goal 身份检查和 `RETURNING`：
+
+```rust
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
+
+async fn add_usage(
+    pool: &SqlitePool,
+    thread_id: &str,
+    token_delta: i64,
+) -> Result<(), sqlx::Error> {
+    let mut query = QueryBuilder::<Sqlite>::new(
+        r#"UPDATE thread_goals SET tokens_used = tokens_used + "#,
+    );
+    query.push_bind(token_delta.max(0));
+    query.push(" WHERE thread_id = ");
+    query.push_bind(thread_id);
+    query.build().execute(pool).await?;
+    Ok(())
+}
+```
+
+- `r#"..."#` 是 raw string，内容不处理反斜杠转义，可以跨行、包含双引号；`#` 是字符串边界的一部分，与 SQL 无关。普通字符串也能承载 SQL。
+- `QueryBuilder::<Sqlite>` 中的 `Sqlite` 指定数据库类型；`push(...)` 添加 SQL 片段，`push_bind(value)` 添加占位符并单独绑定值。示例最终相当于 `... tokens_used + ? WHERE thread_id = ?`，参数按出现顺序绑定。
+- 数据值用 bind；表名、列名和条件结构需要受控 SQL 片段。Codex 的状态过滤片段来自 Rust enum 分支中的固定字符串，不能把外部输入直接交给 `push(...)`。
+- `build()` 构造查询；`execute(...).await?` 执行并传播错误。原实现使用 `RETURNING` 配合 `fetch_optional(...).await?`，读取更新后的行，再转成 Rust 的 `ThreadGoal`；没有匹配行时返回 `None`。
+- 这条动态构造路径不会因为 Rust 编译通过就证明 SQL 语法、表名或列名正确；SQL 执行错误进入运行时 `Result`。SQLx 另有可做编译期查询检查的 `query!` 宏，与这里的 `QueryBuilder` 是不同接口。
+
+SQLite 是进程内数据库库，无需另起 MySQL 一类的数据库服务。该版本 Codex 启用 SQLx 的 `sqlite-bundled` feature，并用[文件路径、WAL 与 busy timeout](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/state/src/runtime.rs#L350-L357)配置连接。SQLx 暴露异步接口，不代表 SQL 发往远程服务器，也不代表 SQLite 能同时执行多个写事务。
+
+Goal 把“累计用量 + 超预算切换状态”放进同一条 SQL，是数据库并发控制的设计选择；Rust 所有权系统本身不保证数据库更新的原子性。具体例子见 [SQLite：原子累加与条件状态迁移](./Database.md#原子累加与条件状态迁移)。
+
+补充两个容易读错的 Rust 细节（文章固定版本 `04483f4`）：
+
+- [`let _accounting_permit = ...acquire().await?`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L303-L365) 中，下划线前缀只抑制未使用变量警告；permit 仍被保留到作用域结束，drop 时释放信号量。这里保护的是“取 snapshot → 等数据库写入 → 推进记账基线”的整个过程，包含 `.await`。不要随意改成 `let _ = ...`，后者不保留 guard。
+- [`i64::saturating_sub`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L313-L333) 在有符号整数溢出时截到 `i64::MIN/MAX`，不等于减法最低为 0：`3_i64.saturating_sub(5) == -2`。代码里 `output_tokens.max(0)`、snapshot 的非正增量过滤、SQL 层 delta 的 `.max(0)` 是另外的防线，不能把它们混成一个“饱和减法自动去负数”。
 
 ### `serde_json::Map::extend`：用所有权表达 shallow merge
 
@@ -2696,6 +3025,31 @@ fn apply_snapshot(command: &mut Command, snapshot: Option<Map<String, Value>>) {
 
 若低优先级快照来自 `&self`，无法直接 move，通常需要 clone 一份再合并；若该对象本就只使用一次，则可以改成消费 `self` 的 API，省掉 clone。选择应由生命周期和调用频率决定，而不是一律追求“零 clone”。
 
+### 用 `BTreeMap::entry` 做记录归一化：Vacant / Occupied 三分支
+
+多个来源声明同一资源时，需要归一化（去重 + 冲突检测）。用 entry API 把三种情况写成类型化分支：
+
+```rust
+match records.entry(record.key.clone()) {
+    Entry::Vacant(entry) => {
+        entry.insert(record);
+    }
+    Entry::Occupied(entry) if entry.get() == &record => {}
+    Entry::Occupied(entry) => {
+        return Err(ConflictingDeclaration { ... });
+    }
+}
+```
+
+策略很清晰：
+
+- 第一次出现：插入；
+- 完全相同的重复声明：去重；
+- 同一 key 不同事实：fail closed；
+- 不允许「后写覆盖前写」，避免配置顺序成为隐式策略。
+
+Entry API 的价值：把「不存在 / 已存在」的 map 更新分支变成类型化操作，避免先 `contains_key` 再 `get_mut` 的重复查找；也避免「默认值 + 覆盖」写法把顺序语义藏起来。
+
 ### 层叠配置：先判断 unresolved value 的形状，再决定 deep merge
 
 HOCON 一类层叠配置不只是 `HashMap` 覆盖。include、substitution 和 concat 在解析完成前仍是 unresolved node；若过早把它们当 scalar，会错误阻断 reference/default 层的同级字段回填。
@@ -2757,6 +3111,17 @@ Actor Model 的基本思路是：
 - `EventStore`：在 Actor 重建时提供持久历史；
 - `ModelProvider`：只消费已投影的消息，不负责持久化。
 
+可以进一步抽象成四层职责，每一层只有一个 owner：
+
+```text
+Factory owns configuration       —— 配置解析、能力目录
+Session actor owns mutable state —— 可变的会话状态
+Turn owns immutable snapshot     —— 本轮只读事实（最终 provider + capability）
+Interpreter owns effects         —— 副作用与请求改写
+```
+
+要点：可变状态集中在 Session actor；每轮 turn 的「最终用哪个 provider / model」要到 provider snapshot resolve 后才确定，因此 turn 级冻结成不可变 snapshot；Factory 与 Interpreter 不持有可变会话状态。这样「配置、状态、本轮事实、副作用」各有单一 owner，跨 `.await` 的共享可变性降到最低。
+
 Actor 仍然只是进程内对象：
 
 > Rust 可以保证 Actor 内存状态的所有权边界，但进程重启后的连续性必须由持久化和 replay 保证。
@@ -2784,6 +3149,34 @@ RunFailed(id)
 ```
 
 这样可以保证错误先可见、旧 owner 已释放、新旧执行不重叠。execution ID 是相关性约束，避免另一次运行的 Idle 误触发恢复。若 pending intent 只存在 Actor 内存里，进程重启时会丢失；需要重启级恢复时，应把 intent 或足以重建 intent 的事实写入 durable journal。
+
+### 请求改写链：在 effect boundary 投影能力
+
+当「按最终能力改写请求」需要在正确时机生效时，把它做成 effect boundary（真正执行副作用前）上的 aspect，而不是散落在具体 adapter 里的临时 if/else：
+
+```rust
+impl<M> Aspect<
+    PreparedRequest<M>,
+    ExecutorResult<M>,
+    ExecutorError,
+> for FeatureProjectionAspect
+```
+
+对任意实现 Executor 的请求，在调用下一个 handler 前改写 prepared request。安装顺序就是执行顺序：
+
+```text
+system-prompt
+→ model-compaction（先压缩，得到最终 prompt）
+→ capability projection（对最终请求做能力投影）
+→ invisible retry（复用已投影的请求）
+→ provider compatibility recovery（route 仍拒绝时兜底）
+→ trace → run-progress / provider
+```
+
+要点：
+- 先 compaction 后 projection，保证改写发生在「最终 prompt」上；
+- retry 复用已投影请求，compatibility recovery 兜底，职责不重叠；
+- `map_builder` 消费并返回原 `PreparedRequest`：改写内部 builder，但保留外层 request 的其它不变量（call index、tool names、stream callback、live history rewrite）——Rust ownership 让「改写内部、不丢外层旁路状态」成为可能。
 
 ### Event replay：事件、projection 与 hydrate
 
@@ -2856,6 +3249,8 @@ request -> command intent -> actor validation/mutation
 ```
 
 这样命令被拒绝时，actor 与入口 projection 都保持旧状态；成功事件则成为所有投影共同认可的 commit point。
+
+**canonical facts 与 ephemeral projection 分离**：canonical（持久化的 goal / session 事实）只能来自可信事实源，是 durable recovery 的依据；provider projection（每次 resolve 出的 provider / capability 快照）是 ephemeral 的，只用于本轮执行，不写回 canonical。一个具体的安全边界：capability 只能通过 trusted materialization context 注入（普通 client 不能伪造「模型支持 X」），且 agent 与 capability 必须来自同一次 materialization，不能分别读取后再拼装。日志只记录 model id、capability source / revision、三态和未知 literal 数量，不记录媒体内容。
 
 #### 一个逻辑变更尽量对应一个 aggregate command
 

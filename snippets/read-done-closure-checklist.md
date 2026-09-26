@@ -2,6 +2,8 @@
 
 当用户说 `读完`、`读后感`、`我读完这篇 paper 了` 时，先按这个清单收尾，避免只做摘要或只改一个局部笔记。
 
+默认不生成 Agent Harness 主控转发建议 / 转发稿，也不输出“本轮无主控转发”占位说明；仅在用户明确要求时提供。
+
 ## 必交付
 
 1. **已落盘位置**
@@ -29,14 +31,10 @@
    - 如果派生文档是从本地 canonical section 生成的，记录 canonical path、远端链接和远端 revision / 更新时间。
    - 本地 canonical section 同步飞书时，按 [lark-derived-doc-sync-checklist.md](lark-derived-doc-sync-checklist.md) 执行。
 
-6. **Agent Harness 主控转发稿**
-   - 只有材料改变 Agent Harness / OpenViking / tau2 / memory feedback / runner bridge 设计判断时输出。
-   - 包含：背景、建议动作、验收标准、claim boundary、相关链接/文件。
-
-7. **用户可复用表达**
+6. **用户可复用表达**
    - 2-4 句用于同事讨论、面试 deep dive、读书会或写作的话。
 
-8. **下一步建议**
+7. **下一步建议**
    - 最多 1-3 个动作。
    - 阅读本身不算完成；下一步必须连接到 schema、benchmark、设计文档、case taxonomy、代码或汇报材料。
 
@@ -48,7 +46,6 @@
 3. material 状态变化
 4. 上层 high-level 同步检查
 5. 派生文档同步校验
-6. Agent Harness 主控转发稿
-7. 用户可复用表达
-8. 下一步建议
+6. 用户可复用表达
+7. 下一步建议
 ```

@@ -32,6 +32,8 @@
 * 兼容性：A good data model is tolerant of evolution over time.
 * Effective data models are not even slightly clever.
 
+* Domain state 与 projection metadata 按语义归属分层，不能只按“是否出现在 UI”分类。任务的 `archive_state` 若决定是否进入活跃工作集，就属于持久化业务状态；`source_section`、文档内 `index` 属于展示位置。若排序本身表达业务优先级，则应另建 domain 字段。移除 renderer 后仍需保留、参与决策或审计的字段，不应要求 adapter 临时伪造。可参考 [Todo domain / projection contract](https://github.com/huangruiteng/loopx/blob/e3f9b5366015f6ad7ae306f8b01fc6e2b3e3806b/loopx/control_plane/coordination/coordination_state_contract.ts)；投影同步边界见下文 Outbox。
+
 
 
 ### A/B Testing
@@ -174,7 +176,7 @@ YAGNI（You Aren’t Gonna Need It）的核心是拒绝为想象中的未来需�
 
 ### 软件测试与质量保障：从规格到生产
 
-测试提供的是**针对已表达条件的反例搜索与回归证据**，不能证明软件没有 Bug。QA（Quality Assurance）比测试更宽：它还包括规格评审、流程设计、质量门禁、风险管理、发布验证、生产监控和复盘。
+测试提供的是**针对已表达条件的反例搜索与回归证据**，不能证明软件没有 Bug。QA（Quality Assurance）比测试更宽：它还包括规格评审、流程设计、质量门禁、风险管理、发布验证、生产监控和复盘。对 [refactor 任务](#refactor-eval真实负载写流量回放与-no-op)，还要分别证明行为保持、重构目标完成和新实现确实被执行。
 
 #### 测试组合：不同层次回答不同问题
 
@@ -243,6 +245,48 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 - **Performance / load / soak testing**：分别检查延迟与吞吐、并发负载、长时间运行下的泄漏和退化。
 - **Security testing**：结合 SAST、依赖扫描、DAST、fuzzing、权限与威胁模型；普通功能测试无法覆盖其全部风险。
 
+#### Refactor eval：真实负载、写流量回放与 no-op
+
+[Refactoring](https://refactoring.com/) 的目标是在保持可观察行为的前提下改变内部结构。因此，refactor eval 需要同时检查**行为保持、任务目标完成、验证路径有效**；仅比较输出或统计测试通过率，会把“原样交回”也评成成功。下面是通用工程框架，不是某个 benchmark 已实现的评分规则。
+
+**真实 workload：录制请求，也要保留执行条件。** 少量手写 happy path 无法代表真实负载；录制流量可提供请求分布、调用链、历史错误和长尾输入，但录到了多少请求不等于覆盖了多少语义。
+
+| 需要覆盖 | 评测关注点 |
+| --- | --- |
+| 输入与状态 | 请求种类、参数关联、数据规模与倾斜、空值、边界值、schema / 配置版本、初始状态 |
+| 时间与依赖 | 会话内顺序、读写依赖、并发冲突、重试、超时、部分失败、时钟与随机数 |
+| 运行条件 | 冷 / 热缓存、连接池、外部依赖响应、后台任务及资源限制 |
+| 结果 | 响应与错误语义、最终状态、外部副作用、必要的事件顺序，以及延迟和资源开销 |
+
+按业务风险分层抽样，单独报告关键写路径与罕见失败，不让大量简单读请求淹没它们。录制数据脱敏时保留关联、分布与因果关系；保留未参与开发的流量集，并用人工构造或故障注入补充录制期没出现的情况。真实性、覆盖率与可复现性需要分别记录。
+
+新旧实现应从相同版本的初始状态分别运行同一工作负载，并固定或记录相关依赖。比较可以容许已声明的非确定性差异，但不能笼统忽略时间戳、ID、顺序等字段：生成 ID 可以映射后比较，引用关系仍须一致。旧实现是兼容性参照，不是绝对正确的规格；若同时修 Bug，应把预期行为变化单列。
+
+**写流量：复制请求不等于可以安全、有效地重放。** 创建订单、扣库存、发消息等操作依赖先前状态；重复发送可能再次产生副作用，也可能因“已创建 / 已扣减”走到另一分支。沿用已消费的幂等键还可能只返回缓存结果，完全没执行待验证逻辑。例如 [Stripe 幂等请求](https://docs.stripe.com/api/idempotent_requests) 会保存同键首次执行的状态码和响应，后续返回同一结果；这是接口特定的重试保证，不是通用 replay 环境。
+
+| 验证方式 | 能得到的证据与边界 |
+| --- | --- |
+| 隔离状态回放 | 给新旧实现各一份相同的数据库 / 缓存快照或 fixture，重建请求依赖，分别执行后比较响应、状态与副作用；仍需补并发交错与故障场景 |
+| 捕获副作用意图 | 核心逻辑真实运行，在邮件、支付、消息等出口记录 payload、目标、次数与顺序；证明“打算做什么”，不能证明外部投递或事务正确 |
+| 受控集成环境 | 对关键路径使用独立数据库、队列、测试账户等验证实际提交与可观察结果；覆盖依赖服务真实语义 |
+| 只读 shadow / 流量镜像 | 可观察候选处理真实请求的情况；必须核对实际副作用和共享资源影响，不能只凭 HTTP 方法判定只读 |
+
+流量镜像也不自带差分判定：[Istio mirroring](https://istio.io/latest/docs/tasks/traffic-management/mirroring/) 的镜像响应会被丢弃，要额外采集才能比较；“不把候选响应返回给用户”不意味着候选不会写库或发消息。事务回滚也只能撤销事务覆盖的变更，不能自动收回已发邮件、外部扣款等动作。
+
+例如回放“库存为 2 时下单 1 件”，新旧实现应各从库存为 2 的独立状态开始，分别得到库存 1、一笔订单和预期事件；不能让旧实现先改同一数据库，再让新实现处理一次。首次创建与相同幂等键重试应作为不同 case：后者不新增订单可能正是正确行为。
+
+**No-op 检测：行为没变是要求，没有完成重构才是失败。** 至少区分三层：
+
+| 层次 | 容易出现的假成功 | 有效检查 |
+| --- | --- | --- |
+| 提交 no-op | 空补丁、只改注释 / 格式、增加无人调用的新模块 | 验证任务声明的结构目标；例如调用者确实迁移、旧依赖退出构建 / 发布闭包、重复实现被消除。非空 diff 或行数变化不构成完成证据 |
+| 执行 no-op | 加载旧构建、flag 未切换、全部 fallback、请求只命中幂等缓存 | 记录构建 revision、路由选择、候选调用与 fallback；确认目标路径承担了预期工作，而不只是进入过函数 |
+| 验证 no-op | Mock 永远成功、所有写操作被吞掉、只检查 HTTP 200、差分规则忽略关键变化 | 对应有变化的 case 检查状态增量与副作用；给候选注入“跳过写入 / 改错结果”等已知缺陷，确认评测会失败 |
+
+增加两个对照：**原样提交应通过行为保持测试，但不能通过重构完成门槛；已知错误变体应被相关断言发现。** 后者可复用 [mutation testing](#mutation-testing测试测试能否发现错误)，但变异必须在该 case 中确实改变要求的行为。合法的幂等重试、未命中更新或拒绝冲突可能本来就不写，不能要求每条请求都有状态变化。
+
+验收先声明结构目标和允许变化，再固定新旧 revision、状态与 workload，按副作用选择回放方式，最后报告行为差异、目标完成度、候选实际执行与资源回归。性能优化任务还需相同质量与负载下的重复测量；普通重构不必更快，但应满足既有性能预算。无法隔离的写路径应列为未验证或另走受控集成，不能算进“全量回放通过”。
+
 #### QA 流程与质量指标
 
 一条可执行的质量链路通常是：
@@ -273,7 +317,7 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 
 #### 测试设计的最低要求
 
-- 新增回归测试应先在旧实现上失败，再在修复后通过，证明它有辨别力。
+- Bug 修复的回归测试应先在旧实现上失败，再在修复后通过；纯重构的行为测试则应新旧都通过，另行验证结构目标，不能把两种验收混为一谈。
 - expected result 应来自规格或独立 oracle，不能照抄被测实现的输出。
 - 除 happy path 外，覆盖边界值、非法输入、部分失败、重试、幂等、并发与状态恢复。
 - Mock 外部边界，不要把核心业务逻辑全部 mock 掉；关键集成仍需面对真实或高保真依赖。
@@ -363,11 +407,11 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
   * 大写 TOP：Taobao Open Platform（淘宝开放平台）的缩写，指淘宝/阿里系对外开放数据和能力的 HTTP API；外部服务、小程序、千牛插件都会调用
   * 调用特点：REST 风格，大部分接口支持 GET/POST，写操作只支持 POST；用 app key + 签名请求 TOP 服务器，返回业务数据
   * 前端调用常见入口：千牛插件用 `QN.top.invoke()` / `QN.top.batch()`，小程序用 `cloud.topApi.invoke()`；涉及权限/敏感数据的接口一般要在服务端转发
-  * 联调语境里若看到小写 `top`，多半不是淘宝 TOP：可能是 `window.top`（iframe 嵌套时返回最顶层窗口，常配合 postMessage 做跨层通信），也可能是团队内部对“顶层聚合接口/BFF 入口”的简称；先看上下文再判断
+  * 联调语境里若看到小写 `top`，多半不是淘宝 TOP：可能是 `window.top`（iframe 嵌套时返回最顶层窗口，常配合 postMessage 做跨层通信），也可能是团队内部对“顶层聚合接口/BFF 入口”的简称；先看上下文再判断。BFF 的职责边界与适用场景见 [Web-基础：BFF](./Web-基础.md#bffbackend-for-frontend)
 
-### 开发协作工具链：GitHub / GitLab / SonarCloud / 1Password / Confluence / JIRA / Netlify
+### 开发协作工具链：GitHub / GitLab / Gitea / SonarCloud / 1Password / Confluence / JIRA / Netlify
 
-一套典型 SaaS 研发链路的串联视角：代码托管（GitHub / GitLab）→ 质量门禁（SonarCloud）→ 凭据管理（1Password）→ 团队文档（Confluence）→ 任务跟踪（JIRA）→ 前端部署（Netlify）。
+一套典型 SaaS 研发链路的串联视角：代码托管（GitHub / GitLab / Gitea）→ 质量门禁（SonarCloud）→ 凭据管理（1Password）→ 团队文档（Confluence）→ 任务跟踪（JIRA）→ 前端部署（Netlify）。
 
 **GitHub**
 * 定位：全球最大代码托管与协作平台（git 仓库 + PR / issue + 社交化开源）。
@@ -378,6 +422,13 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 * 定位：DevOps 一体化平台，一个应用内包含 repo + CI/CD + 安全扫描 + 容器 / 部署 + wiki。
 * 核心：Single Application 理念；支持自托管（CE / EE），数据不出内网；内置 CI/CD（`.gitlab-ci.yml`）、代码质量、SAST / 依赖扫描。
 * 对比 GitHub：GitHub 偏「生态 + 协作」，GitLab 偏「一体化 + 可自托管」，适合数据合规 / 私有化要求高的团队。
+
+**Gitea**
+* 定位：Go 写的轻量自建 Git 服务，官方口径是「painless、self-hosted、all-in-one」：Git 托管 + PR / code review + issue / 看板 + package registry + CI/CD 收在一个二进制里，面向个人、小团队和内网私有化部署。
+* 核心：单二进制 + SQLite / MySQL / PostgreSQL / MSSQL 任选；`gitea` CLI 负责运维（含 `dump` 备份）；资源门槛低（官方口径 Raspberry Pi 3 可跑小负载，2 核 1GB 够小团队）；Gitea Actions 语法兼容 GitHub Actions，但要单独部署 Gitea Runner；内置 packages registry、LFS、webhook、OAuth2 / LDAP、仓库迁移导入，code review 支持 PR 与 AGit 两种流程；官方还配 Tea CLI 与 VS Code 扩展。
+* 对比 GitLab：GitLab 是一体化全家桶（安全扫描、更完整的权限与流水线）；Gitea 砍掉这部分能力，换「一个二进制 + 一个数据库」的部署与运维成本。私有化 / 合规两者都能做，选型看功能覆盖面与运维投入。
+* 谱系与治理（选型前值得知道）：2016 年从 Gogs 分叉（几乎全部重写，也不从上游同步代码，从 Gogs 过来要迁移仓库而不是原位升级）；2022-10 创建者成立 Gitea Ltd. 并转移域名与商标，社区事先未参与决策、引发争议，随后出现分叉 Forgejo——域名由柏林非营利组织 Codeberg e.V. 托管，Codeberg 自身就跑在 Forgejo 上，Forgejo 自 v9 起改为 GPLv3+、2024 年初起与 Gitea 成为 hard fork。Gitea 侧现在每年由 maintainer 投票选举 TOC，商业支持与 Gitea Cloud / Enterprise 来自创始团队的公司 CommitGo。
+* 适合：内网 / 隔离环境自建代码托管；资源有限的小团队；想要 GitHub 式体验但代码必须留在自己机器上的场景。
 
 **SonarCloud**
 * 定位：代码质量与安全静态分析云服务（SonarQube 的 SaaS 版）。
@@ -404,9 +455,40 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 * 核心：Git 推送即部署、PR 预览部署（Preview Deployments）、CDN + 边缘、Serverless Functions、表单 / 身份、回滚。
 * 对比：Vercel 同为前端部署平台（更偏 Next.js 生态）；Netlify 偏静态站 / 内容站点；个人轻量站也可用 GitHub Pages。已提及见 [Web-基础.md](./Web-基础.md)「部署到 Vercel、Netlify、Cloudflare 这类平台」。
 
-选型一句话：开源 / 云原生协作选 GitHub；私有化 / 合规一体化选 GitLab；质量门禁接 SonarCloud；人与开发者凭据用 1Password；规模化文档与任务用 Confluence + JIRA；前端发布用 Netlify / Vercel。
+选型一句话：开源 / 云原生协作选 GitHub；私有化 / 合规一体化选 GitLab；自建轻量 / 内网部署选 Gitea（更看重社区治理可换 Forgejo）；质量门禁接 SonarCloud；人与开发者凭据用 1Password；规模化文档与任务用 Confluence + JIRA；前端发布用 Netlify / Vercel。
 
-来源：各官方站点 [GitHub](https://github.com)、[GitLab](https://about.gitlab.com/)、[SonarCloud](https://www.sonarsource.com/products/sonarcloud/)、[1Password](https://1password.com/)、[Confluence](https://www.atlassian.com/software/confluence)、[JIRA](https://www.atlassian.com/software/jira)、[Netlify](https://www.netlify.com/)。
+来源：各官方站点 [GitHub](https://github.com)、[GitLab](https://about.gitlab.com/)、[Gitea](https://about.gitea.com/)（对比与部署细节见 [Gitea Docs](https://docs.gitea.com/)、[Forgejo](https://forgejo.org/)）、[SonarCloud](https://www.sonarsource.com/products/sonarcloud/)、[1Password](https://1password.com/)、[Confluence](https://www.atlassian.com/software/confluence)、[JIRA](https://www.atlassian.com/software/jira)、[Netlify](https://www.netlify.com/)。
+
+
+
+### Linear：给特定人做工具的公司样本（小团队、质量、agent 转向）
+
+> Linear 是一家产品开发 / issue tracking / roadmap SaaS，2019 年成立，总部旧金山、全员远程。它是 JIRA 之外最有代表性的现代工程协作工具样本：先靠 opinionated 的体验赢得 PMF，再在 2026 年主动宣布 issue tracking 已死、转向 context + agents。
+
+**创始与 PMF（First Round Review 口径）**
+* 三人均被 JIRA 折磨过：Karri Saarinen（CEO，Airbnb principal designer / Coinbase 创始设计师）、Jori Lallo（CPO，前 Coinbase）、Tuomas Artman（CTO，前 Uber / Groupon 工程）；动机是「给自己和同类 IC 造工具」。
+* 节奏：正式创业前一年每周三在酒吧讨论验证需求 → 2019-03 全职、一个月做出可用原型 → 2019-04 邀请制 beta（每周只放约 10 人）→ 约一年 waitlist、约 1000 DAU 后才公开 → 2021 年盈利。
+* 产品哲学：设计给特定的人，强默认、opinionated，不追求无限可配置；早期功能刻意分 Enabler（让现有用户更开心）和 Blocker（扫清 ICP 加入障碍）两类。
+* Linear Method 11 条把「小团队、质量、原则而非手册」写成制度：Ship early & smaller、Build with users、Know what good looks like、Think in principles not playbooks、Build things that last、Avoid side quests、Say it as it is、Keep the team small / do more with less、Hire the best people、Create fans、Fully remote；质量是 competitive advantage 和公司 gravity，明确反 hustle / 996 文化。
+
+**规模与资本（截至 2026-08）**
+* 融资：2019 seed $4.2M → 2021 Series B（Accel 领投，$400M 估值）→ 2025 Series C（$1.25B）→ 2026-08 员工流动性轮 $2.5B 估值（Accel 领投、$99M，新增 Salesforce Ventures / S32）。
+* 业务：ARR $100M+、40,000+ 付费组织、net revenue retention 177%；客户含 OpenAI、Coinbase、Ramp、Vercel、Stripe、Figma，AI 原生客户含 Cursor、Cognition、Harvey、Physical Intelligence、Legora、Baseten；Ramp / Coinbase 已自建集成 Linear 的 custom coding agent。
+* 组织与财务纪律：全员远程下团队从约 120 人只扩到 2026 年的 203 人，工程约 25 人量级；2026-08 口径现金流转正、账面现金超过历史 primary 融资总额，因此拒绝稀释性融资。
+* 定价：免费版限 250 active issues；付费档约 $8–14/user/mo（Standard→Plus），Enterprise 按需——显著高于老牌 issue tracker，靠价值而非低价取胜。
+
+**产品演进与 2026 agent 转向**
+* 产品从 Issue 起步长成 shared product system：Issue / Cycles / Projects / Roadmaps / Inbox / Analytics / Project Docs；产品速度 sub-100ms、键盘优先。
+* 2026 年明确范式判断：issue tracking 是围绕 handoff（人传人交接）设计的，agent 时代应围绕 context（agents 可共享、消费、执行的产品上下文）设计；推出 Linear Agent + Skills / Automations + Code Intelligence，外部接 Claude Code / Codex，2026-06 起 Coding Sessions 可在 Linear 内完成 triage → plan → review → ship。
+* 官方效果口径（日期不同不可混用）：2026-03 称 75%+ enterprise workspaces 装了 coding agent、agent 活动量 3 个月 5x、agent 撰写约 25% 新 issue；2026-08 传播口径为 95% paid workspaces 使用 coding agent、agent 产出的工作占比一年内从 3% 到 50%；2026-06 changelog 称约 30% incoming bug reports 由 Linear Agent 一轮解决。
+
+**对研发协作与 agent infra 的启发**
+* Linear 是把「质量先行 + 小团队 + opinionated 工具」同时落到产品形态和管理制度的可研究样本；其克制（功能分层、拒绝无限配置）正是很多 agent 产品缺的部分。
+* 对 coding agent 的量化：bug 自动一轮解决率 30%、agent 撰写 issue 占比等是生产环境的 real signal，接近 harness 里 triage → reproduce → fix → verify 闭环的成功率口径，值得做成可对照的 eval。
+* 其 agent 指标随时间明显漂移（安装率 75%+ vs 95%、占比 25% vs 50%），引用必须带日期和定义（installed vs active、new issues authored vs work share）——这本身就是 agent 产品数据报告的典型案例。
+* 若 issue 的主要消费者从人变成 agent，tracker 的价值就从「人的状态看板 / 交接系统」转向「context store + 可执行工作单元」，状态机、owner、handoff 语义都会重构。
+
+来源：[Linear About](https://linear.app/about)、[Linear Method](https://linear.app/method)、[Careers](https://linear.app/careers)、[Linear Next：Issue tracking is dead](https://linear.app/next)、[Coding Sessions changelog](https://linear.app/changelog/2026-06-11-coding-sessions)、[First Round Review：PMF 之路](https://review.firstround.com/linears-path-to-product-market-fit/)、[First Round Review podcast：Inside Linear](https://review.firstround.com/podcast/inside-linear-why-craft-and-focus-still-win-in-product-building/)、[Contrary Research 报告](https://research.contrary.com/company/linear)、[Pulse2：$2.5B tender / ARR $100M](https://pulse2.com/linear-completes-99-million-tender-at-2-5-billion-valuation-as-arr-tops-100-million-and-net-retention-hits-177/)、[ValueAddVC：商业模式拆解](https://valueaddvc.com/blog/how-does-linear-make-money-per-seat-pricing-product-led-growth-and-the-2b-valuation-breakdown)。
 
 
 
@@ -473,6 +555,8 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 系统迁移是在公司和代码库增长过程中，唯一能够规模化解决技术债的有效机制。当公司快速发展时，任何工具或流程都将达到其规模上限，迁移因此成为必然。有效的迁移能力是维持组织高效迭代的关键，否则最终将陷入技术债的泥潭或被迫进行更具破坏性的完全重写。
 
 #### 迁移执行三阶段
+
+有状态系统还要明确 source of truth 的切换：shadow 阶段由旧系统写入、候选系统跟随；promotion 后由新系统写入、旧格式降为兼容视图。两端长期各自接受业务写入，会把迁移变成双 authority。事务捕获、追平水位、旧 writer fencing 和回退条件见 [Outbox：把业务提交与异步投递绑定](#outbox把业务提交与异步投递绑定)。
 
 一次成功的迁移可以遵循一个标准化的三阶段手册：
 
@@ -788,6 +872,73 @@ Application log
 一句话：
 
 > WAL 是“先留下足以恢复的证据，再允许正式状态落盘”的存储协议；Event Sourcing 是业务状态模型，Outbox 是跨系统投递协议，Raft 是复制与共识协议。
+
+### Outbox：把业务提交与异步投递绑定
+
+> 来源：[Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)；文件系统变体参考 [transaction-bound capture](https://github.com/huangruiteng/loopx/blob/e3f9b5366015f6ad7ae306f8b01fc6e2b3e3806b/loopx/control_plane/coordination/local_authority_shadow_outbox.py)、[drain / receipt / cursor](https://github.com/huangruiteng/loopx/blob/e3f9b5366015f6ad7ae306f8b01fc6e2b3e3806b/loopx/control_plane/coordination/local_authority_shadow_adapter.py)。通用机制与该实现的阶段性保证分开理解。
+
+业务状态提交成功之后，消息、搜索索引、shadow store 和 Markdown 视图可能尚未更新。可靠同步需要持久化“这次提交还欠哪些投递”，并在重启后继续完成。
+
+#### Snapshot 的版本归因与 Outbox 的提交边界
+
+事后快照有两个独立问题：采样内容可能属于后续事务；主写入与回调之间存在丢失窗口。
+
+```text
+A：提交 Todo「已认领」，revision = 10
+B：提交 Todo「已完成」，revision = 11
+A：shadow 回调开始采样 → 读到 revision 11
+```
+
+revision 11 可以是一份完全一致的快照，却无法代表 A 的提交结果。如果把它绑定到 A 的 operation，就把“此刻看到什么”误当成“那次事务写了什么”。跨文件采样还可能混合不同时间点。MVCC snapshot 能解决一致读，但只有显式绑定目标 revision，才能进一步解决事务归因。
+
+如果 A 在主提交成功后、调用 shadow 前崩溃，内存中的回调还会直接丢失。提高轮询频率只能缩短平均延迟，不能消除这两个正确性窗口。
+
+经典 Transactional Outbox 把业务数据和待投递消息放进同一个数据库事务：
+
+```text
+BEGIN
+  修改业务状态
+  插入 outbox(event_id, aggregate_id, version, payload)
+COMMIT
+
+relay：读取已提交 outbox → 投递 → 确认进度 → 按策略回收
+```
+
+事务回滚时，两者一起回滚；事务提交时，待投递意图已经持久化。发送可以发生在锁外，由独立进程重试。最终送达仍依赖存储可靠、relay 持续运行、下游恢复可用以及足够的保留期。
+
+文件系统迁移可以采用较弱的 transaction-bound capture：持有主 writer 的同一把锁，先 durable 写 `prepared`（绑定即将写入的内容、摘要和序号），再执行主写入，成功后写 `committed`；释放锁后 drain。锁保证配合该协议的 writer 不交错，但多个文件的写入并未因此成为一个原子事务，仍需要逐个分析 crash window，也不能把它等同于分布式 2PC。
+
+上述参考实现让 shadow 捕获失败不影响主业务提交，并用 typed evidence 报告缺口。这适合默认关闭的迁移观测路径；若对外承诺每个已提交业务效果都有可靠投递，则必须使用同事务 outbox，或提供覆盖全部缺口、经过验证的恢复协议。
+
+Outbox 的 payload 可以是 domain event、delta，也可以是绑定 revision 的完整分区快照。选择快照可简化应用端，但会增加写放大；选择 delta 需要严格定义缺失字段、显式删除、顺序和 schema 演进。Outbox 并不要求系统采用 Event Sourcing，也不自动替代持久化业务主记录。
+
+#### 重试、顺序与投影：保证到哪里
+
+**投递通常是 at-least-once。** 下游已提交、relay 尚未记录 ACK 时崩溃，恢复后会重发。消费端需要把去重 receipt 和业务效果放在同一原子提交边界内：同一 `event_id`、同一 payload digest 返回原结果；同 ID 不同内容应拒绝。幂等保证只覆盖这个边界及其 receipt 保留期，不能自动扩展到邮件、扣款等外部副作用。
+
+**幂等和顺序是两个问题。** revision 11 先渲染完成，迟到的 revision 10 仍可能把文件覆盖回旧版本，即使两次都只执行了一遍。可对同一 aggregate / partition 串行 drain，或在发布阶段用锁、CAS、fencing token 检查单调水位；仅在渲染开始前比较版本不够。独立分区序号不提供跨分区总序或全局一致快照。
+
+恢复时至少检查以下窗口：
+
+| 中断位置 | 恢复要求 |
+| --- | --- |
+| prepared 已落盘，主写入是否完成不明 | 用可靠提交证据或受锁保护的 readback 判定；无法证明就保留 `unproved`，不能猜成成功。当前值相同也未必能排除 A→B→A 历史 |
+| 下游已提交，drain cursor 未前移 | 用原 entry ID 重试，从 receipt 恢复原结果，不能重复业务效果 |
+| cursor 已持久化，entry 文件尚未清理 | 当作已消费残留回收，不再分配同一序号或重复应用 |
+| cursor 损坏、序列缺口或 schema 不支持 | 停止并报告；按受控协议核对 receipt / reseed。新快照能恢复当前状态，不等于补齐丢失的事务历史 |
+
+迁移过程中，Outbox 的同步方向会随 authority 切换：
+
+```text
+切换前：旧主存储 → capture outbox → shadow candidate → 对齐版本后比较
+切换后：新 provider → projection outbox → Markdown / 索引 / 旧格式视图
+```
+
+Shadow receipt 只证明候选端接收了某条记录。要声称 parity，还需在同一 source revision / 分区水位、同一 schema 与规范化规则下，比较完整业务字段。积压导致候选落后时，应区分“尚未追平”和“相同版本结果不一致”；采样几次一致也不能代替混合 writer 和崩溃恢复验证。
+
+Promotion 需要在受控边界内追平、验证并 fence 旧 writer；之后业务决策只读新 authority。兼容视图可以短暂落后，用 `projection_revision` 暴露新鲜度；需要 read-your-writes 时，可等待投影追到本次写入 receipt 的 revision，或直接读取 authority。渲染器不能因为主存储不可用，就反向把过期视图当成真相。
+
+Domain / projection 分层让 renderer 可以替换；transaction-bound outbox 让提交后的同步可以恢复。二者分别解决数据归属和效果交付，只有组合起来，才能安全地把旧存储降为兼容视图。
 
 ### Event Sourcing：用事件日志重建系统状态
 
