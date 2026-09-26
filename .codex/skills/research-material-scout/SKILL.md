@@ -345,7 +345,7 @@ Directive convention:
 - `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and append one managed candidate through exact-read evidence, immutable content backing, authority CAS, readback, and receipt.
 - `调研：<question/topic>` means active research. Use broad recall plus source verification, then write high-signal candidates and recommendations.
 - `整理笔记：<link/text>` or "整理笔记 + named note/theme" means direct note integration. The output surface is `Notes/`, not the candidate library by default. Named target and source-domain taxonomy win over career priority.
-- `请你读：<material id/link/title>` means Codex reads first, then returns both a mechanism-first summary and a reader map for the user. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output requirements, but defaults to deeper pass-3 reconstruction when the material warrants it.
+- `请你读：<material id/link/title>` means Codex reads first, then returns an illustrated mechanism-first summary and a reader map in the conversation. Do not organize or edit notes during this command. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output boundaries, but defaults to deeper pass-3 reconstruction when warranted.
 - `读完：<material id/link/title + user notes>` means close the reading loop. Update the best `Notes/` landing before archiving unless the content is private-only. Treat user-highlighted points as retention requirements: concrete prompts, env flags, schema fields, tool/API names, figures/tables, failure cases, doubts, and comparison phrases should be preserved in the public note when safe and conceptually useful; `.local` may keep raw/private/full detail, but must not be the only landing for points the user explicitly asked to remember.
 - `继续调研` means continue the latest active-research theme, but only if adding new sources or a new decision-relevant synthesis.
 
@@ -355,11 +355,17 @@ For each user-provided material:
    - `整理笔记`: use the repository note-integration workflow. If the user named a file/section, inspect that target first; if not, classify the source's primary contribution such as model algorithm, training method, inference system, agent runtime, product strategy, or career signal, then find the matching note. Do not default to Agent infra just because the material is AI-related.
    - `素材`: intake to the current managed material authority. Do not write the legacy candidate Markdown.
    - `调研`: prioritize by the user's 70/20/10 career plan.
-   - `请你读 / 精读`: read first, then decide whether the result should be summarized only, integrated into notes, or later archived.
+   - `请你读 / 精读`: read and explain in the conversation, with relevant images displayed inline. Save only source caches, figure assets and reading evidence under `.local/` or the task artifact directory; do not edit `Notes/`, its indexes, or the material lifecycle/ranking. Note integration requires an explicit `整理笔记` or `读完` request; an artifact delta here is a proposal, not permission to implement it.
+
+### Illustrated Reading Output
+
+For `请你读 / 精读`, show relevant images in the final answer, not only image links or a claim that figures were inspected. Prefer a small selection of source figures, table screenshots or source-rendered diagrams that explain the core mechanism and evidence. Inspect each image and explain its labels, axes, main comparison and limitations next to it. Cite the original figure/page. If the source has no suitable readable figure, create a faithful explanatory diagram and explicitly label it as a Codex illustration, not an original figure or measured result. Never fabricate unseen figures; if source access blocks an image, state the gap. Keep reading assets outside `Notes/` until note integration is explicitly requested.
 
 ### User-Highlighted Detail Preservation
 
 When the user provides a numbered/bulleted readout, quoted phrase, prompt snippet, schema, env var, failure case, or says "这个值得作为专题section / 概念级别 / 这个点要记", treat it as first-class source material rather than optional color.
+
+The note-writing rules below apply to `整理笔记 / 读完`. During `请你读 / 精读`, cover the user's details in the illustrated conversation answer; do not turn detail preservation into unsolicited note edits.
 
 - Account for every explicit user point before closing the turn: either in `Notes/`, in `.local` with a privacy/version reason, or intentionally skipped with a reason reported to the user.
 - Prefer distilled-but-concrete preservation in `Notes/`: short prompt excerpts or paraphrases, tool names, env flags, schema fields, benchmark names, mode names, key tables/figures, and caveats. Do not over-compress them into only an abstract framework.
@@ -423,7 +429,7 @@ Before reporting that a research task is done:
    - why it matters to the user's 70/20/10 career plan,
    - next action.
 4. Confirm the candidate stable ref exists exactly once in the current managed catalog, the immutable content backing digest verifies, and an intake receipt records CAS/readback success.
-5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when the material is a paper or research artifact, and contains a concrete "用户本人还需要读什么" reader map. If the answer is "不用读原文", still say which sections were inspected and why they are skippable, and provide a richer substitute-quality digest so the user does not lose meaningful value by skipping the original.
+5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when applicable, visibly includes relevant images with source attribution and explanation, and contains a concrete "用户本人还需要读什么" reader map. Verify that no note/index or lifecycle/ranking edits were made as part of reading. If the answer is "不用读原文", still name the inspected sections and provide a substitute-quality digest.
 6. For tool / standard / API / framework bundles, check that the answer starts with background and workflow introduction: why this thing exists, what pain it solves, what breaks without it, and how each component is positioned. Then explain each component as a standalone material before mapping to Agent Harness / OpenViking. Do not start directly from jargon, fields, or claim maps, and do not let the project mapping crowd out the source-content explanation.
 7. For `读完` / note integration, run a user-highlighted point audit: every explicit bullet, numbered item, prompt snippet, schema field, env flag, comparison phrase, or doubt from the user is either present in `Notes/`, present only in `.local` with a privacy/version reason, or intentionally skipped with a reason reported.
 8. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
@@ -458,10 +464,10 @@ For `请你读` / `精读`, Codex should read first and then provide a mechanism
 5. Claim map: main claims, evidence, confidence, and what would make each claim false.
 6. 精要内容和核心设计: problem, boundary, input/output, data/interface format, workflow, metrics, baselines, main results, limitations, and key figure/table/code path.
 7. 核心机制: 3-6 numbered mechanisms, each with "what the author does/proves" and "how the user should interpret it".
-8. 对用户 artifact 的直接改造: schema, feedback signal, benchmark variant, TODO, steering, or interview/deep-dive line.
+8. 对用户 artifact 的改造建议: schema, feedback signal, benchmark variant, TODO, steering, or interview/deep-dive line; discuss proposals without implementing changes during reading.
 9. 用户本人还需要读什么: mandatory reader map with concrete original sections, figures, tables, code paths, and a decision for each: `must-read`, `optional`, or `skippable`. Do not only say "读摘要即可"; name the exact parts that justify that decision.
 10. 边读边核验的问题: 3-6 sharp checks, especially leakage, counterfactual reliability, metric validity, transferability to Agent Harness / TAU2.
-11. Do not archive during `请你读` / `精读`; archive only after the user says `读完`.
+11. Display the relevant images inline with captions and reading guidance. Do not organize notes or archive during `请你读` / `精读`; integrate notes after explicit `整理笔记 / 读完`, and archive only after `读完`.
 
 For high-value materials, include the next concrete action, such as:
 

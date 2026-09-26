@@ -45,9 +45,10 @@
 
 ### 2.2 开源的多种方式（光谱）
 
-* 智能代码转储（smart code dump）：只把代码扔出来，没有社区流程与响应，基本不算“开源项目”。
+* 智能代码转储（smart code dump）：只把代码扔出来，没有社区流程与响应，协作开放程度有限；是否采用开源许可证仍需单独判断。
 * 开放核心（open core）：核心开源 + 商业增值部分闭源；需要明确边界，避免社区付出被单方面收割。
 * 治理模型：仁慈独裁（BDFL，如早期 Linux / Python）vs 委员会（如 Apache）；后者牺牲决策速度，换稳定性与品牌中立。
+* 判断项目开放程度，要分开看**许可证、源码与历史可见性、贡献接口、治理参与**。不接收 PR 不直接决定许可证是否开源；公开源码也不自动意味着开放开发过程。Agent 时代的贡献接口还要保留验证证据，见[意图、实现与验证](#agent-时代的贡献接口意图实现与验证我的拓展)。
 
 ### 2.3 fork、upstream 与冲突
 
@@ -69,6 +70,8 @@
 * copyleft（非宽松）：MPL（文件级）、GPL（作品级）、AGPL（网络使用也触发）。
   * Stallman 的四种自由：①自由使用；②自由研究/修改；③自由发布副本；④自由发布 fork 给所有人。
   * GPL：下游衍生作品必须保持同一许可证（Linux、Blender 等），不能把 GPL 代码改成闭源护城河。
+
+* Source-available 与开源许可证要区分：Raft 使用的 **FSL-1.1-ALv2** 限制竞争性用途，每个版本在发布两年后另获 Apache 2.0 授权。当前源码可读、可在许可范围内使用，不等于当前已按 Apache 2.0 开源。参考：[Raft LICENSE](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/LICENSE#L30)、[Future License](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/LICENSE#L87)。
 
 ### 3.2 TiVo 化 → GPLv3
 
@@ -204,6 +207,12 @@
   * 单一组织资助：e.g. Mozilla 裁撤 Rust 员工——单点资助意味着组织裁员会直接打击项目；
   * 基金会：e.g. Python Software Foundation（管理 PyCon、处理 Python 项目法律事务、为开发提供资助）与 LFE；PSF 是 501(c)(3)、LFE 是 501(c)(6)，对前者捐赠可抵税；配套技术咨询委员会（TAC）。
 
+### 开发历史：代码变化与决策依据（我的拓展）
+
+[Raft 作者提出](https://x.com/istdrc/status/2103168507878011088)：Agent 参与开发后，有用的历史还包括 **intent history、decision history、conversation history**——为何修改、考虑过什么替代方案、Agent 发现了什么、哪些尝试失败、什么证据改变了判断。
+
+Git history 仍用于定位版本、bisect、审计和追踪演化；决策与对话记录补充这些修改的原因。工程上可把决策摘要、相关实验与失败尝试关联到具体变更，公开时按需脱敏。完整聊天记录不天然等于高质量知识，发布快照也无法替代细粒度开发历史的全部用途。
+
 ## 6 让你的项目备受欢迎
 
 * 「欢迎马车」（welcome wagon）：把欢迎新贡献者做成仪式/流程，e.g. Hyper 项目主动引导新人上手。
@@ -222,6 +231,27 @@
   * 公共演讲/布道：能代表项目对外沟通；
   * 社群管理：能处理冲突、授权、带人。
 * 成长路径本质：从“做贡献”到“做判断、带人、定规则”；项目要主动把责任和信任移交，而不是等贡献者自己抢。
+
+### Agent 时代的贡献接口：意图、实现与验证（我的拓展）
+
+> 讨论：[Raft 原文](https://x.com/istdrc/status/2103168507878011088)；我的评论：[PR 与 verification](https://x.com/huangruiteng/status/2103197599604056078)、[使用反馈的稀疏信号](https://x.com/huangruiteng/status/2103325371001376990)、[贡献者的压缩成本](https://x.com/huangruiteng/status/2103324456529895525)；[作者后续回应](https://x.com/istdrc/status/2103312115645964790)。以下是观点比较与工程判断，不是已验证的成本实验。
+
+**原文主张**：生成 patch 变便宜，维护者的注意力仍稀缺，代码不再能像过去那样充当贡献筛选器。瓶颈向“该不该做”移动，因此探索从 pull request 转向 **prompt request**：传达问题、背景、价值、约束与取舍。Prompt 同样容易批量生成，仍需讨论、信誉、明确的需求范围和持续参与来筛选。
+
+Raft 当前的实际政策是发布快照镜像、不公开内部开发历史、不接受外部 PR，GitHub Issues 也未启用，反馈走产品内或支持渠道。**Prompt request 是探索方向，尚不能写成已经落地的新贡献流程。** 见固定版本的 [README](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/README.md#contributions-and-history)、[CONTRIBUTING](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/CONTRIBUTING.md)。
+
+| 问题 | 原文与作者补充 | 我的评论 |
+|---|---|---|
+| PR 的价值 | 已知意图后，内部 Agent 可能更容易实现；外部代码增加 review 负担 | PR 还承载 **verification**：一次生成与经过真实使用、周级打磨、benchmark 驱动的实现，价值不同；细节和 idea 也会在验证中演化 |
+| 什么算验证 | 作者认为多数 PR 缺少严肃验证；corner case 也可写进自然语言 | 修改后真实使用、感受到体验或能力改善，就是基础验证信号；单个信号可能稀疏，多人的使用反馈仍可能有价值 |
+| 谁负责降噪 | 维护者先审简短描述，再由内部 Agent 实现，作者认为更可控 | 可用自动化 review 从 PR 与实验记录提炼意图和证据，再占用人的注意力；不能只按输入长短判断总成本 |
+| 谁承担表达成本 | 倾向贡献者先把意图和约束整理清楚 | 把已有 PR 与实验记录再次压成完整自然语言，是额外劳动，可能降低贡献意愿；若是通用流程，适合由维护者提供可复用的自动化能力 |
+
+作者也承认：复杂改动的完整自然语言描述可能比代码更长，此时可以接受代码或辅以流程图、架构图。这使分歧更接近**怎样选择贡献载体、保留证据并分配整理成本**。
+
+我的综合判断：贡献接口宜保留简洁的问题说明、相关 diff、复现步骤、实验记录与已知局限；维护者可用 Agent 去重、提炼带原文回链的摘要，再决定沿用实现还是重写。需要比较贡献者整理、自动化处理、人工 review、重实现与重新验证的总成本。
+
+边界也要保留：自动化 review 会漏报、误报或丢失细节，不能把“信息更多”直接等同于“有利无弊”；多人反馈要区分版本、场景、独立性与选择偏差，不能把重复反馈当独立证据。**拒绝合入外部代码，不必等于拒绝外部验证信号；改由内部 Agent 实现，也仍需重新验证。**
 
 ## 8 处理冲突
 
@@ -287,7 +317,7 @@
 
 **公司侧：在开源中寻找人才**
 
-* 参与社群；赞助与项目相关的基础设施（GitHub / GitLab / SonarCloud / 1Password / Confluence / JIRA / Netlify 等工具链见 [Software-Engineering.md](./Software-Engineering.md#开发协作工具链github--gitlab--sonarcloud--1password--confluence--jira--netlify)；专业硬件、网络会议工具、Swag（stuff we all get，周边纪念品））。
+* 参与社群；赞助与项目相关的基础设施（GitHub / GitLab / Gitea / SonarCloud / 1Password / Confluence / JIRA / Netlify 等工具链见 [Software-Engineering.md](./Software-Engineering.md#开发协作工具链github--gitlab--gitea--sonarcloud--1password--confluence--jira--netlify)；专业硬件、网络会议工具、Swag（stuff we all get，周边纪念品））。
 * 举办线下活动、赞助会议演讲、公司演讲、办公室用作聚会、hackathon、导师培训实习生的活动。
 * 留住和认可来自开源社群的人才。
 * **innersource（内部开源）**：把开源协作方式引入公司内部——跨部门共享代码、文档与 review 文化。

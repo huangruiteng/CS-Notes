@@ -28,6 +28,8 @@
 
 #### 典型场景决策
 
+* **本地持久状态与追加历史**：小规模、低频更新可用整文档 JSON；需要索引查询、多记录事务且写入可短时排队时，优先考虑 [SQLite](#sqlite)。同时检查[数据组织与读写粒度](#整文档重写与记录级更新)，仅更换存储载体不能消除写放大。
+
 * **复杂查询与动态 Schema**
   * **需求**：字段结构不固定（Dynamic Schema），且需要根据这些动态字段进行复杂反查（Query by arbitrary fields）。
   * **选型**：必须使用 **NoSQL 架构**（如 MongoDB、Elasticsearch 等）。
@@ -61,6 +63,234 @@
 - 参考：
   - WiredTiger：https://www.mongodb.com/docs/manual/core/wiredtiger/
   - In-Memory：https://www.mongodb.com/docs/manual/core/inmemory/
+
+### SQLite
+
+#### 适用场景与设计优势
+
+SQLite 最适合为单机应用提供可靠、可查询、可局部更新的持久状态，尤其适合不想单独部署数据库服务、写事务短且允许排队的场景。它是嵌入应用进程的数据库库：SQL 在本进程内执行，直接访问本地文件，无独立数据库守护进程和网络往返；这里的 serverless 指“无需数据库服务进程”。[官方定位与适用场景](https://sqlite.org/whentouse.html)、[Serverless 设计](https://sqlite.org/serverless.html)
+
+| 适合解决的问题 | 对应技术优势 | 典型用途 |
+| --- | --- | --- |
+| 应用需要随装随用、断网可用的数据层 | 嵌入式、低部署负担、读写不依赖远端服务 | 桌面 / 移动应用、CLI、边缘设备 |
+| 大量记录需要按键查找、筛选、关联与局部更新 | B-tree 索引、SQL 查询规划、按页存储 | 文件元数据、本地缓存、实验结果索引 |
+| 一次操作要同时修改多份关联数据 | ACID 事务、唯一约束、日志与崩溃恢复 | 状态 + 事件 + 回执、本地任务队列 |
+| 应用数据需要作为一个整体携带和交付 | 稳定跨平台文件格式，表、索引、数据可封装在同一数据库 | 项目文档格式、离线数据包 |
+| 多路读取伴随短事务写入 | WAL 下读者读取快照，读写可以并行 | 本地服务、读多写少的应用后端 |
+
+**索引和事务是数据库的共性，SQLite 的组合优势是将它们放进低运维成本的进程内组件。** 优势主要体现在本地数据访问与部署简单性，不能据此断言所有 SQL 都比服务型数据库更快。索引维护、提交刷盘、长查询仍有成本。
+
+单写者按“每个数据库文件”计算：多个线程或进程可以轮流写，WAL 也不会让同一文件同时有多个写事务。因此选型重点是写事务持锁时间、写入频率和可接受排队延迟，而非单看用户数或数据行数。将网络请求、模型推理等慢操作放在写事务外；数据按独立用户 / 项目分文件可分散竞争，但不自动提供跨文件原子性或分布式一致性。[WAL 并发机制](https://sqlite.org/wal.html)
+
+适用边界：大量并发写入不能排队、多机直接共享数据库文件，或需要数据库原生复制与高可用时，应评估服务型数据库。远程用户经应用 API 访问单机 SQLite 可以成立；多机经网络文件系统直接操作同一文件是另一种访问方式，尤其不适合依赖共享内存协调的 WAL。离线数据同步、业务幂等与权限仍需应用实现。数据库文件便于交付，但运行中的 WAL 数据库不能只复制主文件当备份，应使用一致性备份机制。
+
+#### 原子累加与条件状态迁移
+
+参考：Codex [`account_thread_goal_usage`](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/state/src/runtime/goals.rs#L411-L523)（commit `9d87b771`）、[SQLite UPDATE 语义](https://sqlite.org/lang_update.html)、[事务](https://sqlite.org/lang_transaction.html)。Rust 如何调用这段 SQL，见 [Rust：字符串、SQLx 与 SQLite 的分工](./Rust.md#rust-中的-sql字符串sqlx-与-sqlite-的分工)。
+
+计数器决定业务状态时，可以让数据库在同一条 `UPDATE` 中完成“累加 + 条件判断 + 状态迁移”。Codex Goal 的核心逻辑可简化为下面的 active-only 分支，省略时间和更新时间字段：
+
+```sql
+UPDATE thread_goals
+SET tokens_used = tokens_used + ?,
+    status = CASE
+        WHEN status = 'active'
+         AND token_budget IS NOT NULL
+         AND tokens_used + ? >= token_budget
+        THEN 'budget_limited'
+        ELSE status
+    END
+WHERE thread_id = ? AND status = 'active'
+RETURNING tokens_used, status;
+```
+
+前两个 `?` 都绑定同一个 `token_delta`。SQLite 在执行赋值前计算所有右侧表达式，因此 `CASE` 中读到的是更新前的 `tokens_used`，必须再加 delta；这不会把用量累加两次。例如原用量 90、预算 100、本次增量 15，结果同时变成 `105 / budget_limited`。这里是事后记账触发状态切换，不能据此认为预算会将执行精确截断在第 100 个 token。
+
+没有适当事务、锁或版本校验的 `SELECT → Rust 中加 delta → UPDATE 写回绝对值` 会丢更新：两个调用都读到 90，分别加 15、10，却写回 105、100，最终可能只剩 100。`SET tokens_used = tokens_used + ?` 把计算放在数据库当前行上；若两次更新都满足过滤条件并成功执行，结果是 115。状态判断与累加放在同一语句，还避免两次独立提交之间出现“用量已超预算，状态仍 active”的中间状态。多语句 read-modify-write 也能正确实现，但需要额外的事务 / 并发控制。
+
+原实现比上述示意多三层边界：
+
+- **状态过滤**：`GoalAccountingMode` 决定哪些状态仍能记账、哪些状态可转成 `budget_limited`。例如 `ActiveOnly` 允许对 `active / budget_limited` 继续结算，`ActiveOrComplete` 也能结算 complete，`ActiveOrStopped` 的状态切换条件更宽；不能把截图里的 `status = 'active'` 当成所有路径的完整规则。
+- **目标身份**：传入 `expected_goal_id` 时追加 `AND goal_id = ?`，避免旧 goal 的迟到记账写进同一 thread 的新 goal。它校验目标身份，不是事件去重键。
+- **返回结果**：`RETURNING` 在同一语句中返回更新后的行，减少另一次 `SELECT` 读到更晚状态的窗口；未命中条件时不发生更新。
+
+原子性、并发安全、幂等性要分开：SQLite 事务让一次更新整体生效或回滚，单写者机制协调写竞争；同一增量重复执行仍可能重复计费。上述 SQL 本身不提供 exactly-once，重复事件仍需上层去重或幂等协议；锁等待超时也仍需调用方处理。
+
+Codex 的具体上层保护是[单 permit 的记账信号量](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L89-L98)：持锁取用量 snapshot，执行 SQL，成功后才推进 `last_accounted_token_usage`。锁防同一进程的并发回调消费同一 delta；原子 SQL 防累加和状态迁移被拆开；goal ID 防写错目标。三者各有边界，仍不能据此宣称具备任意崩溃重放下的 exactly-once。详见 [Goal 的续跑与记账](./AI-Applied-Algorithms.md#goal-mode-audit把继续变成目标审计)。
+
+#### 从 LoopX PR #4328 学 SQLite：性能、事务与运行时资格
+
+参考：[LoopX PR #4328](https://github.com/huangruiteng/loopx/pull/4328)，本文按合并版本 `3400fab4231adf51c3b8137f7049940d29fd9b25` 整理。
+
+**一句话理解**：这个 PR 不是“把 SQLite 接上就完事”，而是同时验证三件事：查询是否随着历史增长而退化、嵌入的 SQLite runtime 是否真的安全、进程崩溃或磁盘容量不足后状态是否仍然可解释。
+
+##### 1. 先建立 LoopX 的 SQLite 心智模型
+
+SQLite 可以先粗略理解为：**一个数据库文件 + 文件里的表 / 索引 + 应用进程中的连接与 SQL statement**。LoopX 的 authority 数据库大致包含三张表：
+
+| 表 | 作用 | 可以怎样理解 |
+| --- | --- | --- |
+| `metadata` | 保存 schema、goal 和 store identity | 这是谁的数据库 |
+| `commits` | 按 `cursor` 保存已提交的历史、projection、events、receipts | 不可随意改写的提交日志 |
+| `head` | 只有一行，指向当前最新 `cursor` | 当前状态的目录指针 |
+
+一次业务提交不是只写一处：它要向 `commits` 插入一条历史，再把 `head` 指向这条历史。两步必须在同一个事务里完成，否则可能出现“日志已经有了，但 head 没跟上”或反过来的半成品状态。
+
+##### 2. 为什么只改了 `COUNT(*)` 的写法
+
+PR 修复的是 head continuity 查询中的这一处 SQL。两种写法返回值相同，都是文本形式的数量：
+
+```sql
+-- 原写法：聚合结果外面直接包 CAST
+SELECT CAST(COUNT(*) AS TEXT) FROM commits;
+
+-- 修复后：先让子查询完成简单 COUNT，再转换结果
+SELECT CAST((SELECT COUNT(*) FROM commits) AS TEXT);
+```
+
+但对数据库来说，**结果相同不代表执行路径相同**。SQLite 对非常简单的 `SELECT COUNT(*) FROM table` 可以直接使用 B-tree 的快速计数路径；而把 `CAST` 直接包在聚合表达式上，可能让它退化为逐行执行 `AggStep count(*)`。历史行越多，退化的成本越明显。
+
+PR 的测试不是只断言“结果等于 3”，而是：
+
+- 从生产入口捕获真实 SQL；
+- 用 `EXPLAIN` 检查里面有 `Count` opcode；
+- 检查没有逐行聚合的 `AggStep count(*)`；
+- 再验证空库、连续 cursor、缺口和 `9223372036854775807` 边界。
+
+这里还有一个 JavaScript / SQLite 的交叉知识点：SQLite 的 `INTEGER` 可以到 64 位，而 JavaScript `number` 安全整数上限只有 `2^53 - 1`。所以 LoopX 把 `MIN`、`MAX`、`COUNT` 和 cursor 转成 SQL `TEXT`，在 TypeScript 中再用字符串 / `bigint` 处理，避免大 cursor 被浮点数悄悄改写。
+
+**可复用的 SQL 经验**：SQL 优化不能只看语义和索引是否存在，还要看实际查询计划。遇到性能回退时，用 `EXPLAIN` / `EXPLAIN QUERY PLAN` 检查生产 SQL；一个看似无害的函数包裹，也可能改变 SQLite 选择的 opcode。
+
+代码：[head continuity 查询](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/loopx/control_plane/coordination/sqlite_authority_store.ts#L128-L146)，测试：[快速 COUNT 回归](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/tests/control_plane_ts/sqlite_authority_store.test.ts#L19-L71)。
+
+##### 3. `WAL` 是并发与恢复机制，不是“无限并发写入”
+
+LoopX 打开写数据库时使用：
+
+```sql
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = FULL;
+BEGIN IMMEDIATE;
+```
+
+- **WAL（Write-Ahead Log）**：修改先追加到 `数据库名-wal`，再由 checkpoint 合并回主数据库文件。读者可以读取自己的快照，读写通常可以并行。
+- **但同一个 SQLite 文件仍然只有一个 writer**：多个写者会排队，`busy_timeout = 5000` 只是最多等待 5 秒，不会把 SQLite 变成多写者数据库。
+- **`BEGIN IMMEDIATE`**：尽早申请写事务需要的锁，让冲突在事务开始附近暴露，避免做完一堆工作后才发现无法写入。
+- **`synchronous = FULL`**：提高提交后的持久性保证，但会付出刷盘延迟；不能把它理解成“任何硬件故障都不会丢数据”。
+
+WAL 还有两个小白容易忽略的边界：它依赖同一台机器上的共享内存索引，因此不适合多个机器直接通过网络文件系统共同打开；运行中的数据库还可能同时有 `-wal` 和 `-shm` 文件，备份不能只复制主 `.sqlite` 文件。参考：[SQLite WAL 官方文档](https://www.sqlite.org/wal.html)。
+
+PR #4328 进一步检查嵌入的 SQLite 版本，是因为 SQLite 官方记录了一个罕见但后果严重的 WAL-reset 并发 bug：影响 `3.7.0` 到 `3.51.2` 的部分 WAL 多连接写入 / checkpoint 交错场景，修复版为 `3.51.3`，另有 `3.44.6` 和 `3.50.7` 回移版本。[官方 bug 说明](https://www.sqlite.org/wal.html#the_wal_reset_bug)
+
+##### 4. “Node 能运行”不等于 “SQLite runtime 合格”
+
+`node:sqlite` 是 Node 提供的接口，但真正执行 SQL 的 SQLite 可能来自不同的嵌入版本。因此 PR 新增了一个只使用 `:memory:` 的 runtime probe，在创建 authority 文件之前检查：
+
+1. 是否能加载 `node:sqlite`；
+2. 实际的 `sqlite_version()`；
+3. `sqlite_source_id()`，用于记录具体源码构建身份；
+4. 关闭数据库后，已准备的 statement 是否同步失效；
+5. SQLite 版本是否包含 WAL-reset 修复。
+
+检查失败就 **fail closed**：返回明确的 provider failure，不创建 authority 路径，也不偷偷回退到 File。这里要区分两个版本门槛：公开的 Node `22.18` 仍可作为默认 File authority 的最低版本；显式选择 SQLite authority 还要满足更严格的 SQLite 修复和 statement 关闭条件，PR 以 Node `22.22.3` / SQLite `3.51.3` 作为参考 runtime。
+
+代码：[SQLite runtime probe](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/loopx/control_plane/coordination/sqlite_runtime.ts#L13-L49)，测试：[runtime admission](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/tests/control_plane_ts/sqlite_runtime_admission.test.ts#L12-L99)。
+
+##### 5. 事务保证“要么都写，要么都不写”，但不保证调用者一定知道结果
+
+LoopX 的提交路径可以抽象成：
+
+```text
+BEGIN IMMEDIATE
+  检查 identity、expected revision 和 operation_id
+  INSERT commits
+  UPDATE head
+COMMIT
+```
+
+`commits` 和 `head` 在同一事务中，所以正常情况下是原子变化：事务回滚，两者都不生效；事务提交，两者一起生效。
+
+但还有一个很重要的现实：**COMMIT 已经成功，进程可能刚好在返回响应前崩溃。** 调用者只看到超时或连接断开，无法仅凭异常判断“没提交”。因此 PR 保留 / 强化了三种结果区分：
+
+- `applied`：明确收到提交成功；
+- `failed`：能证明在 COMMIT 前失败；
+- `ambiguous`：COMMIT 的最终结果无法从当前调用确认，必须按 operation receipt 做 read-back。
+
+测试通过真实子进程注入三类故障：
+
+| 故障 | 预期恢复观察 |
+| --- | --- |
+| COMMIT 前杀进程 | 新提交不存在，head 仍指向旧状态 |
+| COMMIT 后杀进程 | 新提交和 receipt 存在，后续读取能证明已提交 |
+| 把数据库容量压满 | 返回容量失败，不出现半条提交 |
+
+这说明“数据库事务”和“调用协议”是两层问题：SQLite 事务负责文件内的原子性；receipt / operation ID 负责让调用者在丢响应后重新判断结果。代码：[提交边界](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/loopx/control_plane/coordination/sqlite_authority_store.ts#L174-L223)，测试：[真实进程恢复](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/tests/control_plane_ts/sqlite_authority_store.test.ts#L72-L119)。
+
+##### 6. 容量测试测的不是“跑完”，而是“证据够不够支持结论”
+
+PR 把容量入口拆成两种 profile：
+
+- **rehearsal**：小规模演练，默认只跑 `100 / 1,000` 次提交，验证入口、状态不变量和清理流程；
+- **matched-64k**：正式的 `10k / 100k` 对照，固定约 `64 KiB` projection，分别测 commit、head、receipt、scan、冷启动 CLI 等延迟。
+
+报告为每项资格输出 `passed / failed / missing`：
+
+- `passed` 只表示这个具体轴、具体样本数和具体预算通过；
+- `failed` 不能通过改阈值或换 workload 变成绿色；
+- `missing` 表示还没有量到，不能被“命令成功退出”自动推断为通过。
+
+本次 formal head p95 的 10k → 100k 增长为 `1.642x`，低于 `2x` 预算；但累计逻辑写入、纯锁等待、稳定态 RSS、大历史恢复、跨平台覆盖和至少十天 soak 仍是 missing / hold。**一次本机跑通不是完整资格证明，也不等于统计上的稳定结论。**
+
+这给小白的测试启发是：
+
+1. 单元测试验证函数结果；
+2. 集成测试验证数据库和应用协作；
+3. 真实进程测试验证崩溃边界；
+4. 容量 / soak 测试验证规模、时间和资源预算。
+
+它们回答不同问题，不能用“测试总数很多”替代缺失的那一类证据。报告和阈值实现见：[sqlite-capacity.ts](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/examples/coordination/sqlite-capacity.ts) 与 [sqlite-capacity-report.ts](https://github.com/huangruiteng/loopx/blob/3400fab4231adf51c3b8137f7049940d29fd9b25/examples/coordination/sqlite-capacity-report.ts)。
+
+##### 7. 读这个 PR 时可以带走的 SQLite 清单
+
+- 先问数据库文件里有什么表、主键、唯一约束和索引，再看业务代码。
+- 看到 `WAL`，同时问：谁是 writer、锁最多等多久、`-wal/-shm` 如何备份和恢复。
+- 看到 `BEGIN ... COMMIT`，问事务覆盖了哪些写入，以及提交后丢响应如何 read-back。
+- 看到性能修复，不只看结果是否相同，还要看 `EXPLAIN` 和真实数据规模下的增长曲线。
+- 看到“支持 SQLite”，继续问实际嵌入版本、编译来源、statement / connection 生命周期和 fail-closed 行为。
+- 看到“容量测试通过”，检查 profile、payload、样本数、p95/p99、失败项和 missing 项，不能只看 exit code。
+
+#### 整文档重写与记录级更新
+
+SQLite 也把数据存于文件。性能差别取决于文件内部的数据组织，以及一次操作需要读取、解析和重写多少内容。
+
+整文档 JSON 若采用“读取全部历史 → 校验历史链 → 追加交易及完整 projection → 序列化全量文档 → 原子替换”的路径，即使只修改一个过期时间，也要处理全部旧历史。实现直观，状态、历史、回执容易一起发布；但原子替换仍需配套并发控制和持久化刷盘，不能单独保证不丢更新或断电安全。
+
+设每笔历史固定占 b 字节，第 n 次提交重写约 nb 字节，N 次累计逻辑写入为：
+
+$$
+W(N) \approx b\sum_{n=1}^{N}n=\frac{bN(N+1)}{2}=\Theta(bN^2)
+$$
+
+例如每笔 8 KiB，第 100 次重写约 800 KiB，第 10,000 次约 78 MiB；尚未计入完整 projection 自身增长及底层 I/O 开销。
+
+SQLite 可以将一次局部更新拆成同一事务中的几类记录操作：
+
+| 数据 | 组织方式 | 一次续约的操作 |
+| --- | --- | --- |
+| 当前状态 / projection | 按实体 ID 存储 | 更新目标记录 |
+| 历史事件 | 按 cursor 有序追加 | 插入增量事件 |
+| 操作回执 | operation ID 唯一索引 | 插入回执，检测重复 |
+| 业务快照 | 按版本周期性保存 | 通常无需修改 |
+
+* **索引定位**：B-tree 按键查找通常近似 O(log N)，避免加载并扫描全部历史；返回大量结果仍需支付相应读取成本。
+* **按页写入**：修改记录通常只触及相关数据页与索引页，也可能发生页分裂。WAL 模式先追加修改后的页，checkpoint 再写回主文件，避免每次复制全部旧历史。
+* **事务提交**：状态更新、事件追加、回执插入一起提交或回滚。断电后的持久性仍取决于同步配置与存储可靠性。唯一索引只约束重复键；重复请求如何返回旧结果、同 ID 不同内容如何报冲突，仍由应用定义。
+
+数据模型决定收益上限：把膨胀 JSON 放进一个字段仍是整体更新；每笔交易独立一行但携带完整 projection，仍有快照冗余；每次启动全量重放，恢复成本仍随历史增长。常见配套设计是“当前状态独立存储 + 增量事件 + 索引回执 + 周期性业务快照与增量恢复 + 明确的保留 / 归档策略”。需要审计校验的系统，还应定义快照可信边界和历史完整性检查方式。
+
+**WAL checkpoint、业务快照和历史归档各管一层**：前者将页写回数据库，业务快照减少事件重放，归档控制在线历史规模。SQLite WAL 同时仍只有一个写者，长读事务可能阻碍 checkpoint 推进；长期运行要验证写竞争、WAL 大小、恢复时间及备份恢复。分段文件日志也能实现类似组织，但索引、事务、恢复与回收需要自行维护。
+
+参考：[SQLite 文件格式](https://sqlite.org/fileformat.html)、[查询规划与索引](https://sqlite.org/queryplanner.html)、[WAL](https://sqlite.org/wal.html)、[同步配置](https://sqlite.org/pragma.html#pragma_synchronous)；通用恢复协议见 [WAL 笔记](./Software-Engineering.md#walwrite-ahead-log先持久化恢复记录再持久化正式状态)。
 
 ### mysql
 

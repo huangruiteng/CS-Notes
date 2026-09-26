@@ -1,0 +1,563 @@
+{
+  "schema_version": 1,
+  "scope": "Public source and test reading; no end-to-end or upstream test execution claimed.",
+  "core_commit": "7498521d288b9b3b96ffba4eedf089d8d6e06a84",
+  "cross_task_commit": "78245b47af2a7aafcabe025828ceecca69db4df1",
+  "stable_tag": "rust-v0.155.0",
+  "stable_commit": "f0a1b8f0849d90960bc406b848f32e5a129b0457",
+  "core_symbols": {
+    "gate": {
+      "path": "codex-rs/core/src/config/mod.rs",
+      "symbol": "pub(crate) fn multi_agent_version_override",
+      "line": 1543,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1543",
+      "sha256": "4073d4e36c7861a8e966a4a4e4a5ec8f8e8b7699f1a85cc0a4bfb68b59e2212f"
+    },
+    "register": {
+      "path": "codex-rs/core/src/tools/spec_plan.rs",
+      "symbol": "fn add_collaboration_tools",
+      "line": 1242,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/spec_plan.rs#L1242",
+      "sha256": "db4138714d0c1b4797468ea8614aa1e4e15c250f05dce69ba42743c8b5e9edd3"
+    },
+    "collab_gate": {
+      "path": "codex-rs/core/src/tools/spec_plan.rs",
+      "symbol": "fn collab_tools_enabled",
+      "line": 642,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/spec_plan.rs#L642",
+      "sha256": "db4138714d0c1b4797468ea8614aa1e4e15c250f05dce69ba42743c8b5e9edd3"
+    },
+    "feature": {
+      "path": "codex-rs/features/src/lib.rs",
+      "symbol": "key: \"multi_agent_v2\"",
+      "line": 1302,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/features/src/lib.rs#L1302",
+      "sha256": "15d841936d4922187d48d70b2bc7c43468cff7a210379e8bdb3abbd29228f411"
+    },
+    "v2config": {
+      "path": "codex-rs/core/src/config/mod.rs",
+      "symbol": "pub struct MultiAgentV2Config",
+      "line": 1292,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1292",
+      "sha256": "4073d4e36c7861a8e966a4a4e4a5ec8f8e8b7699f1a85cc0a4bfb68b59e2212f"
+    },
+    "capacity_config": {
+      "path": "codex-rs/core/src/config/mod.rs",
+      "symbol": "fn resolve_multi_agent_v2_config",
+      "line": 2704,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L2704",
+      "sha256": "4073d4e36c7861a8e966a4a4e4a5ec8f8e8b7699f1a85cc0a4bfb68b59e2212f"
+    },
+    "capacity_effective": {
+      "path": "codex-rs/core/src/config/mod.rs",
+      "symbol": "pub(crate) fn effective_agent_max_threads",
+      "line": 1572,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1572",
+      "sha256": "4073d4e36c7861a8e966a4a4e4a5ec8f8e8b7699f1a85cc0a4bfb68b59e2212f"
+    },
+    "manager": {
+      "path": "codex-rs/core/src/thread_manager.rs",
+      "symbol": "pub(crate) struct ThreadManagerState",
+      "line": 395,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L395",
+      "sha256": "dda0933e4704bedeb8c94b946a23c96ae0e90144bf357d190d4a51d440acf191"
+    },
+    "version_restore": {
+      "path": "codex-rs/core/src/thread_manager.rs",
+      "symbol": "pub(crate) async fn effective_multi_agent_version_for_spawn",
+      "line": 1683,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L1683",
+      "sha256": "dda0933e4704bedeb8c94b946a23c96ae0e90144bf357d190d4a51d440acf191"
+    },
+    "control": {
+      "path": "codex-rs/core/src/agent/control.rs",
+      "symbol": "pub(crate) struct AgentControl",
+      "line": 132,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L132",
+      "sha256": "3b40364ffc08335bfa2573a34f88447dcd1532ebd34cc2111d6ee2d7b27ca7f4"
+    },
+    "registry": {
+      "path": "codex-rs/core/src/agent/registry.rs",
+      "symbol": "pub(crate) struct AgentRegistry",
+      "line": 25,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/registry.rs#L25",
+      "sha256": "a7ae6c4c06d9a5c875ffbd819bc762a71f9ca633bf435d581030e561ced66bad"
+    },
+    "session": {
+      "path": "codex-rs/core/src/session/session.rs",
+      "symbol": "pub(crate) struct Session",
+      "line": 58,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/session.rs#L58",
+      "sha256": "6cec83a3bbff2a27a32d1c3705b7e63ba29bdef5e4e687965dfd11a37b1bf8fa"
+    },
+    "status": {
+      "path": "codex-rs/protocol/src/protocol.rs",
+      "symbol": "pub enum AgentStatus",
+      "line": 1823,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/protocol.rs#L1823",
+      "sha256": "d4ee2937bd2b3c2eb15a2077f3c6ab04c0bf9b131df8d1f6676920e2418ef31e"
+    },
+    "status_event": {
+      "path": "codex-rs/core/src/agent/status.rs",
+      "symbol": "pub(crate) fn agent_status_from_event",
+      "line": 6,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/status.rs#L6",
+      "sha256": "11dd75269d0cf2bd35697975c2878db28fb70e7584842a0d4aea198f7bd77d32"
+    },
+    "spawn": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs",
+      "symbol": "async fn handle_spawn_agent",
+      "line": 105,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L105",
+      "sha256": "7d7717db4fe8a034375ecc3a354d7affc8790ec5d5a807f30d1cc9889470226b"
+    },
+    "spawn_args": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs",
+      "symbol": "struct SpawnAgentArgs",
+      "line": 272,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L272",
+      "sha256": "7d7717db4fe8a034375ecc3a354d7affc8790ec5d5a807f30d1cc9889470226b"
+    },
+    "spawn_internal": {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "symbol": "async fn spawn_agent_internal",
+      "line": 622,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L622",
+      "sha256": "199a534ec2d310a5588f12b1952d1a44bd4ec6cf1608b42ee48b10828c9ea0d2"
+    },
+    "child_config": {
+      "path": "codex-rs/core/src/agent/child_config.rs",
+      "symbol": "pub(crate) async fn prepare_agent_spawn_config",
+      "line": 51,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L51",
+      "sha256": "aa54bc73d162eb8136857dd5acce6c54bb97df79e41cdd0f89067fbc67e6eaef"
+    },
+    "child_runtime": {
+      "path": "codex-rs/core/src/agent/child_config.rs",
+      "symbol": "fn apply_spawn_agent_runtime_overrides",
+      "line": 171,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L171",
+      "sha256": "aa54bc73d162eb8136857dd5acce6c54bb97df79e41cdd0f89067fbc67e6eaef"
+    },
+    "model_override": {
+      "path": "codex-rs/core/src/agent/child_config.rs",
+      "symbol": "async fn apply_requested_spawn_agent_model_overrides",
+      "line": 196,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L196",
+      "sha256": "aa54bc73d162eb8136857dd5acce6c54bb97df79e41cdd0f89067fbc67e6eaef"
+    },
+    "role": {
+      "path": "codex-rs/core/src/agent/role.rs",
+      "symbol": "struct AgentRoleOverrides",
+      "line": 37,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/role.rs#L37",
+      "sha256": "0311e6438eda278ac5800327beb035c70d8e531bc69b397f85117907aa2bb31a"
+    },
+    "role_test": {
+      "path": "codex-rs/core/src/agent/role_tests.rs",
+      "symbol": "async fn apply_role_cannot_expand_parent_authority",
+      "line": 433,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/role_tests.rs#L433",
+      "sha256": "3496e47a57e43d9f647112f277fb3b6c3810e8268cd8477dc944c224f8eb6f3c"
+    },
+    "fork": {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "symbol": "async fn spawn_forked_thread",
+      "line": 829,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L829",
+      "sha256": "199a534ec2d310a5588f12b1952d1a44bd4ec6cf1608b42ee48b10828c9ea0d2"
+    },
+    "fork_filter": {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "symbol": "fn keep_forked_rollout_item",
+      "line": 67,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L67",
+      "sha256": "199a534ec2d310a5588f12b1952d1a44bd4ec6cf1608b42ee48b10828c9ea0d2"
+    },
+    "fork_test": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_tests.rs",
+      "symbol": "async fn multi_agent_v2_spawn_fork_turns_all_applies_agent_type_override",
+      "line": 381,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L381",
+      "sha256": "c0472a15b3df422eebc4008f329e20723de3c41d37642625218f5d7327e84dc9"
+    },
+    "resolver": {
+      "path": "codex-rs/core/src/agent/agent_resolver.rs",
+      "symbol": "pub(crate) async fn resolve_agent_target",
+      "line": 9,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/agent_resolver.rs#L9",
+      "sha256": "8c2f90858b33e6d7585c73b6460b0bfb54edbf1f39f2f18723f5fb492ff8d1d4"
+    },
+    "path": {
+      "path": "codex-rs/protocol/src/agent_path.rs",
+      "symbol": "pub fn resolve",
+      "line": 59,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/agent_path.rs#L59",
+      "sha256": "18ddefda817a89b299cfbec14ea8e95ff4248e9fe5aca616656f39f7d5cfb045"
+    },
+    "message_handler": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs",
+      "symbol": "pub(super) async fn handle_message_string_tool",
+      "line": 38,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs#L38",
+      "sha256": "f77d257e91fbc5a93aad20c9a5d7574d4fd7659e04ed91cb20e9276e7bd804f2"
+    },
+    "delivery": {
+      "path": "codex-rs/core/src/agent/control/delivery.rs",
+      "symbol": "pub(crate) async fn deliver_message",
+      "line": 77,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/delivery.rs#L77",
+      "sha256": "753d0f8d81598157488a474a708cc357f35276e7f8737036286d3d405d54a586"
+    },
+    "communication": {
+      "path": "codex-rs/protocol/src/protocol.rs",
+      "symbol": "pub struct InterAgentCommunication",
+      "line": 807,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/protocol.rs#L807",
+      "sha256": "d4ee2937bd2b3c2eb15a2077f3c6ab04c0bf9b131df8d1f6676920e2418ef31e"
+    },
+    "input": {
+      "path": "codex-rs/core/src/session/input_queue.rs",
+      "symbol": "pub(crate) struct InputQueue",
+      "line": 81,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L81",
+      "sha256": "04976b0268e087f702fb74fefd520aa61b27fd3db2a2b25ca62f553437542213"
+    },
+    "input_merge": {
+      "path": "codex-rs/core/src/session/input_queue.rs",
+      "symbol": "pub(crate) async fn drain_mailbox_input_items",
+      "line": 152,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L152",
+      "sha256": "04976b0268e087f702fb74fefd520aa61b27fd3db2a2b25ca62f553437542213"
+    },
+    "mail_handler": {
+      "path": "codex-rs/core/src/session/handlers.rs",
+      "symbol": "pub async fn inter_agent_communication",
+      "line": 78,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/handlers.rs#L78",
+      "sha256": "5386d6820b5ebfebbbb635f8fda34444f985afbd5f448db7c22f3045dd3bef75"
+    },
+    "scheduler": {
+      "path": "codex-rs/core/src/tasks/mod.rs",
+      "symbol": "pub(crate) async fn maybe_start_turn_for_pending_work_with_sub_id",
+      "line": 440,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/mod.rs#L440",
+      "sha256": "0dd8d46c248a462dc4eb1d40ac823ad55a60c38c571068906fe88995e9f2ded0"
+    },
+    "run_task": {
+      "path": "codex-rs/core/src/tasks/mod.rs",
+      "symbol": "let agent_execution_guard =",
+      "line": 331,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/mod.rs#L331",
+      "sha256": "0dd8d46c248a462dc4eb1d40ac823ad55a60c38c571068906fe88995e9f2ded0"
+    },
+    "regular": {
+      "path": "codex-rs/core/src/tasks/regular.rs",
+      "symbol": "impl SessionTask for RegularTask",
+      "line": 29,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/regular.rs#L29",
+      "sha256": "28648fac27f068d5b4ab525a9a232538aa4087e11ae61b346cb265b495d6599e"
+    },
+    "final_boundary": {
+      "path": "codex-rs/core/src/stream_events_utils.rs",
+      "symbol": "let defers_mailbox_delivery =",
+      "line": 107,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/stream_events_utils.rs#L107",
+      "sha256": "10c955dd6103faddf4c14e00e5e19e848bf24a765a4c18fa32dce580f7050fce"
+    },
+    "wait": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs",
+      "symbol": "async fn handle_call",
+      "line": 40,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L40",
+      "sha256": "6b4c6cc9d86c915e5a591ad5103a65a28b62874c66d8aa81302e4e584f504dcb"
+    },
+    "wait_result": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs",
+      "symbol": "pub(crate) struct WaitAgentResult",
+      "line": 133,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L133",
+      "sha256": "6b4c6cc9d86c915e5a591ad5103a65a28b62874c66d8aa81302e4e584f504dcb"
+    },
+    "complete": {
+      "path": "codex-rs/core/src/session/mod.rs",
+      "symbol": "async fn forward_child_completion_to_parent",
+      "line": 2426,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L2426",
+      "sha256": "80b834dcad60fdc65a5d4f0a2113feab5581f6fffd9561de69004359d23d14bc"
+    },
+    "complete_gate": {
+      "path": "codex-rs/core/src/session/mod.rs",
+      "symbol": "async fn maybe_notify_parent_of_terminal_turn",
+      "line": 2377,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L2377",
+      "sha256": "80b834dcad60fdc65a5d4f0a2113feab5581f6fffd9561de69004359d23d14bc"
+    },
+    "complete_test": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_tests.rs",
+      "symbol": "async fn multi_agent_v2_followup_task_completion_notifies_parent_on_every_turn",
+      "line": 1791,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L1791",
+      "sha256": "c0472a15b3df422eebc4008f329e20723de3c41d37642625218f5d7327e84dc9"
+    },
+    "interrupt_test": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_tests.rs",
+      "symbol": "async fn multi_agent_v2_interrupted_turn_does_not_notify_parent",
+      "line": 2000,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L2000",
+      "sha256": "c0472a15b3df422eebc4008f329e20723de3c41d37642625218f5d7327e84dc9"
+    },
+    "interrupt": {
+      "path": "codex-rs/core/src/agent/control/interrupt.rs",
+      "symbol": "pub(crate) async fn interrupt_spawned_agent",
+      "line": 27,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/interrupt.rs#L27",
+      "sha256": "f945d09d0fa2c1e6425182fba48ca57b2bc0a0c46a9da6db4e8f5088df49c3e4"
+    },
+    "list": {
+      "path": "codex-rs/core/src/agent/control.rs",
+      "symbol": "pub(crate) async fn list_agents",
+      "line": 558,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L558",
+      "sha256": "3b40364ffc08335bfa2573a34f88447dcd1532ebd34cc2111d6ee2d7b27ca7f4"
+    },
+    "roster": {
+      "path": "codex-rs/core/src/agent/control.rs",
+      "symbol": "pub(crate) async fn format_environment_context_subagents",
+      "line": 489,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L489",
+      "sha256": "3b40364ffc08335bfa2573a34f88447dcd1532ebd34cc2111d6ee2d7b27ca7f4"
+    },
+    "execution": {
+      "path": "codex-rs/core/src/agent/control/execution.rs",
+      "symbol": "pub(super) struct AgentExecutionLimiter",
+      "line": 14,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/execution.rs#L14",
+      "sha256": "67c4819b28e4866a46af11c0c338f2ba35efa2b8c01957976d699b48d41bfb17"
+    },
+    "residency": {
+      "path": "codex-rs/core/src/agent/control/residency.rs",
+      "symbol": "pub(super) struct V2Residency",
+      "line": 18,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency.rs#L18",
+      "sha256": "019818bed8a57225d084e850fb2b471c2e4d4c21d263869c9ed49a2815fa8691"
+    },
+    "unloadable": {
+      "path": "codex-rs/core/src/agent/control/residency.rs",
+      "symbol": "async fn is_unloadable",
+      "line": 233,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency.rs#L233",
+      "sha256": "019818bed8a57225d084e850fb2b471c2e4d4c21d263869c9ed49a2815fa8691"
+    },
+    "reload": {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "symbol": "pub(crate) async fn ensure_v2_agent_loaded",
+      "line": 318,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L318",
+      "sha256": "199a534ec2d310a5588f12b1952d1a44bd4ec6cf1608b42ee48b10828c9ea0d2"
+    },
+    "restore": {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "symbol": "pub(crate) async fn restore_v2_agent_metadata",
+      "line": 177,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L177",
+      "sha256": "199a534ec2d310a5588f12b1952d1a44bd4ec6cf1608b42ee48b10828c9ea0d2"
+    },
+    "parent_reload": {
+      "path": "codex-rs/core/src/thread_manager.rs",
+      "symbol": "pub async fn ensure_multi_agent_v2_child_loaded",
+      "line": 1195,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L1195",
+      "sha256": "dda0933e4704bedeb8c94b946a23c96ae0e90144bf357d190d4a51d440acf191"
+    },
+    "graph": {
+      "path": "codex-rs/agent-graph-store/src/store.rs",
+      "symbol": "pub trait AgentGraphStore",
+      "line": 17,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/agent-graph-store/src/store.rs#L17",
+      "sha256": "648ff983749a4f7f3c17c64795e765055f90aa45eda36c5e2a472617ef10633e"
+    },
+    "persist_mail": {
+      "path": "codex-rs/core/src/session/mod.rs",
+      "symbol": "pub(crate) async fn record_inter_agent_communication",
+      "line": 3915,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L3915",
+      "sha256": "80b834dcad60fdc65a5d4f0a2113feab5581f6fffd9561de69004359d23d14bc"
+    },
+    "app_input": {
+      "path": "codex-rs/app-server/src/request_processors/thread_input.rs",
+      "symbol": "pub(super) fn can_accept_direct_input",
+      "line": 12,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/app-server/src/request_processors/thread_input.rs#L12",
+      "sha256": "74c64b92942218d1493481b4795603a9873783b8e537520538a4937f9b8cf716"
+    },
+    "app_interrupt": {
+      "path": "codex-rs/app-server/src/request_processors/turn_processor.rs",
+      "symbol": "async fn turn_interrupt_inner",
+      "line": 1593,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/app-server/src/request_processors/turn_processor.rs#L1593",
+      "sha256": "b9ca108e83d4ba0df46f4f49f8a37e10f4ade0120f7c65beca19ad37af00a3fc"
+    },
+    "depth_test": {
+      "path": "codex-rs/core/src/tools/handlers/multi_agents_tests.rs",
+      "symbol": "async fn multi_agent_v2_spawn_agent_ignores_configured_max_depth",
+      "line": 2376,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L2376",
+      "sha256": "c0472a15b3df422eebc4008f329e20723de3c41d37642625218f5d7327e84dc9"
+    },
+    "eviction_test": {
+      "path": "codex-rs/core/src/agent/control/residency_tests.rs",
+      "symbol": "async fn interrupted_v2_agent_is_lost_after_residency_eviction",
+      "line": 71,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency_tests.rs#L71",
+      "sha256": "191bb03ad210357e98d69750ddea0a0fda07374745c2441ee11942208081c333"
+    },
+    "cross_thread": {
+      "path": "codex-rs/tui/src/dynamic_tools.rs",
+      "symbol": "tool_output: Some(Box::new(TurnToolOutput",
+      "line": 1292,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/tui/src/dynamic_tools.rs#L1292",
+      "sha256": "7b67da2b8d74ac310a2ee994b49702dc7263289fbdfa9b87a62c769710b07021"
+    },
+    "mode": {
+      "path": "codex-rs/core/src/session/multi_agents.rs",
+      "symbol": "pub(crate) fn effective_multi_agent_mode",
+      "line": 82,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/multi_agents.rs#L82",
+      "sha256": "ee18d22060864ea8d3f14cd32c45476a4e121cbc9ff7167b2c1708804502e09c"
+    },
+    "role_loader": {
+      "path": "codex-rs/agent-roles/src/loader.rs",
+      "symbol": "pub async fn load_agent_roles",
+      "line": 23,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/agent-roles/src/loader.rs#L23",
+      "sha256": "611e202c2bb4a2bad6c201bd93555d56b6c6c7021e96a294015556fd47b16b38"
+    },
+    "external": {
+      "path": "sdk/python/src/openai_codex/_inputs.py",
+      "line": 48,
+      "url": "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/sdk/python/src/openai_codex/_inputs.py#L48",
+      "sha256": "6b6b92ce54bb65c8eb68585e794207d3c800434a5486d91b38c4eefefdb371ce"
+    }
+  },
+  "commit_pinned_citations": [
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/agent-graph-store/src/store.rs#L17",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/agent-roles/src/loader.rs#L23",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/app-server/src/request_processors/thread_input.rs#L12",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/app-server/src/request_processors/turn_processor.rs#L1593",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/agent_resolver.rs#L9",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L171",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L196",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/child_config.rs#L51",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L132",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L321",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L489",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control.rs#L558",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/delivery.rs#L30",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/delivery.rs#L77",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/execution.rs#L14",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/interrupt.rs#L27",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency.rs#L18",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency.rs#L233",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/residency_tests.rs#L71",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L177",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L318",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L622",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L67",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/control/spawn.rs#L829",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/registry.rs#L25",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/role.rs#L37",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/role_tests.rs#L433",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent/status.rs#L6",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/agent_communication.rs#L26",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1292",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1543",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L1572",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/config/mod.rs#L2704",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/context/inter_agent_message.rs#L62",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/context/multi_agent_mode_instructions.rs#L14",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/context/world_state/multi_agent_mode.rs#L13",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/handlers.rs#L78",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L101",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L124",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L152",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L291",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L534",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L73",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/input_queue.rs#L81",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L2377",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L2426",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L3915",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L4335",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L508",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L590",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/mod.rs#L982",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/multi_agents.rs#L82",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/session.rs#L1746",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/session.rs#L58",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/step_settings.rs#L87",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/session/turn.rs#L415",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/state/turn.rs#L89",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/stream_events_utils.rs#L107",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/mod.rs#L331",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/mod.rs#L440",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tasks/regular.rs#L29",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L1195",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L1658",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L1683",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/thread_manager.rs#L395",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L1791",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L2000",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L2376",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L381",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs#L38",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L105",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L272",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L133",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L40",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/spec_plan.rs#L1242",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/core/src/tools/spec_plan.rs#L642",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/features/src/lib.rs#L1302",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/prompts/src/model_messages/multi_agent.rs#L46",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/agent_path.rs#L59",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/protocol.rs#L1823",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/protocol.rs#L807",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/protocol/src/protocol.rs#L884",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/codex-rs/tui/src/dynamic_tools.rs#L1292",
+    "https://github.com/openai/codex/blob/7498521d288b9b3b96ffba4eedf089d8d6e06a84/sdk/python/src/openai_codex/_inputs.py#L48",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/app-server-protocol/src/protocol/v2/turn.rs#L153-L181",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/app-server/src/request_processors/thread_input.rs#L9-L36",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/app-server/src/request_processors/turn_processor.rs#L528-L547",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/app-server/src/request_processors/turn_processor.rs#L596-L674",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/agent/agent_resolver.rs#L9",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/agent/control/delivery.rs#L67-L102",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/agent/control/sender_context.rs#L1-L81",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/input_queue.rs#L291-L322",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/turn_input.rs#L276-L369",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/turn_input.rs#L624-L706",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/turn_input.rs#L725-L763",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/turn_input.rs#L736-L758",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/core/src/session/turn_input_tests.rs#L901-L946",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/app/startup.rs#L311-L328",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/app_server_session.rs#L500-L507",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L1083-L1143",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L1164-L1200",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L1285-L1300",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L68-L78",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L745-L752",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L745-L785",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L833-L860",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools.rs#L968-L1010",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools_mcp.rs#L107-L125",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools_mcp.rs#L246-L302",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools_mcp.rs#L60-L71",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools_tests.rs#L262-L284",
+    "https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/codex-rs/tui/src/dynamic_tools_tests.rs#L623-L691",
+    "https://github.com/openai/codex/blob/f0a1b8f0849d90960bc406b848f32e5a129b0457/codex-rs/core/src/agent/role.rs#L37",
+    "https://github.com/openai/codex/blob/f0a1b8f0849d90960bc406b848f32e5a129b0457/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L123"
+  ],
+  "official_docs": [
+    "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+    "https://learn.chatgpt.com/docs/app-server#start-a-turn"
+  ]
+}

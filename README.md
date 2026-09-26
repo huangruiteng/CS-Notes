@@ -44,12 +44,13 @@
     - [LLM-MLSys](Notes/LLM-MLSys.md) / [MLSys+RecSys](Notes/MLSys+RecSys.md)
     - [GPU](Notes/GPU.md) / [pytorch](Notes/pytorch.md) / [tensorflow](Notes/tensorflow.md)
     - [AI-Agent-Engineering](Notes/AI-Agent-Engineering.md) / [AI-Agent-Product&PE](Notes/AI-Agent-Product&PE.md)
+    - [Codex-Subagent：架构、执行、通信与恢复](Notes/Codex-Subagent.md)
 - **软件工程与开源**
   - [Software-Engineering](Notes/Software-Engineering.md) / [Software-开源项目成功之道](Notes/Software-开源项目成功之道.md)
   - [Web-基础](Notes/Web-基础.md) / [云原生-ToB](Notes/云原生-ToB.md)
   - [Security-Privacy-Cryptography](Notes/Security-Privacy-Cryptography.md)
 - **通用与生活**
-  - [非技术知识](Notes/非技术知识.md) / [文史哲与生活](Notes/文史哲与生活.md)
+  - [金融投资与区块链](Notes/金融投资与区块链.md) / [非技术知识](Notes/非技术知识.md) / [文史哲与生活](Notes/文史哲与生活.md)
   - [Anatomy-大脑与神经科学](Notes/Anatomy-大脑与神经科学.md)
   - [Gourmet](Notes/Gourmet.md) / [Health-COVID-19-Prevention](Notes/Health-COVID-19-Prevention.md) / [game-knowledge](Notes/game-knowledge.md)
   - [面试心得体会与转行相关](Notes/面试心得体会与转行相关.md)

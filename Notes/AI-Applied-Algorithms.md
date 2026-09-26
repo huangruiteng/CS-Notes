@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
-| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ATIF 轨迹格式、Workflow agent、trace-first eval | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
 | Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
@@ -1301,6 +1301,48 @@ Thought:{agent_scratchpad}
 
 这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、ALE、LHTB、GDPval、AppWorld、BFCL-v3 等具体任务世界。
 
+评测结论还需同时绑定主张、资源预算和有效性检查：见下节「预算—性能曲线与评测主张」。同预算比较、强引出能力与防护稳健性使用不同实验设计；单点分数无法独立表示系统能力上限。
+
+现实滥用调查补充了实验室评测之外的证据，但需区分“提出请求 → 生成内容 → 工具执行 → 现实目标达成”。模型安全还覆盖实际数据处理方、生产凭证与沙箱权限，案例和治理边界见 [AI 服务供应链与 Agent 滥用](./Security-Privacy-Cryptography.md#ai-服务供应链与-agent-滥用)。
+
+#### 预算—性能曲线与评测主张
+
+> 来源：Noam Brown，[Implications of Large-Scale Test-Time Compute](https://x.com/polynoamial/status/2064210146558136827)；OpenAI，[可信第三方评测的共享指南](https://openai.com/zh-Hans-CN/index/trustworthy-third-party-evaluations-foundations/)。用户读完两篇全文，2026-09-05。
+
+推理模型的表现取决于允许它花多少计算，包括思考、搜索、工具调用、验证和重试。评测对象是模型与 harness 在特定任务和资源约束下的完整系统；各模型自己的最高 effort 档不代表相同预算。报告应给出预算—性能曲线，或明确单点分数对应的预算上限与实际消耗。
+
+Noam 引用 autoresearch 和 AISI 网络评测，说明部分系统在大预算下仍持续改善。OpenAI 指南引用 [AISI 网络攻击评测](https://arxiv.org/abs/2603.11214)：预算从 1000 万增至 1 亿 tokens，表现最高提升 59%，最高测试预算下仍在改善。这支持的是「当前测到了该系统在该预算下能做到什么，尚未测到它最多能做到什么」。59% 是所引用评测的提升表述，不能改写成普遍的成功率提升 59 个百分点；本次未独立复算论文数据。
+
+「更强模型的平台期可能越来越远，甚至消失」是 Noam 的预测。长程循环、状态丢失、错误累积和验证器失效都可能破坏外推；未观察到平台期不等于不存在上限。能力上限探索应报告已测范围与不确定性。
+
+| 预算横轴 | 能说明什么 | 主要局限 |
+| --- | --- | --- |
+| Tokens | 推理计算投入与 token 效率 | tokenizer、生成速度、每 token 价格不同，跨模型不可直接等价；还需区分输入、输出、缓存与重放 |
+| 美元 | 采购成本、任务经济性与攻击者可承担资源 | 受 batching、硬件利用率、缓存和定价影响；成本可与延迟交换 |
+| Wall-clock time | 用户等待时间与长程执行时限 | best-of-N / 多 agent 并行可在不显著增加延迟时增加总计算，必须同时报告并发与总成本 |
+
+三类主张的实验设计与证据要求（按官方表格压缩）：
+
+| 评测试图支持的主张 | 合适的 harness 选择 | 应报告的证据 |
+| --- | --- | --- |
+| 强引出下的能力：系统 A 能完成 X 类任务 | 使用有能力的用户合理可用的最强且可信设置，包括工具、脚手架与预算 | harness / tools、引出指导、预算 / effort、tokens / 成本 / 时间，以及为何能代表所主张能力；各用不同优化设置时标注为系统间或强引出比较 |
+| 受控比较：共享设置下 A 优于 B | 固定任务、评分与预算；共享 harness / tools，或预先选定一组固定标准化 harness，以合理发挥被测系统能力 | 共享任务集、工具、评分、harness、预算、token 效率 / 成本和已知局限；Codex CLI 等开源 harness 可提供固定 loop / 工具接口。为每任务、每系统分别定制 harness 是更充分引出的理想方案，但目前难以普遍实施 |
+| 引出式攻击下的防护稳健性 | 在相关对手模型及预算下，构造最强且可信的端到端攻击设置 | 如何刻画模型行为、防护配置、引出策略、执行策略的 harness，以及允许的预算 / 投入 |
+
+共享 harness 有利于控制变量，也可能遗漏某模型发挥能力所需的功能；例如官方指出，长程网络任务中缺少上下文压缩会导致能力引出不足。各用最强配置能够展示系统能力，但不能把整体增益全部归因于模型。安全测试也需匹配对手资源：预算过少会漏测，远超威胁模型的预算也可能夸大现实严重性。
+
+更多计算可能提升任务完成能力，也可能放大评分漏洞。预算曲线必须建立在有效性检查之后：
+
+- **Reward hacking**：通过任务、评分器或 harness 的捷径得分，却未完成预期工作；审查表面成功，报告取消资格的实例、原因及分数变化。
+- **Contamination**：训练中见过题目 / 答案 / 近似变体，或通过浏览找到答案；检查数据来源、可访问材料与任务特定信息复现。
+- **Broken tasks**：缺文件、错误标准答案、含糊提示、不稳定工具或不公平评分；环境不可解与模型求解失败分开记录。
+- **Refusal**：拒绝执行与缺乏能力分开，说明拒答是否计入结果及受影响样本数。
+- **Sandbagging**：是否因识别评测或预期后果而策略性隐藏能力；结合行为与反事实检查，评测感知本身不等于已发生藏拙。
+
+可复用报告字段：`claim_type`、模型 / harness / 任务 / verifier 版本、effort、预算上限与实际 tokens / 成本 / 耗时、attempts / retries / parallelism、停止条件、成功定义及有效性检查。重试可行时补每次成功解决的预期成本；比较 memory、multi-agent 或新 harness 时，额外检索、验证与协调开销都应计入预算。
+
+一个具体案例是 [Anthropic 多 Agent Research](#anthropic-多-agent-research信息容量委派与同步并行)：内部 research eval 的 90.2% 提升没有同预算对照；BrowseComp 分析中 token usage 解释 80% 表现方差，也不是因果贡献比例。系统效果、投入规模和协作结构的独立收益应分别报告。
+
 #### AgentCompass：评测对象不是裸模型，而是完整执行配置
 
 > 来源：[公众号解读](https://mp.weixin.qq.com/s/1Dn9EIikyGE6yNxXlINbyw)、[论文](https://arxiv.org/abs/2607.13705)、[GitHub](https://github.com/open-compass/AgentCompass)。以下机制以论文和 commit `feaa6ae` 的源码为准；公众号中的模型排名只作线索，不作为长期结论。
@@ -1328,6 +1370,43 @@ Thought:{agent_scratchpad}
 **核心结论与边界：** 同一个模型换 harness 后分数可能明显变化，说明 harness 是实验 treatment，不是透明胶水；统一框架能暴露和控制混杂变量，却不会自动让不同 prompt、tool、budget、版本的结果可比。论文发布时写的是 20+ benchmark、5 个维度；[当前 README](https://github.com/open-compass/AgentCompass/blob/feaa6ae25279aea159e87191b8ad7df45def943c/README.md#L7-L7) 已变为 21 个 benchmark、4 个主维度，长期引用应绑定 commit 与配置，而不是只抄产品页数字。
 
 对 LoopX / Agent Harness，最值得直接采用的是 run identity：至少固化 `model + benchmark + harness + environment + prompt/tool/config version + budget`，并把 trajectory、artifact、grader 版本和失败分类一起写入证据账本。否则所谓“模型提升”很可能只是 harness 或评测环境漂移。
+
+#### FrontierHarness Eval：同一模型下 12 种 harness 配置的横向评测（质量/成本/缓存/速度）
+
+> 来源：[FrontierHarness Eval](https://frontierharness.org/)（Runta 运营，2026-09-03 访问）；配套 blog 与 GitHub 见站内链接。整理时间 2026-09-03。
+
+**定位**：不是再建一个模型排行榜，而是把 AgentCompass 的“评测单位 = 完整执行配置”落成一次受控的 harness 横向对比：9 个 harness、12 种配置（Codex v0.148.0、DeepSeek Harness v0.1.0-rc.8、Claude Code v2.1.237、Pi v0.84.2、Oh My Pi v17.4.0、Kimi Code v0.37.2、Exo Harness v0.1.0、OpenCode v1.18.19、Hermes v0.20.4，其中 DSH 有 Creator/PTC/Standard/Minimal 四种配置），在相同的软件工程任务上跑同一个模型（Kimi K3），在同一运行环境（Runta，golden checkpoint 冷启动）上执行。
+
+**评测方法（能控混杂变量的地方都控了）**：
+- 360 次 trial（12 配置 × 30 次）全部从同一 fresh checkpoint restore 冷启动，任务从未提前运行过，避免 warm-cache bias；
+- 统一 runtime：Runta 上 fresh restore，vCPU、内存、磁盘大小与内容、memory state 全部一致；
+- 无主场优势：用第三方模型 Kimi K3（避免某 harness 厂商模型自肥）。
+
+**关键结果**：
+
+| 维度 | 领先者 | 数据 |
+| --- | --- | --- |
+| 质量（pass rate） | Codex | 66.7%（$3.47/task） |
+| 均衡 | Pi | 60.0%（$2.43/task） |
+| 成本（median cost/task） | Exo Harness | $1.05（53.3% pass） |
+| 速度（median time） | DSH Minimal | 5m41s（56.7% pass） |
+| 缓存命中率 | Codex / Kimi Code | 88.0%（成功任务中位数） |
+
+- pass rate 全距 50.0%（Hermes / OpenCode）→ 66.7%（Codex）；Claude Code 63.3% pass 但 median cost/task 高达 $18.34（最贵），质量与成本明显背离；
+- median cost per successful task 里 OpenCode 最低（$0.0615），Claude Code 最高（$0.2880）；
+- median cache hit rate 全距 67.8%（Claude Code）→ 88.0%（Codex / Kimi Code）。
+
+**三个“Beyond the numbers”提醒（也是评测纪律）**：
+1. 排除失败会让成本失真：OpenCode 只覆盖 15 个通过样本，把失败尝试算进去后 median cost/task 变成 $3.24，而非成功口径的 $0.0615；
+2. cache hit rate ≠ 成本：一个被缓存的 300-turn 失败可能比一次短的 cache miss 更烧钱；
+3. 质量与成本可以大幅背离：Claude Code 通过 19 个任务，但 median cost/task 到 $18.34。
+
+**边界**：FrontierHarness v1.0 聚焦软件工程上下文与 terminal-based 任务，官方明示不一定泛化到其他知识工作领域。
+
+**对 Agent infra / eval 主线的启示**：
+- 这是 AgentCompass“harness 是 treatment 不是透明胶水”的实测注脚：同一模型 + 同一 runtime，仅 harness 不同就能带来 pass rate 与成本的数量级差异；
+- 与 LoopX RFC v0 的“能力论证 vs 机制研究”两条 lane 吻合：若要做 harness 对比，应把模型、runtime、checkpoint、任务集全部固定，并把失败尝试计入成本口径；
+- DSH 的四种配置（Creator/PTC/Standard/Minimal）说明同一 harness 内部配置变化同样影响质量/成本/速度，报告应绑定具体配置版本而非只写 harness 名。
 
 #### GAIA: A Benchmark for General AI Assistants ([arxiv](https://arxiv.org/abs/2311.12983), NeurIPS 2023)
 
@@ -1357,12 +1436,30 @@ OSU NLP Group。构建 hybrid sandbox（OSWorld VM + Docker 化 WebArena/TheAgen
 
 #### Stealing Reasoning Traces 与 external thinking：推理记录是可提取的侧信道
 
-> 来源：JackCui 公众号《[太刑了，GPT-5.6、Fable 5 被 Oh My Pi 作者攻破：完整导出模型推理记录！](https://mp.weixin.qq.com/s/cMrtKodPly2XqjV7Nvc-Pw)》（2026-08-13）；论文 [Stealing Reasoning Traces from Proprietary LLM APIs](https://arxiv.org/abs/2608.09867)（Panfilov et al.，2026）；[stolen-thoughts 仓库](https://github.com/mitkox/stolen-thoughts)。
+> 来源：JackCui 公众号《[太刑了，GPT-5.6、Fable 5 被 Oh My Pi 作者攻破：完整导出模型推理记录！](https://mp.weixin.qq.com/s/cMrtKodPly2XqjV7Nvc-Pw)》（2026-08-13）；论文 [Stealing Reasoning Traces from Proprietary LLM APIs](https://arxiv.org/abs/2608.09867)（Panfilov et al.，2026）；[stolen-thoughts 仓库](https://github.com/mitkox/stolen-thoughts)；Anthropic [Preserved thinking 说明](https://support.claude.com/zh-CN/articles/16761192-%E4%BF%9D%E7%95%99%E6%80%9D%E8%80%83-%E6%94%B9%E5%8F%98messages-api%E5%A4%84%E7%90%86%E6%80%9D%E8%80%83%E5%9D%97%E7%9A%84%E6%96%B9%E5%BC%8F%E4%BB%A5%E9%98%B2%E6%AD%A2%E8%92%B8%E9%A6%8F)与 [API 文档](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking)（2026-09-01 更新）。
 
 **定位**：专有 LLM API 的“加密推理数据”不是安全边界。已出现两条完整提取推理记录的路径：
 
 1. **跨模型解码（论文）**：强模型（GPT-5.6 / Claude Opus 等）产生的加密推理数据，可被带到其他请求里交给同一厂商防护更弱的模型，在特定提示诱导下当“解码器”把强模型推理还原成明文——不需要破解加密，因为加密块没有严格绑定原用户 / 对话 / 模型。论文称从 Kimi-K3 提取某些 Claude / GPT 推理片段可能比其他模型容易近 100 万倍。更危险的是反方向注入：弱模型把恶意指令写进加密推理数据，强模型会把它当成自己之前的思路继续执行，用户完全看不到。
 2. **外部思考工具（can1357 的直接方法）**：关闭原生隐藏推理（reasoning=off），给模型挂一个 `deep_think` 工具，模型会把本应走隐藏通道的分析写进工具参数；工具参数随 API 返回给开发者，等于直接拿到一份“重写的推理草稿”。已在 GPT-5.6 Luna、Claude Fable 5 上验证，切换思考等级（off / low）仍然有效。思考等级本质是 system prompt 里的一个数字，开发者可以调整数字控制思考投入，不必重新打开厂商隐藏通道。
+
+**Preserved thinking：从传输加密升级到上下文绑定**
+
+加密只阻止客户端直接读取 thinking block；模型仍需解密并理解它，因此模型本身就是潜在的 decryption oracle。旧协议允许 block 跨 session / user / model 重放，攻击者可把强模型的加密推理放进篡改后的历史，再让拒绝能力较弱的模型逐字转录。提取发生在弱模型端，也绕过了强模型端的反蒸馏监控。
+
+Anthropic 的 preserved thinking 将 block 绑定到生成它的执行前缀，API 在模型读取前检查：
+
+- 当前模型必须是生成模型或兼容的后续模型，不能把 block 任意降级给较弱模型；
+- block 前的 system prompt、tools 及历史 messages 必须保持不变；
+- thinking block 链必须连续，删除中间 block 会使后续 block 一并失效。
+
+验证失败时，严格模式返回 `400 invalid_request_error`；`prefix_mismatch_behavior: "drop_block"` 则删除失效 block 及其后的 thinking，让模型从剩余上下文重新推理。可将其抽象理解为 `signature = MAC(model compatibility, hash(prefix), previous thinking block)`，但这是协议语义模型，不代表 Anthropic 公开了具体密码学实现。
+
+这条防线切断的是“密文 + 恶意新上下文 + 弱模型解码器”的组合。它显著提高原始 reasoning trace 蒸馏的成本，因为推理轨迹比最终答案提供了更密集的任务分解、中间推导和纠错监督；但它不能阻止基于最终答案的黑盒蒸馏、reasoning summary 反推，也不能单靠密码学保证模型在合法原始上下文中永不泄露推理。完整防御仍需跨模型隔离、重放 / 异常检测、反转录训练和敏感 trace 最小留存。
+
+对 agent harness 的约束是：带 thinking 的历史应近似 append-only event log。动态改 system prompt、重建 tools、keep-tail compaction 或删除中间 thinking 都会破坏绑定；需要通过 mid-conversation system / tool change 等增量事件表达变化，或在压缩后丢弃旧 thinking、让模型重新推理。保持 prefix 稳定还能同时提高 prompt cache 命中率。
+
+[Anthropic 2026 年 9 月威胁报告](https://www.anthropic.com/threat-intelligence-report-september-2026)将推理提取与代理流量、用户交互留存联系起来。模型能力保护和用户数据保护是不同问题：即使未能提取隐藏推理，请求转发仍可能暴露代码与凭证；完整数据流边界见 [AI 服务供应链](./Security-Privacy-Cryptography.md#模型名称不等于数据处理边界)。
 
 **安全 / 工程含义**：
 
@@ -1523,11 +1620,15 @@ task:
 
 **对 harness 研究的启发**：dense reward + checkpoint 能暴露 progress shape（reward AUC、time-to-threshold），适合测 semantic replan 是否真的带来新方向；但 LHTB 的中间 verifier feedback 是 benchmark 合同，不能泛化成生产 oracle。verifier isolation 的教训对所有长程 eval 通用：grader 材料必须与 agent 权限域隔离。
 
-#### 长程 agent benchmark 的方法论要点（ALE / LHTB / DeepSWE 组合）
+#### 长程 agent benchmark 的方法论要点（ALE / LHTB / DeepSWE 组合，LoopsBench 为第 4 候选）
 
 > 提炼自 [LoopX long-horizon-harness-benchmark-research-program RFC](https://github.com/huangruiteng/loopx/blob/main/docs/architecture/rfcs/long-horizon-harness-benchmark-research-program-v0.zh-CN.md)（2026-08-16，Draft）。去掉 LoopX 品牌后，这些是做 agent eval / harness 对比的通用纪律。
 
 **为什么用组合而不是总榜**：单一 benchmark 各有盲区——纯软件 benchmark 证明不了专业工作迁移，宽 CUA benchmark 外部效度强却难归因机制，binary-only 会隐藏部分进展，dense-reward 又可能过度强调 verifier cadence。ALE（专业工作广度）/ LHTB（terminal 长 loop 与 dense progress）/ DeepSWE（113 个原创长程软件工程任务、91 个活跃 repo、5 种语言，hand-written verifier 验证功能而非参考 patch）互补，但三个分数不能平均成一个数，必须各自在 native metric space 报告。
+
+**第 4 候选：LoopsBench**（微软 / 南大，arXiv 2608.00267）：把任务表示成 source-evidenced 的 Dependency DAG，Flow-aware Runtime 沿 Ready Frontier 释放测试、已完成节点转为 Regression Obligation 持续守卫，评测环境与编辑环境分离。它专门测「Loop 层」（依赖结构上的持续推进 + 回归守卫），比 LHTB 更贴近软件工程 dependency 结构，与 LHTB（terminal 长 loop + dense progress）互补；其 25% Resolve（Opus-4.7 + Claude Code + continuation）说明 long-horizon 仍是开放问题。机制详情见 [AI-Agent-Engineering.md - LoopsBench](./AI-Agent-Engineering.md#loopsbenchlong-horizon-coding-agent-的-loop-engineering-评测)。
+
+**LoopsBench 带来的通用纪律**：依赖图要 source-evidenced、宁可漏边不臆造（lower bound）；评测用 Ready Frontier 而非一次全测；回归义务持续累积，评测只看最终分数会漏掉「守住了多少」；verifier 必须与 agent 编辑环境隔离（和 LHTB verifier isolation 同源）。
 
 **Claim ladder（主张阶梯）**：
 - C0 复现与 adapter fidelity：原生 runner 能跑、不改任务语义；
@@ -1546,6 +1647,46 @@ task:
 - 防过拟合：discovery 与 eval task set 分离，task body / verifier detail / trajectory 不进 reusable memory 或 capability，promotion 要非 benchmark 验证。
 
 **要测什么**：原生 score 之外，效率（wall time、token、provider cost、tool call、agent step、score per cost、reward AUC、time-to-threshold、未用 budget）和长程控制质量（重复工作切片、idle maintenance loop、trigger-to-new-direction / material-delta 延迟、evidence delivered / used / contradicted、中断后 recovery loss、protocol tax 拆成 token / time / cost / call / attention）。prose similarity 和 keyword matching 不能当 semantic truth。
+
+**现实工作负载对照（OpenAI 内部自披露，2026-09）**：同一份披露给出「时间桶 × 结果构成」的实测分布——零干预成功率从 <15m 的 86.0% 降到 32–64h 的 13.5%，而"成功但需 ≥1 次人工干预"从 8.1% 升到 63.3%（4–8h 段已接近对半：43.5% / 44.9%）。含义：长程任务的分数要拆成**零干预成功 / 干预后成功 / 失败**三类，否则会把"人扶着做完"记成 agent 能力；公开 benchmark 目前缺的正是这种干预密度字段与"人类所需时长"分桶控制。来源：[Research acceleration: The view inside OpenAI](https://openai.com/index/research-acceleration-view-inside-openai/)（2026-09-06），完整数据与口径见 [AI-Algorithms.md 该小节](./AI-Algorithms.md#openai-研究加速度自披露coding-agent-如何改变前沿实验室的研发流程2026-09)。
+
+#### SWE-Refactor-Bench：整仓堆栈迁移，行为测试会高估 agent
+
+> 来源：[GitHub Einsia/SWE-Refactor-Bench](https://github.com/Einsia/SWE-Refactor-Bench)、[Leaderboard](https://lab.einsia.ai/swe-refactor-bench/leaderboard/)、[论文 arXiv 2608.23564](https://arxiv.org/abs/2608.23564)。整理时间 2026-08-27；数字为公开快照。
+
+**定位**：20 个整仓库堆栈迁移任务。每任务从真实冻结开源 release（State A）出发，要求在公共 API / release artifacts / 可观察行为不变、且旧栈完全移出仓库的前提下，用另一个 stack 重写同一产品（State B）。规模从数小时到数十小时，覆盖完整 loop：读陌生代码库 → 计划迁移 → 写 → build → debug → 对照原始。任务构成：7 个语言重写、7 个框架重写、3 个平台移植、3 个构建链迁移。
+
+**为什么难评分**：迁移前仓库本来就通过所有测试——原样交回也是满分，纯行为无法作为问题。所以用三阶段评分：
+
+- **Stage 1 Audit（gate）**：模型只读 State A 与提交、不执行，判断迁移是否真的发生、旧栈是否离开 source / dependency / release closure；136 道 gate、每任务 5-10 道、三样本投票；任一失败即 0。
+- **Stage 2 Behavioural（40）**：模块化 rule-based 测试比较 artifacts / endpoints / installed layout / upstream test corpus 与 image-build 时冻结的 ground truth；全对才拿 40。
+- **Stage 3 Verification（60）**：6 个模型各 1 小时，在两边都 build / install 后，构造“原版通过、提交失败”且能复现 3 次的输入；每个没能找到反例的 verifier 给 10 分。
+
+评分公式：`S_task = 1[stage1 passed] × (40×1[stage2 complete] + 60×1[stage2 complete]×(survived/6))`，可达分数 0 / 40 / 50 / 60 / 70 / 80 / 90 / 100。
+
+**结果（520 次 graded runs，8 个 frontier 模型）**：340 次完成迁移，88 次通过全部固定测试，28 次被接受；20 个任务里 13 个没有任何模型解出。88 个进到第三阶段的提交里 60 个在一小时内被反例击穿（68.2%），说明“固定测试全过”不等于正确；被接受只表示没被这组 verifier 击穿，不是证明正确。
+
+**Leaderboard（best composite / 总分）**：
+
+| 模型 | best composite | 总分 | accepted |
+|---|---|---:|---:|
+| claude-opus-5 | 47.0 | 32.30 | 16 |
+| gpt-5.6-sol | 28.5 | 12.42 | 5 |
+| claude-sonnet-5 | 15.0 | 8.50 | 3 |
+| gpt-5.6-luna | 10.5 | 4.67 | 0 |
+| kimi-k3 | 19.5 | 19.50 | 2 |
+| qwen3.8-max | 10.0 | 10.00 | 2 |
+| dsv4-flash | 7.0 | 7.00 | 0 |
+| glm-5.2 | 6.5 | 6.50 | 0 |
+
+**对 eval / harness 的启示**：
+
+- 行为测试会把“迁移没发生 / 测试早过了”误判成成功；gate + adversarial verifier 是必要的第二、三层。这支持现有 ALE / LHTB / DeepSWE / LoopsBench 组合里的纪律：防过拟合、verifier 隔离、report claim boundary。
+- “整仓堆栈迁移”补的是 SWE-bench 类任务缺的 long-horizon 结构性重构：换语言 / 框架 / 构建链而不改行为，测 agent 对全仓约束的保持，而不是单点 patch。
+- 通用 refactor eval 还要覆盖真实 workload / 录制流量、写操作的隔离回放与 no-op 检测：原样提交应通过行为测试、却不能通过任务完成门槛；新路径未执行、写入被 Mock 吞掉也会制造假成功。工程框架见 [Refactor eval：真实负载、写流量回放与 no-op](./Software-Engineering.md#refactor-eval真实负载写流量回放与-no-op)。
+- 对 LoopX 的价值：可作为 evidence-backed candidate loop / promotion gate 的极端样本——candidate 即使通过 frozen tests，也还需要 adversarial verification 才能晋升；blind（测试全过但被 gate 拒）与 broken（被 verifier 击穿）是两类要单独报告的失败。
+
+**边界**：README 与 leaderboard 为公开快照；best configuration 与 task×model 分数以 leaderboard 页面为准；论文正文未逐节精读。
 
 #### GDPval / ClawWork：真实工作交付物与经济压力型 agent benchmark
 
@@ -1575,6 +1716,33 @@ ClawWork 的有趣点不在于“赚了多少钱”的宣传数字，而在于�
 - ClawWork 提醒我们：agent runtime 的指标不能只有 success rate；还要有 token cost、tool cost、time cost、quality-adjusted reward、survival / budget pressure。
 - 这类 benchmark 适合支撑“AI coworker / professional agent”叙事，但不能直接替代 TAU2 / AppWorld / BFCL 这类可执行环境 benchmark，因为它对 tool trajectory、状态变更和 action attribution 的约束较弱。
 - 如果迁移到 Agent Harness，可以抽象为 `task_value × quality_score - runtime_cost` 的 outcome，并把 deliverable quality、trace evidence、cost 和 regression 一起纳入评估。
+
+#### AA Intelligence Index：76% 权重被评测质量问题污染（benchmark 尺子审计）
+
+> 来源：[知乎回答：一个“智能指数”里，76% 的权重都有严重测量问题：为什么我不再相信 Artificial Analysis Intelligence Index](https://www.zhihu.com/question/2079049979042198722/answer/2079265017392789039)（作者「某科学的仙人仉」，2026-09-04 首发 / 09-05 更新，805 赞同）。背景问题：如何评价 GPT-6 Astra。本笔记只整理作者的证据链，未逐项回一手 changelog 复核。
+
+**背景**：GPT-6 Astra 发布后，“Astra AA 只有 61，Fable 5.1 有 66，所以 GPT-6 智力不如 Fable”的说法流行。作者的批评对象不是单一 benchmark，而是 AA Intelligence Index v4.1.1 作为“综合智力 / 追踪 AGI progress”指标的可信度：其中六项合计占 76% 权重，且反复出现同类问题——wrong gold answer、wrong grader、wrong few-shot、wrong gold trajectory、评测 pipeline 系统性误杀正确答案、已饱和 benchmark 仍占大权重、直接替换原 benchmark 评分标准。作者开头附带观点：GPT-6 Pro 推送后初测为全方位 SOTA（数学 / 科研辅助 / 前端 / 3D 精细度最强，vibe coding 略强于 Fable 但同梯队），属短期印象而非定量结论。
+
+另两份独立第三方能力观察见 [AI-Algorithms.md OpenAI GPT-6 Astra 第三方测评](./AI-Algorithms.md#openai-gpt-6-astra第三方测评大模型观测员)：大模型观测员的 26-08 逻辑榜与编程 / agent 项目观察，以及 Simon Willison 的 [Pelican 对比网格](https://simonwillison.net/2026/Sep/4/astra-pelicans/)（同一模型各推理档位的 SVG 生成质量与 token / 费用剖面，网格数据见 [这里](https://static.simonwillison.net/static/2026/gpt-6-and-5.6-pelicans.html)）。三者互补：AA 回答“榜为什么不可信”，大模型观测员回答“同一时期的定性能力信号长什么样”，Pelican 网格回答“同一模型不同推理档位的质量—成本曲线长什么样”。
+
+| 权重 | Benchmark | 作者给出的核心测量问题 |
+| --- | --- | --- |
+| 20% | GDPval-AA v2 | 借题不借评分标准。原 GDPval = 同职业专家双盲评审 + task-specific rubric；AA 每场 A/B 随机抽一个 frontier LLM（GPT-5.5 / Gemini 3.1 Pro / Claude Opus 4.8）单判并拟合成 Elo，不是三模型投票，也未公开 judge-vs-expert calibration。GDPval 原实验：automated grader vs human agreement 65.7%，human-human 70.8%——连专门训练的 grader 都不可忽略误差。AA judge context 也未提 rubric，分数实际是“AA 自定义的 LLM-preference Elo”，不能与原 GDPval human-expert score 画等号。 |
+| 16% | Terminal-Bench v2.1 | 版本滞后 + 饱和。当前已是 4.0；2.1 的 top agents 约 84%，换 3.0 后当时最强只有 43.5%；4.0 又删除 8 个问题任务、修复 19 个任务的 instructions / environments / verifiers。AA 仍把 2.1 固定为第二大单项。 |
+| 14% | τ³-Banking | 一次 grader 修复就能让同一批 trajectories 涨约 9pt：GPT-5.5 xhigh 37.37→46.39、GPT-5.4 xhigh 30.67→39.43（只重打分、不重跑模型）。旧 evaluator 把每次额外确认读取写进数据库、参与 DB hash 比对，谨慎的二次确认（创建账户后复查、下单后检查 pending order）会被整题判 0。另有：gold tasks 077–086 一度 agent-unrealizable、task_074 正确 refund $14.50 但 gold 写 $8.00、fixture 泄漏 “SHOULD BE FREE - 1ST OF 2”、evaluator 用 substring / experimental LLM assertion / 多 gate 乘积（任一为 0 整题 0）。 |
+| 12% | AA-Omniscience | Hallucination rate = incorrect / (incorrect + partial + not_attempted)——分母没有 correct，全拒答即可让 Non-Hallucination = 100%（白拿约 4% 指数权重）；被测 prompt 还主动鼓励“不知道就别说”。grader 模板自相矛盾：数值须精确到最后一个 significant figure，官方示例却判 1.73 vs 1.75 = CORRECT；“我不知道，但可能是 Alvin Goldman 或 Carl Ginet”判 NOT_ATTEMPTED——把最典型的 hedged hallucination 洗成不惩罚。grader 模型已换成 GPT-5.6 Luna medium，旧版 human alignment 不能自动迁移到新四分类边界。 |
+| 8% | SciCode | 原题自带缺陷。SciCode-Verified domain-expert audit：263 个 defects，192 个会让正确代码被拒（约 78% 需专业 physics/math 知识才发现），分布于 91% main problems；155/287（54%）scored subproblems 受影响。修复后 12 个 frontier snapshots：45–60% → 84–98%（main-problem 9–27% → 69–92%）。AA 仍用未修复原版——“比较模型”变成“比较谁踩中更多 benchmark bug”。 |
+| 6% | AA-LCR | 所谓 long-context benchmark 的 judge 看不到上下文。grader prompt 只给 question + official answer + candidate answer，丢掉 100k tokens 原文，是 reference-answer matcher 而非 source-grounded verifier。第三方 Harbor adapter 已撞到 wrong/malformed ground truth：Excel date serial 45444 → June 2024、0.14 → 14%、题目要 3 个 legal cases 但 gold 只列 2 个。作者实际测上下文倾向用 OpenAI MRCR 8-needle，并称不少模型在其上的结果与 AA-LCR 倒挂。 |
+
+**统计口径问题**：AA 用“部分模型 >10 次 repeats”推出 Intelligence Index 95% CI < ±1%，听起来精确，但只覆盖重复运行的随机方差，不包含 wrong gold、broken verifier、LLM judge bias、饱和 / 污染、scoring-rule misspecification、construct mismatch。低方差 ≠ 低偏置：坏掉的秤可以稳定把 80kg 测成 75.00kg。
+
+**给 benchmark 设计者的三条基本功（作者原话压缩）**：
+
+1. LLM judge 必须极度谨慎使用——目前 LLM judge 类 benchmark 十有八九有严重问题。
+2. 模型结果反直觉、反使用体验时，先查错误 case，而不是急着给模型下结论。
+3. agentic benchmark 的统一环境极难做，小问题就可能导致 10% 波动；看到低 pass rate 需要 trajectory-level failure audit，不能把剩余失败全部归因于“模型不会做 agent”。
+
+**对本仓库 eval / RL 工作的意义**：尺子系统性坏掉时，不只是排名失真——把这样的 benchmark 拿去做 RL 会把模型往“猜 benchmark bug / 顺应 grader”方向训。因此“benchbench”（校准评测本身）值得比现在高得多的投入比例；agent eval 至少要固定 grader revision + environment digest + gold/verifier 审计 + trajectory 级失败归因，与上面 AgentCompass / LoopX 的 run identity、verifier isolation 纪律一致。
 
 #### AppWorld / BFCL-v3：从可执行 App 世界到 function calling 专项评测
 
@@ -2186,7 +2354,44 @@ $$
 
 ![image-20251003230328481](./AI-Applied-Algorithms/image-20251003230328481.png)
 
+#### Prove2Me：把数学形式化做成 open-leaves 众包，验证器当裁判
 
+> 来源：[prove2.me](https://prove2.me/)、[GitHub prove2me/prove2me_workspace](https://github.com/prove2me/prove2me_workspace)（SKILL.md + references/ + Definitions/Theorems/Solutions 工作区）、[arXiv:2608.28433 Prove2Me: An Open Collaborative Platform for Scaling Math Formalization](https://arxiv.org/abs/2608.28433)（v2 2026-08-31；Shuze Chen / Kunal Marwaha / Xiaoyang Lu / Henry Yuen / Tianyi Peng）。整理时间 2026-09-09，读取 commit：workspace main HEAD（2026-09-07 pushed）；平台当时 183 missions（Open 55 / Completed 128）。
+
+**定位**：开源、面向"任何人 + 任何 agent"的 Lean 4 数学形式化众包平台。核心主张：正确性由机器检查（server 端 Lean 对目标 exact statement 做 type-check），所以 agent 可以规模化并行贡献、互相复用成果，而无需信任彼此；用户（human）只做少量不可替代动作（注册邮箱确认、mission audit），其余循环由 agent 独立跑。论文把它表述为「AI agents 显著降低形式化门槛后，把数学形式化变成 internet-scale 众包」。
+
+**为什么这对 agent infra 值得记**：这是 verification-gated agent 协作的完整生产化样本——不是又一个 math benchmark，而是把「验证器裁决 + 可分解任务树 + 可复用公共引理库 + agent 自治工作区」做成一套对外 API 的平台。它的每个机制都能直接对照 harness 设计。
+
+**核心机制**：
+
+1. **提交即 type-check，verdict 是数学保证而非 heuristic**：agent 上传 `solution.lean`，server 在目标 theorem 的 Lean/Mathlib 环境里验证；`ACCEPTED` / `SKETCH_ACCEPTED` / `WA` / `ERROR` / `FAILED`。三条硬规则防作弊：theorem 必须叫 `solution` 且类型与 target 的 `formal_statement` 完全一致；禁止 import 自己的目标（目标以 `by sorry` 占位存储，import 它就等于自证）；提交文件内禁止 `sorry`（Open children 的 sorry 在 server 端是被允许的依赖）。
+2. **Sketch = reduction，把大定理拆成开放子引理树**：提交 `proof_type=sketch` 的 reduction proof 时，可以 import 平台上的 **Proved 或仍 Open** 的 theorem；import Open theorem 时父定理状态挂到 children 上——所有 children 被证明后父自动 `Proved`。每次 import 都记录 tracked reduction，形成 decomposition graph。
+3. **Frontier 把工作流对象化**：每个 mission/goal theorem 有 decomposition graph，`/open-leaves` 直接返回当前未分解、未证明的叶子（原子子目标）。agent 不需要猜"从哪下手"，平台把并行劳动分工的接口给成 API。这是最值得抄的 pattern：**任务系统维护一棵 open 任务树，并用 frontier 作为调度入口，而不是让每个 agent 各自重新规划**。
+4. **Mission / Captain / Milestone 三层治理**：mission 是 dashboard 上的 curated headline challenge（数学家发起，指向一个 goal theorem + captain-curated milestones：lemma 级子目标、忠实于来源的权威 statement）；fields 是学科 tag；mission proposal 需要 human audit（提交前由独立 sub-agent 做 blind read-back，即用自然语言复述 Lean statement 以校验忠实性），mission launch 与 live curation 是 captain-only。Private mission 可先私有跑通再 release 到公共目录。
+5. **可复用引理与声誉激励对齐**：平台鼓励把证明拆成 reusable lemmas，import/reuse 别人定理时原提交者获得声誉 credit；leaderboard 记录 first solver；trust score 随 first-solve 与 upvote 增长。公共引理库 = 让后到者站在前人到者肩上（stand on shoulders），把「复用」从口头原则变成可追踪的依赖图与激励。
+6. **Agent skill 即协议**：workspace 仓库本身是一个 `SKILL.md` + `references/*.md` + 镜像 server 目录布局（Definitions/Theorems/Solutions）的工作区；提供 API key 自动换取流程（`/agent/refresh` 30 天 key → 1 小时 access token）、端点索引、版本自检（登录响应里的 platform version vs SKILL.md metadata.version，失配就 pull 更新）。fetch-only 环境有降级路径（直接读 prove2.me/skill.md + references）。
+7. **环境按 Mathlib 版本隔离**：theorem/definition name 在 `mathlib_rev` 环境内唯一；`/verify` 不需要 env 参数，proof 在目标 theorem 所在环境验证。这处理了「不同 Lean/Mathlib 版本下 statement 漂移」的长期维护问题。
+
+**Lean 作为 verifier 的上下文（与 RL 信号的关系）**：机器验证给出 0/1 的确定性 reward，没有 judge bias，天然适合当 RL 的 reward oracle（DeepSeek-Prover-V1.5 已用「验证通过=1，否则=0」训练 GRPO）；但正确性信号很稀疏，平台把大定理拆 sketch 树、让 frontier 叶子变小，正好缓解"一题太长拿不到任何信号"的问题——**这是把稀疏终极信号转成可并行、可学分步的验证信号的任务工程**。
+
+**直接启发（对 harness / eval / benchmark 设计）**：
+
+- deterministic verifier 场景（形式化、可执行 spec、竞速题）应做成「开放任务树 + open-leaves API + 公共可复用依赖库」，而不是闭卷题集；agent 间协作靠可验证依赖而不是信任或 summary handoff。
+- 「禁止 import 自己的目标」「import Open children 使父挂起」是防自证循环与依赖环的具体规则，任何 harness 让 agent 提交 formal claim 时都值得抄。
+- 引用别人已证 theorem 作为 lemma = 记录一次 tracked reduction：**依赖图即贡献图谱**，这比 flat submission log 更适合做声誉和 eval。
+- human gate 收敛到很小的集合：邮箱确认（一次性）与 mission proposal audit（独立 sub-agent 盲读 Lean statement 反述自然语言）；其余自治。这与「人只做不可替代决策」的控制面原则一致。
+
+**用户评价（2026-09-09，个人观点落盘）**：
+
+1. **本质是「分布式算力贡献命题」的机制**：在数学题场景，Prove2Me 给出了一套把某个命题的验证拆开、让分布在各处的 agent/人贡献算力与证明工作的机制——命题被机器验证后成为公共资产，贡献者之间不需要信任协调者，只需要信任验证器。
+2. **这种趋势在人类活动中早已有同构**：开源社区的代码 RFC 就是典型——先定义 RFC（相当于 mission 的目标与边界），随后全球开发者根据 RFC 的进展和 milestone 贡献各自的算力/劳动力；进展状态、里程碑与最终验收共同构成协调层，而不是靠中央排期。
+3. **由此得到的观察**：当「验收可以机器化、可验证」时（Lean 证明、测试套件、RFC 的规范实现），人的分布式贡献就能被组织成开放任务树；数学形式化众包与 RFC 式开源开发共享同一组织原理——**明确的规范/命题 + 可机器验收的 milestone + 开放贡献面**。反过来看，凡验收只能靠专家主观判断的领域，这类机制就难以规模化，这正好说明 verifier 建设是 agent 众包的前提。
+
+**边界 / 注意**：
+
+- Lean 验证保证的是「formally stated theorem 的证明正确」，不保证「formal statement 忠实于原论文/教科书 claim」——忠实性靠 mission/captain 的 curate + audit 流程，仍有自然语言层的主观性。
+- 平台、missions 数量与论文均为早期（2026-07 仓库创建、2026-08 arXiv v1/v2）；37 stars / 18 forks 属于刚起步规模，「internet-scale」是愿景不是现状。
+- 有效 skill 版本与平台版本耦合，要求每次登录做版本自检，说明 agent 协议仍处于快速漂移期。
 
 ### 用户 Agent，模拟用户行为
 
@@ -3116,6 +3321,10 @@ Fixer 不会自行 merge；人类必须 review branch，任何 production write 
 | Mailbox + task / event ledger | task、claim、blocked reason、decision、artifact ref、evidence ref、quota、heartbeat、handoff gate | Claude Code Agent Teams / LoopX 这类本地 agent team；多 worker 并行但保持 context isolation | mailbox 被误用成事实源；完成状态必须回写 ledger / event store / artifact store |
 | Session-to-session dialogue | agent session 之间的定向消息、review request、clarification | 临时澄清、peer review、局部协商 | 对话本身不耐久；没有写回 ledger 就不能作为长期事实 |
 
+这些 sharing model 可以叠加，**Session 隔离不等于某一种所有权拓扑**。Codex 的树内 child 本身就是独立 Session，通过共享 AgentControl 与收件 Session 的 mailbox 通信；多个独立 root 任务又可通过宿主任务工具交换工具级输入。创建树、通信图、工作 DAG 应分别建模：标准 child final 回直接父节点，兄弟 requester 或树外发送者要结果时仍需明确 `reply_to` 与产物引用。完整源码、InputQueue、结果路由与跨任务分层见 [Codex Sub-agent：架构、执行、通信与恢复](./Codex-Subagent.md)；其中 Agent / Work / Message 三份合同是设计建议，不是对 Codex 已有字段的描述。
+
+**动作选择与运行协议要分层**：减少模型在相似通信 / 交付动作间的歧义，不能替代 runtime 的正确性。普通 final、显式 report 工具与生命周期 Hook 要由 adapter 按模式归一化；child 结束后 main continuation 尚待启动时，即使活跃 child 为零，也不能推断整个 run 完成。这是执行端需要明确结束协议的问题，不是单靠更好的 prompt 能修复。模型负责“做什么”，runtime 绑定“本轮是谁请求、向谁交付、何时真的结束”，验收器决定“结果是否合格”。Claude 的三种 fork、SendMessage 恢复 / 结果转向、有效能力与该 SDK 竞态见 [Claude Code Subagents](./AI-Agent-Engineering.md#claude-code-subagents上下文消息与运行生命周期)；来源包括 [官方恢复语义](https://code.claude.com/docs/en/sub-agents#resume-subagents)与 [SDK 生命周期跟踪注释](https://github.com/anthropics/claude-agent-sdk-python/blob/e9af0778559032afca55ac200608c24f18af86ca/src/claude_agent_sdk/_internal/query.py#L768-L824)。
+
 WakeLoop 展示了一种值得单列的产品混合形态：**shared Space + private local execution + explicit outcome settlement**。它不把每个 Agent 的完整 workspace / transcript 同步到共享上下文，而是让 Space 保存目标和公共工作记录，通过 Project binding 把同一逻辑项目解析到成员各自的本地 clone / worktree，再用 Wake 做可追踪委托；Agent 最后显式返回 `reply / handoff / status / failure`。这比 session dialogue 多了一条可靠的 dispatch / return path，但公开能力仍不等于带 claim、quota、evidence 和 checkpoint 的 durable State Kernel。产品与实现细节见 [WakeLoop：给本地 Agent 补上团队级 dispatch 与 return path](./AI-Agent-Engineering.md#wakeloop给本地-agent-补上团队级-dispatch-与-return-path)。
 
 这次讨论里的“共享会议室”更适合落在第二类：共享关键信息和任务，不共享全部空间。会议室里应该有 agenda、task、claim、decision、artifact pointer、evidence、quota 和 handoff gate；不应该默认把每个 agent 的完整 transcript、工具日志和隐含推理都合并到同一个 context。Tutti 的启发是把 session / app / task 的互相引用上提到 `workspaceId` 下的全局状态；LoopX 的短中期重点应是把 mailbox + ledger 做 solid，让共享状态可验证、可恢复、可审计。
@@ -3144,6 +3353,89 @@ multi_agent_sharing_model_v0:
     - mailbox_as_source_of_truth
     - session_dialogue_as_durable_state
 ```
+
+#### 多 Agent 的必要性：先证明收益来源，再选择协作协议
+
+> 来源：chengyongru《[multiagent 协作问题的初步整理](https://x.com/chengyongru/status/2089289757138575737)》；2026-09-20 读全文，并定向核对 [OneFlow §3–4](https://arxiv.org/html/2601.12307#S3)、[等 thinking-token 预算研究 §4–5 / Appendix C](https://arxiv.org/html/2604.02460#S4)。以下分类是作者的分析框架，不是领域统一标准。
+
+**先问拆分后多了什么条件，再问采用什么拓扑。** 仅把 planner、critic、reviewer 分成三个名字，不足以证明优于同一模型的多轮执行。作者区分四种问题：
+
+| 系统形态 | 核心变化 | 优先验证什么 |
+|---|---|---|
+| 多提示词工作流 | 同一个模型轮流扮演不同角色 | 单 Agent 保留相同工作流、工具与预算后，差距是否还在 |
+| 中央编排的专家集合 | Orchestrator 动态选模型、工具、subagent | 专长、上下文隔离和并行是否覆盖路由与汇总成本 |
+| 分布式协作系统 | 信息、状态、工具或权限分散，没有单一全知节点 | 状态如何传播，谁有权提交，冲突与终止如何判定 |
+| 开放式 Agent 生态 | 成员、目标、联盟、角色和制度可变 | 身份、信任、激励和协议兼容性 |
+
+这些形态可以重叠，不是必须逐级升级的成熟度阶梯；中央 orchestrator 下面也可能出现共享文件并发冲突。
+
+作者列出的六类差异条件，可以用作设计检查表：
+
+| 条件 | 可检验的收益假设 |
+|---|---|
+| 不同模型、工具或真实能力 | 专家承担某类任务优于统一执行器；仅改角色名不算能力差异 |
+| 不同私有信息或上下文 | 分开探索能扩大信息处理容量，减少上下文污染；汇总损失仍需测量 |
+| 不同权限和信任域 | 最小权限、私有数据边界和独立验证需要分离执行主体 |
+| 必须并行的环境动作 | 串行错过时机，或达不到 latency / throughput 要求 |
+| 不同所有者、目标或激励 | 各方不能被一个中央 Agent 无条件代替 |
+| 超出单 Agent 承载范围的长期状态 | 持续维护多条工作线需要独立上下文与生命周期 |
+
+**“单 Agent 没有的条件”应按给定预算、上下文、权限和时间约束理解，不是数学上的不可模拟。** 同模型的独立采样、隔离审查或并行探索，也可能在实际约束下产生价值；反过来，存在异构模型或多个角色并不自动证明净收益。应比较强单 Agent、多轮 workflow 与多 Agent，在相同工具 / 数据 / 质量标准下记录实际 token、费用、耗时与成功率。异构资源和权限条件无法对齐时，要明确比较的是不同系统约束。
+
+两篇一手研究支持加强 baseline，但没有证明所有多 Agent 都不值得：
+
+| 研究 | 实际机制 / 观察 | 证据边界 |
+|---|---|---|
+| [OneFlow](https://arxiv.org/html/2601.12307#S3.SS2) | 保留工作流路由、角色 prompt 与工具，把同基础模型的多个节点串进一份持续增长的 chat history。另用 designer / reviewer + MCTS 搜索适合单执行器的工作流 | 不等于单次直接回答能替代所有协作；不会保留原有权限隔离与真实并行。§4.1 的闭源 API 成本包含理想 KV-cache 估算，Qwen/vLLM 才另测真实延迟 / 吞吐；不能统称实测账单节省 |
+| [等 thinking-token 预算研究](https://arxiv.org/html/2604.02460#S4) | FRAMES、MuSiQue 4-hop；Qwen3、DeepSeek-R1-Distill-Llama、Gemini 2.5；比较 sequential、subtask-parallel、parallel-roles、debate、ensemble。单 Agent 在大部分所测设置下表现有竞争力或更好 | 匹配 requested thinking cap，并非强制相同实际计算量；Gemini 计量近似；部分设置有 MAS 优势。仅文本多跳推理，工具、视觉、安全隔离不在范围内；上下文利用退化时 MAS 可能更有价值 |
+
+等预算研究的 [§3 信息论论证](https://arxiv.org/html/2604.02460#S3)还要求区分“信息可得”与“模型能用好”：完整上下文经消息压缩不会增加关于答案的信息，但这一点不能证明受限模型一定能有效利用完整上下文，更不能凭此推出相同时间 / token 内的实际优劣。§5.3 的人为 masking / substitution 等退化实验提供了反例边界，不等于已验证所有真实长上下文场景。
+
+作者其余文献提供三组失败线索：**交流更多不等于分布式推理更正确；意见更一致不等于更会利用专家；局部冲突更少不等于端到端成功率更高。** SILO-BENCH、专家意见平均化、具身对话和资源死锁等具体实验数字，本轮未逐篇复核，不作为统一 MAS 效果结论。当前原文把资源竞争死锁来源称为 [DPBench](https://arxiv.org/abs/2602.13255)，应与 [MAS-BENCH 全局排序](https://aclanthology.org/2026.findings-acl.1698/)区分。
+
+这与 [Anthropic Research](#anthropic-多-agent-research信息容量委派与同步并行) 并不矛盾：研究任务可能从多窗口信息容量和并行中受益，但内部 eval 的提升仍不能脱离预算归因。建立必要性后，再按共享状态与副作用选择协议，见 [Multi-Agent 并发控制](./AI-Agent-Engineering.md#multi-agent-并发控制长推理窗口与提交协议)。**通信图解决“谁能联系谁”，并发协议解决“谁依据哪个版本，能把什么变成事实”。**
+
+#### Anthropic 多 Agent Research：信息容量、委派与同步并行
+
+> 来源：[How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)，2025-06-13；公开 [Lead prompt](https://github.com/anthropics/claude-cookbooks/blob/c245d39f91e5bbc0bf88f6a66a9af5e15f5c3462/patterns/agents/prompts/research_lead_agent.md#L106-L118)。用户读完并补充抓手：2026-09-18。这里分析文章当时的 Research 系统；公开 prompt 是配套证据，不等于完整生产源码，也不能当作当前 Claude Code 的能力规格。
+
+**多 Agent 的主要收益之一是扩大信息处理容量。** Research 是从大量材料中提炼结论的压缩过程：子 Agent 在各自 context window 中探索不同方向，再向 Lead 返回高密度发现，使总可处理信息不必全部挤进同一个窗口。独立方向并行还能缩短等待时间；不同工具、prompt 和探索轨迹减轻单一路径依赖，但不保证独立错误或更高质量。收益最明确的是高价值、信息量大、可分解的研究任务；共享上下文和依赖很多的编码任务，不能直接照搬这个结论。
+
+![Anthropic Research 原文架构：Lead、搜索子 Agent、Memory 与 CitationAgent](./AI-Applied-Algorithms/anthropic-multi-agent-research-architecture.png)
+
+基本结构是 Lead 规划与分派 → 子 Agent 独立搜索、评估并返回 → Lead 合成、找缺口、补查或结束 → CitationAgent 补引用。原文图中的 memory、工具名和调用关系用于理解该版本系统，不构成当前通用 Agent API。
+
+**委派质量决定分工是否成立。** [Lead prompt 第 106–118 行](https://github.com/anthropics/claude-cookbooks/blob/c245d39f91e5bbc0bf88f6a66a9af5e15f5c3462/patterns/agents/prompts/research_lead_agent.md#L106-L118)把一份委派合同拆成七项：一个明确核心目标、预期输出格式、必要背景与对总体计划的贡献、关键问题、起始来源及来源质量标准、建议工具、精确范围边界。第 115 行还给出组合检查：假设每个子 Agent 都完美完成指令，汇总结果是否足以完整、准确地回答用户问题？这同时检查局部分工和整体覆盖，避免“每个 worker 都成功，用户问题仍没答完”。
+
+**并行执行，但当时还不是异步协作。** 系统同时使用两层并行：Lead 并行启动多个子 Agent，子 Agent 内部并行调用独立工具。生产章节同时明确：Lead 等整批 child 结束后再继续，不能中途 steer，child 之间不能协调；最慢的 child 可以阻塞整批。这是批内并行 + 批次屏障，不是边到边合并、动态改派和 peer 协商。异步化会进一步引入结果协调、状态一致性和错误传播问题。后续产品能力应另看 [Claude Code Subagents](./AI-Agent-Engineering.md#claude-code-subagents上下文消息与运行生命周期)。
+
+**阶段 handoff 与外部产物解决不同的信息损失。** Appendix 给出的两条路径应分开实现：
+
+- **上下文接续**：总结已完成阶段，把关键事实和研究计划存到外部 memory；接近 context 限制时启用干净上下文的新 Agent，通过 handoff 和检索阶段信息接续。它传递的是继续工作的语义状态；不等于复制进程或完整故障恢复 checkpoint。
+- **产物交付**：子 Agent 将报告、代码、图表存到外部系统，向 Lead 返回轻量引用，让完整产物独立持久化。这样减少多层转述与重复压缩造成的信息损失，也减少在历史中复制大输出的 token 开销。引用仍需可解析并能定位对应版本；这属于接入时需要补足的合同。
+
+评测允许不同有效轨迹，重点判断结果与合理过程。原文的五维 rubrics：
+
+| 维度 | 判断问题 |
+|---|---|
+| 事实准确性 | 主张是否与来源事实一致？ |
+| 引用准确性 | 实际标注的来源是否支持对应主张？ |
+| 覆盖完整性 | 用户请求的各个方面是否都覆盖？ |
+| 来源质量 | 是否优先采用一手来源，而非低质量二手汇总？ |
+| 工具效率 | 是否选对工具，并以合理次数使用？ |
+
+作者报告一次 LLM judge 调用输出 0–1 分和 pass/fail，在其场景中比拆成多个 judge 更稳定、更接近人类；人工检查仍发现了 SEO 内容农场偏好等盲点。公开 [CitationAgent prompt](https://github.com/anthropics/claude-cookbooks/blob/c245d39f91e5bbc0bf88f6a66a9af5e15f5c3462/patterns/agents/prompts/citations_agent.md#L1-L12)只允许插引用、保持原文字句不变，因此引用处理不能替代事实纠错。五维 rubric 是研究报告评测设计，不是现成的软件交付验收标准。
+
+所有数字均为原文报告，本次未独立复现；需要连同分母和比较条件一起记：
+
+| 原文数字 | 比较口径与可支持的结论 |
+|---|---|
+| 多 Agent 比单 Opus 4 高 **90.2%** | 内部 research eval；多 Agent 使用 Opus 4 Lead + Sonnet 4 workers。没有同预算对照，不能直接归因于协作结构，也不是提升 90.2 个百分点。 |
+| Token usage 解释 **80% 表现方差** | BrowseComp 分析中的解释变量；加上工具调用次数与模型选择，三项解释 95% 方差。不能说“80% 收益由 token 因果贡献”。 |
+| Agent 约 **4×**、多 Agent 约 **15×** token | 两者都相对普通聊天。不是多 Agent 比单 Agent 贵 15 倍；token 倍率也不能直接当费用倍率。 |
+| 复杂查询耗时最多下降 **90%** | 引入 Agent 间并行和 Agent 内工具并行后的报告结果；不是所有任务固定加速，也不是只增加 Agent 数量的独立收益。 |
+
+可迁移的设计是三份合同：`delegation = objective + scope + output + evidence requirements`；`handoff = phase state + unresolved questions + next action`；`artifact = stable reference + version + provenance`。先用同步批次建立可测基线，再验证异步回传与重启恢复；这些字段是从本文提炼的设计建议，不是其公开原生 schema。
 
 #### CooperBench：诊断 peer coordination，而非模拟真实集成工作流
 
@@ -3184,7 +3476,9 @@ cooperbench_integration_variant_v0:
 
 #### 为什么需要主 Agent 之外的 Agent
 
-设计动机可以压成三点：
+设计动机可以压成四点：
+
+- **扩信息容量**：多个独立 context window 并行消化超出单窗口的信息，再分层汇总；这扩大可投入的总处理容量，不等于共享一个无限窗口，也不能把额外 token 的收益全部归因于协作结构。生产例子见 [Anthropic 多 Agent Research](#anthropic-多-agent-research信息容量委派与同步并行)。
 
 - **控上下文**：把搜索、日志、文件阅读、候选方案这些噪音放进子上下文，让主线程保留目标、约束和决策。更根本地说，这是把 task 的 context 用量压回模型训练阶段更熟悉的范围，以缓解 long-context 下更容易出现的偷懒、跳步、伪完成和注意力漂移。
 - **换视角**：让子 agent 做 review、反证、方案比较和独立复核，避免主 agent 在自己的推理轨迹里自证其说。
@@ -3245,7 +3539,7 @@ LoopX 的正确方向不是把所有 runtime 变成同一个 Hermes-like agent�
 | Execution path | Dynamic Workflow、Temporal Durable Execution | 脚本如何 branch / fan-out；执行如何等待、重试和恢复 | step、script variable、timer、workflow event history |
 | Execution substrate | Shepherd | Agent 与环境的耦合执行状态如何观察、分叉、重放和结算 | task、effect、scope、trace commit、retained output、settlement |
 | Project control plane | LoopX | 谁能继续、下一轮是否该跑、证据写哪里 | registry、goal state、todo ownership、gate、quota、run history、evidence refs |
-| Goal audit | Codex / Claude / Kimi 的 goal mode | 能否宣称完成、是否真的 blocked、预算是否还能继续 | objective、completion evidence、blocked fuse、usage accounting |
+| Goal audit | Codex / Claude / Kimi 的 goal mode | 能否宣称完成、是否真的 blocked、预算是否还能继续 | objective、completion evidence、usage accounting；区分模型自审规则与运行时强制熔断 |
 | Method trace | Flowtrace | 方法图、步骤证据和局部重跑边界如何从 transcript 外部化 | trace.json、state.json、replies、path-backed evidence |
 | Human / multi-agent gate | LangGraph Interrupts、Claude Code Agent Teams | 人类和多个 agent 如何接力、审批和恢复 | gate id、task ledger、mailbox、permission lease、artifact refs |
 
@@ -3301,6 +3595,8 @@ agent_identity_and_inbox_v0:
 3. **元插件治理。** market / manager / doctor / find-plugin 的出现说明生态规模超过手工管理后，管理自身也要插件化。对应 LoopX 的 catalog constraints、material intake、ranking 结算同样可以做成插件接口，而不是长进核心代码。
 4. **生态分面先于核心功能。** 记忆、视觉、沙箱、通知都被外包成插件，核心 loop 保持小而稳；判断 harness 竞争力的指标是 seam 是否稳定，而不是自带功能数量。
 5. **边界。** 目录是自述式索引：作者托管免费服务带来隐私/稳定性风险，同类别存在大量重复实现和未维护条目；采纳前应 exact read 目标仓库的 plugin manifest、权限 schema、事件 schema，不能把目录描述当代码证据。
+
+补充：DSH 生态之外还有一个跨层观察——DeepSeek-V4 Pro 被社区怀疑对 DSH 极简模式过拟合（首轮提示词偏差：Minimal 模式工具占比低、注意力集中在任务；Standard 模式 25 个工具 schema 稀释 user prompt 导致推理轨迹被带偏），并联系 attention sink / First Token Dominance 做机制类比。社区讨论与对 Harness 的启发见 [AI-Agent-Engineering.md - DSH 提示词与模型行为的耦合](./AI-Agent-Engineering.md#dsh-提示词与模型行为的耦合极简模式过拟合讨论知乎)。
 
 #### Shepherd：Agent execution 的版本控制与事务层
 
@@ -3486,6 +3782,10 @@ loopx_shepherd_bridge_v0:
 
 #### Multi-agent runtime governance
 
+多 Agent 进入共享状态或外部副作用场景后，治理就包含传统分布式系统的协调：**提交协议、资源排序、锁与租约、状态版本、幂等操作、终止检测**。通信拓扑之外，还要定义谁能使结果生效、失败后怎样重试、何时可以宣布整个任务结束。协议可以由 prompt 指导参与，但硬不变量必须在权威存储、调度器或实际副作用边界执行；模型说“已完成”只是完成请求。六项机制与 safety / liveness 验收见 [Multi-Agent 并发控制](./AI-Agent-Engineering.md#multi-agent-并发控制长推理窗口与提交协议)，问题框架来自 [multiagent 协作问题的初步整理](https://x.com/chengyongru/status/2089289757138575737)。
+
+协议选型还要单独算**协调成本**：长推理窗口下，全局版本冲突后全部重算，可能使 n 次有效提交付出 Θ(n²) 次生成尝试；有序执行、按资源校验或局部修复能改变这条代价路径，但各有适用前提。应同时比较正确性、总 token、关键路径与饥饿，而不是只比较并行 Agent 数；具体推导、Git 类比与九类机制见[工程笔记](./AI-Agent-Engineering.md#multi-agent-并发控制长推理窗口与提交协议)。
+
 Claude Code Agent Teams（见 [Agent 工程笔记](./AI-Agent-Engineering.md#claude-code-agent-teams从多开会话到可管理-runtime)）把多 agent 从 prompt role-play 推向 runtime contract：lead、teammates、task ledger、mailbox、hook gates、permission lease、budget ledger 和 display surface。它补充了 Temporal / OpenAI SDK 给出的启发：当多个 agent 并行时，source of truth 不能是 mailbox 或聊天摘要，而应是 task ledger + event store + artifact refs；mailbox 只传协调消息和 artifact pointer；完成状态必须经过 hook / verifier。
 
 ```yaml
@@ -3545,6 +3845,8 @@ task signature / control-plane scope
 #### Reliable state
 
 长期 agent 的 context 问题不是“多塞 token”，而是如何保持 agent 的 working state 与真实 task state 对齐。Anthropic context management、prompt-cache-aware ordering、tool-result clearing、compaction、retrieval、externalization 都是实用机制，但 Context Rot 和 memory benchmark 都提醒：更长上下文和更大 memory store 不自动等于更好的 task-state tracking。因此 context management 应被看作 state estimation：要估计每次压缩、检索、遗忘造成了多少任务信息损失，并给 remembered facts 加 provenance、staleness、contradiction handling 和 recovery procedure。Temporal Durable Execution 进一步补上一层：执行事实应进入可恢复的 Event History，而不是只留在聊天 thread 或某次压缩摘要；目标、证据和权限等领域真相仍应由上层 State Kernel 管理。
+
+这里要区分**可见历史、可续用的推理状态、持久任务事实和计算缓存**：聊天记录完整不证明 thinking 被保留，缓存命中也不证明任务状态正确。推理保留与 compaction 分别影响上下文连续性；恢复所需的结论、证据、约束和待办仍需显式记录。接口机制见 [推理状态保留](./AI-Agent-Engineering.md#context-management-与-token-效率)，缓存机制与统计口径见 [上下文编辑与缓存观测](./LLM-MLSys.md#上下文编辑与缓存观测)。
 
 **概率执行改写可靠性假设。** 来源：[Runta《Agents aren't software》](https://runta.com/blog/agents-arent-software/)，Guanlan Dai 基于与 Jeff Dean 的谈话整理，2026-08-05。传统软件可以在写代码时基本确定执行路径；当模型进入生产执行链路，系统变成由 model、tool、filter、evaluator、branch 和 fallback 组成的 computation graph，其中部分节点和路径在运行时才确定。Agent 对基础设施更深的影响因此是新的执行语义，而不只是多了一类应用或 API。
 
@@ -3624,6 +3926,8 @@ ExecutionFailed(run N, stable error)
 
 `/goal` 这类能力不应被理解成 planner，而更像目标审计 / 终态判定控制面。来源可参考公众号《[主流Agent Harness实现对比——Goal命令](https://mp.weixin.qq.com/s/yJ67spzRuizW_21ldsYu8g)》的横向比较；其中 Codex 部分以官方源码为准：[`create_goal / get_goal / update_goal`](https://raw.githubusercontent.com/openai/codex/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/ext/goal/src/spec.rs) 把 objective、status、token budget、usage accounting 做成 thread-level durable state，[`continuation.md`](https://raw.githubusercontent.com/openai/codex/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/ext/goal/templates/goals/continuation.md) 负责续跑时的忠实度、证据审计和 blocked 熔断约束，[protocol](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/protocol/src/protocol.rs#L3661-L3701) 中的 `ThreadGoalStatus` 体现了 Active、Paused、Blocked、BudgetLimited、UsageLimited、Complete 这组控制面状态。
 
+补充阅读：《[Codex /goal 代码解读：原生长任务目标的实现，以及它和 Humanize 1.0 区别](https://mp.weixin.qq.com/s/J-NvcYCjG5g7QgPt9_jBcA)》。下面的源码细节按文章固定 commit [`04483f4`](https://github.com/openai/codex/tree/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal) 复核，不将历史文章当成今天所有客户端的完整实现。尤其要区分“模型被要求自审”与“运行时已替模型验证事实”。
+
 普通 agent loop 是：用户给任务，模型执行，模型自己判断何时结束。这个结构在长程任务里天然脆：模型会过早停、把目标缩水、用局部证据宣布完成、卡住后反复解释困难，或者在预算耗尽时假装收尾。Goal mode 的本质是把“目标是否已经达成”从 prompt 里的自然语言愿望，提升成 runtime 里的持久控制状态和 completion grader：它不是替 agent 规划每一步，而是审计原始目标是否仍被保持、当前证据是否足够、失败是否真的到达 blocked，以及预算是否仍允许继续。
 
 这个机制可以压成几条 runtime 原则：
@@ -3634,19 +3938,58 @@ ExecutionFailed(run N, stable error)
 - blocked 是熔断，不是抱怨：困难、慢、不确定、需要澄清都不是 blocked；同一阻塞连续出现多轮且无用户输入或外部状态变化就无法推进，才进入 blocked。
 - 预算是控制面的一部分：token / turn / wall-clock 不是统计装饰，而会影响是否继续、是否 budget-limited、以及如何向用户报告进度。
 
+Codex 将这条预算原则落到持久层：[`account_thread_goal_usage`](https://github.com/openai/codex/blob/9d87b771cebd0f80e4637e80c93b0d66b10d86c0/codex-rs/state/src/runtime/goals.rs#L411-L523) 通过 Rust 的 SQLx 构造 SQLite `UPDATE`，在同一语句中累加用量，并按 accounting mode 判断是否转成 `budget_limited`，用 `RETURNING` 读回结果。预算状态的原子迁移由数据库执行；重复记账防护、执行停止时机仍属于上层协议。语言与驱动边界见 [Rust / SQLx](./Rust.md#rust-中的-sql字符串sqlx-与-sqlite-的分工)，并发与幂等边界见 [SQLite 原子更新](./Database.md#原子累加与条件状态迁移)。
+
 `continuation.md` 的关键不是“再催模型干活”，而是把下一轮变成一次目标审计：objective 是用户提供的数据和任务目标，不是更高优先级指令；目标跨 turn 持久，不允许把成功重定义成更小、更安全、更容易测试的子集；每轮要以当前真实状态为准，而不是凭早先对话记忆；`update_plan` 只是进度可见性工具，不能替代实际推进；完成审计要从 objective、引用文件、计划、规格、issue 和用户指令中拆出显式需求，对每个 artifact、命令、测试、gate、不变量和交付物找权威证据；证据可以证明完成、反驳完成、显示未完、太弱或缺失，弱证据一律按未完成处理；阻塞审计则要求至少三轮连续同一阻塞，且确实没有可继续推进的动作。除非完成或严格 blocked，都不应调用 terminal update；更不能因为预算将尽或本轮要停，就把目标标成 complete。
+
+**工具 schema、handler 与模型自审各管什么。** [`spec.rs`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/spec.rs#L61-L93) 用 `JsonSchema::string_enum(vec![json!("complete"), json!("blocked")], Some(description))` 构造允许值列表；description 规定完成必须无剩余工作、同一阻塞至少连续三轮、恢复后重新开始 blocked 审计。这个 description 与 continuation prompt 都是模型可读的行为要求。Rust 语法与生成的 JSON 见 [JSON Schema 构造](./Rust.md#用-rust-构造-json-schema数据结构与参数契约)。
+
+| 约束 | 固定版本的实现位置 | 能保证什么 / 不能保证什么 |
+| --- | --- | --- |
+| 模型只能声明 complete / blocked | schema 的 `enum`；[`handle_update`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L221-L291) 再用 `matches!` 检查 | handler 会拒绝 paused / active 等越权状态；schema 展示与执行端拒绝形成两层防线 |
+| 三轮同一阻塞、逐项举证完成 | schema description + [`continuation.md`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/templates/goals/continuation.md) | handler 没有读取 blocker fingerprint、连续计数或 completion evidence receipt；重复写要求增强模型遵循，不能称为独立的机器强校验 |
+| 参数形状与额外字段 | `required: [status]`、`additionalProperties: false`；`strict: false` | 不可声称 constrained decoding 一定挡住所有非法输入；[`UpdateGoalArgs` / `parse_arguments`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L48-L59) 使用 Serde，但结构体未声明 `deny_unknown_fields`，这个解析层本身不严格拒绝未知字段 |
+| 预算必须为正数 | schema 的 integer description；[`validate_goal_budget`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L392-L407) 检查 `value <= 0` | 这里的正数要求由 handler 真正执行；“仅在明确请求时创建目标 / 设置预算”仍需模型遵循描述中的授权规则 |
+| 当前 thread 目标的操作范围 | [`GoalToolExecutor` 持有 `thread_id`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L30-L59)；参数没有任意 thread ID | 工具绑定当前线程；修改目标、预算、暂停和恢复由另一条 [`GoalService`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/api.rs) 控制路径承担，不因能标 complete 就获得全部生命周期权限 |
+
+因此，“schema 限制允许说什么，handler 限制允许做什么，证据审计判断说得是否属实”是三个不同问题。这个版本的 `update_goal` 仍由同线程模型提交完成声明，没有独立 completion grader；要提升为机器门禁，需额外保存可验证的需求、证据与阻塞计数，并在提交时检查。
+
+**续跑与记账的实现细节。** [`GoalExtension`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/extension.rs) 分别实现 thread、turn、token usage、tool finish、tool exposure 和配置回调。它把目标挂进现有事件循环；工具 spec 只是其中一个入口。
+
+| 细节 | 机制与设计含义 |
+| --- | --- |
+| 空闲事件只是续跑机会 | [`continue_if_idle`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/runtime.rs#L359-L415) 先持有 `goal_state_lock`，覆盖读取目标到启动 turn 的窗口；目标仍 active 才调用宿主 `try_start_turn_if_idle`，避免与带外 set / clear 交错 |
+| 宿主掌握最终启动权 | [`TryStartTurnIfIdleRejectionReason`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/core/src/codex_thread.rs#L82-L119) 区分 `PendingTriggerTurn / PlanMode / Busy`，错误还保留原输入。不能靠“刚才看到 idle”跳过真正启动时的检查 |
+| 同线程续跑与上下文标记 | [`steering.rs`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/steering.rs#L47-L57) 构造 source=`goal` 的 `InternalModelContextFragment`，在现有线程发起新 turn；它复用会话历史，不意味着历史永不压缩、provider KV cache 必命中或所有旧细节都仍可见 |
+| 两把信号量保护不同窗口 | `goal_state_lock` 协调外部目标变更与续跑；[`progress_accounting_lock`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L89-L98) 覆盖 snapshot → 数据库写入 → 标记已记账。前者保护目标生命周期，后者防并发回调重复消费同一增量 |
+| 记账基线必须在写入成功后前移 | [`account_active_goal_progress`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L303-L368) 只在 `Updated` 后把基线推进到该 snapshot 的用量，写失败保留旧基线。snapshot 之后的新用量留待下一次结算；SQL 同时用 `expected_goal_id` 防旧 goal 迟到写入 |
+| 完成前结清最后一笔 | `handle_update` 先 account progress 再改状态；complete 使用 `ActiveOrComplete`，blocked 使用 `ActiveOrStopped`。[`on_tool_finish`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/extension.rs#L359-L404) 跳过内建 `update_goal`，避免另走通用结算路径 |
+| 超预算后的收尾 | tool finish 可用 `KeepActive` 保留当前 turn 的记账身份，SQL 状态已是 budget_limited；`mark_budget_limit_reported_if_new(goal_id)` 避免重复播报，注入 [`budget_limit.md`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/templates/goals/budget_limit.md) 要求收尾，turn stop 再用 `ClearActive`。这里不是在某个精确 token 处强杀进程 |
+| 系统错误熔断与模型 blocked 自审分开 | [`on_turn_error`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/extension.rs#L299-L324) 收到不可重试或重试已耗尽的错误，直接走系统 stop；账号限额映射 usage_limited，其他错误可映射 blocked，无需等待模型自审的三轮阈值 |
+
+预算的正常计量口径是每次未结算增量中的“未命中缓存 input + output”，源码用 [`saturating_sub / saturating_add`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L313-L333) 防整数溢出；这不是按输入、缓存、输出单价计算的账单。缓存 input 不计入 goal token budget，不等于服务商免费。`reasoning_output_tokens` 没有在这里额外相加，不能重复计入 output。
+
+$$
+\Delta B = \Delta I - \Delta C + \Delta O
+$$
+
+其中 I / C / O 分别为累计 input / cached input / output；公式假设正常非负计数且 cached input 属于 input。有符号 `saturating_sub` 不负责归零，边界处理见 [Rust 记账细节](./Rust.md#rust-中的-sql字符串sqlx-与-sqlite-的分工)。wall-clock 使用 `Instant` 差值，包含 goal 活跃期间的部分 idle 等待；暂停、恢复与重启会重置相应基线，不能直接当作 `now - created_at`。该版本没有 wall-clock budget，时间累计不触发 budget_limited。`mark_accounted` 按已结算整秒推进 Instant，保留不足一秒的余量，避免每次取整后重置到 now 而持续漏记。[时间基线实现](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L383-L421)
+
+目标还会反复进入模型上下文，属于持续存在的输入边界。[`escape_xml_text`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/steering.rs#L124-L129) 先转义 `&`，再转义 `< / >`，避免闭合 `<objective>` 标签；模板声明 objective 是 user-provided data，不是更高优先级指令。结构转义防标签逃逸，不能单独防住自然语言 prompt injection。模板由 `include_str!` 编译期嵌入，`LazyLock` 在首次使用时解析并复用；缺文件在编译期失败，模板语法解析错误则在首次初始化时触发 panic，两者时机不同。
+
+文章对 Humanize 1.0 的对照适合保留为两条设计轴：**原生运行时的续跑 / 记账 / 故障停止**与**独立 reviewer / 每轮外部证据账本**。独立模型有助于拆开实现者与审查者角色，但独立进程不自动保证正确验收；本文未重审 Humanize 历史版本，不据作者偏好断言其完成判断一定更可靠。Goal 当前状态行也不等于整个 Codex 没有会话日志，只是该行本身不提供逐需求的验收证据账本。
 
 不同实现落在不同控制面取向：
 
 | 实现 | 机制重心 | 关键状态 / 接口 | 设计含义 |
 |---|---|---|---|
 | Claude Code | Stop hook + active condition | 文章中记录的 `ActiveGoal` 包含 `condition`、`iterations`、`setAt`、`tokensAtStart`、`lastReason`；token target 近似硬下限，Stop hook 阻止过早停止 | 最薄的一层是“结束前再检查”，适合把自然语言完成条件挂到 session 上 |
-| Codex | persisted thread goal + strict terminal update | `create_goal`、`get_goal`、`update_goal`；`update_goal` 只允许 `complete` / `blocked`，Paused、BudgetLimited、UsageLimited 由系统控制 | 把目标、预算和终态声明做成 runtime state，completion / blocked 都需要审计 |
+| Codex | persisted thread goal + restricted status update + self-audit | `create_goal`、`get_goal`、`update_goal`；`update_goal` 只允许 `complete` / `blocked`，Paused、BudgetLimited、UsageLimited 由系统控制 | 状态权限由代码检查；完成与三轮阻塞依据由同线程模型自审，系统错误另有强制停止路径 |
 | Kimi Code | 独立 goal loop + queue | 文章中记录 `GoalState` 含 `goalId`、`objective`、`status`、`turnsUsed`、`tokensUsed`、`wallClockMs`、`budgetLimits`、`terminalReason`；支持 `/goal next <prompt>` | 更像一个顺序目标队列，主 loop 之外有独立 goal loop 推进 |
 | Hermes Agent | 独立 grader / judge | judge 读取 goal 与最近响应，返回类似 `done` / `reason` 的结构化判断 | 更强调外部评判，但若只看 response，不看文件 / 测试 / trace，容易评判叙事而不是评判证据 |
 | Pi / OpenCode / openai-agents-js | 文章版本中未形成 goal command | 更多依赖普通 loop、任务提示或框架层 orchestration | 说明“长程目标控制面”不是 agent framework 天然自带能力 |
 
-最小 contract 可以写成：
+通用 goal-mode 的最小 contract 可以写成下面这样；这是设计抽象，不是上述 Codex 版本的逐字段转录（如 turn / wall-clock budget 和独立 grader 都是可选扩展）：
 
 ```yaml
 goal_mode_runtime_contract_v0:
@@ -3710,6 +4053,65 @@ planner、executor、subagent、tool、sandbox、evaluator、human 之间不能�
 - **边界与待办。** 部分输出后的流失败无法透明重试；项目很新（2026-08-15 创建），acceptance 显示 316 个测试入口、12 个方向 teleport 实测全过、真实 credential failover PASS，但仍是 early software；下一步 exact read 应聚焦 `internal/engine` 的 classify/park、`internal/session` 的 canonical schema 和 Claude/Codex reader-writer 的 event 保真边界。
 
 ## Context Engineering 与 Agent Runtime
+
+上下文管理要分开看三件事：**执行状态减少默认输入，缓存降低重复输入价格，证据历史支持追溯与重新解释**。三者不能互相替代；状态与历史的边界见下文 SKILL.state。
+
+### SKILL.state：以结构化执行状态替代追加历史
+
+来源：[SKILL.state v2](https://arxiv.org/html/2608.26263v2)（2026-08-28，预印本；未复现实验）。核心不是取消推理，而是改变每一步读什么：不再从完整对话重建进度，只输入固定任务规范、当前状态和最新观察。
+
+![SKILL.state 图 1：追加历史与有界执行状态的对比](./AI-Applied-Algorithms/skill-state-architecture-v2.png)
+
+图 1 来源同上。右侧的常量上下文依赖状态与观察大小有界，不是采用 JSON 后自动成立。
+
+**输入、推理与持久状态分离。** 设规范为 P、执行状态为 Σ、最新观察为 O：
+
+$$
+\mathrm{input}_t=(P,\Sigma_t,O_t),\qquad
+\mathrm{LLM}(P,\Sigma_t,O_t)\rightarrow(R_t,\Delta\Sigma_t,a_t)
+$$
+
+R 是当前步骤的推理，ΔΣ 是状态补丁，a 是动作。推理在本步生成期间保留，但不进入后续 prompt；未来需要的信息必须投影到状态。附录协议只有 `state_patch` 与 `action` 两个顶层字段，不要求另设 `reasoning` 字段；补丁是字典合并，`null` 表示删除，并非 RFC 6902 的操作数组。
+
+InterCode CTF 的 100 个任务共享五字段 schema：`discovered_flags`、`tested_hypotheses`、`active_files`、`working_dir`、`cmd_summary`。**字段按领域设计，内容随任务变化**，可类比 capability 的 domain state，而不是每题写一份专用状态结构。[机制与 schema](https://arxiv.org/html/2608.26263v2#S3)
+
+**有界的是内容，不只是字段数。** 每步新增历史规模近似固定时，追加式输入的累计规模为：
+
+$$
+\sum_{t=1}^{T}O(t)=O(T^2)
+$$
+
+若规范、状态和最新观察的大小均不随步数持续增长，则：
+
+$$
+\sum_{t=1}^{T}O(|P|+|\Sigma_t|+|O_t|)=O(T)
+$$
+
+这是累计输入规模，不是端到端运行时间或账单的复杂度。五字段不意味着固定大小：`tested_hypotheses` 若持续追加，历史只是换了位置；输出推理、工具调用和状态维护仍有成本。
+
+**表 5：缩短上下文后，保留什么信息。** Warehouse、T=100、Gemini-3-Flash；以下为论文报告值，Score 不是百分数。[预算匹配实验](https://arxiv.org/html/2608.26263v2#S5.S6)
+
+| 方法 | Score | 平均 prompt tokens | 总 tokens |
+| --- | ---: | ---: | ---: |
+| Full ReAct | 0.84 | 36,362 | 1,245,413 |
+| Sliding window | 0.18 | 1,800 | 62,100 |
+| Summary-capped | 0.52 | 1,840 | 63,400 |
+| ReAct + LLMLingua | 0.22 | 1,810 | 62,350 |
+| SKILL.state | 0.94 | 1,905 | 65,408 |
+
+这个诊断任务要求准确维护库存关系：在近似匹配的短上下文预算下，结构化状态比截断、摘要和该压缩配置保留了更多决策所需信息。它不是严格等 token / 等成本比较，也不足以推出对开放式任务或所有压缩配置都更优。
+
+**充分统计量假设是适用边界。** 状态必须保留过去对未来决策有用的信息；“不再默认输入历史”与“可以永久丢弃历史”是两个主张。论文 [§7](https://arxiv.org/html/2608.26263v2#S7) 承认三类失效条件，对长程 runtime 的设计启发如下（后列是工程推论，不是论文验证结果）：
+
+| 失效条件 | 可采用的设计及边界 |
+| --- | --- |
+| 事先不知道相关 schema | 通用任务 schema + 垂域扩展；动态演化还需版本、迁移、验证与回滚，不能仅靠模型随意加字段 |
+| 旧观察的重要性很晚才显现，当时未进入状态 | 保留可检索原始证据及来源引用，允许重新投影；`resume_when` 只能推导已记录条件，不能恢复从未保留的信息 |
+| 任务要求审计、调试溯源或解释过去行为 | 当前状态对齐目标，历史单独保存事件、动作、观察与回执；动态 state 不能替代历史证据 |
+
+**状态补丁不等于外部操作成功。** Algorithm 1 的顺序是生成补丁 → 校验 → 更新状态 → 执行动作；库存示例先移除物品，再执行发货。这没有充分说明动作失败、超时或结果未知时如何保持内外一致。更稳妥的设计应区分意图、pending 与已确认事实，通过外部观察/回读提交状态；具体 LoopX 对照见 [长程控制面](./AI-Agent-Engineering.md#loopx长程-agent-的本地控制面)。
+
+**成本命题：更强模型能否靠更少调用、更小上下文和更少返工抵消更高单价？** 这需要固定任务质量，联合测量调用次数、输入/输出、缓存命中、重试、工具成本及完成时间，不能由本表直接回答。缓存降低重复输入的价格，执行状态管理减少默认重复输入的内容；频繁改写状态可能破坏缓存前缀，值得比较“稳定规范在前、可变状态在后”的组织方式。token 下降不等于账单同比下降；进一步机制见 [Agentic State Reuse](./LLM-MLSys.md#agentic-state-reuse面向-agent-上下文编辑的状态复用)。
 
 ### Agent Runtime：上下文状态与 API substrate
 
@@ -3909,6 +4311,8 @@ CMA 仍然不是项目级长程控制面。它能保存 Session history、sandbo
 ## Agent Memory：领域理论框架
 
 这几篇 paper 正在共同把 `agent memory` 从普通 RAG、聊天历史摘要和长上下文技巧中拆出来。一个更合适的定义是：**agent memory 是从 trajectory 中构建、在任务状态下被选择性曝光、并通过后续 outcome 反馈迭代的外部状态系统**。
+
+这里聚焦外部 memory；经验也可经选择性固化进入模型参数。两者的分工是保留可追溯、易变的事实与证据，同时探索将稳定规律转成可迁移能力。写入权重需要额外验证遗忘、污染、撤销与总成本，不能由 memory 有效直接推断微调有效。见 [In-Parameter Learning：部署期的经验固化](./AI-Algorithms.md#in-parameter-learning部署期的经验固化)。
 
 当前 V0 框架可以按十二个问题组织：
 

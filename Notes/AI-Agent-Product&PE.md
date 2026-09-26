@@ -198,6 +198,75 @@
   - PixVerse 与 Lovart：PixVerse 25 年总收入超 4000 万美元；Lovart 10 月 ARR 突破 3000 万美元
 - 推荐榜单：Henry Shi 维护的 "Top Lean AI" 榜单，收录人均创收超 100 万美元的团队
 
+#### AI 应用不是好生意：有用户有收入，却难成为独立公司
+
+> 来源：[晚点 LatePost《有用户，有收入，AI 应用却不是好生意》](https://mp.weixin.qq.com/s/EANN8gVcsrRm4opUU3X58Q)，2026-08-31，作者祝颖丽，编辑赵磊。约 9600 字，基于 Kuse、OiiOii、Devv、AI 写作、AI 工作流等公司的真实案例。
+
+##### 核心论断
+
+- 独立 AI 应用同时面对三个问题：**产品多久会被模型吞掉、增长能不能带来利润、用户入口在谁手里**。找到需求、获得用户、做出收入，都不足以让一家独立公司长期成立
+- "死透了"——一位接触过上百家 AI 创业公司的业内人士对 AI 应用行业的第一判断
+- 两条突围路径：往下游去（卖结果/交付/进入客户经营），或往上游去（自己做模型）
+
+##### 卖 token 的生意：增长越快，亏得越多
+
+- **AI 应用本质上都在卖 token、做大模型的分销商**：Kuse 创始人吴显昆反思 ARR 指标，"你其实是在卖货，大家是把 GMV 当成 ARR 来说"，"所有 AI 应用本质上都在卖 token，你拿几个大客户，annualized 了一下不就 1000 万了吗"
+- 起量快但质量差：Stripe 统计头部 100 家 AI 公司，年化收入做到 100 万美元中位只需 11.5 个月（2018 年头部 SaaS 是 15 个月）；但 ARR 注水普遍（一次性收入乘 12、最高单日×365）
+- **续约率低**：传统 SaaS 本月付费用户下月 95% 续费；AI 应用的 coding plan 续约率远低于此
+- **毛利差距大**：Bessemer 研究 20 家高速增长 AI 公司，商业化第一年毛利约 25%；传统云软件成熟期毛利约 70%
+- **推理成本是结构性成本**：用户每用一次都产生推理成本，不随增长下降。免费/试用用户尤其烧钱：
+  - Perplexity 公布的 60% 毛利率，是把约 3300 万美元（主要花在免费/试用用户的计算与网络成本）计入研发费用；若计入营业成本，毛利率为负
+  - Cursor 截至 2026 年 1 月的季度毛利率为 -23%（含免费用户推理成本约 -31%）
+  - 办公类 Agent 增长期毛利极端低到 -200%，好一点的 0%–10%
+  - Fireworks CEO Lin Qiao 的概括："scaling to bankruptcy"（越增长越接近死亡）
+- 案例：Kuse 每天新增上万用户却主动压低增长（新用户试用额度成本高）；OiiOii 排队 10 万、日活超 10 万，后来不看活跃只看付费转化/续费率/客单价
+- 视频模型垄断定价权（Seedance 2.0 1 元/秒、量大难折扣）+ 同行补贴战，应用公司付费用户毛利只剩约 30%
+
+##### 模型每升级一次，就让一批应用变得多余
+
+- 模型升级吞噬应用的速度在加快：Epoch AI 估算 2024 年 4 月后前沿模型能力提升速度从每年约 8 个指数点提高到约 15 个
+- a16z 消费 AI 榜单：2023–2025 年前 50 名中只有 14 家每次都在榜
+- 案例：
+  - **Devv Search**（张佳圆）：代码搜索产品，原计划搜索→代码生成→自动化三阶段；Claude 3.5 Sonnet（2024-06）和 Claude Code（2025-02）让搜索阶段只维持半年，市场直接跳过第二阶段。Devv 转做自然语言应用生成，窗口只有 2024-09 至 11 月，2025 年中 Devv 2.0 停止扩张
+  - **AI 写作工具**：2023 年生成一篇论文成本 1-2 毛、售价约 70 元，年收入约 1000 万、净利润率 50%；2024 年增长停止，2025 年 Kimi/DeepSeek 免费写长文后收入归零。同类公司：Jasper 转企业营销、Copy.ai 连接销售流程、蛙蛙写作被手机厂商收购
+  - **AI 工作流**：Skill 流行后成为标准配置，投资人认为"Skill 会替代 Workflow"，创业公司拿不到下一轮；创始人 3 个月内换两次方向
+- 创业者失去的不是眼前的用户，而是未来的可能
+
+##### 卖给你模型的人，也来抢你的用户
+
+- **"模型即应用" 是否成立**是唯一关键问题。Manus 的"壳有壳的价值"曾给独立应用信心，但 2026 年 Claude Code、Codex 的快速发展让判断倒向另一端
+- 布鲁金斯学会分析：模型能力趋同后，单卖 API 撑不起巨额训练投入，做应用成为模型公司回收利润的方式
+- Anthropic 案例：Cursor 验证需求后推出 Claude Code 反超；与 Figma 合作的同时推出 Claude Design 进入其核心市场
+- OpenAI：Deep Research 与搜索/研究工具竞争，ChatGPT Work、Codex 进入文档表格演示，ChatGPT Sites 进入应用生成部署
+- 模型公司能提前看到下一代模型能力，还能从 API 调用里判断哪些场景更活跃——需求被创业公司验证后，模型公司直接做成产品
+- 大厂办公 Agent 碾压：腾讯 Workbuddy、阿里千问办公、字节豆包办公，3-6 月流量新增 2 倍但三分之二流向大厂 3 款产品；Workbuddy 免费版每月积分成本约 2500 万（日活 100 万口径），拉新每 100 万用户最高投 1 亿
+- 创业公司只能缩到大厂入口的一个插件位（"通用办公 Agent 像浏览器，插件是网页"）
+
+##### 逃离竞争，也逃离了用户
+
+- 以"模型公司不会做什么"为选方向起点（如画布交互避开对话入口），容易把交互做复杂、追小众需求，最后进入没有多少用户的位置
+- Kuse 曾长时间打磨画布 PDF 阅读体验，后承认"可能根本没有多少人愿意在画布上读 PDF"；一年后归因于选方向时的"发心"——先想"躲避"而不是释放模型能力，路只会越走越窄
+- Devv 2.0 教训：盯着竞品设计功能，做出的差异可能根本不是用户需求；产品从 0 到 1 先回答"谁在用、为什么用"
+- 反面参照：Cursor/Claude Code 让模型直接理解代码库完成任务，而不是用新交互限制模型
+- 新可能：在大厂主战场做开源产品（借 Claude Code 做设计类 Agent 的开源版，一周近 5 万 star，收入超过之前的工作流产品）
+
+##### 往下游去：不卖产品，卖结果
+
+- **OiiOii**：不再打补贴战，进入细分行业 + 后训练小模型解决具体场景（如日漫/日番风格 2D 转动画），交付内容和工作流而非工具；工具做 2 分钟成本 200 元的交付物，符合需求的视频可卖 1 万；AI 解决过去 To B 交付太重的问题（生产工具足够好用后需要的人极少）；已验证方案沉淀成 Skills
+- **论文写作工具**：不再做新消费工具，转向 500 多万学生用户承接定制需求 + AI 培训（"一人公司"，线上陪跑数千元、线下课程一两万），卖"从学会工具到做出内容、赚到钱"的结果
+- **Kuse（吴显昆）**：曾做企业"数字员工" Junior，因数据/权限/流程差异化难以标准化复制；改走与投资机构合作收购服务公司、用 AI 改造流程、持股分享利润（已收购一家公司）
+- 这些路都没完全走通：交付业务要面对 To B 拓展客户、AI 培训缺规模化复制证据、收购整合可能失败；但至少"先活下来的可能性更高"
+
+##### 往上游去：自己做模型
+
+- Cursor、Krea、Captions、Perplexity、HeyGen、LiblibAI 都从应用进入模型层，沿已验证的编程、搜索、设计、图像、视频场景训练垂直模型
+- **Cuflow（杨博麟）**：把课件转交互视频，公测数万注册、海外 2000 万次曝光；发现超一半用户上传企业培训/漫画/小说/商品页后停更，转训以代码为核心的实时交互视频模型
+- 上游依赖的代价："应用公司某种程度上成了模型评测博主"，每次上游更新都要重测能力成本；有些更新直接抹掉几个月工程（如模型上下文变长后旧的长文档切分流程反而多余）
+- 核心判断："我们永远只是一个租客"；绑定工作流、做强品牌渠道没有用到团队的长处（算法/训练人才）
+- 转向模型层后：竞争更少（做实时交互视频的少）、有未充分验证的信息（代码生成视频成本低、可编辑可审计、天然支持交互协作）；转向 2-3 个月拿到 21 家企业客户合作意向
+- 代价：25 人要搭 SFT/偏好优化/RL 后训练管线，处理奖励函数、容器化、GPU 调度；后续训练需数百张 GPU，融资主要用于训练资源；21 家客户还没多少真正付费
+- 真正的优势不是做模型本身，而是**在场景和模型间持续互相强化**：先找到能持续产生数据的场景，再把场景理解通过后训练沉淀进模型
+
 #### Top Lean AI 榜单：人均创收超 100 万美元的 AI 公司
 
 > 来源：Henry Shi 维护的 "Top Lean AI" 榜单，收录人均创收超 100 万美元的 AI 公司。核心洞察：AI 时代的创业公司不再比拼人数，而是比拼人均创造价值的能力。
@@ -1985,20 +2054,96 @@ WorkBuddy 还直接承接腾讯的团队记忆能力：TencentDB Agent Memory �
 
 ## Agent ToB&ToC 产品
 
+**从 Chat 入口到委派闭环**：Grok Bot 与 Muse 把持久环境、记忆、后台执行、协作、审批和结果返回接成连续体验。产品竞争要看用户交出去以后，还要承担多少转述、催办、冲突处理和决策整理，而不只是模型能力或功能数量。以下依据 2026-09-20 读取的官方产品文档与工程说明；属于文档调研，未经实际试用或源码审计。
+
+| 观察面 | Grok Bot | Muse / Muse Code |
+|---|---|---|
+| 用户如何组织工作 | 有名字、角色和记忆的多个 Bot，直接聊天或群内交接 | Muse 以主对话为中心，side chats 分话题，Goals 跟踪目标与计划 |
+| 不在场时如何推进 | 云端电脑、定时 / 事件 routines、异步 Bot 消息 | Muse 按计划 / 事件后台推进，筛选值得通知的变化；Muse Code workflow 后台执行并回传完成结果 |
+| 如何控制行动 | Auto Review、动作审批、网络规则与企业策略 | Muse 的 Sentinel 独立授权；Muse Code 的 workflow 另有运行控制与工作区隔离 |
+| 如何延续工作 | Bot 记忆、共享电脑文件、routine 运行记录 | Muse 的记忆 / Goals；Muse Code 的脚本与 retained records 支持有条件恢复 |
+| 不能直接推出什么 | 多 Bot 屏幕不等于权限隔离；可见交接不证明事务性接单 | Muse 产品能力不能自动套到 Muse Code；脚本恢复不等于任意外部副作用 exactly-once |
+
+Lorca 补充了另一条路线：**用户自己的电脑执行，手机控制，加密中继负责跨端传递**。比较这类工作台，还要分别看执行位置、设备在线要求、同步内容、密钥持有者和操作权限；“跨端可用”不等于“云端持续执行”，见下文 [Lorca](#lorca本地运行手机操控的个人-agent-工作台)。
+
 Tutti 也属于这一类 agent workspace 产品，但它的主贡献更偏 **shared workbench / workspace reference / local daemon**，详见 [AI-Agent-Engineering.md - Tutti](./AI-Agent-Engineering.md#tutti把多-agent-协作从-summary-handoff-变成-shared-workspace)。按产品谱系看，它介于 ego lite 的 browser runtime、Raft 的 human-agent collaboration workspace、Flowith Matrix 的 agent organization 之间：先解决一个人和多个本地 agent / app 的上下文共享，再通过 Tutti VM 扩展到多人 Room。
 
 ### Grok Bot：xAI 的 AI teammate 产品（2026-08 发布）
 
 > 来源：[CNET - SpaceXAI Joins the AI Agent Game With Grok Bot](https://www.cnet.com/tech/services-and-software/spacexai-ai-agent-grok-bot/)、[Yahoo Tech](https://tech.yahoo.com/ai/articles/spacexai-joins-ai-agent-game-222324976.html)
 
-- 定位：SpaceXAI 推出的 AI agent 平台，与 Cursor 联合开发；每个 Bot 拥有自己的云端电脑，可访问用户授权的应用、网站和邮箱，端到端执行任务，只在需要审批时联系用户。
+- 定位：SpaceXAI 推出的 AI agent 平台，与 Cursor 联合开发；可访问用户授权的应用、网站和邮箱，端到端执行任务。云端电脑的粒度按下文官方说明修正为「每账户一台共享电脑、每 Bot 独立屏幕」。
 - 协作形态：Bot 之间可互相发消息、传递任务、共享上下文并指派 owner；可以设一个「首席幕僚」Bot 管理其他 Bot。
 - 学习机制：Bot 跟随用户工作流学习做事方式，下次可「不用重新解释」直接自主执行，官方宣称会越来越主动。
-- 分发：当前 beta，向 SuperGrok Heavy / Cursor Ultra / Cursor Teams Premium 订阅用户开放（桌面 + iOS），企业版 waitlist。
+- 发布时分发：2026-08 报道为 beta，向 SuperGrok Heavy / Cursor Ultra / Cursor Teams Premium 订阅用户开放（桌面 + iOS），企业版 waitlist；这是历史发布口径，当前范围以下文官方 overview 为准。
 - 格局：本质是「持久化云端电脑 + 多 Agent 协作 + 编程能力 + 算力」的组合，对标 Claude Cowork / ChatGPT Work / Hermes Agent；也说明巨头把 coding 入口当作 agent 生态入口的打法。
 - 待观察：多步长任务可靠性、跨部门审批复杂度、企业部署与权限边界；专家观点提醒 agent 一旦中途掉链子，用户信任会很快流失。
 
 与「头部 AI 产品与公司」的 Cursor 收购小节是同一套组合拳：Grok Bot 由 Cursor 交付，Cursor 收购为它提供编程能力与算力底座。
+
+**官方文档补充：长期队友如何组成工作系统（2026-09-20）**
+
+> 来源：[Overview](https://docs.x.ai/grok-bot/overview)、[Bots](https://docs.x.ai/grok-bot/bots)、[Computer and apps](https://docs.x.ai/grok-bot/computer-and-apps)、[Chat and collaboration](https://docs.x.ai/grok-bot/chat-and-collaboration)、[Skills, routines and automations](https://docs.x.ai/grok-bot/skills-routines-and-automations)、[Security](https://docs.x.ai/grok-bot/security)。
+
+| 原语 | 已披露行为与边界 |
+|---|---|
+| Bot 身份与记忆 | 每个 Bot 有独立对话、角色与 learned memory，保留偏好、稳定事实和工作摘要；涉及重要决定仍须重读当前权威来源。复制 Bot 复制配置、skills、routines 等，不复制对话、记忆和附件 |
+| 持久电脑 | 同账户 Bots 共用文件、浏览器登录 / cookies、CLI credentials 和账户 connectors；每个 Bot 有自己的屏幕，同一屏幕一次只执行一个 computer-use 任务，其他推理 / connector / 文件工作可并行。屏幕是工作面，不是安全边界 |
+| 异步协作 | Bot 消息会唤醒接收方，接收方随后处理并回复；交接在聊天中可见。群创建时可选 2–6 个 Bots，按 @ 指定对象；Bot 向群交接目前限文本，图片需直接发给 Bot。可指定每阶段 owner，但不能据此推断底层存在 claim / lease 协议 |
+| Skill 与 Routine | Skill 规定可复用方法：输入、步骤、验证、产物、审批边界；Routine 规定何时由哪个 Bot 执行：时区 / 定时或受支持事件、数据源、输出位置、失败与审批规则。演示学习产生的是待验证 skill 草稿，不能直接等同于可靠自动化 |
+| 后台与运行记录 | 电脑关闭后 routines 仍可执行；每 Bot 最多 50 个 routines，每项保留最近 20 次记录，长期不活跃可能暂停。Test run 会执行真实动作，不是无副作用预览 |
+| 人工接续 | Connector 优先，网页补足未覆盖路径；登录、2FA、CAPTCHA 可以人工接管后继续。直接消息可调整正在执行的工作；停止不撤销已发生的副作用 |
+
+持久性也有层次：`/workspace` 是持久工作目录，临时目录、手工装包和未保存应用状态不能同等依赖；恢复到最近已存快照可能损失未同步工作。隐藏 Bot 不暂停它或其 routines；删除 Bot 不会清空共享电脑中的文件与浏览器会话。复制 / 分享 Bot 配置也不等于把发送者的登录授权交给接收者。
+
+安全机制同时包含判断与强制边界：独立 Auto Review 模型审查 shell、插件、computer-use、自动化写入与委派等动作，给出 allow / ask / deny；它不覆盖全部副作用，例如部分记忆 / 设置写入。动作审批、网络策略和用户隔离是补充，不能把 review model 当成唯一防线。Bot 通常沿用成员身份，不是独立账号主体；connector tokens 留在 Cursor 后端，不下发到 Bot / 电脑，但浏览器与 CLI 登录凭据属于共享电脑的另一条路径。强制 Auto Review、网络 allowlist、审计等多项管理能力限 Enterprise；没有网络策略时默认允许网络访问，禁 connector 也不等于禁其网站。
+
+当前 overview 已列 macOS、Windows、Linux、iOS、Android，订阅覆盖较发布时扩大；具体资格应回查实时页面。部署是云端托管，不提供 on-prem / 自带镜像；不能把模型品牌推成每一步均使用同一模型。官方尚未披露内部调度、持久接单与结果 outbox 的实现，长任务可靠性仍需实测。
+
+产品判断：它把「说清任务 → Bot 分工 → 共享环境执行 → 必要时审批 → 返回结果 → routine 再次推进」做成一条用户路径。最小化 Chat 是入口；减少用户充当消息路由器、操作员和催办人的次数，才是这条路径的价值。
+
+### Lorca：本地运行、手机操控的个人 Agent 工作台
+
+> 来源：[作者发布帖](https://x.com/localhost_4173/status/2103454978220470708)、[官网下载页](https://lorca.app/zh/download)、[README](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/README.md)。2026-09-25 定向调研，核对官网、文档与部分代码，未安装试用。
+
+作者称其为“开源 Grok bot”，实际是独立项目 **Lorca**，按 [GPL-3.0](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/LICENSE) 发布，不是 xAI 的 Grok Bot 开源。它面向一个人管理多个 Bot、模型与自己的设备；群聊主要是人与多个 Bot 的协作，不能据此推成多人团队权限系统。
+
+**使用方式**：电脑创建身份、接入自己的模型账号，把 Bot 分配给某台电脑；手机扫码配对后，可以聊天、派任务和答复审批。执行仍发生在所属电脑，回复和状态经加密中继同步。默认的 Chef 是负责协调的普通 Bot，没有特殊权限。
+
+| 能力 | 机制与取舍 |
+|---|---|
+| 多端入口 | macOS 为 AppKit 客户端，调用随 App 打包的 Rust CLI；移动端为 Expo / React Native，复用 Rust Device core。手机是控制端，不运行 Agent loop |
+| 多模型 | API key 接入 DeepSeek、Anthropic、OpenCode；订阅登录接入 ChatGPT、Grok。每个 Bot 可选模型，凭据按账户在配对设备间加密同步，不局限于 Grok |
+| 群聊与交接 | 群内 1–6 个 Bot 依次发言，@ 的成员优先，可静默 `PASS`；无新发言或达到四轮就结束。群外 Bot 消息最多连续八跳，限制互相唤醒循环 |
+| 长期记忆 | 每个 Bot 在所属 Runner 保存 `MEMORY.md`、主题笔记与日记；部分记忆随每轮载入，其余按需搜索。聊天同步不代表记忆和工作目录已完整备份 |
+| 定时任务 | Routine 在 Runner 的本地时间运行，最短间隔五分钟；电脑睡眠期间不能执行，到期工作待唤醒后处理。用户七天未发消息时，到期任务会自动暂停；无人值守时需询问的动作被拒绝 |
+| 工具与行动控制 | 本机 shell、文件操作和 MCP 插件配合 Auto-review / 审批卡。允许后的命令以当前用户权限运行，工作目录不是沙箱 |
+
+机制参考：[群聊](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/web/content/docs/group-chats.mdx)、[交接](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/web/content/docs/chats.mdx#bots-that-message-each-other)、[记忆](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/web/content/docs/memory.mdx)、[Routine](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/web/content/docs/routines.mdx)。加密、配对与权限边界见[工程笔记](./AI-Agent-Engineering.md#lorca设备配对加密中继与执行权限)。
+
+**发布状态与证据边界**：读取时官网提供 macOS 1.0.6（Apple 芯片、macOS 14+）和 iOS / iPadOS TestFlight；GitHub 有 [CLI 0.1.6 release](https://github.com/egoist/lorca/releases/tag/cli-v0.1.6)，README 覆盖 macOS / Linux / Windows CLI。Android 实现已在仓库中，不能等同于已经正式分发。本文机制按固定的 main commit 阅读，[CHANGELOG](https://github.com/egoist/lorca/blob/1db14e1df960d54635870aaacce7a59867e858a5/CHANGELOG.md) 还有 Unreleased 项，不能把 main 的全部行为当成下载包保证。
+
+**产品判断**：值得关注的是把多模型、本机工具、跨端审批和可编辑记忆装进统一的个人工作台。它减少遥控电脑和切换工具的负担，也把持续运行、机器备份和凭据信任交给用户自己的设备。当前材料足以理解设计，尚不能证明长任务成功率、故障恢复质量或优于 Grok Bot 的整体体验；无须仅凭发布帖切换主力工具。
+
+### Muse：以目标与注意力组织持续委派
+
+> 来源：[How We Designed Muse](https://introducing.muse.ai/)、[Muse 安全工程](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse)、[Muse Code Workflows](https://dev.meta.ai/docs/muse-code/workflows)。读取时间：2026-09-20。产品故事用于理解设计，不当作自主任务成功率的测量。
+
+Muse 把一个持续的主对话作为关系入口，side chats 提供话题上下文；用户可以打断它、连续派发多个任务，不必等待上一轮回答。跨会话记忆可延续背景，Memory files 可由用户查看和编辑。其云端电脑提供文件系统、terminal 和浏览器，允许写代码、创建工具、操作网站与交付 artifacts。
+
+真正值得拆解的是如何组织用户注意力：
+
+- **Goals 与 activity 分层**：Goals 显示正在追踪的长期目标及行动计划；头像下的状态摘要、完整 activity log 与已授予权限回答「现在在做什么」。动作很多不代表目标有进展，两种视图不能互相替代。
+- **后台工作与通知分层**：按计划或相关事件继续执行，App 关闭也可工作；完成后台步骤后再判断结果是否有实质新信息、是否需要人介入，然后决定通知。主动性可调，不能把每次运行都变成消息。
+- **聊天与确定性控件分层**：主对话表达意图；关键动作使用明确 accept / reject 的审批卡，凭据走安全存储。常规浏览保持顺畅，难以撤销的动作增加确认，降低无差别弹窗导致的 banner blindness。
+- **对话与产物分层**：行程应是 itinerary，持续财务观察可以是 dashboard；文档、PDF、网页和交互 artifacts 经聊天送达，也能独立存在。交付形态取决于用途，不必全部压成长回答。
+- **能力发现与执行分层**：onboarding tips、Ideas 与基于 Goals 的建议帮助用户发现可委派任务；会执行很多工具，不代表用户知道该交给它什么。
+
+Muse 的控制并不限于 UI：Sentinel 位于执行 cell 之外，是 connector 动作和网络出口的唯一授权者；审批请求与答复直接在 Sentinel 和客户端间传递，模型不能用聊天文本替代授权。组件与请求链详见 [Muse Secure VM 与 Sentinel](./AI-Agent-Engineering.md#muse-secure-vm-与-sentinel独立行动授权边界)。
+
+Muse Code 则把编码协作进一步产品化为「多 Agent 编排脚本 + 后台运行面板 + 可保存 / 分享的方法 + 有条件的失败恢复」，会挤压仅包装 spawn / wait 的通用 Harness 空间。但必须区分产品和发布状态：workflow 同时依赖 engine-enabled build 与灰度开关，当前官方文档明确公开 Apple Silicon 包尚未包含引擎；恢复也依赖保留脚本与记录。机制见 [Muse Code Workflows](./AI-Agent-Engineering.md#muse-code-workflows脚本编排与有条件恢复)。
+
+**产品比较的落脚点**：不能仅用「对方做 runtime，我们做 control plane」判断互补关系。Grok Bot / Muse 已覆盖一部分调度、授权、状态、通知与恢复；独立控制面仍需证明跨运行时治理、可复核证据与恢复语义的增量，并把这些能力转成更少的人工协调。对 LoopX 一类系统，可用五个场景验收：委派后关掉客户端；中途出现新信息；遇到审批；worker 失败 / 进程重启；多任务同时完成。每次记录结果是否推进、是否重复副作用、用户转述 / 催办次数、必要决策等待时间与无行动价值的通知数。这是从材料提出的评估方法，不是两家已公布的 benchmark。
 
 ### Raft（原 Slock）：human-agent 协作空间
 
@@ -2032,7 +2177,7 @@ Tutti 也属于这一类 agent workspace 产品，但它的主贡献更偏 **sha
 
 **待观察**：
 
-- 是否支持 self-host / enterprise deployment；目前看控制面更偏闭源 SaaS。
+- 2026-09-25 更新：平台源码已按 FSL-1.1-ALv2 公开，包含 server、web 与本地组件，并提供 `raftdev` 本地启动说明；公开仓库是发布快照镜像，暂不接收 PR。这证明源码与本地运行入口已开放，生产级 self-host / enterprise 支持仍需另行确认。见 [README](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/README.md)；贡献机制与我的评论见[意图、实现与验证](./Software-开源项目成功之道.md#agent-时代的贡献接口意图实现与验证我的拓展)。
 - task claim 是否只是第三方 guide 描述，还是官方稳定 protocol；需要以后通过实际试用或官方文档核验。
 - memory 是普通 `MEMORY.md` 文件、产品内存储，还是和 channel history / task history 联动；这决定它是轻量协作工具，还是能成长为长期 agent organization。
 - brand 从 Slock 到 Raft 的迁移是否稳定；包名兼容说明仍在快速迭代期。
@@ -2064,6 +2209,8 @@ Claude Tag（Anthropic 的 Slack AI Coworker）的产品分析与 LoopX 能力�
 3. **Agent organization / company runner**：把多个 agents 编成团队、部门或公司，核心竞争从单次模型能力转向 control plane、权限、记忆、预算、审计和结果交付。
 
 ICLR 2025/2026 Agent 方向论文的综合启示：Agent 系统设计应以 protocol/schema 为底座、以 workflow 和 benchmark 为驱动、以 artifact/memory/recover 为核心运行能力。优先收敛 workflow 显式定义、benchmark runner、schema/protocol 层、memory update policy，而非过早扩张复杂多 Agent 协作。
+
+产品层还要检查**委派成本**：持久记忆、后台执行、审批、恢复与结果返回是否接成连续体验，是否减少用户的人工路由和重复决策。Grok Bot 与 Muse 表明 runtime 与 control plane 的能力会重叠，竞争边界应按交付结果与控制语义判断，见上文 [Agent ToB&ToC 产品](#agent-tobtoc-产品)。
 
 Multi-agent 的产品形态也可以按 sharing model 切：全量 shared workspace、mailbox + task / event ledger、session-to-session dialogue。Tutti 更像 shared workspace，Claude Code Agent Teams 主要是 mailbox + dialogue，LoopX 的短中期价值是把 mailbox + ledger 做成可恢复的 state kernel。概念层整理见 [SubAgent / Agent-as-Tool / MultiAgent](./AI-Applied-Algorithms.md#subagent--agent-as-tool--multiagent从多开模型到上下文与证据控制)。
 
@@ -2958,11 +3105,31 @@ Assistant：
 
 ### Intro
 
-* [MCP Protocol](https://www.anthropic.com/news/model-context-protocol), the protocol bundles four ingredients:
-  * (1) a manifest that advertises each endpoint's name, semantic role, cost, and latency bounds;
-  * (2) machine-readable input/output schemas that ground the LLM's function-calling tokens;
-  * (3) a capability handshake for tool discovery
-  * (4) an execution contract that guarantees idempotent, auditable calls.
+* [MCP Protocol](https://www.anthropic.com/news/model-context-protocol)：Agent host 与外部工具 / 上下文服务之间的标准协议。
+  * 工具描述包含名称、用途、输入 JSON Schema，可选输出 schema 与行为 annotations；成本与延迟上界并非标准必需字段。
+  * 初始化协商版本与 capabilities，通过 `tools/list` 发现工具、`tools/call` 调用工具；server 也可提供 resources 和 prompts。
+  * 标准化请求、结果和错误表达，便于 host 接入审批、展示与日志；幂等、访问控制和审计落地由实现负责，协议不自动保证。行为 annotations 是提示，不能代替安全检查。
+
+### CLI 已经好用，为什么还需要 MCP
+
+> 来源：[MCP Tools 规范](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)、[Transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)。以下为基于协议的工程取舍，整理时间：2026-09-05。
+
+本地 coding agent 已有 shell、CLI、登录态与 Skill 时，CLI 往往是成本最低的工具入口。`lark-cli` 一类命令配合按需读取的用法说明，可以完成发现、调用、错误修复，再用脚本做批处理和结果过滤。Ego Lite 一类浏览器执行环境的能力来自其浏览器状态与控制接口；包装成 MCP 不会自动增加浏览器能力。
+
+两种链路分别是 `模型 → shell 工具 → CLI → 业务服务` 与 `模型 → host 工具适配 → MCP client/server → 业务服务`。MCP 位于 host 与工具服务之间，模型不必直接生成 MCP 报文；server 内部也可以复用 CLI。CLI 同样可以调用远程服务，MCP 同样可以通过 stdio 启动本地子进程，“本地 vs 云端”不是二者的分界。
+
+| 场景 | CLI 的条件与优势 | MCP 的增量价值 |
+| --- | --- | --- |
+| 单人、本地、已有 coding agent | shell / 安装 / 认证已解决；命令可组合、可调试、可脚本化 | 若只是包装已有命令，收益有限 |
+| 同一能力接入多个 IDE、聊天应用和 Agent host | 各 host 需具备进程执行能力，并理解命令发现、参数、输出与错误约定 | 兼容 client 复用统一发现、调用和结果契约，减少逐产品适配 |
+| 无通用 shell 的产品，或集中托管的多人服务 | 需安装执行器或另建调用通道 | 可经 Streamable HTTP 接入服务，部署与版本集中管理；认证和租户隔离仍需实现 |
+| 工具结果含图片、音频、资源引用 | CLI 能输出文件 / JSON，但 host 需约定如何读取和展示 | 标准内容类型便于 host 消费；是否支持具体类型仍取决于 client |
+
+MCP 的价值主要是降低生态接入成本。对掌控自己电脑的开发者，“装 CLI + 登录 + 配 Skill”的成本已付过；对工具提供方，要求每个产品、每个用户都具备同样的执行环境并不现实。通用 REST / OpenAPI、自定义 RPC 也能完成接入，选择 MCP 的理由是目标 host 已支持它，从而复用已有生态；它没有提供 CLI 原理上做不到的业务能力。
+
+成本也要对称比较：CLI 有环境依赖、shell quoting、输出解析和权限管理成本；MCP 有 server 生命周期、版本兼容、连接认证和工具描述维护成本。大量 schema 若直接塞进上下文会消耗 token，但可用按需发现 / code execution 缓解；CLI 的 help、Skill 和 stdout 同样消耗上下文。安全取决于实际暴露范围：窄工具有利于权限约束，但 MCP server 可以暴露任意 shell，CLI 也可以被 allowlist 和 sandbox 严格限制。
+
+选型：个人本地工作流优先成熟 CLI + 薄 Skill；能力需要分发到多个兼容 host、受限产品或托管服务时，再提供 MCP adapter，共用业务实现。两者长期共存：CLI 服务命令组合与调试，MCP 服务跨 host 接入，Skill 提供任务做法与业务约束。执行位置与远程 bridge 的细节见 [Custom Tool 与 CLI](./AI-Applied-Algorithms.md#custom-tool-与-cli调用接口和执行位置是正交维度)。
 
 ### 工程使用
 
@@ -3010,6 +3177,31 @@ SkillsMP 是一个面向 AI 编程助手的「Agent Skills 技能市场/聚合�
 * 运行 `npx skills@latest` 即可开始体验
 * 通过 ClawHub 或 SkillsMP 搜索和安装技能
 * 将技能集成到 AI 编程助手的工作流中
+
+#### fireworks-tech-graph：把「生成架构图」做成可验证、可分发的 Agent Skill（2026-09）
+
+> 来源：[GitHub 仓库](https://github.com/yizhiyanhua-ai/fireworks-tech-graph)（MIT；Python；main commit `31fea364`，2026-09-05；11.2k stars / 900 forks 为读取时 metadata）。已 exact read README.md 全文、SKILL.md、docs/CAPABILITIES.md、docs/ROADMAP.md、references/composition-quality-contract.md、references/visual-quality.md、scripts/README.md、CHANGELOG.md，并核验嵌套分发镜像与根文件哈希一致。整理时间：2026-09-06。
+
+**一句话判断**：fireworks-tech-graph 把一个 Agent Skill 做成了带 IR schema、几何约束、验证与视觉回读、回归 fixture、CI 和完整分发镜像的产品。它的完成定义是：结构校验和光栅检查都通过才算完成；模型说“图已生成”不是证据。
+
+**定位**：一份 SKILL.md 同时跑在 Codex 和 Claude Code 的图表生成 skill。输入自然语言描述，输出 geometry-safe SVG、PNG、离线 HTML，以及限定场景的 SVG→GIF 语义动效。它不做照片 / 位图艺术 / 统计图表。
+
+核心机制：
+
+- **生成管线本身是工程系统**：NL 描述 → Diagram Contract → Semantic IR → Style Spec → Route Planner → SVG Build → 结构验证 → PNG 视觉回读 → 定向修正（默认最多两轮）→ 已验证产物。每个环节有可执行检查，视觉 review 没条件跑时显式记为 `visual_review: skipped`，不假装通过。
+- **版本化语义 IR 先于视觉**：legacy JSON 统一归一到 schema v1；重复 ID、悬空引用、非有限坐标、坏 waypoint、未知 schema 版本在布局前 fail closed。输出 SVG 自带 `data-graph-role`、style、semantic-profile、edge-kind 等元数据，视觉只是语义结构的投影。
+- **“好看”被翻译成几何预算**：showcase 档要求 0 crossings、0 bridge jumps、单边 ≤2 bends、参考拓扑总 bends ≤8、节点间距 ≥40px、container gutter ≥20px、label clearance ≥4px；正交路由、端口分配和布局报告对同一输入确定。风格可以改色板 / 字体 / 材质，不能削弱几何契约。
+- **Style 9-12 把工程语义编码进 renderer**：C4 review、云部署 ownership、事件流 rails / DLQ、golden signals + critical path 各自有默认契约，缺关键事实先拒绝布局，不允许 LLM 编造职责 / 协议 / 指标。普通装饰风格与工程图在这里被明确分开。
+- **输出各有独立门禁**：PNG 导出读 canvas 尺寸、限制尺寸、原子写并回读像素维度；离线 HTML 拒绝 active elements、external refs、foreignObject 与外链 CSS；GIF 只接受带 12 套已验收 role/stage/order 场景契约的语义 SVG，unsupported 拓扑 fail closed，并写 `.motion.json` 报告。
+- **分发是可安装包而不是聊天内容**：根 SKILL.md + scripts + schemas + fixtures + tests 组成一个实体，Git 克隆与 `npx skills add .../skills/fireworks-tech-graph` 子路径安装共用同一字节内容；Codex 读 `agents/openai.yaml`，Claude Code 忽略它。文档还给出共享 checkout + symlink 的双 runtime 安装方式。
+
+产品与工程判断：
+
+- 它同时验证了“验证是基础设施，不是口头要求”在垂直场景的落地：图表任务的验收 = deterministic checks + 光栅视觉回读 + 明确 skipped 记账。这个 gate 结构可以迁移到任何有视觉产物或生成式输出的 skill。
+- 它的教训是生成类 skill 的复杂度主要不在 prompt，而在 schema、几何引擎、validator、fixture 回归和分发；12 风格中 11 个由 JSON generator 驱动，Style 8 是 AI-authored SVG 但仍走同一验证 / 导出门禁，说明“AI 手绘”也不该获得免检。
+- 边界：上述机制与数字来自 README / docs / CHANGELOG 自述，本次未运行 generator 复现；12 张 showcase GIF 未逐张目检；仓库创建于 2026-04、2026-07 连续发布 1.1/1.2，迭代快，机制结论以 commit `31fea364` 为准。
+
+可落点：若 CS-Notes 要把图表接入写作 / 笔记流程，先按 README Installation 装一份再对 `cs-notes-writing-style` 做吸收；若只想要它的设计语言，复制四道门禁即可：fail-closed IR、几何 / 语义预算、视觉回读、原子导出 readback。
 
 ### 衔接 MCP 和 Workflow 的产品
 
@@ -3850,6 +4042,64 @@ https://mp.weixin.qq.com/s/mHz-D6UN3-4MUZSMEGt4ug
     * 国产大模型24年基本都支持了
 
 
+### 工具调用 ID 与结果关联
+
+`tool_use_id` 不是 Agent 领域统一的字段名，而是 Anthropic Messages API 中 `tool_result` 对此前 `tool_use.id` 的引用；采用兼容格式的框架也可能沿用它。通用的是 **tool-call correlation（工具调用与结果关联）**：标识“这是哪一次调用的结果”，而不只是“哪个工具的结果”。这也是普通 RPC 的关联思想，不是 Agent 独有概念。
+
+典型闭环是 `模型返回调用请求 → host 执行工具 → host 带原调用 ID 回传结果 → 模型继续推理`。同一个 `get_weather` 可以同时查询北京和上海，甚至以相同参数调用两次；仅凭工具名、参数或完成先后顺序无法可靠区分调用实例。ID 负责关联，实际执行和结果交付由 runtime 负责。
+
+以下对照于 2026-09-17 核验；每行只表示所在 API / 框架的契约，不能把字段名或必选性推广到所有 Agent。
+
+| 协议 / 框架 | 调用侧标识 | 结果侧引用 | 边界 |
+| --- | --- | --- | --- |
+| [Anthropic Messages](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls#handling-results-from-client-tools) | assistant 内容块 `tool_use.id` | user 内容块 `tool_result.tool_use_id` | 结果引用的是工具调用块，不是整条 message 的 `id`；这里讨论客户端工具 |
+| [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) | assistant 的 `tool_calls[].id` | `role: "tool"` 消息的 `tool_call_id` | 一条 assistant 消息可以含多个调用，各自配对 |
+| [OpenAI Responses](https://developers.openai.com/api/docs/guides/function-calling#handling-function-calls) | `function_call.call_id` | `function_call_output.call_id` | 调用 item 自身还有 `id`；回传使用 `call_id`，不是 item `id` |
+| [Gemini GenerateContent](https://ai.google.dev/api/generate-content#FunctionCall) | `functionCall.id` | `functionResponse.id` | schema 中 ID 可选；调用带 ID 时必须匹配返回；两侧同时保留函数 `name` |
+| [Gemini Interactions](https://ai.google.dev/gemini-api/docs/function-calling) | `function_call` step 的 `id` | `function_result.call_id` | 与 GenerateContent 是不同 API 形态，不能混用字段 |
+| [LangChain Core](https://github.com/langchain-ai/langchain/blob/5c1f28271295bb13034f4cf8964f74c117357d40/libs/core/langchain_core/messages/tool.py#L26-L67) | `ToolCall.id` | `ToolMessage.tool_call_id` | 框架自己的统一消息表示，不等于所有模型的 wire format；`ToolCall.id` 类型允许 `None` |
+| [MCP 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic#messages) | `tools/call` JSON-RPC 请求顶层 `id` | JSON-RPC 响应顶层同一 `id` | 属于 host/client ↔ tool server 的 RPC 关联；请求方在同一 session 内不得复用请求 ID |
+
+Anthropic 的最小示例（示意 ID；两个对象是相邻的历史消息）：
+
+```json
+[
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "tool_use",
+        "id": "toolu_example_1",
+        "name": "get_weather",
+        "input": {"city": "Beijing"}
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "tool_result",
+        "tool_use_id": "toolu_example_1",
+        "content": "晴，25°C"
+      }
+    ]
+  }
+]
+```
+
+这里 `tool_result.tool_use_id == tool_use.id`。官方 SDK 也将前者定义为必填字符串，见 [ToolResultBlockParam](https://github.com/anthropics/anthropic-sdk-python/blob/7e5ca5c94126a6d7de159a169ff43eb9b1cac57f/src/anthropic/types/tool_result_block_param.py#L27) 与 [ToolUseBlock](https://github.com/anthropics/anthropic-sdk-python/blob/7e5ca5c94126a6d7de159a169ff43eb9b1cac57f/src/anthropic/types/tool_use_block.py#L17)。客户端工具执行失败也沿用原 ID，并设置 `is_error: true`；结果不是新的调用。Anthropic 还要求结果消息紧接调用消息、`tool_result` 块排在该 user 消息的普通文本之前，所以仅有正确 ID 并不足以保证历史合法。
+
+容易混淆的边界：
+
+- **调用实例 vs 工具定义**：`name` 选择工具，调用 ID 区分一次使用；它通常是模型 API 返回的 opaque string，host 应原样保留。不要依赖 `toolu_` / `call_` 前缀推导权限、工具名或全局唯一性，也不要把它塞入业务函数的 `input` / `arguments` 冒充业务参数。
+- **调用 ID vs 消息 / item / stream index**：Responses 官方示例同时出现 `id: "fc_12345xyz"` 和 `call_id: "call_12345xyz"`，用途不同。流式分片的 `index` / `output_index` 用于定位、拼装当前流内的块，不能当跨轮调用标识；LangChain 的 `ToolCallChunk.index` 同样只用于合并分片。
+- **模型协议 vs MCP 协议**：前者关联“模型要求的调用与 observation”，后者关联一次 `tools/call` 请求和 RPC 响应。host 可以建立映射，但规范不要求两边 ID 相同；也不是每次模型工具调用都经过 MCP。MCP 的顶层 `id` 属于 RPC envelope，不是 `CallToolResult` 的业务内容字段。
+- **关联 vs 重试幂等**：ID 配对本身不保证工具只执行一次。网络超时可能发生在副作用已完成之后；沿用同一个 ID 也不自动去重。若 host 重试同一逻辑调用，应另记执行 attempt；若模型重新发起调用，则按新调用处理。跨调用是否属于同一业务操作，需要业务幂等键和持久化结果记录判断。
+- **结果关联 vs 历史完整性**：并行执行可按完成顺序收集，但回填必须匹配 ID 并满足目标 API 的消息顺序契约。compaction / replay 应成组处理调用与结果，保留尚未解决的调用，避免出现孤立结果或丢失待回填调用；不要默认所有协议都只允许一个结果片段，例如 [Gemini FunctionResponse](https://ai.google.dev/api/generate-content#FunctionResponse) 的 `willContinue` 可用于 `NON_BLOCKING` 调用的持续回传。
+
+工程建议（自有 runtime 的设计选择，不是通用标准字段）：内部使用明确的 `invocation_id`，保留 provider/API、消息范围和原始 call ID；通过 adapter 映射到各家协议。需要 MCP、重试、trace、异步任务时，分别记录 `rpc_request_id`、`attempt_id`、`trace_id/span_id`、`task_id`，不要用一个 `tool_use_id` 同时承担所有身份。缺少 provider ID 时可生成内部标识，但仍须按目标 API 实际支持的方式回填，不能擅自增加 wire 字段。
+
 ### Actions
 
 * Plugins（失败）: 模型可以调用外部API
@@ -4464,6 +4714,8 @@ for hat in queue:
 - **比例**：spec 和代码 token 的比例关系大致为 1:5
 - **示例**：500 行代码大致对应 5000 token
 
+实现变便宜后，贡献的稀缺输入还包括**验证证据与使用中形成的判断**。同一 idea 的一次生成结果，与经过长期使用、benchmark 和边界修正的实现，不能视为等价；贡献接口应考虑维护者与贡献者的总处理成本。见 [prompt request 与 PR 的讨论](./Software-开源项目成功之道.md#agent-时代的贡献接口意图实现与验证我的拓展)。
+
 ### 产品形态与选型
 
 #### 产品地图
@@ -4581,6 +4833,7 @@ for hat in queue:
    - 这里说的网站是 [Linear](https://linear.app)：面向现代软件团队的产品开发 / issue / roadmap / AI agent 工作流工具。Andrew 的意思不是 Linear 设计不好，而是如果模型每次都输出 Linear 风格，说明它只学会了当下中位数审美，还没有真正的设计判断。
    - Linear 风格大致是：暗色背景、强对比排版、极细边框、产品截图而非人物照片、bento grid、网格纹理、微妙渐变 / glow / glassmorphism、少量 CTA、单向滚动、信息线性展开。LogRocket 把它总结为顺序清晰、认知负担低、低噪声、高可读的 SaaS aesthetic；Frontend Horse 则从暗色、彩色模糊光、bento、细线、电路线、网格背景、边框高光等视觉材料拆解。
    - 可偷的是原则，不是皮肤：Linear 的设计之所以成立，是因为它和产品价值一致，即速度、秩序、低噪声、工作流推进。如果一个产品没有这种内核，只复制暗色、渐变和细线，最后只会变成“更高级的同质化模板”。
+   - Linear 这家公司本身（创始人、Linear Method、2026 agent 转向）的整理见 [Software-Engineering.md](./Software-Engineering.md)「Linear：给特定人做工具的公司样本」小节。
 
 3. **产品的 baby 版本**
    - `baby Cursor / baby Codex` 指一个大幅简化的代码库，能模拟正式产品的关键交互，但足够轻，适合设计师和 PM 快速 vibe code 交互方案。
@@ -6842,6 +7095,73 @@ Vivix 押注让内容在消费过程中持续生成，目标不止于降低短�
   - 对比：OpenAI 25 年营收超 130 亿美元，Anthropic 45 亿美元
 - 中国一级市场后续资金不及美国充沛，上市成了拓展定增、大规模融资的必要手段
 - 仍坚持基础模型研发且未上市的中国头部公司：DeepSeek（幻方自有资金）、Kimi（月之暗面）、阶跃星辰（近期大额融资）
+
+#### 智谱 2026 中期业绩：从卖模型到卖任务结果
+
+> 来源：智谱（Z.AI / 北京智谱华章，港股 2513）2026 中期业绩公告（2026-08-31，港交所披露），全文 60 页，含财务摘要、管理层讨论、技术路径、商业化、安全生态、未来展望与财务报表。
+
+##### 财务摘要（2026 H1，未经审计）
+
+- 收入 9.54 亿元人民币（约 1.42 亿美元），同比 +399.7%
+  - 开放平台及 API（云端）8.25 亿（约 1.23 亿美元），同比 +2735.7%，占比从 15.2% 升至 86.5%
+  - 企业级智能体 0.56 亿，同比 +304.4%
+  - 企业级通用大模型（本地化）0.67 亿，同比 -54.6%（主动收缩，客户向云端迁移）
+  - 技术服务及其他 0.06 亿，同比 +1166.7%
+- 毛利 2.52 亿，同比 +163.7%；整体毛利率 26.4%（去年同期 50%，因云端占比扩大、毛利爬坡）
+  - 云端毛利率 24.6%（去年同期 -0.4%，由负转正）；本地化毛利率 37.9%
+- 研发开支 21.31 亿，同比 +33.6%（继续攀爬能力阶梯）
+- 期内亏损 20.72 亿，同比收窄 12.1%；经调整净亏损 19.64 亿
+- 现金及等价物 39.94 亿；银行借款 22.25 亿；权益总额由 2025 年末的 -81.11 亿转正至 44.30 亿（上市后向投资者发行的金融工具转为普通股）
+- 上市后事项：2026-07 以每股 1588 港元配售 19,780,000 股新 H 股，募资净额约 313.75 亿港元（约 272 亿人民币）
+- 员工 981 人（2025 年 6 月 883 人）
+
+##### 战略框架：能力阶梯
+
+- **AGI 商业价值 = 智能上界 × Token 消耗规模**（智能上界决定任务边界，任务边界决定 Token 落在什么价值密度）
+- **能力阶梯（只能顺序走完）**：Chat → Coding → Agent → Co-work → Autonomous AI
+  - Chat：交付一次回答，一轮内结束，价值密度最低、覆盖最广
+  - Coding：交付可运行代码，第一次出现客观验收标准（能跑通）
+  - Agent：交付被完整执行的多步任务链，自己调用工具、处理中间失败
+  - Co-work：交付可被专业人士复核的工作成果，进入真实工作流、按完成任务计价
+  - Autonomous AI：无人值守下承担长期目标，模型自己判断做得对不对
+  - 每级门槛：结果可验证 → 长程规划与错误恢复 → 可靠性达到专业人士愿意复核 → 自主判断质量
+- **市场空间估算**（公司自述，未独立核证）：Chat 对应约 1,000 亿美元搜索市场；Coding 约 5,000 亿美元软件研发支出；Co-work 约 5 万亿美元知识工作开支；更长期 AI 重构操作系统与交互约 30 万亿美元
+- 报告期内重心在 Coding（第二级）到 Co-work（第四级）之间：编程已完整走通，网络安全进入 Co-work 验证阶段，法律等仍早期
+
+##### 商业化路径：卖模型 → 卖调用 → 卖订阅 → 卖端到端任务结果
+
+- 本地化部署（卖模型）：一次性授权、项目制交付；已完成行业渗透与企业级交付能力沉淀
+- Coding 阶段（卖调用）：主动收缩本地化授权，转向可调用/可扩展/可量化的智能服务；2025 年底 API 调用量较 6 月底增约 7 倍
+- Agent/Co-work 阶段（卖订阅、卖端到端任务结果）：交易方式随模型能力跃迁而改写
+- **量价齐升**：截至公告日 MaaS 平台 Token 调用量较年初 +40 倍，Coding Plan 调用量 +23 倍；API 平均售价 +101%，Coding Plan 订阅价亦上调
+- **用户深度**：MaaS 平台用户超 740 万（较年初 +144%）；付费日活 +603%；按收入计前十大用户日均调用量 +98 倍（从试用走向生产）
+- **算力乘数**：每投入 1 元算力（训练+推理）对应的开放平台及 API 收入较去年同期提升约 14 倍（单位 Token 承载智能提升 + 单位任务 Token/成本下降）
+- 2026-08 发布 GLM-5.3 与 GLM-5.3-Flash (Ox-Alpha)，同步开放 GLM Coding Plan 订阅（Lite/Pro/Max/团队版），为国内最早以订阅制交付编码智能体能力的大模型服务之一
+
+##### 技术路径（详见 LLM-MLSys / AI-Algorithms）
+
+- **Scaling deep while scaling up**：当前把资源优先投向后者（后训练、强化学习、长程轨迹、任务反馈）
+- **GLM-5.3**：与 GLM-5.2 同架构、同总参、同激活参，唯一变量是后训练规模（一个月放大长程任务环境与 RL），自建真实场景编码评测端到端完成率提升超 50%
+- **GLM-5.3-Flash (Ox-Alpha)**：全新架构，总参 320B / 激活 18B / 45 层；稀疏注意力 + 线性注意力混合，mHC 流形约束超连接，30T 级多模态预训练；价格为 GLM-5.2 的 1/10；上线一周成 OpenCode/OpenRouter 双平台调用量最大模型，6 天 Token 调用量超 62 万亿
+- **国芯推国模**：首次在超大流量中全面使用国产芯片集群推理（自研高带宽互联）；10 万级国产芯片规模化低成本推理，单位 Token 推理成本较年初下降 80%；在 SGLang 基础上构建专用推理引擎，生产级 Encode-Prefill-Decode 分离式架构，端到端服务性能提升 3 倍；编码场景单 Token 国产芯片成本与主流进口卡性价比相当
+- **infra agent 自我优化**：GLM-5.3 驱动的 infra agent 协助工程师开发/优化算子、诊断性能瓶颈、改进部署栈（算子开发周期缩短一半）——"模型优化系统，系统承载模型"
+
+##### 安全与开源：把能力放在第三方可核验的位置
+
+- 网络安全（Cybersecurity Co-work）是编程能力越过工程门槛后的自然延伸：软件漏洞挖掘不依赖记忆，而依赖推理深度与长程自主性
+- CyberGym 84.5%（超 Fable 5 和 GPT-5.6 Sol）；ExploitGym 完成 130 项任务
+- 累计发现漏洞 2,436 个（中高危 1,097 个），覆盖 269 个项目；最长历史漏洞已存在 20 余年
+- **安全披露账本（CVD，cvd.z.ai）**：记录漏洞从发现、确认到修复全过程；已完成披露且厂商修复的才公开，协调披露阶段的只公开哈希值
+- **"开源之盾"计划**：对重点开源项目持续安全审计（结果经 OpenVuln 公开）；免费提供模型额度与防御入口给开源维护者；ZCode 提供代码审计功能
+- 最敏感能力受控开放：面向已验证安全研究者与机构提供，其余按标准安全策略；开源前完成安全评估、模型加固与使用边界设计
+
+##### 未来展望：Fully Self Training（RSI 早期形态）
+
+- **数据自产**：model-vs-model 自我对弈管线（一模型生成、另一模型评审/测试/执行验证）+ 四层过滤（规则校验 → 执行验证 → 模型评审 → 人工抽检）；数据从一次性消耗品变成可跨代复用的资本品
+- **环境自造**：研究智能体从真实工作采集任务模式；裁判智能体确认任务可解；验证器在无参考答案下被合成并用求解器轨迹封堵奖励捷径（oracle / no-op / 未解状态三项检查）；slime 把数学/代码/沙盒/验证器降格为即插即用数据组件
+- **基础设施自优化**：推理引擎由 GLM-5.3 驱动的 infra agent 协助优化；slime 让训练与大规模推理 rollout 共用一套数据流
+- **愿景**："下一代 GLM 将在上一代 GLM 搭建的环境里训练"（Fully Self Training / Recursive Self-Improvement）
+- 治理边界：能力评估与风险判断最终由人裁量，并引入外部机构独立评估；基准分数自己报告、风险判断交外部确认
 
 #### 全球化与中美之间
 三个 AI 创业团队的对比：

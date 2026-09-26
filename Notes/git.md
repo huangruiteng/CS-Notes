@@ -369,8 +369,9 @@ there are [many](https://nvie.com/posts/a-successful-git-branching-model/)
 to other projects, called [pull
 requests](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests).
 - **Other Git providers**: GitHub is not special: there are many Git repository
-hosts, like [GitLab](https://about.gitlab.com/) and
-[BitBucket](https://bitbucket.org/).
+  hosts, like [GitLab](https://about.gitlab.com/) and
+  [BitBucket](https://bitbucket.org/).
+  - 自建 / 内网场景的选项与对比（Gitea、Forgejo、GitLab）见 [Software-Engineering：开发协作工具链](./Software-Engineering.md#开发协作工具链github--gitlab--gitea--sonarcloud--1password--confluence--jira--netlify)。
 
 #### 和Github联动
 * GitHub is a Git hosting repository that provides developers with tools to ship better code through command line features, issues (threaded discussions), pull requests, code review, or the use of a collection of free and for-purchase apps in the GitHub Marketplace. 

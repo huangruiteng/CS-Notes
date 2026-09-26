@@ -373,6 +373,31 @@
     * DeepEp：leverage the IBGDA (NVIDIA, 2022) technology to further minimize latency and enhance communication efficiency.
     * **overlap the attention of one micro-batch with the dispatch+MoE+combine of another.**
 
+### GLM-5.3-Flash (Ox-Alpha)：成本前沿架构与国芯推理
+
+> 来源：智谱（Z.AI，2513.HK）2026 中期业绩公告（2026-08-31）；与 GLM-5.3 能力上界互补，Flash 面向高频、大规模、成本敏感调用。
+
+* 架构
+  * 总参 320B / 激活 18B / 45 层；**稀疏注意力 + 线性注意力混合**（保长上下文精度的同时大幅降低长上下文服务成本）
+  * **mHC（manifold-constrained Hyperconnection，流形约束超连接）** 提升 Scaling 能力
+  * 30T 级多模态预训练语料；正式发布前以匿名模型 Ox-Alpha 在 OpenCode / OpenRouter 接受真实调用检验
+  * 上线首日冲至 OpenRouter 榜首并刷新单日 Token 用量纪录；6 天 Token 调用量超 62 万亿，带动平台整体调用量 +20%
+  * 价格为 GLM-5.2 的 1/10，基准与实际应用中均优于 GLM-5.2
+* 国芯推理（GLM-5.3-Flash 首次在超大流量中全面使用国产芯片集群，芯片间自研高带宽互联）
+  * 规模：10 万级国产芯片，单位 Token 推理成本较年初下降 80%
+  * 约束与解法：国产芯片内存容量/带宽受限，1M 上下文尤难 → 在 SGLang 基础上构建专用推理引擎，**以算力换带宽、以通信换显存**的定制优化
+  * 集群层面：生产级 **Encode-Prefill-Decode 分离式架构**（多模态编码、prompt 预填充、逐 Token 解码拆成可独立调度/独立扩缩容的工作池）
+  * 效果：与同一硬件初始基线相比端到端服务性能提升 3 倍；编码场景单 Token 国产芯片推理成本与主流进口卡性价比相当
+  * 构建方式本身是 co-work 内部验证：推理引擎由 GLM-5.3 驱动的 infra agent 协助工程师开发优化算子、诊断性能瓶颈、改进部署栈，算子开发周期缩短一半
+* 推理基建全过程与 RSI 叙事（Z.ai 2026-09 官方复盘）
+  * 来源：Z.ai 官方 [Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure)；中文二手整理：[智猩猩AI](https://mp.weixin.qq.com/s/79RNnZqgR4fth-wCtkHc6Q)（2026-09-17）
+  * 规模与节奏：在 **10 万+ 国产 AI 加速器**集群上从零搭完整生产级推理服务，承载 GLM-5.3-Flash **全部**生产流量；从首次跑通到承担全部生产流量**不到两周**，端到端吞吐相对初始基线约 **3×**（中文稿写 3.2×）
+  * 官方列举的技术栈：linear attention 与 LM Head 的**节点内张量并行**、**ReplaySSM**、**W8A8 量化**、INT8/FP8/BF16 混合精度 cache 量化、**Layer Split**，外加 **EPD（Encode-Prefill-Decode）解耦**架构；配合「以算力换带宽、以通信换显存」的定制优化，硬件利用率与单 Token 成本达到与主流 NVIDIA GPU 相当的水平
+  * 环境约束（原文自述）：此前无人部署过这个规模的国产加速器集群；内存容量与带宽受限，同时还要支持新架构、1M 上下文与多模态请求，生态不成熟、kernel 支持不完整、大量本该有文档的地方只能靠推断
+  * Ox-Alpha 匿名测试期：上线一周内成为 OpenCode 与 OpenRouter 上使用量最高的模型，6 天处理 **超过 62 万亿 Token**
+  * agent 侧机制（dense feedback 三层 + 三个 case）见 [AI-Agent-Engineering.md - GLM Infra Agent](./AI-Agent-Engineering.md#glm-infra-agent把端到端指标拆成可归因的-dense-feedback-闭环)
+* Scaling deep 判断（详见 AI-Algorithms）：推理成本已超训练成本（模型每天被调用数十亿次），最优点向「更小、训练更久」移动；MoE 把参数拆成总参（记多少）与激活参/深度（想多深）
+
 ## 成本和性能评估
 
 * Intro
@@ -977,6 +1002,23 @@ print(f"Prompt的token数量为: {token_count}")
 
 ![image-20251005214806732](./LLM-MLSys/image-20251005214806732.png)
 
+##### 上下文编辑与缓存观测
+
+Prefix cache 匹配的是**模型实际收到的完整前缀**。设旧上下文为 `P · R · S`，其中 `R` 是曾参与上下文的 reasoning；删除后变成 `P · S`，即使 `S` 的文本未改，也不能沿用原来依赖 `P · R` 的缓存状态。影响可能超过被删 token 的长度；此前未变的 `P` 仍可能复用，并非整个缓存被清空。具体命中还受可用缓存边界、驻留时间和路由影响。
+
+**推理保留与缓存命中是两个维度**：保留 reasoning 不保证缓存仍在；缓存未命中也不说明推理丢失，只要上下文仍在就可重新计算。早期 Responses API cookbook 展示了跨轮移除 reasoning 造成部分缓存失配的例子，但其模型策略不能推广为所有模型的当前行为。
+
+观测时至少分开统计“新用户轮首请求”和“轮内工具续跑”，并标记压缩或上下文改写。总 token 命中率按输入量加权，可能被长会话或大量轮内续跑抬高，掩盖边界处的低命中：
+
+$$
+H = \frac{\sum_i C_i}{\sum_i I_i}
+  = \sum_g w_g H_g,\qquad
+w_g = \frac{\sum_{i\in g} I_i}{\sum_i I_i}
+$$
+
+其中 $I_i$ 为请求输入 token 数，$C_i$ 为命中的输入 token 数，$g$ 为请求分组，$H_g$ 为组内 token 命中率。它不等于逐请求命中率的简单平均。归因时还需控制请求间隔、模型与路由、prompt 变化；“新轮低、轮内高”只能提示检查边界，不能单独证明清理了 reasoning。
+
+来源：[OpenAI Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)、[Reasoning items：Caching](https://developers.openai.com/cookbook/examples/responses_api/reasoning_items#caching)。推理保留的接口边界见 [Context Management](./AI-Agent-Engineering.md#context-management-与-token-效率)。
 
 #### Agentic State Reuse：面向 Agent 上下文编辑的状态复用
 
@@ -1686,6 +1728,51 @@ https://github.com/pytorch/TensorRT/releases/tag/v2.8.0
 
 * [SGLang 性能优化知识点2025-9月月报](https://mp.weixin.qq.com/s/6AVsx9FavxCjVmnmzVyoLw)
   * 许多细节性能优化，适合走读源码
+
+#### CPU 争用与隔离：语音 serving 的 host-bound 工程（SGLang Omni 案例）
+
+> 来源：Guitar Cat + LLM @GenAI_is_real，X Article《重新审视 CPU 资源作为语音模型 Serving 过程的一等公民》[x.com/i/article/2090129119996698624](https://x.com/i/article/2090129119996698624)，2026-08-20（SGLang Omni 项目组）。关联 Issue #907 / #921 / #1296 / #1308，PR #1183 / #1260 / #1321 / #1343 / #1388 / #1405 / #1415 / #1417 / #1423 / #1463。整理时间 2026-08-25。
+
+* 背景判断：长期优化 long context（对着 GPU Runtime 疯狂优化）的惯性会让人忽视 CPU；语音模型（ASR/TTS）是短请求、高并发、host-bound 场景——单步 kernel 只有微秒级，大量时间花在 stage 间调度与请求构建上。
+* 识别 host-bound：H100 profiling 中 GPU 94.3% 时间空转（相邻 kernel 间隔约是 kernel 本身时长的 17 倍）；把 host CPU 砍到约 1/4 吞吐掉约七成，而 SM clock 降到 0.455 倍只掉一成。
+
+**CI 性能工程：calibration + 门禁（通用纪律）**
+
+* 性能「只进不退」：每个性能提升的 commit 立刻做 calibration——5 次重复取最低值作为新 CI threshold，从而能抓住后续任意回退；
+* 用 CI 抓 CPU 问题的案例：PR 1183 更新 SGL 后 PR 1260 calibration 把 Fun-ASR 门禁 115.3 → 128.2 req/s；随后 CI 大面积不达标，同一 commit 跨轮吞吐差近 4 倍（正常 128–139，最低 36）——根因是主机 CPU 负载波动（calibration 恰好落在每小时 0–7 job 的空闲窗口，之后 13–27 job/小时）。
+
+**flashinfer JIT 编译的 CPU 大坑（CI 可复现性）**
+
+* kernel 走 JIT：缓存命中毫秒级加载，不命中现场编译几十分钟；一次整机重编译能把 ASR 从 122 qps 打到 41；
+* 缓存不命中三原因：镜像没预热 cutlass MOE 家族 kernel；镜像 Python 3.12 vs CI venv Python 3.11 版本不一致导致预热产物全部失效；现场编译产物写在容器内、销毁即丢；
+* 修复：镜像预热全部产物（含 cutlass MOE）+ CI 对齐 Python 3.12 复用镜像内 Torch / FlashInfer → fused_moe 首次调用从 481s 编译变 1.4s 加载。
+
+**CPU 资源的三维模型与争用机制**
+
+* 三维：核数 / 每秒 CPU 时间（cgroup quota）/ 频率。实验：核数 32 → 2 吞吐几乎不动；quota 限 25% 吞吐只剩 16%；GPU 频率减半只掉 20%；
+* 服务器几百线程加起来只占约一个核且多串行 → 加核不线性；出路是「多进程/多副本真用上多核」（同卡 DP+MPS、多进程 router）或「保护每秒 CPU 时间」（绑核 + allocator）；
+* 争用的本质是「每毫秒推进的活变少」而非「排队」：共享核区实验 PSI<0.01（几乎没在等核），但每请求 CPU 毫秒数 51–52 → 72–83（约 1.5 倍），吞吐 82 → 48–58——SMT sibling 抢占 + 全核频率被压低；
+* 结论：扩容解决不了争用，需要 cpuset 把整个物理核（连同两个 SMT sibling）划给服务独占——cgroup quota 只限总量，挡不住两个进程挤在同一物理核。
+
+**从手动绑核到 CPU allocator**
+
+* 手动管理不可行三原因：taskset 只能约束本进程（同机其他进程照样进核区）；超线程 sibling 拓扑（一对 sibling 分给两个进程就制造争用）；serving 拓扑灵活（DP+MPS、进程级 replica 需按 stage / 副本细粒度分核）；
+* 实验：只约束本进程收益仅 10–15%；对同机负载一并约束吞吐 2.5 倍——收益来自「把同机负载关进有界核集合」，必须有一份覆盖全机的 plan；
+* CPU allocator（PR 1463）：拓扑感知、从 sysfs 做物理核 + 超线程配对、覆盖整棵进程树；与人工 CORE_BLOCKS 对比 0.92–1.02x（wash）——买的是自动、正确、覆盖全树的放置方案 + 争用可见接口，不是额外吞吐；
+* host 开销剖析：Fun-ASR 每请求约 45ms host orchestration（pre-LM encoder 45% / scheduler loop 28% / 请求构建 17% / router 9%，fbank 音频预处理仅 3.2ms），Qwen3-ASR 约 35ms；饱和时约 4.2 核 → 声明 5 个独占物理核；
+* 争用环境验证（1×H200，A-B-A-B）：重负载时 allocator 开/关吞吐比 3.54×，开启后 ≈ 空载 98%。
+
+**生产环境：收益几乎归零的教训（最重要的 insight）**
+
+* 生产形态（同卡 DP + MPS、无外部负载）18 个配对点 +0.43%，无稳定正向趋势；
+* 原因：生产独占机器、CPU 不稀缺（每模型 host 处理只用 2–5 核、DP/MPS 并行也只 20–30 核 vs 服务器上百核）；隔离收益来自「挡外部争用」，不是「内部 stage 怎么分核」；static allocator 难成生产方案（可用核充足时 OS 调度够用，划分不当反而降性能、corner case 多）；
+* 通用结论：优化价值取决于环境，不能把单一场景（高争用 CI）的收益推广到所有场景；做优化要因地制宜，找任务与环境的根本性限制因素（对照：对着 GPU 疯狂优化是 long context 场景的惯性）。
+
+**结论三件事**
+
+1. 多进程充分利用多核：单条 host 链吃不满一个核，DP + MPS、进程级 replica 才能真正用上多核；
+2. 优化每个环节充分利用单核：encoder service、stage 间调度、请求构建、kernel launch（CUDA Graph 已压掉 kernel launch 大头，下一步是调度与请求构建）；
+3. 部署时避免外部争用：从容器部署与任务管理角度估算 CPU 负载，避免任务互相争用——真正打垮服务的是同机外部任务，而非框架内细粒度管控。
 
 
 
