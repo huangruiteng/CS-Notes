@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 CANDIDATES = ROOT / ".local" / "LEARNING_MATERIAL_CANDIDATES.md"
 QUEUE_HEADING_RE = re.compile(r"^#{3,5}\s+当前\s*Top\s*30\s*列表\s*$", re.I | re.M)
 QUEUE_END_RE = re.compile(r"^###\s+Top\s*30\s+外", re.I | re.M)
