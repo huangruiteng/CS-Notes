@@ -89,6 +89,9 @@ class PublicQueueBoundary(unittest.TestCase):
             "https://example.org/paper#login-secret",
             "./distributed-systems-for-loopx/../../private.md",
             "./distributed-systems-for-loopx/%2e%2e/private.md",
+            "./booklists/../../private.md",
+            "./booklists/%2e%2e/private.md",
+            "./booklists/private.png",
         ]
         for source in sources:
             with self.subTest(source=source), self.assertRaises(ValueError):
@@ -100,6 +103,7 @@ class PublicQueueBoundary(unittest.TestCase):
             "https://openreview.net/forum?id=paper-id",
             "https://www.youtube.com/watch?v=video-id",
             "./distributed-systems-for-loopx/recovery_lab.py",
+            "./booklists/general-reading.md",
         ]:
             queue.validate_source(source)
 

@@ -4060,6 +4060,18 @@
       "queue_rank": 150
     },
     {
+      "material_ref": "material-f27e7ced2a7b6b0ba8c01623",
+      "title": "To The Crazy Ones | 致超级个体",
+      "sources": [
+        "https://my.feishu.cn/wiki/AfvNwnZiEirKPSkmUz7cfDlYnM1"
+      ],
+      "tier": "A",
+      "read_scope": "recorded_review",
+      "note": "既往已读文字正文，视频、图片与白板未逐一展开。讨论完整问题所有权、工具权限、直接用户反馈与组织认可如何支持 AI Builder。",
+      "lifecycle": "candidate",
+      "queue_rank": null
+    },
+    {
       "material_ref": "material-b52941759ba3145364cda3f3",
       "title": "Codex / Claude Code memory 模式的收益、风险与 token 成本",
       "sources": [
@@ -8456,6 +8468,19 @@
       "queue_rank": null
     },
     {
+      "material_ref": "material-b26a184fc42e96ed6896fd58",
+      "title": "梁文锋投资者交流会 · 网传录音文字稿（非官方）",
+      "sources": [
+        "https://drive.google.com/file/d/13NSXtglkcMJoWPRyT_2yQq_VhREG8nkt/view",
+        "https://www.nbd.com.cn/articles/2026-07-23/4504599.html"
+      ],
+      "tier": "A",
+      "read_scope": "metadata",
+      "note": "已取得 42 页 PDF、提取文本并检查首页，未逐段精读。网传转写稿，未经 DeepSeek 或本人公开确认；ASR 与 AI 整理可能引入错误，不作为官方口径。",
+      "lifecycle": "candidate",
+      "queue_rank": null
+    },
+    {
       "material_ref": "material-ksi-2607-19592",
       "title": "Knowledge-Centric Self-Improvement：让共享知识而非 Agent 实现成为持续改进对象",
       "sources": [
@@ -8971,6 +8996,18 @@
       "queue_rank": 15
     },
     {
+      "material_ref": "material-f67bd6e238be438de8d6f6d8",
+      "title": "商业传记与通识书目",
+      "sources": [
+        "./booklists/business-biography-and-general-knowledge.md"
+      ],
+      "tier": "B",
+      "read_scope": "metadata",
+      "note": "《沃顿商学院时间管理课（修订版）》《小米创业思考》《埃隆·马斯克传》《冲向火星》《金钱博弈：重振韩国第一银行内幕》《进化论50讲》；正文未读。",
+      "lifecycle": "candidate",
+      "queue_rank": 169
+    },
+    {
       "material_ref": "material-ewind-effect-continuation-20260828",
       "title": "异步续延与 Effect 架构的第一性原理：要虚拟化时间/确定性调度/中断就必须持有续延，用户态解释器（Effect）vs 运行时下沉（PocketJS）",
       "sources": [
@@ -9264,7 +9301,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "来源真实性未确认；保留为核验案例，不作为论文结论。",
-      "queue_rank": 169
+      "queue_rank": 170
     },
     {
       "material_ref": "material-poteto-pstack-pt1-20260914",
@@ -9288,7 +9325,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 170
+      "queue_rank": 171
     },
     {
       "material_ref": "material-real-workflow-training-data-20260722",

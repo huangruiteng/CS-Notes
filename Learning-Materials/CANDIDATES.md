@@ -297,314 +297,316 @@
 | 289 | [Training-Free Group Relative Policy Optimization](<https://arxiv.org/pdf/2510.08191>) | A | 沿用既有阅读记录 |
 | 290 | [Motive Notes：What Makes 5% of AI Agents Actually Work in Production?](<https://www.motivenotes.ai/p/what-makes-5-of-ai-agents-actually>) | A | 沿用既有阅读记录 |
 | 291 | [AgentEvolver：Towards Efficient Self-Evolving Agent System](<https://mp.weixin.qq.com/s/n8ZYMbs8yoKwX-eM73GgtQ>) · [来源 2](<https://arxiv.org/abs/2511.10395>) · [来源 3](<https://github.com/modelscope/AgentEvolver>) | A | 沿用既有阅读记录 |
-| 292 | [Codex / Claude Code memory 模式的收益、风险与 token 成本](<https://developers.openai.com/codex/memories>) · [来源 2](<https://arxiv.org/abs/2601.20404>) | A | 沿用既有阅读记录 |
-| 293 | [SkyRL：full-stack RL library for LLMs](<https://docs.skyrl.ai/>) · [来源 2](<https://github.com/NovaSky-AI/SkyRL>) | A | 沿用既有阅读记录 |
-| 294 | [OpenRLHF：high-performance RLHF / GRPO / PPO framework](<https://github.com/OpenRLHF/OpenRLHF>) | A | 沿用既有阅读记录 |
-| 295 | [Selective Rollout：Efficient Reinforcement Learning for Long-Horizon LLM Agents](<https://arxiv.org/abs/2605.05802>) | A | 沿用既有阅读记录 |
-| 296 | [HiPER：State Abstraction and Value-Guided Search for Efficient Long-Horizon Agents](<https://arxiv.org/abs/2602.16165>) | A | 沿用既有阅读记录 |
-| 297 | [AgentFly：Extensible and Scalable Reinforcement Learning for LM Agents](<https://arxiv.org/abs/2507.14897>) | A | 沿用既有阅读记录 |
-| 298 | [Code as Agent Harness](<https://huggingface.co/papers/2605.18747>) · [来源 2](<https://arxiv.org/abs/2605.18747>) | S | 沿用既有阅读记录 |
-| 299 | [SWE-Chain：Benchmarking Coding Agents on Chained Release-Level Package Upgrades](<https://arxiv.org/abs/2605.14415>) | S | 沿用既有阅读记录 |
-| 300 | [AgentTrust：Runtime Safety Evaluation and Interception for AI Agent Tool Use](<https://arxiv.org/abs/2605.04785>) | A | 沿用既有阅读记录 |
-| 301 | [Google I/O 2026：Gemini 3.5 Flash / Antigravity 2.0 / Managed Agents](<https://blog.google/innovation-and-ai/technology/developers-tools/google-io-2026-developer-highlights/>) | A | 沿用既有阅读记录 |
-| 302 | [OpenAI / Databricks：GPT-5.5 on OfficeQA Pro](<https://openai.com/index/databricks/>) | A | 沿用既有阅读记录 |
-| 303 | [Anthropic acquires Stainless：SDK / CLI / MCP server tooling](<https://www.anthropic.com/news/anthropic-acquires-stainless>) | A | 沿用既有阅读记录 |
-| 304 | [RRFP：A Readiness-Driven Runtime for Pipeline-Parallel Training under Runtime Variability](<https://arxiv.org/abs/2605.18750>) | A | 沿用既有阅读记录 |
-| 305 | [DashAttention：Differentiable and Adaptive Sparse Hierarchical Attention](<https://arxiv.org/abs/2605.18753>) | A | 沿用既有阅读记录 |
-| 306 | [Qwen3.7-Max Agent Frontier](<https://qwen.ai/blog?id=qwen3.7>) | A | 沿用既有阅读记录 |
-| 307 | [OpenAI Guaranteed Capacity：模型 API 的 reserved compute contract](<https://openai.com/business/guaranteed-capacity/>) | A | 沿用既有阅读记录 |
-| 308 | [TIDE：Efficient and Lossless MoE Diffusion LLM Inference with I/O-aware Expert Offload](<https://arxiv.org/abs/2605.20179>) | A | 沿用既有阅读记录 |
-| 309 | [KoRe：Compact Knowledge Representations for Large Language Models](<https://arxiv.org/abs/2605.20170>) | A | 沿用既有阅读记录 |
-| 310 | [OpenAI model disproves Erdős unit-distance conjecture](<https://openai.com/index/model-disproves-discrete-geometry-conjecture/>) | A | 沿用既有阅读记录 |
-| 311 | [Multi-Stream LLMs：Unblocking Language Models with Parallel Streams of Thoughts, Inputs and Outputs](<https://arxiv.org/abs/2605.12460>) | A | 沿用既有阅读记录 |
-| 312 | [vLLM x PegaFlow：Production-Grade External KV Cache](<https://vllm.ai/blog/2026-05-18-pegaflow>) | A | 沿用既有阅读记录 |
-| 313 | [AWS SageMaker OpenAI-compatible API endpoints](<https://aws.amazon.com/blogs/machine-learning/announcing-openai-compatible-api-support-for-amazon-sagemaker-ai-endpoints/>) | A | 沿用既有阅读记录 |
-| 314 | [Google AI Mode Ads：Gemini-powered ad formats in Search](<https://blog.google/products/ads-commerce/google-marketing-live-search-ads/>) | A | 沿用既有阅读记录 |
-| 315 | [Tencent Hy-MT2：translation model family and IFMTBench](<https://github.com/Tencent-Hunyuan/Hy-MT2>) | A | 沿用既有阅读记录 |
-| 316 | [Cohere Command A+：可私有部署的 open-source enterprise agent model](<https://cohere.com/blog/command-a-plus>) | A | 沿用既有阅读记录 |
-| 317 | [Domain-Camouflaged Injection Attacks：领域伪装注入绕过 agent guard](<https://arxiv.org/abs/2605.22001>) | A | 沿用既有阅读记录 |
-| 318 | [唐杰：关于 long-horizon tasks 的近期思考](<http://xhslink.com/o/5bvmo8slRJq>) | A | 沿用既有阅读记录 |
-| 319 | [Runtime (YC P26)：团队级沙盒化 coding agents](<https://www.producthunt.com/products/runtime>) | B | 沿用既有阅读记录 |
-| 320 | [Claude Code 源码精读：compact 每次压缩时发生了什么](<http://xhslink.com/o/3YETdBdSzxf>) | A | 沿用既有阅读记录 |
-| 321 | [Neuromancer：Claude Code 上下文管理个人学习笔记](<http://xhslink.com/o/6PRR8PKYQ6o>) | A | 沿用既有阅读记录 |
-| 322 | [MemGym：长程 agent memory 执行评测环境](<https://arxiv.org/abs/2605.20833>) | A | 沿用既有阅读记录 |
-| 323 | [Anthropic Project Glasswing / Claude Mythos CVD dashboard](<https://www.anthropic.com/research/glasswing-initial-update>) | A | 沿用既有阅读记录 |
-| 324 | [CODA：Rewriting Transformer Blocks as GEMM-Epilogue Programs](<https://arxiv.org/abs/2605.19269>) | A | 沿用既有阅读记录 |
-| 325 | [KanBots OSS：本地 Kanban 多 agent 编排](<https://www.kanbots.dev/oss>) · [来源 2](<https://github.com/leodavinci1/kanbots>) | B | 沿用既有阅读记录 |
-| 326 | [ReAct：reasoning-action-observation 循环的经典起点](<https://arxiv.org/abs/2210.03629>) | A | 沿用既有阅读记录 |
-| 327 | [Toolformer：模型自监督学会调用工具](<https://arxiv.org/abs/2302.04761>) | A | 沿用既有阅读记录 |
-| 328 | [API-Bank：tool-augmented LLM 的 API 评测早期基准](<https://arxiv.org/abs/2304.08244>) | A | 沿用既有阅读记录 |
-| 329 | [Gorilla：面向海量 API 的 tool retrieval / function calling](<https://arxiv.org/abs/2305.15334>) · [来源 2](<https://github.com/ShishirPatil/gorilla>) | A | 沿用既有阅读记录 |
-| 330 | [ToolLLM / ToolBench：大规模真实 API 的工具学习与评测](<https://arxiv.org/abs/2307.16789>) · [来源 2](<https://github.com/OpenBMB/ToolBench>) | A | 沿用既有阅读记录 |
-| 331 | [WebArena：真实 Web 环境中的 autonomous agent benchmark](<https://arxiv.org/abs/2307.13854>) | A | 沿用既有阅读记录 |
-| 332 | [VisualWebArena：多模态 Web agent 评测](<https://arxiv.org/abs/2401.13649>) | A | 沿用既有阅读记录 |
-| 333 | [OSWorld：真实桌面环境中的 computer-use agent benchmark](<https://arxiv.org/abs/2404.07972>) · [来源 2](<https://github.com/xlang-ai/OSWorld>) | A | 沿用既有阅读记录 |
-| 334 | [WorkArena：企业知识工作 Web agent benchmark](<https://arxiv.org/abs/2403.07718>) · [来源 2](<https://arxiv.org/abs/2407.05291>) | A | 沿用既有阅读记录 |
-| 335 | [SWE-bench：真实 GitHub issue 到 patch 的软件工程评测](<https://arxiv.org/abs/2310.06770>) | A | 沿用既有阅读记录 |
-| 336 | [OpenHands：通用软件开发 agent 平台](<https://arxiv.org/abs/2407.16741>) · [来源 2](<https://github.com/All-Hands-AI/OpenHands>) | A | 沿用既有阅读记录 |
-| 337 | [AutoGen：multi-agent conversation framework](<https://arxiv.org/abs/2308.08155>) · [来源 2](<https://github.com/microsoft/autogen>) | A | 沿用既有阅读记录 |
-| 338 | [LLMCompiler：并行 function calling / tool execution 编排](<https://arxiv.org/abs/2312.04511>) | A | 沿用既有阅读记录 |
-| 339 | [AgentLens：agent 行为可视分析与 lucky pass 问题](<https://arxiv.org/abs/2402.08995>) · [来源 2](<https://arxiv.org/abs/2605.12925>) | A | 沿用既有阅读记录 |
-| 340 | [Contextual Agent Security：面向不同目的的 agent policy](<https://arxiv.org/abs/2501.17070>) | A | 沿用既有阅读记录 |
-| 341 | [Generative Agents：长期记忆驱动的交互式行为模拟](<https://arxiv.org/abs/2304.03442>) | A | 沿用既有阅读记录 |
-| 342 | [Lost in the Middle：长上下文位置偏置经典问题](<https://arxiv.org/abs/2307.03172>) | A | 沿用既有阅读记录 |
-| 343 | [MemGPT：把 LLM memory 管理类比为操作系统](<https://arxiv.org/abs/2310.08560>) · [来源 2](<https://github.com/letta-ai/letta>) | A | 沿用既有阅读记录 |
-| 344 | [OpenShell：声明式 policy 驱动的 agent sandbox runtime](<https://github.com/NVIDIA/OpenShell>) | A | 沿用既有阅读记录 |
-| 345 | [SWE-ReX：coding agent remote execution / sandbox infrastructure](<https://github.com/SWE-agent/SWE-ReX>) | A | 沿用既有阅读记录 |
-| 346 | [ContextForge：MCP / A2A / REST gateway with governance and observability](<https://github.com/IBM/mcp-context-forge>) | A | 沿用既有阅读记录 |
-| 347 | [Agent Governance Toolkit：deterministic policy / identity / sandbox / audit before actions](<https://github.com/microsoft/agent-governance-toolkit>) | A | 沿用既有阅读记录 |
-| 348 | [Browser Harness：可编辑 CDP browser harness](<https://github.com/browser-use/browser-harness>) | A | 沿用既有阅读记录 |
-| 349 | [Symphony：ticket-driven orchestration layer for autonomous implementation runs](<https://github.com/openai/symphony>) | A | 沿用既有阅读记录 |
-| 350 | [R2E-Gym：从真实 repo issue 构造 executable coding-agent RL environments](<https://arxiv.org/abs/2504.07164>) · [来源 2](<https://github.com/R2E-Gym/R2E-Gym>) | A | 沿用既有阅读记录 |
-| 351 | [Prime Intellect verifiers：LLM RL environments + evals as reusable verifier library](<https://github.com/PrimeIntellect-ai/verifiers>) | A | 沿用既有阅读记录 |
-| 352 | [Meta-Harness：把 harness design 本身作为 automated search object](<https://openreview.net/forum?id=Qti7OhJr2P>) | A | 沿用既有阅读记录 |
-| 353 | [Anthropic Context Management：tool result clearing and compaction](<https://www.anthropic.com/news/context-management>) | A | 沿用既有阅读记录 |
-| 354 | [Context Rot：long context 变长时的性能退化](<https://research.trychroma.com/context-rot>) | A | 沿用既有阅读记录 |
-| 355 | [Anthropic: How we built our multi-agent research system](<https://www.anthropic.com/engineering/multi-agent-research-system>) | A | 沿用既有阅读记录 |
-| 356 | [LCGuard：Defending Against Latent Communication in Multi-Agent Systems by System-Level KV Cache Sandboxing](<https://arxiv.org/abs/2605.20920>) | A | 沿用既有阅读记录 |
-| 357 | [Claude Code network sandbox bypass reports](<https://www.theregister.com/security/2026/05/20/even-claude-agrees-hole-in-its-sandbox-was-real-and-dangerous/5243662>) | A | 沿用既有阅读记录 |
-| 358 | [Cloudflare Agent Infrastructure Stack](<https://www.infoq.com/news/2026/05/cloudflare-agent-platform-stack/>) | A | 沿用既有阅读记录 |
-| 359 | [Reasonix：prefix-cache-aware terminal coding agent](<https://github.com/esengine/Reasonix>) | A | 沿用既有阅读记录 |
-| 360 | [FAME：Fault-Aware Mixture-of-Experts for Message-Level Log Anomaly Detection](<https://arxiv.org/abs/2605.18504>) | A | 沿用既有阅读记录 |
-| 361 | [Epoch AI: AI chip component cost shares](<https://epoch.ai/data-insights/ai-chip-component-cost-shares>) | A | 沿用既有阅读记录 |
-| 362 | [Kung & Robinson: On Optimistic Methods for Concurrency Control](<https://www.eecs.harvard.edu/~htk/publication/1981-tods-kung-robinson.pdf>) | A | 沿用既有阅读记录 |
-| 363 | [Shapiro et al.: A comprehensive study of convergent and commutative replicated data types（CRDTs）](<https://webarchive.di.uminho.pt/haslab.uminho.pt/cbm/publications/comprehensive-study-convergent-and-commutative-replicated-data-types.html>) | A | 沿用既有阅读记录 |
-| 364 | [AeSlides：通过可验证奖励强化幻灯片生成](<http://xhslink.com/o/8UA38erc2GO>) · [来源 2](<https://arxiv.org/abs/2604.22840>) · [来源 3](<https://github.com/ympan0508/aeslides>) | A | 沿用既有阅读记录 |
-| 365 | [ACC: Compiling Agent Trajectories for Long-Context Training](<https://arxiv.org/abs/2605.21850>) | A | 沿用既有阅读记录 |
-| 366 | [SaaS-Bench: Can Computer-Use Agents Leverage Real-World SaaS to Solve Professional Workflows?](<https://unipat.ai/benchmarks/SaaS-Bench>) · [来源 2](<https://arxiv.org/abs/2605.15777>) | A | 沿用既有阅读记录 |
-| 367 | [π-Bench: Evaluating Proactive Personal Assistant Agents in Long-Horizon Workflows](<https://simplified-reasoning.github.io/Pi-Bench/>) · [来源 2](<https://arxiv.org/abs/2605.14678>) | A | 沿用既有阅读记录 |
-| 368 | [Microsoft Copilot Cowork Exfiltrates Files](<https://www.promptarmor.com/resources/microsoft-copilot-cowork-exfiltrates-files>) | A | 沿用既有阅读记录 |
-| 369 | [Constraint Decay: The Fragility of LLM Agents in Backend Code Generation](<https://arxiv.org/abs/2605.06445>) | A | 沿用既有阅读记录 |
-| 370 | [CVEvolve: Autonomous Algorithm Discovery for Unstructured Scientific Data Processing](<https://arxiv.org/abs/2605.11359>) | A | 沿用既有阅读记录 |
-| 371 | [Gemini app becomes more agentic, delivering proactive 24/7 help](<https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/>) | B | 沿用既有阅读记录 |
-| 372 | [Anthropic: How we contain Claude across products](<https://www.anthropic.com/engineering/how-we-contain-claude>) | A | 沿用既有阅读记录 |
-| 373 | [Language Models Need Sleep](<https://arxiv.org/abs/2605.26099>) | A | 沿用既有阅读记录 |
-| 374 | [EAGLE 3.1: Advancing Speculative Decoding Through Collaboration Between EAGLE, vLLM, and TorchSpec](<https://vllm.ai/blog/2026-05-26-eagle-3-1>) | A | 沿用既有阅读记录 |
-| 375 | [Robin: A multi-agent system for automating scientific discovery](<https://www.nature.com/articles/s41586-026-10652-y>) | A | 沿用既有阅读记录 |
-| 376 | [Alipay AI Wallet / Token Pay / Agentic Commerce Trust Protocol](<https://www.businesswire.com/news/home/20260526337824/en/Alipay-Launches-Next-Generation-AI-Payment-Infrastructure-Debuts-AI-Wallet-and-Token-Pay-to-Power-Agentic-Economy>) | A | 沿用既有阅读记录 |
-| 377 | [OpenRouter Raises $113M Series B](<https://www.businesswire.com/news/home/20260526953416/en/OpenRouter-Raises-%24113-Million-CapitalG-led-Series-B-as-Weekly-Volume-Explodes-to-25T-Tokens>) | A | 沿用既有阅读记录 |
-| 378 | [Xiaomi MiMo-V2.5 Series Price Adjustment](<https://platform.xiaomimimo.com/docs/en-US/news/v2.5-price-update>) | A | 沿用既有阅读记录 |
-| 379 | [Minicor: managed self-healing desktop automation at scale](<https://www.ycombinator.com/companies/minicor>) | A | 沿用既有阅读记录 |
-| 380 | [中国企业家：6个月融25亿元，他是“字节系”最猛的AI创业者](<https://mp.weixin.qq.com/s/LPwU22G74CkFXZbuFGeetg>) | A | 沿用既有阅读记录 |
-| 381 | [ArkClaw 漫剧虾工作流实测：从一个主题到爆款漫剧成片](<https://mp.weixin.qq.com/s/Tq3Igidp3PNhWvke_nyQfg>) | A | 沿用既有阅读记录 |
-| 382 | [视频生成 agent / 短剧工具竞品池：Flova / 纳米短剧 / 巨日禄 / 万镜一刻](<https://www.flova.ai/zh-CN/projects/>) | A | 沿用既有阅读记录 |
-| 383 | [火山引擎：Vibe Creating，让视频创作回归表达本身](<https://mp.weixin.qq.com/s/1q6hfza-EWKnNHAsIV9Ahg>) | A | 沿用既有阅读记录 |
-| 384 | [MUSE-Autoskill：Self-Evolving Agents via Skill Creation, Memory, Management, and Evaluation](<http://xhslink.com/o/7cBqcdYJXWB>) · [来源 2](<https://arxiv.org/abs/2605.27366>) · [来源 3](<https://huggingface.co/papers/2605.27366>) | A | 沿用既有阅读记录 |
-| 385 | [QUEST：Training Frontier Deep Research Agents with Fully Synthetic Tasks](<https://arxiv.org/abs/2605.24218>) | A | 沿用既有阅读记录 |
-| 386 | [Cognition: More Devins in More Places](<https://cognition.ai/blog/series-d>) | A | 沿用既有阅读记录 |
-| 387 | [jxnlco: Getting the most out of Codex](<https://x.com/jxnlco/status/2057153744630890620>) | A | 沿用既有阅读记录 |
-| 388 | [Polar: Agentic RL on Any Harness at Scale](<https://arxiv.org/abs/2605.24220>) · [来源 2](<https://github.com/NVIDIA-NeMo/ProRL-Agent-Server>) | A | 沿用既有阅读记录 |
-| 389 | [Structured Agent Distillation for Large Language Model](<https://arxiv.org/abs/2505.13820>) | A | 沿用既有阅读记录 |
-| 390 | [PEFT-Arena: Understanding Parameter-Efficient Finetuning from a Stability-Plasticity Perspective](<https://arxiv.org/abs/2605.28819>) | A | 沿用既有阅读记录 |
-| 391 | [Lenz Research: Beyond Benchmarks, Frontier LLM Disagreement on Fact-Checks](<https://lenz.io/research/llm-disagreement>) | A | 沿用既有阅读记录 |
-| 392 | [DBOS: Postgres is All You Need for Durable Workflows](<https://www.dbos.dev/blog/postgres-is-all-you-need-for-durable-execution>) | A | 沿用既有阅读记录 |
-| 393 | [OpenAI: How OpenAI uses Codex](<https://cdn.openai.com/pdf/6a2631dc-783e-479b-b1a4-af0cfbd38630/how-openai-uses-codex.pdf>) | A | 沿用既有阅读记录 |
-| 394 | [ClickHouse Agents + Langfuse V4：agentic data stack and observability](<https://clickhouse.com/blog/open-house-2026-day-1>) | A | 沿用既有阅读记录 |
-| 395 | [Claude Code vs Codex scientific-computing head-to-head](<https://arxiv.org/abs/2605.28916>) | A | 沿用既有阅读记录 |
-| 396 | [Coding Beyond Your Training: Claude Code and the Technological Frontier of Software Developers](<https://arxiv.org/abs/2605.25438>) | A | 沿用既有阅读记录 |
-| 397 | [SoundnessBench: Can Your AI Scientist Really Tell Good Research Ideas from Bad Ones?](<https://arxiv.org/abs/2605.30329>) | A | 沿用既有阅读记录 |
-| 398 | [LLMSurgeon: Diagnosing Data Mixture of Large Language Models](<https://arxiv.org/abs/2605.30348>) | A | 沿用既有阅读记录 |
-| 399 | [In-Context Reward Adaptation for Robust Preference Modeling](<https://arxiv.org/abs/2605.30323>) | A | 沿用既有阅读记录 |
-| 400 | [Gamma-World: Generative Multi-Agent World Modeling Beyond Two Players](<https://arxiv.org/abs/2605.28816>) | A | 沿用既有阅读记录 |
-| 401 | [WALL-WM：World Action Model at Event Boundaries](<https://www.prnewswire.com/news-releases/x-square-robot-open-sources-wall-wm-shifting-robot-world-modeling-from-chunks-to-events-302785692.html>) · [来源 2](<https://github.com/X-Square-Robot/wall-x>) | A | 沿用既有阅读记录 |
-| 402 | [ATLAS - Autoformalized Textbook Library At Scale](<https://github.com/facebookresearch/atlas-lean>) | A | 沿用既有阅读记录 |
-| 403 | [tiny-vLLM：Build your own high performance LLM inference engine in C++ and CUDA](<https://github.com/jmaczan/tiny-vllm>) | A | 沿用既有阅读记录 |
-| 404 | [Never Stop Learning: Continual Learning and Self-Iteration in LLMs](<https://victorchen96.github.io/continual_learning_survey.pdf>) | A | 沿用既有阅读记录 |
-| 405 | [ToolCUA: Towards Optimal GUI-Tool Path Orchestration for Computer Use Agents](<https://arxiv.org/abs/2605.12481>) | A | 沿用既有阅读记录 |
-| 406 | [Is Agent Memory a Database? Rethinking Data Foundations for Long-Term AI Agent Memory](<https://arxiv.org/abs/2605.26252>) | A | 沿用既有阅读记录 |
-| 407 | [GodeX：OpenAI Responses API 兼容网关与 provider bridge](<https://github.com/Ahoo-Wang/GodeX>) | A | 沿用既有阅读记录 |
-| 408 | [Meta AI support / Instagram account recovery exploit report](<https://www.0xsid.com/blog/meta-account-takeover-fiasco>) | A | 沿用既有阅读记录 |
-| 409 | [Microsoft MAI / Frontier Tuning：workflow-specific RLE 与 Copilot harness model](<https://microsoft.ai/news/building-a-hillclimbing-machine-launching-seven-new-mai-models/>) | A | 沿用既有阅读记录 |
-| 410 | [OpenAI Codex for every role / Sites / annotations](<https://openai.com/index/codex-for-every-role-tool-workflow/>) | A | 沿用既有阅读记录 |
-| 411 | [Microsoft Scout / WorkIQ / Agent 365：always-on work agent control plane](<https://blogs.microsoft.com/blog/2026/06/02/microsoft-build-2026-be-yourself-at-work/>) | A | 沿用既有阅读记录 |
-| 412 | [Bernini: Latent Semantic Planning for Video Diffusion](<https://github.com/bytedance/Bernini>) | A | 沿用既有阅读记录 |
-| 413 | [AdaCodec: A Predictive Visual Code for Video MLLMs](<https://arxiv.org/abs/2606.02569>) | A | 沿用既有阅读记录 |
-| 414 | [CLI-Anything: Towards Agent-Native Computer Use](<https://arxiv.org/abs/2606.03854>) · [来源 2](<https://github.com/HKUDS/CLI-Anything>) | A | 沿用既有阅读记录 |
-| 415 | [EvoDS: Self-Evolving Autonomous Data Science Agent with Skill Learning and Context Management](<https://arxiv.org/abs/2606.03841>) · [来源 2](<https://github.com/usail-hkust/EvoDS>) | A | 沿用既有阅读记录 |
-| 416 | [Taiji: Pareto Optimal Policy Optimization with Semantics-IDs Trade-off for Industrial LLM-Enhanced Recommendation](<https://arxiv.org/abs/2606.03866>) | A | 沿用既有阅读记录 |
-| 417 | [Bringing up DeepSeek-V4-Flash on AMD MI300X](<https://fergusfinn.com/blog/deepseek-v4-flash-mi300x/>) · [来源 2](<https://github.com/doublewordai/vllm-amd-blog-doubleword>) | B | 沿用既有阅读记录 |
-| 418 | [Uber AI coding budget cap / enterprise agent FinOps](<https://news.bloomberglaw.com/artificial-intelligence/uber-caps-usage-of-ai-tools-like-claude-code-to-cut-costs-1>) | B | 沿用既有阅读记录 |
-| 419 | [MOSAIC-Bench: Measuring Compositional Vulnerability Induction in Coding Agents](<https://arxiv.org/abs/2605.03952>) | A | 沿用既有阅读记录 |
-| 420 | [KVarN: Variance-Normalized KV-Cache Quantization Mitigates Error Accumulation in Reasoning Tasks](<https://arxiv.org/abs/2606.03458>) · [来源 2](<https://github.com/huawei-csl/KVarN>) | A | 沿用既有阅读记录 |
-| 421 | [Multi-Segment Attention / AsymCache：面向 agent serving 的 KV-cache 管理](<https://arxiv.org/abs/2606.02964>) | A | 沿用既有阅读记录 |
-| 422 | [Google Gemma 4 12B: unified encoder-free multimodal model](<https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12B/>) · [来源 2](<https://huggingface.co/google/gemma-4-12B>) | A | 沿用既有阅读记录 |
-| 423 | [Anthropic / Sakana AI recursive self-improvement signals](<https://www.anthropic.com/institute/recursive-self-improvement>) | A | 沿用既有阅读记录 |
-| 424 | [Microsoft pg_durable: PostgreSQL in-database durable execution](<https://github.com/microsoft/pg_durable>) | A | 沿用既有阅读记录 |
-| 425 | [Anthropic Defending Code Reference Harness](<https://github.com/anthropics/defending-code-reference-harness>) | A | 沿用既有阅读记录 |
-| 426 | [Alibaba Open Code Review: deterministic engineering + LLM agent code review](<https://github.com/alibaba/open-code-review>) | A | 沿用既有阅读记录 |
-| 427 | [Cloudflare AI Gateway spend limits / identity-driven budgets](<https://blog.cloudflare.com/ai-gateway-spend-limits/>) | B | 沿用既有阅读记录 |
-| 428 | [Lowfat: local CLI output filtering for agent token budgets](<https://github.com/zdk/lowfat>) | B | 沿用既有阅读记录 |
-| 429 | [AdaMEM: Test-Time Adaptive Memory for Language Agents](<https://arxiv.org/abs/2606.05684>) · [来源 2](<https://github.com/yunx-z/AdaMEM>) | A | 沿用既有阅读记录 |
-| 430 | [Vortex: Efficient and Programmable Sparse Attention Serving for AI Agents](<https://arxiv.org/abs/2606.06453>) | A | 沿用既有阅读记录 |
-| 431 | [Description-Code Inconsistency in Real-world MCP Servers](<https://arxiv.org/abs/2606.04769>) | A | 沿用既有阅读记录 |
-| 432 | [MLEvolve: A Self-Evolving Framework for Automated Machine Learning Algorithm Discovery](<https://arxiv.org/abs/2606.06473>) · [来源 2](<https://github.com/InternScience/MLEvolve>) | A | 沿用既有阅读记录 |
-| 433 | [CollabSim: A CSCW-Grounded Methodology for Investigating Collaborative Competence of LLM Agents through Controlled Multi-Agent Experiments](<https://arxiv.org/abs/2606.06399>) | A | 沿用既有阅读记录 |
-| 434 | [Scaffold, Not Vocabulary? A Controlled, Two-Tier, Pre-Registered Study of a Popperian Code-Generation Skill](<https://arxiv.org/abs/2606.06454>) | A | 沿用既有阅读记录 |
-| 435 | [Thinking with Imagination: Agentic Visual Spatial Reasoning with World Simulators](<https://arxiv.org/abs/2606.06476>) | A | 沿用既有阅读记录 |
-| 436 | [TechCrunch: The token bill comes due](<https://techcrunch.com/2026/06/05/the-token-bill-comes-due-inside-the-industry-scramble-to-manage-ais-runaway-costs/>) | B | 沿用既有阅读记录 |
-| 437 | [Poke becomes the first AI agent on Apple Messages for Business](<https://techcrunch.com/2026/06/04/apple-approves-poke-as-the-first-ai-agent-on-its-messages-for-business-platform/>) | B | 沿用既有阅读记录 |
-| 438 | [知乎回答：王导是也缩略《置身钉内》与钉钉 ONE 项目复盘](<https://www.zhihu.com/question/2046261330911482494/answer/2046318885889127259>) | B | 沿用既有阅读记录 |
-| 439 | [小红书：学习如何从 0 训练一个 SOTA LLM](<http://xhslink.com/o/7balNZMreoo>) | B | 沿用既有阅读记录 |
-| 440 | [Motus: A Unified Latent Action World Model](<https://arxiv.org/abs/2512.13030>) | A | 沿用既有阅读记录 |
-| 441 | [AKO: Agentic Kernel Optimization / AKO4ALL / AKO4X](<https://zhuanlan.zhihu.com/p/2044554843948308001>) · [来源 2](<https://github.com/TongmingLAIC/AKO4ALL>) · [来源 3](<https://github.com/TongmingLAIC/AKO4X>) | S | 沿用既有阅读记录 |
-| 442 | [Nano World Models: minimalist world-model experiment substrate](<http://xhslink.com/o/2JbM85tWLmI>) · [来源 2](<https://arxiv.org/abs/2605.23993>) · [来源 3](<https://github.com/simchowitzlabpublic/nano-world-model>) | A | 沿用既有阅读记录 |
-| 443 | [OpenAI Lockdown Mode：prompt injection 数据外泄防线的产品化 capability gate](<https://help.openai.com/en/articles/20001061-lockdown-mode>) | A | 沿用既有阅读记录 |
-| 444 | [Agent Memory: Characterization and System Implications of Stateful Long-Horizon Workloads](<https://arxiv.org/abs/2606.06448>) | A | 沿用既有阅读记录 |
-| 445 | [SubtleMemory: A Benchmark for Fine-Grained Relational Memory Discrimination in Long-Horizon AI Agents](<https://arxiv.org/abs/2606.05761>) · [来源 2](<https://github.com/KDEGroup/SubtleMemory>) | A | 沿用既有阅读记录 |
-| 446 | [TIDE: Proactive Multi-Problem Discovery via Template-Guided Iteration](<https://arxiv.org/abs/2606.04743>) · [来源 2](<https://github.com/snap-stanford/tide>) | A | 沿用既有阅读记录 |
-| 447 | [Goedel-Architect: Streamlining Formal Theorem Proving with Blueprint Generation and Refinement](<https://arxiv.org/abs/2606.06468>) | A | 沿用既有阅读记录 |
-| 448 | [Google / SpaceX AI compute deal：短期 bridge capacity 与 frontier agent demand 的市场信号](<https://techcrunch.com/2026/06/05/google-will-pay-spacex-920m-per-month-for-compute/>) | B | 沿用既有阅读记录 |
-| 449 | [Cloudflare Bot Traffic Radar：agentic web traffic 与 origin cost 进入一等指标](<https://radar.cloudflare.com/bots>) | B | 沿用既有阅读记录 |
-| 450 | [Tencent Productivity Agent Suite / CodeBuddy / WorkBuddy / Agent Runtime / TokenHub](<https://www.tencent.com/en-us/articles/2202350.html>) | B | 沿用既有阅读记录 |
-| 451 | [FrontierCode：从 correctness 到 production mergeability 的 coding-agent benchmark](<https://cognition.ai/blog/frontier-code>) | A | 沿用既有阅读记录 |
-| 452 | [KV cache serving exactness：Speculative KV coding + VeriCache](<https://fergusfinn.com/blog/kv-entropy-coder/>) · [来源 2](<https://arxiv.org/abs/2605.17613>) | A | 沿用既有阅读记录 |
-| 453 | [Tokenomics / token bill：agentic software cost observability](<https://techcrunch.com/2026/06/05/the-token-bill-comes-due-inside-the-industry-scramble-to-manage-ais-runaway-costs/>) · [来源 2](<https://arxiv.org/abs/2601.14470>) | A | 沿用既有阅读记录 |
-| 454 | [Intuned Agent：browser automation codegen + managed Playwright runtime](<https://intunedhq.com/>) | B | 沿用既有阅读记录 |
-| 455 | [Microsoft AI developer tooling supply-chain incident](<https://techcrunch.com/2026/06/08/microsofts-open-source-tools-were-hacked-to-steal-passwords-of-ai-developers/>) | B | 沿用既有阅读记录 |
-| 456 | [AGENTS.md / context-file tooling：agent-md-bench + context file evidence](<https://bernstein.run/tools/agent-md-bench>) | B | 沿用既有阅读记录 |
-| 457 | [SWE-Explore：repository exploration benchmark for coding agents](<https://huggingface.co/papers/2606.07297>) · [来源 2](<https://arxiv.org/abs/2606.07297>) | A | 沿用既有阅读记录 |
-| 458 | [End-to-End Context Compression at Scale / LCLM](<https://huggingface.co/papers/2606.09659>) · [来源 2](<https://arxiv.org/abs/2606.09659>) | A | 沿用既有阅读记录 |
-| 459 | [Anthropic biology agents：domain data infrastructure for agents](<https://www.anthropic.com/research/agents-in-biology>) | A | 沿用既有阅读记录 |
-| 460 | [Claude Fable 5 / Mythos 5：frontier capability with gated access](<https://www.anthropic.com/news/claude-fable-5-mythos-5>) | B | 沿用既有阅读记录 |
-| 461 | [Nemotron 3 Ultra serving stack：vLLM / SGLang / Miles day-zero path](<https://vllm.ai/blog/2026-06-04-nemotron-3-ultra-vllm>) | B | 沿用既有阅读记录 |
-| 462 | [AI developer tooling security：Microsoft repo incident + SGLang RCE](<https://techcrunch.com/2026/06/08/microsofts-open-source-tools-were-hacked-to-steal-passwords-of-ai-developers/>) · [来源 2](<https://github.com/advisories/GHSA-36m8-w8qf-g76p>) | B | 沿用既有阅读记录 |
-| 463 | [Asuka-Bench：underspecified intent + multi-round refinement for code agents](<https://arxiv.org/abs/2606.05920>) · [来源 2](<https://arxiv.org/html/2606.05920>) | A | 沿用既有阅读记录 |
-| 464 | [DiffusionGemma：parallel text diffusion for local interactive workflows](<https://developers.googleblog.com/diffusiongemma-the-developer-guide/>) | A | 沿用既有阅读记录 |
-| 465 | [GitHub Agent Apps + Copilot Code Review skills/MCP](<https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/>) | A | 沿用既有阅读记录 |
-| 466 | [MusaCoder：native GPU kernel generation with full-stack training on Moore Threads GPU](<https://arxiv.org/abs/2606.04847>) · [来源 2](<https://huggingface.co/MooreThreads/MusaCoder-27B>) | A | 沿用既有阅读记录 |
-| 467 | [Apache Burr：state machine / telemetry / persistence for reliable AI apps](<https://github.com/apache/burr>) | A | 沿用既有阅读记录 |
-| 468 | [Memory tools can make AI models worse：memory reliability as product risk](<https://techcrunch.com/2026/06/10/how-memory-tools-can-make-ai-models-worse/>) · [来源 2](<https://openreview.net/pdf?id=0Xt1qZ5xdW>) | B | 沿用既有阅读记录 |
-| 469 | [MiMo Code：long-horizon coding agent with persistent project memory](<https://mimo.xiaomi.com/blog/mimo-code-long-horizon>) · [来源 2](<https://github.com/XiaomiMiMo/MiMo-Code>) | A | 沿用既有阅读记录 |
-| 470 | [Claw Patrol：wire-level security firewall for agents](<https://github.com/denoland/clawpatrol>) | A | 沿用既有阅读记录 |
-| 471 | [Google DeepMind multi-agent AI safety research fund](<https://deepmind.google/blog/investing-in-multi-agent-ai-safety-research/>) | A | 沿用既有阅读记录 |
-| 472 | [Coinbase for Agents / x402：agentic payments and paid resource access](<https://www.coinbase.com/blog/coinbase-for-agents>) | A | 沿用既有阅读记录 |
-| 473 | [Alibaba Cloud Meoo CLI：local coding agent to cloud deployment bridge](<https://news.aibase.com/news/28860>) | B | 沿用既有阅读记录 |
-| 474 | [Can I Buy Your KV Cache?：agent-native prefill CDN / hot context cost model](<https://arxiv.org/abs/2606.13361>) | A | 沿用既有阅读记录 |
-| 475 | [ReSum：self-summary as policy action for long reasoning RLVR](<https://arxiv.org/abs/2606.13316>) | A | 沿用既有阅读记录 |
-| 476 | [AgentBeats：agentified agent assessment via A2A / MCP](<https://arxiv.org/abs/2606.13608>) | A | 沿用既有阅读记录 |
-| 477 | [Agents-K1：agent-native scientific knowledge orchestration](<https://arxiv.org/abs/2606.13669>) · [来源 2](<https://arxiv.org/html/2606.13669v1>) · [来源 3](<https://github.com/InternScience/GraphAnything>) · [来源 4](<https://github.com/InternScience/GraphAnything/blob/abbe35dc12e4991181ff8c4eed0c1cd334ffad1b/README.md>) · [来源 5](<https://huggingface.co/InternScience/Agents-K1>) · [来源 6](<https://huggingface.co/datasets/InternScience/Scholar-kg>) | A | 沿用既有阅读记录 |
-| 478 | [EurekAgent：environment engineering for autonomous scientific discovery](<https://arxiv.org/abs/2606.13662>) | A | 沿用既有阅读记录 |
-| 479 | [SkillSpector：agent skill supply-chain scanner](<https://github.com/NVIDIA/SkillSpector>) | A | 沿用既有阅读记录 |
-| 480 | [GLM-5：from vibe coding to agentic engineering](<https://arxiv.org/abs/2602.15763>) · [来源 2](<https://arxiv.org/html/2602.15763v1>) · [来源 3](<https://github.com/zai-org/GLM-5>) · [来源 4](<https://huggingface.co/zai-org/GLM-5>) | A | 沿用既有阅读记录 |
-| 481 | [LongTraceRL：learning long-context reasoning from search-agent trajectories](<https://arxiv.org/abs/2605.31584>) · [来源 2](<https://arxiv.org/html/2605.31584v1>) · [来源 3](<https://github.com/THU-KEG/LongTraceRL>) | A | 沿用既有阅读记录 |
-| 482 | [Plan-RewardBench / VPR：trajectory-level reward modeling and verifiable process reward for agents](<https://arxiv.org/abs/2604.08178>) · [来源 2](<https://arxiv.org/html/2604.08178v1>) · [来源 3](<https://huggingface.co/datasets/wyy1112/Plan-RewardBench>) · [来源 4](<https://arxiv.org/abs/2605.10325>) · [来源 5](<https://arxiv.org/html/2605.10325v1>) | A | 沿用既有阅读记录 |
-| 483 | [EvoArena / EvoMem：tracking memory evolution for robust LLM agents](<https://arxiv.org/abs/2606.13681>) · [来源 2](<https://arxiv.org/html/2606.13681v1>) · [来源 3](<https://huggingface.co/papers/2606.13681>) | A | 沿用既有阅读记录 |
-| 484 | [depthfirst 21 FFmpeg zero-days：autonomous security agent with reproducible PoCs](<https://depthfirst.com/research/21-zero-days-in-ffmpeg>) | A | 沿用既有阅读记录 |
-| 485 | [OpenAI Codex enterprise workflow cases：Notion / Nextdoor / Wasmer outcome engineering](<https://openai.com/index/notion/>) | A | 沿用既有阅读记录 |
-| 486 | [Microsoft Discovery GA：governed agentic R&D workflows](<https://azure.microsoft.com/en-us/blog/announcing-microsoft-discovery-general-availability-and-microsoft-discovery-app-preview/>) | A | 沿用既有阅读记录 |
-| 487 | [TensorZero archive signal：LLMOps open-source continuity risk](<https://github.com/tensorzero>) · [来源 2](<https://github.com/tensorzero/tensorzero>) | B | 沿用既有阅读记录 |
-| 488 | [OpenAI multistate investigation：AI product safety and personalization audit risk](<https://techcrunch.com/2026/06/13/openai-faces-investigation-from-state-attorneys-general/>) | B | 沿用既有阅读记录 |
-| 489 | [WeaveBench：hybrid-interface long-horizon computer-use agent benchmark](<https://huggingface.co/papers/2606.09426>) · [来源 2](<https://arxiv.org/abs/2606.09426>) | A | 沿用既有阅读记录 |
-| 490 | [TRACE：compiling user corrections into runtime enforcement for coding agents](<https://huggingface.co/papers/2606.13174>) · [来源 2](<https://arxiv.org/abs/2606.13174>) · [来源 3](<https://github.com/YujunZhou/tellonce>) | A | 沿用既有阅读记录 |
-| 491 | [HarnessBridge：learnable bidirectional controller for LLM agent harness](<https://huggingface.co/papers/2606.12882>) · [来源 2](<https://arxiv.org/abs/2606.12882>) | A | 沿用既有阅读记录 |
-| 492 | [EvoBrowseComp：benchmarking search agents on evolving knowledge](<https://huggingface.co/papers/2606.13120>) · [来源 2](<https://arxiv.org/abs/2606.13120>) | A | 沿用既有阅读记录 |
-| 493 | [Perplexity / HBS：How AI Agents Reshape Knowledge Work](<https://research.perplexity.ai/articles/how-ai-agents-reshape-knowledge-work>) | A | 沿用既有阅读记录 |
-| 494 | [Google DeepMind From AGI to ASI：multi-agent collectives as one ASI pathway](<https://deepmind.google/research/publications/239142/>) · [来源 2](<https://arxiv.org/abs/2606.12938>) | B | 沿用既有阅读记录 |
-| 495 | [OpenAI Partner Network：enterprise AI delivery and specialization market](<https://openai.com/index/introducing-openai-partner-network/>) | B | 沿用既有阅读记录 |
-| 496 | [Context window budget：Don't trust large context windows](<https://garrit.xyz/posts/2026-05-06-dont-trust-large-context-windows>) | B | 沿用既有阅读记录 |
-| 497 | [AI provenance failure signal：UK police fake-evidence allegation + KPMG hallucinated report](<https://news.slashdot.org/story/26/06/14/0317211/uk-police-officer-accused-of-using-ai-to-fake-evidence>) | B | 沿用既有阅读记录 |
-| 498 | [Gabriel Weinberg：No, everyone is not using AI for everything](<https://gabrielweinberg.com/p/people-are-consuming-ai-like-they>) | B | 沿用既有阅读记录 |
-| 499 | [HarnessX：composable, adaptive, evolvable agent harness foundry](<https://arxiv.org/abs/2606.14249>) | A | 沿用既有阅读记录 |
-| 500 | [StreamMemBench：streaming evaluation of agent memory for future-oriented assistance](<https://arxiv.org/abs/2606.14571>) · [来源 2](<https://github.com/landian60/StreamMemBench>) | A | 沿用既有阅读记录 |
-| 501 | [Dialogue SWE-Bench：benchmarking dialogue-driven coding agents](<https://arxiv.org/abs/2606.13995>) · [来源 2](<https://arxiv.org/html/2606.13995v1>) | A | 沿用既有阅读记录 |
-| 502 | [Parallel-Synthesis：direct latent-space synthesis for parallel branches in LLM-agent workflows](<https://arxiv.org/abs/2606.14672>) | A | 沿用既有阅读记录 |
-| 503 | [SIMMER：latent failures in LLM executable planning with a world model](<https://arxiv.org/abs/2606.14574>) · [来源 2](<https://arxiv.org/html/2606.14574v1>) | A | 沿用既有阅读记录 |
-| 504 | [Google Cloud OKF：Open Knowledge Format for agent-readable context bundles](<https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing>) · [来源 2](<https://github.com/GoogleCloudPlatform/knowledge-catalog>) | A | 沿用既有阅读记录 |
-| 505 | [OpenRouter Fusion：model panels as an API-level reasoning primitive](<https://openrouter.ai/blog/announcements/fusion-beats-frontier/>) | A | 沿用既有阅读记录 |
-| 506 | [Apple Foundation Models / Xcode 27：native provider protocol and agentic coding workflow](<https://www.apple.com/newsroom/2026/06/apple-aids-app-development-with-new-intelligence-frameworks-and-advanced-tools/>) | A | 沿用既有阅读记录 |
-| 507 | [Enterprise agent identity and service-agent consolidation：NewCore + Salesforce / Fin](<https://techcrunch.com/2026/06/15/ai-agents-are-becoming-employees-newcore-emerges-with-66m-to-give-them-identities/>) | B | 沿用既有阅读记录 |
-| 508 | [Measuring Agents in Production：真实生产 agent 仍是高频人工介入系统](<https://openreview.net/forum?id=FxNCt9xtOZ>) | A | 沿用既有阅读记录 |
-| 509 | [Principles of Mixed-Initiative User Interfaces：混合主动权的经典设计原则](<https://dl.acm.org/doi/10.1145/302979.303030>) | A | 沿用既有阅读记录 |
-| 510 | [Power to the People：Interactive ML 中人的角色](<https://www.microsoft.com/en-us/research/publication/power-to-the-people-the-role-of-humans-in-interactive-machine-learning/>) | A | 沿用既有阅读记录 |
-| 511 | [Evaluation of Interactive Machine Learning Systems：algorithm-centered + human-centered 双验证](<https://arxiv.org/abs/1801.07964>) | A | 沿用既有阅读记录 |
-| 512 | [A Benchmark for Scalable Oversight Mechanisms：监督机制也需要 benchmark](<https://openreview.net/forum?id=ePE9BMoh8L>) | A | 沿用既有阅读记录 |
-| 513 | [Deep Reinforcement Learning from Human Preferences：少量偏好监督如何塑造复杂目标](<https://arxiv.org/abs/1706.03741>) | A | 沿用既有阅读记录 |
-| 514 | [EvoArena: Tracking Memory Evolution for Robust LLM Agents in Dynamic Environments](<https://arxiv.org/abs/2606.13681>) | S | 沿用既有阅读记录 |
-| 515 | [Dialogue SWE-Bench: A Benchmark for Dialogue-Driven Coding Agents](<https://arxiv.org/abs/2606.13995>) | S | 沿用既有阅读记录 |
-| 516 | [OpenRouter Fusion：多模型 deliberation 作为 API runtime primitive](<https://openrouter.ai/openrouter/fusion>) | A | 沿用既有阅读记录 |
-| 517 | [OpenAI Deployment Simulation：用真实分布预演模型上线行为](<https://openai.com/index/deployment-simulation/>) | S | 沿用既有阅读记录 |
-| 518 | [AA-AgentPerf：agentic inference 的 SLO / agents-per-megawatt 口径](<https://artificialanalysis.ai/articles/aa-agentperf>) | A | 沿用既有阅读记录 |
-| 519 | [GLM-5.2：open-weight long-horizon agent model](<https://z.ai/blog/glm-5.2>) · [来源 2](<https://huggingface.co/zai-org/GLM-5.2>) | A | 沿用既有阅读记录 |
-| 520 | [AI Coding Agents Can Reproduce Social Science Findings / SocSci-Repro-Bench](<https://arxiv.org/abs/2606.11447>) | A | 沿用既有阅读记录 |
-| 521 | [LifeSciBench + AI Chemist：science agent 的专家 rubric 与湿实验闭环](<https://openai.com/index/introducing-life-sci-bench/>) | A | 沿用既有阅读记录 |
-| 522 | [Appia / Pramaana：AI trust 从 policy 走向 conformity + proof](<https://www.linuxfoundation.org/press/linux-foundation-launches-appia-foundation-to-establish-standardized-conformity-specifications-across-the-ai-value-chain>) | A | 沿用既有阅读记录 |
-| 523 | [MCP Enterprise-Managed Authorization：Zero-touch OAuth for MCP](<https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/>) | A | 沿用既有阅读记录 |
-| 524 | [Elastic agent memory：hybrid retrieval + DLS 的生产 memory 参考](<https://www.elastic.co/search-labs/blog/agent-memory-elasticsearch>) | A | 沿用既有阅读记录 |
-| 525 | [Decoupled Search Grounding：把 agent search 变成 MCP-compatible gateway](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 526 | [RODS：multi-turn tool-use agent 的 reward-driven online data synthesis](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 527 | [CEO-Bench：long-horizon business agent eval](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 528 | [SGCD：GUI agent 的 off-trajectory continuation distillation](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 529 | [Xcientist：AI scientist 的 research harness 与 claim drift 防线](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 530 | [Stanford PhD 回山东做传统企业 AI 落地：代码快，诊断慢](<http://xhslink.com/o/tKqE2OASU8>) | A | 沿用既有阅读记录 |
-| 531 | [Google Agentic Resource Discovery：agent capability discovery + trust manifest](<https://developers.googleblog.com/en/announcing-the-agentic-resource-discovery-specification/>) | A | 沿用既有阅读记录 |
-| 532 | [Claude Design + Claude Code sync：design-to-code workspace 进入真实组件回路](<https://support.claude.com/en/articles/14604416-get-started-with-claude-design>) | A | 沿用既有阅读记录 |
-| 533 | [SkillVetBench：LLM agent skills 的语义风险评估](<https://arxiv.org/abs/2606.15899>) | A | 沿用既有阅读记录 |
-| 534 | [ADK Arena：用 LLM-as-a-Developer 测 agent framework 可用性](<https://arxiv.org/abs/2606.05548>) | A | 沿用既有阅读记录 |
-| 535 | [Agent Planning Benchmark：把 planning failure 从执行失败里拆出来](<https://arxiv.org/abs/2606.04874>) | A | 沿用既有阅读记录 |
-| 536 | [R3-Skill：skill routing 中的 rejection signal 不是垃圾数据](<https://arxiv.org/abs/2606.03565>) | A | 沿用既有阅读记录 |
-| 537 | [Exploration Structure in LLM Agents：coding agent 的 repo traversal 结构会决定定位质量](<https://arxiv.org/abs/2606.11976>) | A | 沿用既有阅读记录 |
-| 538 | [AgentFairBench：agent 公平性要测 action，不只测 answer](<https://arxiv.org/abs/2606.16723>) | A | 沿用既有阅读记录 |
-| 539 | [Kimi Work / Kimi Code Goal Mode：本地长程 agent 的 goal state 与权限面](<https://www.kimi.com/resources/kimi-work-introduction>) | A | 沿用既有阅读记录 |
-| 540 | [OpenAI Patch the Planet：安全 agent 的 patch loop 与 maintainer agency](<https://openai.com/index/patch-the-planet/>) | A | 沿用既有阅读记录 |
-| 541 | [Google Interactions API GA：managed agent API contract](<https://blog.google/innovation-and-ai/technology/developers-tools/interactions-api-general-availability/>) | A | 沿用既有阅读记录 |
-| 542 | [Multi-LCB + Contagion Networks：coding agent 评测的语言轴与 judge topology](<https://arxiv.org/abs/2606.20517>) · [来源 2](<https://arxiv.org/abs/2606.20493>) | A | 沿用既有阅读记录 |
-| 543 | [Liquid AI LFM2.5 Retrievers：本地多语言 memory/search 检索底座](<https://www.liquid.ai/blog/lfm2-5-retrievers>) | A | 沿用既有阅读记录 |
-| 544 | [xAI Grok Build /goal：long-running coding agent 的目标状态与验证面](<https://x.ai/news/introducing-goal>) | A | 沿用既有阅读记录 |
-| 545 | [Claude Tag：Slack 中的 scoped team agent 与组织级权限/成本控制](<https://www.anthropic.com/news/introducing-claude-tag>) | A | 沿用既有阅读记录 |
-| 546 | [The Coming Loop：harness-level loop 会放大工程质量债](<https://lucumr.pocoo.org/2026/6/23/the-coming-loop/>) | A | 沿用既有阅读记录 |
-| 547 | [Mistral OCR 4 + Baidu Unlimited-OCR：文档 ingestion 从 OCR 走向结构化 context substrate](<https://mistral.ai/news/ocr-4/>) · [来源 2](<https://github.com/baidu/Unlimited-OCR>) | A | 沿用既有阅读记录 |
-| 548 | [Randomized YaRN：短上下文训练也能改善 16K-128K 长上下文推理泛化](<https://arxiv.org/abs/2606.23687>) | A | 沿用既有阅读记录 |
-| 549 | [AIR：用 RL 学会何时在多模态推理中调用代码工具](<https://arxiv.org/abs/2606.23678>) | A | 沿用既有阅读记录 |
-| 550 | [Can LLMs Reliably Self-Report Adversarial Prefills：模型自我报告不能当安全证据](<https://arxiv.org/abs/2606.23671>) | A | 沿用既有阅读记录 |
-| 551 | [VibeThinker-3B：小模型 verifiable reasoning 的成本/能力边界](<https://arxiv.org/abs/2606.16140>) | A | 沿用既有阅读记录 |
-| 552 | [Gemini 3.5 Flash computer use：UI agent 的 observe-act-screenshot contract](<https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-computer-use-gemini-3-5-flash/>) | A | 沿用既有阅读记录 |
-| 553 | [Qwen-AgentWorld：language world model for agentic RL](<https://arxiv.org/abs/2606.24597>) · [来源 2](<https://github.com/QwenLM/Qwen-AgentWorld>) | A | 沿用既有阅读记录 |
-| 554 | [AOHP：Android Open Harness Project / OS-level agent harness](<https://arxiv.org/abs/2606.23449>) · [来源 2](<https://github.com/aohp-os/aohp>) | A | 沿用既有阅读记录 |
-| 555 | [OpenThoughts-Agent：agentic model data recipes](<https://arxiv.org/abs/2606.24855>) · [来源 2](<https://github.com/open-thoughts/OpenThoughts-Agent>) | A | 沿用既有阅读记录 |
-| 556 | [Tmax：terminal-agent RL recipe and TMax-15K](<https://arxiv.org/abs/2606.23321>) · [来源 2](<https://github.com/hamishivi/tmax>) · [来源 3](<https://huggingface.co/allenai/tmax-9b>) | A | 沿用既有阅读记录 |
-| 557 | [OpenAI/Broadcom Jalapeno：inference cost as agent runtime constraint](<https://openai.com/index/openai-broadcom-jalapeno-inference-chip/>) | A | 沿用既有阅读记录 |
-| 558 | [Qualcomm 收购 Modular：portable AI serving/software stack signal](<https://investor.qualcomm.com/news-events/press-releases/news-details/2026/Qualcomm-to-Acquire-Modular/default.aspx>) | A | 沿用既有阅读记录 |
-| 559 | [Headroom：agent context compression / CCR gate](<https://github.com/headroomlabs-ai/headroom>) | A | 沿用既有阅读记录 |
-| 560 | [Notion Mail agent takeover + General Intuition action-labeled world model data](<https://techcrunch.com/2026/06/25/notion-mail-shuts-down-amid-agent-takeover/>) | A | 沿用既有阅读记录 |
-| 561 | [OpenAI GPT-5.6 Sol limited preview：frontier model release gate and ultra subagents](<https://openai.com/index/previewing-gpt-5-6-sol/>) | A | 沿用既有阅读记录 |
-| 562 | [OpenAI Codex economic research：agents transform work into delegated long-horizon tasks](<https://openai.com/index/how-agents-are-transforming-work/>) | A | 沿用既有阅读记录 |
-| 563 | [Cursor reward hacking in coding benchmarks：strict harness for aware coding agents](<https://cursor.com/blog/reward-hacking-coding-benchmarks>) | A | 沿用既有阅读记录 |
-| 564 | [Workweave Router：cache-aware model routing for Claude Code / Codex / Cursor](<https://github.com/workweave/router>) | A | 沿用既有阅读记录 |
-| 565 | [NVIDIA NeMo AutoModel / Transformers v5 Expert Parallelism + DeepEP MoE fine-tuning path](<https://huggingface.co/blog/nvidia/accelerating-fine-tuning-nvidia-nemo-automodel>) · [来源 2](<https://github.com/deepseek-ai/DeepEP>) | A | 沿用既有阅读记录 |
-| 566 | [PEEU GUI agents：Autonomous Experience Exploration + Hindsight Experience Utilization for task planning](<https://arxiv.org/abs/2606.27330>) | A | 沿用既有阅读记录 |
-| 567 | [When are likely answers right? Sequence Probability and Correctness in LLMs](<https://arxiv.org/abs/2606.27359>) | A | 沿用既有阅读记录 |
-| 568 | [Un-0：open coupled-oscillator image generator as physical-compute substrate](<https://unconv.ai/blog/introducing-un-0-generating-images-with-coupled-oscillators/>) · [来源 2](<https://github.com/unconv-ai/Un-0>) | A | 沿用既有阅读记录 |
-| 569 | [OpenAI + Broadcom Jalapeno inference chip：full-stack LLM inference platform](<https://openai.com/index/openai-broadcom-jalapeno-inference-chip/>) | A | 沿用既有阅读记录 |
-| 570 | [DeepSeek DSpark / DeepSpec：confidence-scheduled speculative decoding for production serving](<https://github.com/deepseek-ai/DeepSpec>) · [来源 2](<https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-DSpark>) | A | 沿用既有阅读记录 |
-| 571 | [AWS Lambda MicroVMs：full-lifecycle Firecracker sandboxes for AI agents](<https://aws.amazon.com/blogs/aws/run-isolated-sandboxes-with-full-lifecycle-control-aws-lambda-introduces-microvms/>) | A | 沿用既有阅读记录 |
-| 572 | [DBOSify：Postgres-backed durable workflow as compact Temporal alternative](<https://github.com/dbos-inc/dbosify-py>) | A | 沿用既有阅读记录 |
-| 573 | [Adrafinil：macOS activity assertion layer for long-running AI agents](<https://github.com/kageroumado/adrafinil>) | A | 沿用既有阅读记录 |
-| 574 | [Cloud World Model：cloud-infra simulation product radar](<https://www.producthunt.com/>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
-| 575 | [Are We Ready For An Agent-Native Memory System? Trustworthy Memory Search](<https://arxiv.org/abs/2606.24775>) · [来源 2](<https://github.com/HKUDS/MemorySearch>) | A | 沿用既有阅读记录 |
-| 576 | [Semgrep GLM-5.2 cyber benchmark：real security harness for coding agents](<https://semgrep.dev/blog/2026/we-have-mythos-at-home-glm-52-beats-claude-in-our-cyber-benchmarks>) | A | 沿用既有阅读记录 |
-| 577 | [GitHub Copilot App BYOK：provider/account boundary for agent sessions](<https://github.blog/changelog/2026-06-23-github-copilot-app-support-for-byok/>) | A | 沿用既有阅读记录 |
-| 578 | [Wayfinder Router：deterministic local/cloud LLM routing](<https://github.com/itsthelore/wayfinder-router>) | A | 沿用既有阅读记录 |
-| 579 | [OpenAI Codex issue：exclude sensitive files by default](<https://github.com/openai/codex/issues/2847>) | A | 沿用既有阅读记录 |
-| 580 | [Tokenmaxxing / agent output budget policy](<https://news.ycombinator.com/item?id=48699302>) | A | 沿用既有阅读记录 |
-| 581 | [百度千帆 Coding Plan -> Token Plan：coding agent usage ledger signal](<https://cloud.baidu.com/article/3730945>) | B | 沿用既有阅读记录 |
-| 582 | [Dual Strix Halo vLLM cluster：local serving lab reference](<https://github.com/recallnet/strix-halo-vllm>) | B | 沿用既有阅读记录 |
-| 583 | [Claude Sonnet 5：agent default model cost-performance reset](<https://www.anthropic.com/news/claude-sonnet-5>) | A | 沿用既有阅读记录 |
-| 584 | [Claude Science AI workbench：auditable domain agent OS](<https://www.anthropic.com/news/claude-science-ai-workbench>) | A | 沿用既有阅读记录 |
-| 585 | [Gemini Spark updates：desktop automation + connected apps + custom MCP](<https://blog.google/innovation-and-ai/products/gemini-app/gemini-spark-updates-june-2026/>) | A | 沿用既有阅读记录 |
-| 586 | [vLLM Micro-Agent：serving router as bounded agent collaboration](<https://vllm.ai/blog/2026-06-29-micro-agent-frontier-models>) | A | 沿用既有阅读记录 |
-| 587 | [SWE-Together：interactive user-session benchmark for coding agents](<https://arxiv.org/abs/2606.29957>) | A | 沿用既有阅读记录 |
-| 588 | [OSWorld 2.0：long-horizon computer-use official runner boundary](<https://arxiv.org/abs/2606.29537>) | A | 沿用既有阅读记录 |
-| 589 | [SWE-MeM：adaptive memory management for long-horizon coding agents](<https://arxiv.org/abs/2606.28434>) | A | 沿用既有阅读记录 |
-| 590 | [Language Firewall：routing defense for multi-agent systems](<https://arxiv.org/abs/2606.30555>) | A | 沿用既有阅读记录 |
-| 591 | [Couchbase AI Data Plane：enterprise memory/context substrate](<https://www.couchbase.com/blog/your-ai-agents-are-stuck-in-pilot-its-a-data-problem-not-a-model-problem/>) | A | 沿用既有阅读记录 |
-| 592 | [Lingtai：local-first lifelong Agent runtime](<https://github.com/Lingtai-AI/lingtai>) | A | 沿用既有阅读记录 |
-| 593 | [Ephemeral Sandbox：COW workspace 与 OCC publication](<https://github.com/Ephemeral-AI-Lab/ephemeral-sandbox>) | A | 沿用既有阅读记录 |
-| 594 | [Using Claude Code: The Unreasonable Effectiveness of HTML](<https://x.com/trq212/status/2052809885763747935>) | A | 沿用既有阅读记录 |
-| 595 | [hai-stack / Geju：用 target model、falsifier 与收益账单抵抗局部补丁化](<https://github.com/hylarucoder/hai-stack>) | A | 沿用既有阅读记录 |
-| 596 | [Waza：把工程习惯产品化为可路由、可验证的 Agent skills](<https://github.com/tw93/Waza>) | A | 沿用既有阅读记录 |
-| 597 | [BfdCampos Mermaid skill：把“语法正确”提升为“渲染后可读”](<https://github.com/BfdCampos/dotfiles>) | A | 沿用既有阅读记录 |
-| 598 | [Oracle：把第二模型意见封装成可追踪的 consult session](<https://github.com/steipete/oracle>) | A | 沿用既有阅读记录 |
-| 599 | [Graph Engineering：给 Agent Harness 叠加显式控制流图，而不是换一个新名词](<https://x.com/0xCodez/status/2081429287945506950>) | A | 沿用既有阅读记录 |
-| 600 | [赵克常《炒股挣钱》：风险认知课，不是可复制的投资研究方法](<https://x.com/ActionXAi/status/2083691580196856018>) | B | 沿用既有阅读记录 |
-| 601 | [未核实的 MLSys 截图线索：集中式推理、确定性信号与知识图谱控制面](<https://mlsys.org/Conferences/2026/CallForResearchPapers>) | B | 沿用既有阅读记录；来源真实性未确认；保留为核验案例，不作为论文结论。 |
-| 602 | [Evolvent AI GitHub 组织复核：与既有研究目录的重复记录](<https://github.com/evolvent-ai>) | B | 沿用既有阅读记录；保留稳定 ID 与重复记录；不因重复而静默删除。 |
+| 292 | [To The Crazy Ones \| 致超级个体](<https://my.feishu.cn/wiki/AfvNwnZiEirKPSkmUz7cfDlYnM1>) | A | 沿用既有阅读记录；既往已读文字正文，视频、图片与白板未逐一展开。讨论完整问题所有权、工具权限、直接用户反馈与组织认可如何支持 AI Builder。 |
+| 293 | [Codex / Claude Code memory 模式的收益、风险与 token 成本](<https://developers.openai.com/codex/memories>) · [来源 2](<https://arxiv.org/abs/2601.20404>) | A | 沿用既有阅读记录 |
+| 294 | [SkyRL：full-stack RL library for LLMs](<https://docs.skyrl.ai/>) · [来源 2](<https://github.com/NovaSky-AI/SkyRL>) | A | 沿用既有阅读记录 |
+| 295 | [OpenRLHF：high-performance RLHF / GRPO / PPO framework](<https://github.com/OpenRLHF/OpenRLHF>) | A | 沿用既有阅读记录 |
+| 296 | [Selective Rollout：Efficient Reinforcement Learning for Long-Horizon LLM Agents](<https://arxiv.org/abs/2605.05802>) | A | 沿用既有阅读记录 |
+| 297 | [HiPER：State Abstraction and Value-Guided Search for Efficient Long-Horizon Agents](<https://arxiv.org/abs/2602.16165>) | A | 沿用既有阅读记录 |
+| 298 | [AgentFly：Extensible and Scalable Reinforcement Learning for LM Agents](<https://arxiv.org/abs/2507.14897>) | A | 沿用既有阅读记录 |
+| 299 | [Code as Agent Harness](<https://huggingface.co/papers/2605.18747>) · [来源 2](<https://arxiv.org/abs/2605.18747>) | S | 沿用既有阅读记录 |
+| 300 | [SWE-Chain：Benchmarking Coding Agents on Chained Release-Level Package Upgrades](<https://arxiv.org/abs/2605.14415>) | S | 沿用既有阅读记录 |
+| 301 | [AgentTrust：Runtime Safety Evaluation and Interception for AI Agent Tool Use](<https://arxiv.org/abs/2605.04785>) | A | 沿用既有阅读记录 |
+| 302 | [Google I/O 2026：Gemini 3.5 Flash / Antigravity 2.0 / Managed Agents](<https://blog.google/innovation-and-ai/technology/developers-tools/google-io-2026-developer-highlights/>) | A | 沿用既有阅读记录 |
+| 303 | [OpenAI / Databricks：GPT-5.5 on OfficeQA Pro](<https://openai.com/index/databricks/>) | A | 沿用既有阅读记录 |
+| 304 | [Anthropic acquires Stainless：SDK / CLI / MCP server tooling](<https://www.anthropic.com/news/anthropic-acquires-stainless>) | A | 沿用既有阅读记录 |
+| 305 | [RRFP：A Readiness-Driven Runtime for Pipeline-Parallel Training under Runtime Variability](<https://arxiv.org/abs/2605.18750>) | A | 沿用既有阅读记录 |
+| 306 | [DashAttention：Differentiable and Adaptive Sparse Hierarchical Attention](<https://arxiv.org/abs/2605.18753>) | A | 沿用既有阅读记录 |
+| 307 | [Qwen3.7-Max Agent Frontier](<https://qwen.ai/blog?id=qwen3.7>) | A | 沿用既有阅读记录 |
+| 308 | [OpenAI Guaranteed Capacity：模型 API 的 reserved compute contract](<https://openai.com/business/guaranteed-capacity/>) | A | 沿用既有阅读记录 |
+| 309 | [TIDE：Efficient and Lossless MoE Diffusion LLM Inference with I/O-aware Expert Offload](<https://arxiv.org/abs/2605.20179>) | A | 沿用既有阅读记录 |
+| 310 | [KoRe：Compact Knowledge Representations for Large Language Models](<https://arxiv.org/abs/2605.20170>) | A | 沿用既有阅读记录 |
+| 311 | [OpenAI model disproves Erdős unit-distance conjecture](<https://openai.com/index/model-disproves-discrete-geometry-conjecture/>) | A | 沿用既有阅读记录 |
+| 312 | [Multi-Stream LLMs：Unblocking Language Models with Parallel Streams of Thoughts, Inputs and Outputs](<https://arxiv.org/abs/2605.12460>) | A | 沿用既有阅读记录 |
+| 313 | [vLLM x PegaFlow：Production-Grade External KV Cache](<https://vllm.ai/blog/2026-05-18-pegaflow>) | A | 沿用既有阅读记录 |
+| 314 | [AWS SageMaker OpenAI-compatible API endpoints](<https://aws.amazon.com/blogs/machine-learning/announcing-openai-compatible-api-support-for-amazon-sagemaker-ai-endpoints/>) | A | 沿用既有阅读记录 |
+| 315 | [Google AI Mode Ads：Gemini-powered ad formats in Search](<https://blog.google/products/ads-commerce/google-marketing-live-search-ads/>) | A | 沿用既有阅读记录 |
+| 316 | [Tencent Hy-MT2：translation model family and IFMTBench](<https://github.com/Tencent-Hunyuan/Hy-MT2>) | A | 沿用既有阅读记录 |
+| 317 | [Cohere Command A+：可私有部署的 open-source enterprise agent model](<https://cohere.com/blog/command-a-plus>) | A | 沿用既有阅读记录 |
+| 318 | [Domain-Camouflaged Injection Attacks：领域伪装注入绕过 agent guard](<https://arxiv.org/abs/2605.22001>) | A | 沿用既有阅读记录 |
+| 319 | [唐杰：关于 long-horizon tasks 的近期思考](<http://xhslink.com/o/5bvmo8slRJq>) | A | 沿用既有阅读记录 |
+| 320 | [Runtime (YC P26)：团队级沙盒化 coding agents](<https://www.producthunt.com/products/runtime>) | B | 沿用既有阅读记录 |
+| 321 | [Claude Code 源码精读：compact 每次压缩时发生了什么](<http://xhslink.com/o/3YETdBdSzxf>) | A | 沿用既有阅读记录 |
+| 322 | [Neuromancer：Claude Code 上下文管理个人学习笔记](<http://xhslink.com/o/6PRR8PKYQ6o>) | A | 沿用既有阅读记录 |
+| 323 | [MemGym：长程 agent memory 执行评测环境](<https://arxiv.org/abs/2605.20833>) | A | 沿用既有阅读记录 |
+| 324 | [Anthropic Project Glasswing / Claude Mythos CVD dashboard](<https://www.anthropic.com/research/glasswing-initial-update>) | A | 沿用既有阅读记录 |
+| 325 | [CODA：Rewriting Transformer Blocks as GEMM-Epilogue Programs](<https://arxiv.org/abs/2605.19269>) | A | 沿用既有阅读记录 |
+| 326 | [KanBots OSS：本地 Kanban 多 agent 编排](<https://www.kanbots.dev/oss>) · [来源 2](<https://github.com/leodavinci1/kanbots>) | B | 沿用既有阅读记录 |
+| 327 | [ReAct：reasoning-action-observation 循环的经典起点](<https://arxiv.org/abs/2210.03629>) | A | 沿用既有阅读记录 |
+| 328 | [Toolformer：模型自监督学会调用工具](<https://arxiv.org/abs/2302.04761>) | A | 沿用既有阅读记录 |
+| 329 | [API-Bank：tool-augmented LLM 的 API 评测早期基准](<https://arxiv.org/abs/2304.08244>) | A | 沿用既有阅读记录 |
+| 330 | [Gorilla：面向海量 API 的 tool retrieval / function calling](<https://arxiv.org/abs/2305.15334>) · [来源 2](<https://github.com/ShishirPatil/gorilla>) | A | 沿用既有阅读记录 |
+| 331 | [ToolLLM / ToolBench：大规模真实 API 的工具学习与评测](<https://arxiv.org/abs/2307.16789>) · [来源 2](<https://github.com/OpenBMB/ToolBench>) | A | 沿用既有阅读记录 |
+| 332 | [WebArena：真实 Web 环境中的 autonomous agent benchmark](<https://arxiv.org/abs/2307.13854>) | A | 沿用既有阅读记录 |
+| 333 | [VisualWebArena：多模态 Web agent 评测](<https://arxiv.org/abs/2401.13649>) | A | 沿用既有阅读记录 |
+| 334 | [OSWorld：真实桌面环境中的 computer-use agent benchmark](<https://arxiv.org/abs/2404.07972>) · [来源 2](<https://github.com/xlang-ai/OSWorld>) | A | 沿用既有阅读记录 |
+| 335 | [WorkArena：企业知识工作 Web agent benchmark](<https://arxiv.org/abs/2403.07718>) · [来源 2](<https://arxiv.org/abs/2407.05291>) | A | 沿用既有阅读记录 |
+| 336 | [SWE-bench：真实 GitHub issue 到 patch 的软件工程评测](<https://arxiv.org/abs/2310.06770>) | A | 沿用既有阅读记录 |
+| 337 | [OpenHands：通用软件开发 agent 平台](<https://arxiv.org/abs/2407.16741>) · [来源 2](<https://github.com/All-Hands-AI/OpenHands>) | A | 沿用既有阅读记录 |
+| 338 | [AutoGen：multi-agent conversation framework](<https://arxiv.org/abs/2308.08155>) · [来源 2](<https://github.com/microsoft/autogen>) | A | 沿用既有阅读记录 |
+| 339 | [LLMCompiler：并行 function calling / tool execution 编排](<https://arxiv.org/abs/2312.04511>) | A | 沿用既有阅读记录 |
+| 340 | [AgentLens：agent 行为可视分析与 lucky pass 问题](<https://arxiv.org/abs/2402.08995>) · [来源 2](<https://arxiv.org/abs/2605.12925>) | A | 沿用既有阅读记录 |
+| 341 | [Contextual Agent Security：面向不同目的的 agent policy](<https://arxiv.org/abs/2501.17070>) | A | 沿用既有阅读记录 |
+| 342 | [Generative Agents：长期记忆驱动的交互式行为模拟](<https://arxiv.org/abs/2304.03442>) | A | 沿用既有阅读记录 |
+| 343 | [Lost in the Middle：长上下文位置偏置经典问题](<https://arxiv.org/abs/2307.03172>) | A | 沿用既有阅读记录 |
+| 344 | [MemGPT：把 LLM memory 管理类比为操作系统](<https://arxiv.org/abs/2310.08560>) · [来源 2](<https://github.com/letta-ai/letta>) | A | 沿用既有阅读记录 |
+| 345 | [OpenShell：声明式 policy 驱动的 agent sandbox runtime](<https://github.com/NVIDIA/OpenShell>) | A | 沿用既有阅读记录 |
+| 346 | [SWE-ReX：coding agent remote execution / sandbox infrastructure](<https://github.com/SWE-agent/SWE-ReX>) | A | 沿用既有阅读记录 |
+| 347 | [ContextForge：MCP / A2A / REST gateway with governance and observability](<https://github.com/IBM/mcp-context-forge>) | A | 沿用既有阅读记录 |
+| 348 | [Agent Governance Toolkit：deterministic policy / identity / sandbox / audit before actions](<https://github.com/microsoft/agent-governance-toolkit>) | A | 沿用既有阅读记录 |
+| 349 | [Browser Harness：可编辑 CDP browser harness](<https://github.com/browser-use/browser-harness>) | A | 沿用既有阅读记录 |
+| 350 | [Symphony：ticket-driven orchestration layer for autonomous implementation runs](<https://github.com/openai/symphony>) | A | 沿用既有阅读记录 |
+| 351 | [R2E-Gym：从真实 repo issue 构造 executable coding-agent RL environments](<https://arxiv.org/abs/2504.07164>) · [来源 2](<https://github.com/R2E-Gym/R2E-Gym>) | A | 沿用既有阅读记录 |
+| 352 | [Prime Intellect verifiers：LLM RL environments + evals as reusable verifier library](<https://github.com/PrimeIntellect-ai/verifiers>) | A | 沿用既有阅读记录 |
+| 353 | [Meta-Harness：把 harness design 本身作为 automated search object](<https://openreview.net/forum?id=Qti7OhJr2P>) | A | 沿用既有阅读记录 |
+| 354 | [Anthropic Context Management：tool result clearing and compaction](<https://www.anthropic.com/news/context-management>) | A | 沿用既有阅读记录 |
+| 355 | [Context Rot：long context 变长时的性能退化](<https://research.trychroma.com/context-rot>) | A | 沿用既有阅读记录 |
+| 356 | [Anthropic: How we built our multi-agent research system](<https://www.anthropic.com/engineering/multi-agent-research-system>) | A | 沿用既有阅读记录 |
+| 357 | [LCGuard：Defending Against Latent Communication in Multi-Agent Systems by System-Level KV Cache Sandboxing](<https://arxiv.org/abs/2605.20920>) | A | 沿用既有阅读记录 |
+| 358 | [Claude Code network sandbox bypass reports](<https://www.theregister.com/security/2026/05/20/even-claude-agrees-hole-in-its-sandbox-was-real-and-dangerous/5243662>) | A | 沿用既有阅读记录 |
+| 359 | [Cloudflare Agent Infrastructure Stack](<https://www.infoq.com/news/2026/05/cloudflare-agent-platform-stack/>) | A | 沿用既有阅读记录 |
+| 360 | [Reasonix：prefix-cache-aware terminal coding agent](<https://github.com/esengine/Reasonix>) | A | 沿用既有阅读记录 |
+| 361 | [FAME：Fault-Aware Mixture-of-Experts for Message-Level Log Anomaly Detection](<https://arxiv.org/abs/2605.18504>) | A | 沿用既有阅读记录 |
+| 362 | [Epoch AI: AI chip component cost shares](<https://epoch.ai/data-insights/ai-chip-component-cost-shares>) | A | 沿用既有阅读记录 |
+| 363 | [Kung & Robinson: On Optimistic Methods for Concurrency Control](<https://www.eecs.harvard.edu/~htk/publication/1981-tods-kung-robinson.pdf>) | A | 沿用既有阅读记录 |
+| 364 | [Shapiro et al.: A comprehensive study of convergent and commutative replicated data types（CRDTs）](<https://webarchive.di.uminho.pt/haslab.uminho.pt/cbm/publications/comprehensive-study-convergent-and-commutative-replicated-data-types.html>) | A | 沿用既有阅读记录 |
+| 365 | [AeSlides：通过可验证奖励强化幻灯片生成](<http://xhslink.com/o/8UA38erc2GO>) · [来源 2](<https://arxiv.org/abs/2604.22840>) · [来源 3](<https://github.com/ympan0508/aeslides>) | A | 沿用既有阅读记录 |
+| 366 | [ACC: Compiling Agent Trajectories for Long-Context Training](<https://arxiv.org/abs/2605.21850>) | A | 沿用既有阅读记录 |
+| 367 | [SaaS-Bench: Can Computer-Use Agents Leverage Real-World SaaS to Solve Professional Workflows?](<https://unipat.ai/benchmarks/SaaS-Bench>) · [来源 2](<https://arxiv.org/abs/2605.15777>) | A | 沿用既有阅读记录 |
+| 368 | [π-Bench: Evaluating Proactive Personal Assistant Agents in Long-Horizon Workflows](<https://simplified-reasoning.github.io/Pi-Bench/>) · [来源 2](<https://arxiv.org/abs/2605.14678>) | A | 沿用既有阅读记录 |
+| 369 | [Microsoft Copilot Cowork Exfiltrates Files](<https://www.promptarmor.com/resources/microsoft-copilot-cowork-exfiltrates-files>) | A | 沿用既有阅读记录 |
+| 370 | [Constraint Decay: The Fragility of LLM Agents in Backend Code Generation](<https://arxiv.org/abs/2605.06445>) | A | 沿用既有阅读记录 |
+| 371 | [CVEvolve: Autonomous Algorithm Discovery for Unstructured Scientific Data Processing](<https://arxiv.org/abs/2605.11359>) | A | 沿用既有阅读记录 |
+| 372 | [Gemini app becomes more agentic, delivering proactive 24/7 help](<https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/>) | B | 沿用既有阅读记录 |
+| 373 | [Anthropic: How we contain Claude across products](<https://www.anthropic.com/engineering/how-we-contain-claude>) | A | 沿用既有阅读记录 |
+| 374 | [Language Models Need Sleep](<https://arxiv.org/abs/2605.26099>) | A | 沿用既有阅读记录 |
+| 375 | [EAGLE 3.1: Advancing Speculative Decoding Through Collaboration Between EAGLE, vLLM, and TorchSpec](<https://vllm.ai/blog/2026-05-26-eagle-3-1>) | A | 沿用既有阅读记录 |
+| 376 | [Robin: A multi-agent system for automating scientific discovery](<https://www.nature.com/articles/s41586-026-10652-y>) | A | 沿用既有阅读记录 |
+| 377 | [Alipay AI Wallet / Token Pay / Agentic Commerce Trust Protocol](<https://www.businesswire.com/news/home/20260526337824/en/Alipay-Launches-Next-Generation-AI-Payment-Infrastructure-Debuts-AI-Wallet-and-Token-Pay-to-Power-Agentic-Economy>) | A | 沿用既有阅读记录 |
+| 378 | [OpenRouter Raises $113M Series B](<https://www.businesswire.com/news/home/20260526953416/en/OpenRouter-Raises-%24113-Million-CapitalG-led-Series-B-as-Weekly-Volume-Explodes-to-25T-Tokens>) | A | 沿用既有阅读记录 |
+| 379 | [Xiaomi MiMo-V2.5 Series Price Adjustment](<https://platform.xiaomimimo.com/docs/en-US/news/v2.5-price-update>) | A | 沿用既有阅读记录 |
+| 380 | [Minicor: managed self-healing desktop automation at scale](<https://www.ycombinator.com/companies/minicor>) | A | 沿用既有阅读记录 |
+| 381 | [中国企业家：6个月融25亿元，他是“字节系”最猛的AI创业者](<https://mp.weixin.qq.com/s/LPwU22G74CkFXZbuFGeetg>) | A | 沿用既有阅读记录 |
+| 382 | [ArkClaw 漫剧虾工作流实测：从一个主题到爆款漫剧成片](<https://mp.weixin.qq.com/s/Tq3Igidp3PNhWvke_nyQfg>) | A | 沿用既有阅读记录 |
+| 383 | [视频生成 agent / 短剧工具竞品池：Flova / 纳米短剧 / 巨日禄 / 万镜一刻](<https://www.flova.ai/zh-CN/projects/>) | A | 沿用既有阅读记录 |
+| 384 | [火山引擎：Vibe Creating，让视频创作回归表达本身](<https://mp.weixin.qq.com/s/1q6hfza-EWKnNHAsIV9Ahg>) | A | 沿用既有阅读记录 |
+| 385 | [MUSE-Autoskill：Self-Evolving Agents via Skill Creation, Memory, Management, and Evaluation](<http://xhslink.com/o/7cBqcdYJXWB>) · [来源 2](<https://arxiv.org/abs/2605.27366>) · [来源 3](<https://huggingface.co/papers/2605.27366>) | A | 沿用既有阅读记录 |
+| 386 | [QUEST：Training Frontier Deep Research Agents with Fully Synthetic Tasks](<https://arxiv.org/abs/2605.24218>) | A | 沿用既有阅读记录 |
+| 387 | [Cognition: More Devins in More Places](<https://cognition.ai/blog/series-d>) | A | 沿用既有阅读记录 |
+| 388 | [jxnlco: Getting the most out of Codex](<https://x.com/jxnlco/status/2057153744630890620>) | A | 沿用既有阅读记录 |
+| 389 | [Polar: Agentic RL on Any Harness at Scale](<https://arxiv.org/abs/2605.24220>) · [来源 2](<https://github.com/NVIDIA-NeMo/ProRL-Agent-Server>) | A | 沿用既有阅读记录 |
+| 390 | [Structured Agent Distillation for Large Language Model](<https://arxiv.org/abs/2505.13820>) | A | 沿用既有阅读记录 |
+| 391 | [PEFT-Arena: Understanding Parameter-Efficient Finetuning from a Stability-Plasticity Perspective](<https://arxiv.org/abs/2605.28819>) | A | 沿用既有阅读记录 |
+| 392 | [Lenz Research: Beyond Benchmarks, Frontier LLM Disagreement on Fact-Checks](<https://lenz.io/research/llm-disagreement>) | A | 沿用既有阅读记录 |
+| 393 | [DBOS: Postgres is All You Need for Durable Workflows](<https://www.dbos.dev/blog/postgres-is-all-you-need-for-durable-execution>) | A | 沿用既有阅读记录 |
+| 394 | [OpenAI: How OpenAI uses Codex](<https://cdn.openai.com/pdf/6a2631dc-783e-479b-b1a4-af0cfbd38630/how-openai-uses-codex.pdf>) | A | 沿用既有阅读记录 |
+| 395 | [ClickHouse Agents + Langfuse V4：agentic data stack and observability](<https://clickhouse.com/blog/open-house-2026-day-1>) | A | 沿用既有阅读记录 |
+| 396 | [Claude Code vs Codex scientific-computing head-to-head](<https://arxiv.org/abs/2605.28916>) | A | 沿用既有阅读记录 |
+| 397 | [Coding Beyond Your Training: Claude Code and the Technological Frontier of Software Developers](<https://arxiv.org/abs/2605.25438>) | A | 沿用既有阅读记录 |
+| 398 | [SoundnessBench: Can Your AI Scientist Really Tell Good Research Ideas from Bad Ones?](<https://arxiv.org/abs/2605.30329>) | A | 沿用既有阅读记录 |
+| 399 | [LLMSurgeon: Diagnosing Data Mixture of Large Language Models](<https://arxiv.org/abs/2605.30348>) | A | 沿用既有阅读记录 |
+| 400 | [In-Context Reward Adaptation for Robust Preference Modeling](<https://arxiv.org/abs/2605.30323>) | A | 沿用既有阅读记录 |
+| 401 | [Gamma-World: Generative Multi-Agent World Modeling Beyond Two Players](<https://arxiv.org/abs/2605.28816>) | A | 沿用既有阅读记录 |
+| 402 | [WALL-WM：World Action Model at Event Boundaries](<https://www.prnewswire.com/news-releases/x-square-robot-open-sources-wall-wm-shifting-robot-world-modeling-from-chunks-to-events-302785692.html>) · [来源 2](<https://github.com/X-Square-Robot/wall-x>) | A | 沿用既有阅读记录 |
+| 403 | [ATLAS - Autoformalized Textbook Library At Scale](<https://github.com/facebookresearch/atlas-lean>) | A | 沿用既有阅读记录 |
+| 404 | [tiny-vLLM：Build your own high performance LLM inference engine in C++ and CUDA](<https://github.com/jmaczan/tiny-vllm>) | A | 沿用既有阅读记录 |
+| 405 | [Never Stop Learning: Continual Learning and Self-Iteration in LLMs](<https://victorchen96.github.io/continual_learning_survey.pdf>) | A | 沿用既有阅读记录 |
+| 406 | [ToolCUA: Towards Optimal GUI-Tool Path Orchestration for Computer Use Agents](<https://arxiv.org/abs/2605.12481>) | A | 沿用既有阅读记录 |
+| 407 | [Is Agent Memory a Database? Rethinking Data Foundations for Long-Term AI Agent Memory](<https://arxiv.org/abs/2605.26252>) | A | 沿用既有阅读记录 |
+| 408 | [GodeX：OpenAI Responses API 兼容网关与 provider bridge](<https://github.com/Ahoo-Wang/GodeX>) | A | 沿用既有阅读记录 |
+| 409 | [Meta AI support / Instagram account recovery exploit report](<https://www.0xsid.com/blog/meta-account-takeover-fiasco>) | A | 沿用既有阅读记录 |
+| 410 | [Microsoft MAI / Frontier Tuning：workflow-specific RLE 与 Copilot harness model](<https://microsoft.ai/news/building-a-hillclimbing-machine-launching-seven-new-mai-models/>) | A | 沿用既有阅读记录 |
+| 411 | [OpenAI Codex for every role / Sites / annotations](<https://openai.com/index/codex-for-every-role-tool-workflow/>) | A | 沿用既有阅读记录 |
+| 412 | [Microsoft Scout / WorkIQ / Agent 365：always-on work agent control plane](<https://blogs.microsoft.com/blog/2026/06/02/microsoft-build-2026-be-yourself-at-work/>) | A | 沿用既有阅读记录 |
+| 413 | [Bernini: Latent Semantic Planning for Video Diffusion](<https://github.com/bytedance/Bernini>) | A | 沿用既有阅读记录 |
+| 414 | [AdaCodec: A Predictive Visual Code for Video MLLMs](<https://arxiv.org/abs/2606.02569>) | A | 沿用既有阅读记录 |
+| 415 | [CLI-Anything: Towards Agent-Native Computer Use](<https://arxiv.org/abs/2606.03854>) · [来源 2](<https://github.com/HKUDS/CLI-Anything>) | A | 沿用既有阅读记录 |
+| 416 | [EvoDS: Self-Evolving Autonomous Data Science Agent with Skill Learning and Context Management](<https://arxiv.org/abs/2606.03841>) · [来源 2](<https://github.com/usail-hkust/EvoDS>) | A | 沿用既有阅读记录 |
+| 417 | [Taiji: Pareto Optimal Policy Optimization with Semantics-IDs Trade-off for Industrial LLM-Enhanced Recommendation](<https://arxiv.org/abs/2606.03866>) | A | 沿用既有阅读记录 |
+| 418 | [Bringing up DeepSeek-V4-Flash on AMD MI300X](<https://fergusfinn.com/blog/deepseek-v4-flash-mi300x/>) · [来源 2](<https://github.com/doublewordai/vllm-amd-blog-doubleword>) | B | 沿用既有阅读记录 |
+| 419 | [Uber AI coding budget cap / enterprise agent FinOps](<https://news.bloomberglaw.com/artificial-intelligence/uber-caps-usage-of-ai-tools-like-claude-code-to-cut-costs-1>) | B | 沿用既有阅读记录 |
+| 420 | [MOSAIC-Bench: Measuring Compositional Vulnerability Induction in Coding Agents](<https://arxiv.org/abs/2605.03952>) | A | 沿用既有阅读记录 |
+| 421 | [KVarN: Variance-Normalized KV-Cache Quantization Mitigates Error Accumulation in Reasoning Tasks](<https://arxiv.org/abs/2606.03458>) · [来源 2](<https://github.com/huawei-csl/KVarN>) | A | 沿用既有阅读记录 |
+| 422 | [Multi-Segment Attention / AsymCache：面向 agent serving 的 KV-cache 管理](<https://arxiv.org/abs/2606.02964>) | A | 沿用既有阅读记录 |
+| 423 | [Google Gemma 4 12B: unified encoder-free multimodal model](<https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12B/>) · [来源 2](<https://huggingface.co/google/gemma-4-12B>) | A | 沿用既有阅读记录 |
+| 424 | [Anthropic / Sakana AI recursive self-improvement signals](<https://www.anthropic.com/institute/recursive-self-improvement>) | A | 沿用既有阅读记录 |
+| 425 | [Microsoft pg_durable: PostgreSQL in-database durable execution](<https://github.com/microsoft/pg_durable>) | A | 沿用既有阅读记录 |
+| 426 | [Anthropic Defending Code Reference Harness](<https://github.com/anthropics/defending-code-reference-harness>) | A | 沿用既有阅读记录 |
+| 427 | [Alibaba Open Code Review: deterministic engineering + LLM agent code review](<https://github.com/alibaba/open-code-review>) | A | 沿用既有阅读记录 |
+| 428 | [Cloudflare AI Gateway spend limits / identity-driven budgets](<https://blog.cloudflare.com/ai-gateway-spend-limits/>) | B | 沿用既有阅读记录 |
+| 429 | [Lowfat: local CLI output filtering for agent token budgets](<https://github.com/zdk/lowfat>) | B | 沿用既有阅读记录 |
+| 430 | [AdaMEM: Test-Time Adaptive Memory for Language Agents](<https://arxiv.org/abs/2606.05684>) · [来源 2](<https://github.com/yunx-z/AdaMEM>) | A | 沿用既有阅读记录 |
+| 431 | [Vortex: Efficient and Programmable Sparse Attention Serving for AI Agents](<https://arxiv.org/abs/2606.06453>) | A | 沿用既有阅读记录 |
+| 432 | [Description-Code Inconsistency in Real-world MCP Servers](<https://arxiv.org/abs/2606.04769>) | A | 沿用既有阅读记录 |
+| 433 | [MLEvolve: A Self-Evolving Framework for Automated Machine Learning Algorithm Discovery](<https://arxiv.org/abs/2606.06473>) · [来源 2](<https://github.com/InternScience/MLEvolve>) | A | 沿用既有阅读记录 |
+| 434 | [CollabSim: A CSCW-Grounded Methodology for Investigating Collaborative Competence of LLM Agents through Controlled Multi-Agent Experiments](<https://arxiv.org/abs/2606.06399>) | A | 沿用既有阅读记录 |
+| 435 | [Scaffold, Not Vocabulary? A Controlled, Two-Tier, Pre-Registered Study of a Popperian Code-Generation Skill](<https://arxiv.org/abs/2606.06454>) | A | 沿用既有阅读记录 |
+| 436 | [Thinking with Imagination: Agentic Visual Spatial Reasoning with World Simulators](<https://arxiv.org/abs/2606.06476>) | A | 沿用既有阅读记录 |
+| 437 | [TechCrunch: The token bill comes due](<https://techcrunch.com/2026/06/05/the-token-bill-comes-due-inside-the-industry-scramble-to-manage-ais-runaway-costs/>) | B | 沿用既有阅读记录 |
+| 438 | [Poke becomes the first AI agent on Apple Messages for Business](<https://techcrunch.com/2026/06/04/apple-approves-poke-as-the-first-ai-agent-on-its-messages-for-business-platform/>) | B | 沿用既有阅读记录 |
+| 439 | [知乎回答：王导是也缩略《置身钉内》与钉钉 ONE 项目复盘](<https://www.zhihu.com/question/2046261330911482494/answer/2046318885889127259>) | B | 沿用既有阅读记录 |
+| 440 | [小红书：学习如何从 0 训练一个 SOTA LLM](<http://xhslink.com/o/7balNZMreoo>) | B | 沿用既有阅读记录 |
+| 441 | [Motus: A Unified Latent Action World Model](<https://arxiv.org/abs/2512.13030>) | A | 沿用既有阅读记录 |
+| 442 | [AKO: Agentic Kernel Optimization / AKO4ALL / AKO4X](<https://zhuanlan.zhihu.com/p/2044554843948308001>) · [来源 2](<https://github.com/TongmingLAIC/AKO4ALL>) · [来源 3](<https://github.com/TongmingLAIC/AKO4X>) | S | 沿用既有阅读记录 |
+| 443 | [Nano World Models: minimalist world-model experiment substrate](<http://xhslink.com/o/2JbM85tWLmI>) · [来源 2](<https://arxiv.org/abs/2605.23993>) · [来源 3](<https://github.com/simchowitzlabpublic/nano-world-model>) | A | 沿用既有阅读记录 |
+| 444 | [OpenAI Lockdown Mode：prompt injection 数据外泄防线的产品化 capability gate](<https://help.openai.com/en/articles/20001061-lockdown-mode>) | A | 沿用既有阅读记录 |
+| 445 | [Agent Memory: Characterization and System Implications of Stateful Long-Horizon Workloads](<https://arxiv.org/abs/2606.06448>) | A | 沿用既有阅读记录 |
+| 446 | [SubtleMemory: A Benchmark for Fine-Grained Relational Memory Discrimination in Long-Horizon AI Agents](<https://arxiv.org/abs/2606.05761>) · [来源 2](<https://github.com/KDEGroup/SubtleMemory>) | A | 沿用既有阅读记录 |
+| 447 | [TIDE: Proactive Multi-Problem Discovery via Template-Guided Iteration](<https://arxiv.org/abs/2606.04743>) · [来源 2](<https://github.com/snap-stanford/tide>) | A | 沿用既有阅读记录 |
+| 448 | [Goedel-Architect: Streamlining Formal Theorem Proving with Blueprint Generation and Refinement](<https://arxiv.org/abs/2606.06468>) | A | 沿用既有阅读记录 |
+| 449 | [Google / SpaceX AI compute deal：短期 bridge capacity 与 frontier agent demand 的市场信号](<https://techcrunch.com/2026/06/05/google-will-pay-spacex-920m-per-month-for-compute/>) | B | 沿用既有阅读记录 |
+| 450 | [Cloudflare Bot Traffic Radar：agentic web traffic 与 origin cost 进入一等指标](<https://radar.cloudflare.com/bots>) | B | 沿用既有阅读记录 |
+| 451 | [Tencent Productivity Agent Suite / CodeBuddy / WorkBuddy / Agent Runtime / TokenHub](<https://www.tencent.com/en-us/articles/2202350.html>) | B | 沿用既有阅读记录 |
+| 452 | [FrontierCode：从 correctness 到 production mergeability 的 coding-agent benchmark](<https://cognition.ai/blog/frontier-code>) | A | 沿用既有阅读记录 |
+| 453 | [KV cache serving exactness：Speculative KV coding + VeriCache](<https://fergusfinn.com/blog/kv-entropy-coder/>) · [来源 2](<https://arxiv.org/abs/2605.17613>) | A | 沿用既有阅读记录 |
+| 454 | [Tokenomics / token bill：agentic software cost observability](<https://techcrunch.com/2026/06/05/the-token-bill-comes-due-inside-the-industry-scramble-to-manage-ais-runaway-costs/>) · [来源 2](<https://arxiv.org/abs/2601.14470>) | A | 沿用既有阅读记录 |
+| 455 | [Intuned Agent：browser automation codegen + managed Playwright runtime](<https://intunedhq.com/>) | B | 沿用既有阅读记录 |
+| 456 | [Microsoft AI developer tooling supply-chain incident](<https://techcrunch.com/2026/06/08/microsofts-open-source-tools-were-hacked-to-steal-passwords-of-ai-developers/>) | B | 沿用既有阅读记录 |
+| 457 | [AGENTS.md / context-file tooling：agent-md-bench + context file evidence](<https://bernstein.run/tools/agent-md-bench>) | B | 沿用既有阅读记录 |
+| 458 | [SWE-Explore：repository exploration benchmark for coding agents](<https://huggingface.co/papers/2606.07297>) · [来源 2](<https://arxiv.org/abs/2606.07297>) | A | 沿用既有阅读记录 |
+| 459 | [End-to-End Context Compression at Scale / LCLM](<https://huggingface.co/papers/2606.09659>) · [来源 2](<https://arxiv.org/abs/2606.09659>) | A | 沿用既有阅读记录 |
+| 460 | [Anthropic biology agents：domain data infrastructure for agents](<https://www.anthropic.com/research/agents-in-biology>) | A | 沿用既有阅读记录 |
+| 461 | [Claude Fable 5 / Mythos 5：frontier capability with gated access](<https://www.anthropic.com/news/claude-fable-5-mythos-5>) | B | 沿用既有阅读记录 |
+| 462 | [Nemotron 3 Ultra serving stack：vLLM / SGLang / Miles day-zero path](<https://vllm.ai/blog/2026-06-04-nemotron-3-ultra-vllm>) | B | 沿用既有阅读记录 |
+| 463 | [AI developer tooling security：Microsoft repo incident + SGLang RCE](<https://techcrunch.com/2026/06/08/microsofts-open-source-tools-were-hacked-to-steal-passwords-of-ai-developers/>) · [来源 2](<https://github.com/advisories/GHSA-36m8-w8qf-g76p>) | B | 沿用既有阅读记录 |
+| 464 | [Asuka-Bench：underspecified intent + multi-round refinement for code agents](<https://arxiv.org/abs/2606.05920>) · [来源 2](<https://arxiv.org/html/2606.05920>) | A | 沿用既有阅读记录 |
+| 465 | [DiffusionGemma：parallel text diffusion for local interactive workflows](<https://developers.googleblog.com/diffusiongemma-the-developer-guide/>) | A | 沿用既有阅读记录 |
+| 466 | [GitHub Agent Apps + Copilot Code Review skills/MCP](<https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/>) | A | 沿用既有阅读记录 |
+| 467 | [MusaCoder：native GPU kernel generation with full-stack training on Moore Threads GPU](<https://arxiv.org/abs/2606.04847>) · [来源 2](<https://huggingface.co/MooreThreads/MusaCoder-27B>) | A | 沿用既有阅读记录 |
+| 468 | [Apache Burr：state machine / telemetry / persistence for reliable AI apps](<https://github.com/apache/burr>) | A | 沿用既有阅读记录 |
+| 469 | [Memory tools can make AI models worse：memory reliability as product risk](<https://techcrunch.com/2026/06/10/how-memory-tools-can-make-ai-models-worse/>) · [来源 2](<https://openreview.net/pdf?id=0Xt1qZ5xdW>) | B | 沿用既有阅读记录 |
+| 470 | [MiMo Code：long-horizon coding agent with persistent project memory](<https://mimo.xiaomi.com/blog/mimo-code-long-horizon>) · [来源 2](<https://github.com/XiaomiMiMo/MiMo-Code>) | A | 沿用既有阅读记录 |
+| 471 | [Claw Patrol：wire-level security firewall for agents](<https://github.com/denoland/clawpatrol>) | A | 沿用既有阅读记录 |
+| 472 | [Google DeepMind multi-agent AI safety research fund](<https://deepmind.google/blog/investing-in-multi-agent-ai-safety-research/>) | A | 沿用既有阅读记录 |
+| 473 | [Coinbase for Agents / x402：agentic payments and paid resource access](<https://www.coinbase.com/blog/coinbase-for-agents>) | A | 沿用既有阅读记录 |
+| 474 | [Alibaba Cloud Meoo CLI：local coding agent to cloud deployment bridge](<https://news.aibase.com/news/28860>) | B | 沿用既有阅读记录 |
+| 475 | [Can I Buy Your KV Cache?：agent-native prefill CDN / hot context cost model](<https://arxiv.org/abs/2606.13361>) | A | 沿用既有阅读记录 |
+| 476 | [ReSum：self-summary as policy action for long reasoning RLVR](<https://arxiv.org/abs/2606.13316>) | A | 沿用既有阅读记录 |
+| 477 | [AgentBeats：agentified agent assessment via A2A / MCP](<https://arxiv.org/abs/2606.13608>) | A | 沿用既有阅读记录 |
+| 478 | [Agents-K1：agent-native scientific knowledge orchestration](<https://arxiv.org/abs/2606.13669>) · [来源 2](<https://arxiv.org/html/2606.13669v1>) · [来源 3](<https://github.com/InternScience/GraphAnything>) · [来源 4](<https://github.com/InternScience/GraphAnything/blob/abbe35dc12e4991181ff8c4eed0c1cd334ffad1b/README.md>) · [来源 5](<https://huggingface.co/InternScience/Agents-K1>) · [来源 6](<https://huggingface.co/datasets/InternScience/Scholar-kg>) | A | 沿用既有阅读记录 |
+| 479 | [EurekAgent：environment engineering for autonomous scientific discovery](<https://arxiv.org/abs/2606.13662>) | A | 沿用既有阅读记录 |
+| 480 | [SkillSpector：agent skill supply-chain scanner](<https://github.com/NVIDIA/SkillSpector>) | A | 沿用既有阅读记录 |
+| 481 | [GLM-5：from vibe coding to agentic engineering](<https://arxiv.org/abs/2602.15763>) · [来源 2](<https://arxiv.org/html/2602.15763v1>) · [来源 3](<https://github.com/zai-org/GLM-5>) · [来源 4](<https://huggingface.co/zai-org/GLM-5>) | A | 沿用既有阅读记录 |
+| 482 | [LongTraceRL：learning long-context reasoning from search-agent trajectories](<https://arxiv.org/abs/2605.31584>) · [来源 2](<https://arxiv.org/html/2605.31584v1>) · [来源 3](<https://github.com/THU-KEG/LongTraceRL>) | A | 沿用既有阅读记录 |
+| 483 | [Plan-RewardBench / VPR：trajectory-level reward modeling and verifiable process reward for agents](<https://arxiv.org/abs/2604.08178>) · [来源 2](<https://arxiv.org/html/2604.08178v1>) · [来源 3](<https://huggingface.co/datasets/wyy1112/Plan-RewardBench>) · [来源 4](<https://arxiv.org/abs/2605.10325>) · [来源 5](<https://arxiv.org/html/2605.10325v1>) | A | 沿用既有阅读记录 |
+| 484 | [EvoArena / EvoMem：tracking memory evolution for robust LLM agents](<https://arxiv.org/abs/2606.13681>) · [来源 2](<https://arxiv.org/html/2606.13681v1>) · [来源 3](<https://huggingface.co/papers/2606.13681>) | A | 沿用既有阅读记录 |
+| 485 | [depthfirst 21 FFmpeg zero-days：autonomous security agent with reproducible PoCs](<https://depthfirst.com/research/21-zero-days-in-ffmpeg>) | A | 沿用既有阅读记录 |
+| 486 | [OpenAI Codex enterprise workflow cases：Notion / Nextdoor / Wasmer outcome engineering](<https://openai.com/index/notion/>) | A | 沿用既有阅读记录 |
+| 487 | [Microsoft Discovery GA：governed agentic R&D workflows](<https://azure.microsoft.com/en-us/blog/announcing-microsoft-discovery-general-availability-and-microsoft-discovery-app-preview/>) | A | 沿用既有阅读记录 |
+| 488 | [TensorZero archive signal：LLMOps open-source continuity risk](<https://github.com/tensorzero>) · [来源 2](<https://github.com/tensorzero/tensorzero>) | B | 沿用既有阅读记录 |
+| 489 | [OpenAI multistate investigation：AI product safety and personalization audit risk](<https://techcrunch.com/2026/06/13/openai-faces-investigation-from-state-attorneys-general/>) | B | 沿用既有阅读记录 |
+| 490 | [WeaveBench：hybrid-interface long-horizon computer-use agent benchmark](<https://huggingface.co/papers/2606.09426>) · [来源 2](<https://arxiv.org/abs/2606.09426>) | A | 沿用既有阅读记录 |
+| 491 | [TRACE：compiling user corrections into runtime enforcement for coding agents](<https://huggingface.co/papers/2606.13174>) · [来源 2](<https://arxiv.org/abs/2606.13174>) · [来源 3](<https://github.com/YujunZhou/tellonce>) | A | 沿用既有阅读记录 |
+| 492 | [HarnessBridge：learnable bidirectional controller for LLM agent harness](<https://huggingface.co/papers/2606.12882>) · [来源 2](<https://arxiv.org/abs/2606.12882>) | A | 沿用既有阅读记录 |
+| 493 | [EvoBrowseComp：benchmarking search agents on evolving knowledge](<https://huggingface.co/papers/2606.13120>) · [来源 2](<https://arxiv.org/abs/2606.13120>) | A | 沿用既有阅读记录 |
+| 494 | [Perplexity / HBS：How AI Agents Reshape Knowledge Work](<https://research.perplexity.ai/articles/how-ai-agents-reshape-knowledge-work>) | A | 沿用既有阅读记录 |
+| 495 | [Google DeepMind From AGI to ASI：multi-agent collectives as one ASI pathway](<https://deepmind.google/research/publications/239142/>) · [来源 2](<https://arxiv.org/abs/2606.12938>) | B | 沿用既有阅读记录 |
+| 496 | [OpenAI Partner Network：enterprise AI delivery and specialization market](<https://openai.com/index/introducing-openai-partner-network/>) | B | 沿用既有阅读记录 |
+| 497 | [Context window budget：Don't trust large context windows](<https://garrit.xyz/posts/2026-05-06-dont-trust-large-context-windows>) | B | 沿用既有阅读记录 |
+| 498 | [AI provenance failure signal：UK police fake-evidence allegation + KPMG hallucinated report](<https://news.slashdot.org/story/26/06/14/0317211/uk-police-officer-accused-of-using-ai-to-fake-evidence>) | B | 沿用既有阅读记录 |
+| 499 | [Gabriel Weinberg：No, everyone is not using AI for everything](<https://gabrielweinberg.com/p/people-are-consuming-ai-like-they>) | B | 沿用既有阅读记录 |
+| 500 | [HarnessX：composable, adaptive, evolvable agent harness foundry](<https://arxiv.org/abs/2606.14249>) | A | 沿用既有阅读记录 |
+| 501 | [StreamMemBench：streaming evaluation of agent memory for future-oriented assistance](<https://arxiv.org/abs/2606.14571>) · [来源 2](<https://github.com/landian60/StreamMemBench>) | A | 沿用既有阅读记录 |
+| 502 | [Dialogue SWE-Bench：benchmarking dialogue-driven coding agents](<https://arxiv.org/abs/2606.13995>) · [来源 2](<https://arxiv.org/html/2606.13995v1>) | A | 沿用既有阅读记录 |
+| 503 | [Parallel-Synthesis：direct latent-space synthesis for parallel branches in LLM-agent workflows](<https://arxiv.org/abs/2606.14672>) | A | 沿用既有阅读记录 |
+| 504 | [SIMMER：latent failures in LLM executable planning with a world model](<https://arxiv.org/abs/2606.14574>) · [来源 2](<https://arxiv.org/html/2606.14574v1>) | A | 沿用既有阅读记录 |
+| 505 | [Google Cloud OKF：Open Knowledge Format for agent-readable context bundles](<https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing>) · [来源 2](<https://github.com/GoogleCloudPlatform/knowledge-catalog>) | A | 沿用既有阅读记录 |
+| 506 | [OpenRouter Fusion：model panels as an API-level reasoning primitive](<https://openrouter.ai/blog/announcements/fusion-beats-frontier/>) | A | 沿用既有阅读记录 |
+| 507 | [Apple Foundation Models / Xcode 27：native provider protocol and agentic coding workflow](<https://www.apple.com/newsroom/2026/06/apple-aids-app-development-with-new-intelligence-frameworks-and-advanced-tools/>) | A | 沿用既有阅读记录 |
+| 508 | [Enterprise agent identity and service-agent consolidation：NewCore + Salesforce / Fin](<https://techcrunch.com/2026/06/15/ai-agents-are-becoming-employees-newcore-emerges-with-66m-to-give-them-identities/>) | B | 沿用既有阅读记录 |
+| 509 | [Measuring Agents in Production：真实生产 agent 仍是高频人工介入系统](<https://openreview.net/forum?id=FxNCt9xtOZ>) | A | 沿用既有阅读记录 |
+| 510 | [Principles of Mixed-Initiative User Interfaces：混合主动权的经典设计原则](<https://dl.acm.org/doi/10.1145/302979.303030>) | A | 沿用既有阅读记录 |
+| 511 | [Power to the People：Interactive ML 中人的角色](<https://www.microsoft.com/en-us/research/publication/power-to-the-people-the-role-of-humans-in-interactive-machine-learning/>) | A | 沿用既有阅读记录 |
+| 512 | [Evaluation of Interactive Machine Learning Systems：algorithm-centered + human-centered 双验证](<https://arxiv.org/abs/1801.07964>) | A | 沿用既有阅读记录 |
+| 513 | [A Benchmark for Scalable Oversight Mechanisms：监督机制也需要 benchmark](<https://openreview.net/forum?id=ePE9BMoh8L>) | A | 沿用既有阅读记录 |
+| 514 | [Deep Reinforcement Learning from Human Preferences：少量偏好监督如何塑造复杂目标](<https://arxiv.org/abs/1706.03741>) | A | 沿用既有阅读记录 |
+| 515 | [EvoArena: Tracking Memory Evolution for Robust LLM Agents in Dynamic Environments](<https://arxiv.org/abs/2606.13681>) | S | 沿用既有阅读记录 |
+| 516 | [Dialogue SWE-Bench: A Benchmark for Dialogue-Driven Coding Agents](<https://arxiv.org/abs/2606.13995>) | S | 沿用既有阅读记录 |
+| 517 | [OpenRouter Fusion：多模型 deliberation 作为 API runtime primitive](<https://openrouter.ai/openrouter/fusion>) | A | 沿用既有阅读记录 |
+| 518 | [OpenAI Deployment Simulation：用真实分布预演模型上线行为](<https://openai.com/index/deployment-simulation/>) | S | 沿用既有阅读记录 |
+| 519 | [AA-AgentPerf：agentic inference 的 SLO / agents-per-megawatt 口径](<https://artificialanalysis.ai/articles/aa-agentperf>) | A | 沿用既有阅读记录 |
+| 520 | [GLM-5.2：open-weight long-horizon agent model](<https://z.ai/blog/glm-5.2>) · [来源 2](<https://huggingface.co/zai-org/GLM-5.2>) | A | 沿用既有阅读记录 |
+| 521 | [AI Coding Agents Can Reproduce Social Science Findings / SocSci-Repro-Bench](<https://arxiv.org/abs/2606.11447>) | A | 沿用既有阅读记录 |
+| 522 | [LifeSciBench + AI Chemist：science agent 的专家 rubric 与湿实验闭环](<https://openai.com/index/introducing-life-sci-bench/>) | A | 沿用既有阅读记录 |
+| 523 | [Appia / Pramaana：AI trust 从 policy 走向 conformity + proof](<https://www.linuxfoundation.org/press/linux-foundation-launches-appia-foundation-to-establish-standardized-conformity-specifications-across-the-ai-value-chain>) | A | 沿用既有阅读记录 |
+| 524 | [MCP Enterprise-Managed Authorization：Zero-touch OAuth for MCP](<https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/>) | A | 沿用既有阅读记录 |
+| 525 | [Elastic agent memory：hybrid retrieval + DLS 的生产 memory 参考](<https://www.elastic.co/search-labs/blog/agent-memory-elasticsearch>) | A | 沿用既有阅读记录 |
+| 526 | [Decoupled Search Grounding：把 agent search 变成 MCP-compatible gateway](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 527 | [RODS：multi-turn tool-use agent 的 reward-driven online data synthesis](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 528 | [CEO-Bench：long-horizon business agent eval](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 529 | [SGCD：GUI agent 的 off-trajectory continuation distillation](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 530 | [Xcientist：AI scientist 的 research harness 与 claim drift 防线](<https://arxiv.org/list/cs.AI/new>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 531 | [Stanford PhD 回山东做传统企业 AI 落地：代码快，诊断慢](<http://xhslink.com/o/tKqE2OASU8>) | A | 沿用既有阅读记录 |
+| 532 | [Google Agentic Resource Discovery：agent capability discovery + trust manifest](<https://developers.googleblog.com/en/announcing-the-agentic-resource-discovery-specification/>) | A | 沿用既有阅读记录 |
+| 533 | [Claude Design + Claude Code sync：design-to-code workspace 进入真实组件回路](<https://support.claude.com/en/articles/14604416-get-started-with-claude-design>) | A | 沿用既有阅读记录 |
+| 534 | [SkillVetBench：LLM agent skills 的语义风险评估](<https://arxiv.org/abs/2606.15899>) | A | 沿用既有阅读记录 |
+| 535 | [ADK Arena：用 LLM-as-a-Developer 测 agent framework 可用性](<https://arxiv.org/abs/2606.05548>) | A | 沿用既有阅读记录 |
+| 536 | [Agent Planning Benchmark：把 planning failure 从执行失败里拆出来](<https://arxiv.org/abs/2606.04874>) | A | 沿用既有阅读记录 |
+| 537 | [R3-Skill：skill routing 中的 rejection signal 不是垃圾数据](<https://arxiv.org/abs/2606.03565>) | A | 沿用既有阅读记录 |
+| 538 | [Exploration Structure in LLM Agents：coding agent 的 repo traversal 结构会决定定位质量](<https://arxiv.org/abs/2606.11976>) | A | 沿用既有阅读记录 |
+| 539 | [AgentFairBench：agent 公平性要测 action，不只测 answer](<https://arxiv.org/abs/2606.16723>) | A | 沿用既有阅读记录 |
+| 540 | [Kimi Work / Kimi Code Goal Mode：本地长程 agent 的 goal state 与权限面](<https://www.kimi.com/resources/kimi-work-introduction>) | A | 沿用既有阅读记录 |
+| 541 | [OpenAI Patch the Planet：安全 agent 的 patch loop 与 maintainer agency](<https://openai.com/index/patch-the-planet/>) | A | 沿用既有阅读记录 |
+| 542 | [Google Interactions API GA：managed agent API contract](<https://blog.google/innovation-and-ai/technology/developers-tools/interactions-api-general-availability/>) | A | 沿用既有阅读记录 |
+| 543 | [Multi-LCB + Contagion Networks：coding agent 评测的语言轴与 judge topology](<https://arxiv.org/abs/2606.20517>) · [来源 2](<https://arxiv.org/abs/2606.20493>) | A | 沿用既有阅读记录 |
+| 544 | [Liquid AI LFM2.5 Retrievers：本地多语言 memory/search 检索底座](<https://www.liquid.ai/blog/lfm2-5-retrievers>) | A | 沿用既有阅读记录 |
+| 545 | [xAI Grok Build /goal：long-running coding agent 的目标状态与验证面](<https://x.ai/news/introducing-goal>) | A | 沿用既有阅读记录 |
+| 546 | [Claude Tag：Slack 中的 scoped team agent 与组织级权限/成本控制](<https://www.anthropic.com/news/introducing-claude-tag>) | A | 沿用既有阅读记录 |
+| 547 | [The Coming Loop：harness-level loop 会放大工程质量债](<https://lucumr.pocoo.org/2026/6/23/the-coming-loop/>) | A | 沿用既有阅读记录 |
+| 548 | [Mistral OCR 4 + Baidu Unlimited-OCR：文档 ingestion 从 OCR 走向结构化 context substrate](<https://mistral.ai/news/ocr-4/>) · [来源 2](<https://github.com/baidu/Unlimited-OCR>) | A | 沿用既有阅读记录 |
+| 549 | [Randomized YaRN：短上下文训练也能改善 16K-128K 长上下文推理泛化](<https://arxiv.org/abs/2606.23687>) | A | 沿用既有阅读记录 |
+| 550 | [AIR：用 RL 学会何时在多模态推理中调用代码工具](<https://arxiv.org/abs/2606.23678>) | A | 沿用既有阅读记录 |
+| 551 | [Can LLMs Reliably Self-Report Adversarial Prefills：模型自我报告不能当安全证据](<https://arxiv.org/abs/2606.23671>) | A | 沿用既有阅读记录 |
+| 552 | [VibeThinker-3B：小模型 verifiable reasoning 的成本/能力边界](<https://arxiv.org/abs/2606.16140>) | A | 沿用既有阅读记录 |
+| 553 | [Gemini 3.5 Flash computer use：UI agent 的 observe-act-screenshot contract](<https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-computer-use-gemini-3-5-flash/>) | A | 沿用既有阅读记录 |
+| 554 | [Qwen-AgentWorld：language world model for agentic RL](<https://arxiv.org/abs/2606.24597>) · [来源 2](<https://github.com/QwenLM/Qwen-AgentWorld>) | A | 沿用既有阅读记录 |
+| 555 | [AOHP：Android Open Harness Project / OS-level agent harness](<https://arxiv.org/abs/2606.23449>) · [来源 2](<https://github.com/aohp-os/aohp>) | A | 沿用既有阅读记录 |
+| 556 | [OpenThoughts-Agent：agentic model data recipes](<https://arxiv.org/abs/2606.24855>) · [来源 2](<https://github.com/open-thoughts/OpenThoughts-Agent>) | A | 沿用既有阅读记录 |
+| 557 | [Tmax：terminal-agent RL recipe and TMax-15K](<https://arxiv.org/abs/2606.23321>) · [来源 2](<https://github.com/hamishivi/tmax>) · [来源 3](<https://huggingface.co/allenai/tmax-9b>) | A | 沿用既有阅读记录 |
+| 558 | [OpenAI/Broadcom Jalapeno：inference cost as agent runtime constraint](<https://openai.com/index/openai-broadcom-jalapeno-inference-chip/>) | A | 沿用既有阅读记录 |
+| 559 | [Qualcomm 收购 Modular：portable AI serving/software stack signal](<https://investor.qualcomm.com/news-events/press-releases/news-details/2026/Qualcomm-to-Acquire-Modular/default.aspx>) | A | 沿用既有阅读记录 |
+| 560 | [Headroom：agent context compression / CCR gate](<https://github.com/headroomlabs-ai/headroom>) | A | 沿用既有阅读记录 |
+| 561 | [Notion Mail agent takeover + General Intuition action-labeled world model data](<https://techcrunch.com/2026/06/25/notion-mail-shuts-down-amid-agent-takeover/>) | A | 沿用既有阅读记录 |
+| 562 | [OpenAI GPT-5.6 Sol limited preview：frontier model release gate and ultra subagents](<https://openai.com/index/previewing-gpt-5-6-sol/>) | A | 沿用既有阅读记录 |
+| 563 | [OpenAI Codex economic research：agents transform work into delegated long-horizon tasks](<https://openai.com/index/how-agents-are-transforming-work/>) | A | 沿用既有阅读记录 |
+| 564 | [Cursor reward hacking in coding benchmarks：strict harness for aware coding agents](<https://cursor.com/blog/reward-hacking-coding-benchmarks>) | A | 沿用既有阅读记录 |
+| 565 | [Workweave Router：cache-aware model routing for Claude Code / Codex / Cursor](<https://github.com/workweave/router>) | A | 沿用既有阅读记录 |
+| 566 | [NVIDIA NeMo AutoModel / Transformers v5 Expert Parallelism + DeepEP MoE fine-tuning path](<https://huggingface.co/blog/nvidia/accelerating-fine-tuning-nvidia-nemo-automodel>) · [来源 2](<https://github.com/deepseek-ai/DeepEP>) | A | 沿用既有阅读记录 |
+| 567 | [PEEU GUI agents：Autonomous Experience Exploration + Hindsight Experience Utilization for task planning](<https://arxiv.org/abs/2606.27330>) | A | 沿用既有阅读记录 |
+| 568 | [When are likely answers right? Sequence Probability and Correctness in LLMs](<https://arxiv.org/abs/2606.27359>) | A | 沿用既有阅读记录 |
+| 569 | [Un-0：open coupled-oscillator image generator as physical-compute substrate](<https://unconv.ai/blog/introducing-un-0-generating-images-with-coupled-oscillators/>) · [来源 2](<https://github.com/unconv-ai/Un-0>) | A | 沿用既有阅读记录 |
+| 570 | [OpenAI + Broadcom Jalapeno inference chip：full-stack LLM inference platform](<https://openai.com/index/openai-broadcom-jalapeno-inference-chip/>) | A | 沿用既有阅读记录 |
+| 571 | [DeepSeek DSpark / DeepSpec：confidence-scheduled speculative decoding for production serving](<https://github.com/deepseek-ai/DeepSpec>) · [来源 2](<https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-DSpark>) | A | 沿用既有阅读记录 |
+| 572 | [AWS Lambda MicroVMs：full-lifecycle Firecracker sandboxes for AI agents](<https://aws.amazon.com/blogs/aws/run-isolated-sandboxes-with-full-lifecycle-control-aws-lambda-introduces-microvms/>) | A | 沿用既有阅读记录 |
+| 573 | [DBOSify：Postgres-backed durable workflow as compact Temporal alternative](<https://github.com/dbos-inc/dbosify-py>) | A | 沿用既有阅读记录 |
+| 574 | [Adrafinil：macOS activity assertion layer for long-running AI agents](<https://github.com/kageroumado/adrafinil>) | A | 沿用既有阅读记录 |
+| 575 | [Cloud World Model：cloud-infra simulation product radar](<https://www.producthunt.com/>) | A | 仅元信息；原记录仅有聚合入口；未补齐具体原文，不作为已读材料。 |
+| 576 | [Are We Ready For An Agent-Native Memory System? Trustworthy Memory Search](<https://arxiv.org/abs/2606.24775>) · [来源 2](<https://github.com/HKUDS/MemorySearch>) | A | 沿用既有阅读记录 |
+| 577 | [Semgrep GLM-5.2 cyber benchmark：real security harness for coding agents](<https://semgrep.dev/blog/2026/we-have-mythos-at-home-glm-52-beats-claude-in-our-cyber-benchmarks>) | A | 沿用既有阅读记录 |
+| 578 | [GitHub Copilot App BYOK：provider/account boundary for agent sessions](<https://github.blog/changelog/2026-06-23-github-copilot-app-support-for-byok/>) | A | 沿用既有阅读记录 |
+| 579 | [Wayfinder Router：deterministic local/cloud LLM routing](<https://github.com/itsthelore/wayfinder-router>) | A | 沿用既有阅读记录 |
+| 580 | [OpenAI Codex issue：exclude sensitive files by default](<https://github.com/openai/codex/issues/2847>) | A | 沿用既有阅读记录 |
+| 581 | [Tokenmaxxing / agent output budget policy](<https://news.ycombinator.com/item?id=48699302>) | A | 沿用既有阅读记录 |
+| 582 | [百度千帆 Coding Plan -> Token Plan：coding agent usage ledger signal](<https://cloud.baidu.com/article/3730945>) | B | 沿用既有阅读记录 |
+| 583 | [Dual Strix Halo vLLM cluster：local serving lab reference](<https://github.com/recallnet/strix-halo-vllm>) | B | 沿用既有阅读记录 |
+| 584 | [Claude Sonnet 5：agent default model cost-performance reset](<https://www.anthropic.com/news/claude-sonnet-5>) | A | 沿用既有阅读记录 |
+| 585 | [Claude Science AI workbench：auditable domain agent OS](<https://www.anthropic.com/news/claude-science-ai-workbench>) | A | 沿用既有阅读记录 |
+| 586 | [Gemini Spark updates：desktop automation + connected apps + custom MCP](<https://blog.google/innovation-and-ai/products/gemini-app/gemini-spark-updates-june-2026/>) | A | 沿用既有阅读记录 |
+| 587 | [vLLM Micro-Agent：serving router as bounded agent collaboration](<https://vllm.ai/blog/2026-06-29-micro-agent-frontier-models>) | A | 沿用既有阅读记录 |
+| 588 | [SWE-Together：interactive user-session benchmark for coding agents](<https://arxiv.org/abs/2606.29957>) | A | 沿用既有阅读记录 |
+| 589 | [OSWorld 2.0：long-horizon computer-use official runner boundary](<https://arxiv.org/abs/2606.29537>) | A | 沿用既有阅读记录 |
+| 590 | [SWE-MeM：adaptive memory management for long-horizon coding agents](<https://arxiv.org/abs/2606.28434>) | A | 沿用既有阅读记录 |
+| 591 | [Language Firewall：routing defense for multi-agent systems](<https://arxiv.org/abs/2606.30555>) | A | 沿用既有阅读记录 |
+| 592 | [Couchbase AI Data Plane：enterprise memory/context substrate](<https://www.couchbase.com/blog/your-ai-agents-are-stuck-in-pilot-its-a-data-problem-not-a-model-problem/>) | A | 沿用既有阅读记录 |
+| 593 | [Lingtai：local-first lifelong Agent runtime](<https://github.com/Lingtai-AI/lingtai>) | A | 沿用既有阅读记录 |
+| 594 | [Ephemeral Sandbox：COW workspace 与 OCC publication](<https://github.com/Ephemeral-AI-Lab/ephemeral-sandbox>) | A | 沿用既有阅读记录 |
+| 595 | [Using Claude Code: The Unreasonable Effectiveness of HTML](<https://x.com/trq212/status/2052809885763747935>) | A | 沿用既有阅读记录 |
+| 596 | [梁文锋投资者交流会 · 网传录音文字稿（非官方）](<https://drive.google.com/file/d/13NSXtglkcMJoWPRyT_2yQq_VhREG8nkt/view>) · [来源 2](<https://www.nbd.com.cn/articles/2026-07-23/4504599.html>) | A | 仅元信息；已取得 42 页 PDF、提取文本并检查首页，未逐段精读。网传转写稿，未经 DeepSeek 或本人公开确认；ASR 与 AI 整理可能引入错误，不作为官方口径。 |
+| 597 | [hai-stack / Geju：用 target model、falsifier 与收益账单抵抗局部补丁化](<https://github.com/hylarucoder/hai-stack>) | A | 沿用既有阅读记录 |
+| 598 | [Waza：把工程习惯产品化为可路由、可验证的 Agent skills](<https://github.com/tw93/Waza>) | A | 沿用既有阅读记录 |
+| 599 | [BfdCampos Mermaid skill：把“语法正确”提升为“渲染后可读”](<https://github.com/BfdCampos/dotfiles>) | A | 沿用既有阅读记录 |
+| 600 | [Oracle：把第二模型意见封装成可追踪的 consult session](<https://github.com/steipete/oracle>) | A | 沿用既有阅读记录 |
+| 601 | [Graph Engineering：给 Agent Harness 叠加显式控制流图，而不是换一个新名词](<https://x.com/0xCodez/status/2081429287945506950>) | A | 沿用既有阅读记录 |
+| 602 | [赵克常《炒股挣钱》：风险认知课，不是可复制的投资研究方法](<https://x.com/ActionXAi/status/2083691580196856018>) | B | 沿用既有阅读记录 |
+| 603 | [未核实的 MLSys 截图线索：集中式推理、确定性信号与知识图谱控制面](<https://mlsys.org/Conferences/2026/CallForResearchPapers>) | B | 沿用既有阅读记录；来源真实性未确认；保留为核验案例，不作为论文结论。 |
+| 604 | [Evolvent AI GitHub 组织复核：与既有研究目录的重复记录](<https://github.com/evolvent-ai>) | B | 沿用既有阅读记录；保留稳定 ID 与重复记录；不因重复而静默删除。 |

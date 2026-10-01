@@ -49,8 +49,12 @@ def validate_source(source):
     p = urlsplit(source)
     if not p.scheme:
         path = unquote(p.path)
-        if not path.startswith("./distributed-systems-for-loopx/"):
-            raise ValueError("local sources must be reviewable course artifacts")
+        is_course = path.startswith("./distributed-systems-for-loopx/")
+        is_booklist = path.startswith("./booklists/") and path.endswith(".md")
+        if not (is_course or is_booklist):
+            raise ValueError(
+                "local sources must be reviewable course or booklist artifacts"
+            )
         if ".." in Path(path).parts or p.netloc or p.query or p.fragment:
             raise_suspicious_source()
         return

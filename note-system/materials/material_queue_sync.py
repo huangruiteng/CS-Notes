@@ -179,11 +179,24 @@ class QueuePublisher:
         if reviews["scope"] != "current_only":
             raise ValueError("unexpected publication scope")
         external, private, archived = partition(catalog, reviews)
+        # Source validation keeps canonical identities. Only the exported cards
+        # use reviewed aliases when source identifiers contain private context.
+        public_entries = copy.deepcopy(external)
+        decisions = {d["material_ref"]: d for d in reviews["records"]}
+        canonical_refs = {r["stable_id"] for r in catalog["records"]}
+        for card in public_entries:
+            ref = card["material_ref"]
+            alias = decisions[ref].get("public_material_ref", ref)
+            if not isinstance(alias, str):
+                raise ValueError("invalid public material alias")
+            if alias != ref and alias in canonical_refs:
+                raise ValueError("public alias collides with a canonical identity")
+            card["material_ref"] = alias
         public_catalog = {
             "schema_version": public.SCHEMA,
             "queue_id": "external",
             "top_window_size": 30,
-            "entries": external,
+            "entries": public_entries,
         }
         pages, counts = public.render(public_catalog)
         now = datetime.now().astimezone().isoformat()

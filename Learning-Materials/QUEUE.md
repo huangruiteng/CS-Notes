@@ -181,5 +181,6 @@
 | 166 | [Kernel Design Agents：让 Agent 自己优化 CUDA kernel，并在 MLSys 2026 FlashInfer Full-Agent Track 拿下前三](<https://mp.weixin.qq.com/s/xIOIr4y60dzyeOn_3toipA>) · [来源 2](<https://github.com/mit-han-lab/kernel-design-agents>) · [来源 3](<https://github.com/DongyunZou/HANLab-Kernel-Mafia-MLSys2026-Submissions>) · [来源 4](<https://github.com/flashinfer-ai/flashinfer-bench>) | A | 沿用既有阅读记录 |
 | 167 | [AI agents for science & the human-value debate（Zesen Huang @ AstroAI）](<https://x.com/zesenhuang/status/2086941232496824591>) | B | 沿用既有阅读记录 |
 | 168 | [The State Monad：纯函数状态转换与 LoopX 状态机重构参考](<https://brandon.si/code/the-state-monad-a-tutorial-for-the-confused/>) | B | 沿用既有阅读记录 |
-| 169 | [未核实的交易研究海报：论文核验与 backtest overfitting 方法](<https://x.com/0xkvro/status/2098468226397012054>) | B | 沿用既有阅读记录；来源真实性未确认；保留为核验案例，不作为论文结论。 |
-| 170 | [量化交易教程的商业化样本：harness 结构、营销主张与证据边界](<https://x.com/rohonchain/status/2099500150939127945>) | B | 沿用既有阅读记录 |
+| 169 | [商业传记与通识书目](<./booklists/business-biography-and-general-knowledge.md>) | B | 仅元信息；《沃顿商学院时间管理课（修订版）》《小米创业思考》《埃隆·马斯克传》《冲向火星》《金钱博弈：重振韩国第一银行内幕》《进化论50讲》；正文未读。 |
+| 170 | [未核实的交易研究海报：论文核验与 backtest overfitting 方法](<https://x.com/0xkvro/status/2098468226397012054>) | B | 沿用既有阅读记录；来源真实性未确认；保留为核验案例，不作为论文结论。 |
+| 171 | [量化交易教程的商业化样本：harness 结构、营销主张与证据边界](<https://x.com/rohonchain/status/2099500150939127945>) | B | 沿用既有阅读记录 |

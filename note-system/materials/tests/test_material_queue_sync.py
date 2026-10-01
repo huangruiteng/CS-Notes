@@ -146,6 +146,48 @@ class QueuePublication(unittest.TestCase):
                 changed["records"][0][field] = "new-evidence"
                 self.assertEqual(q.partition(changed, self.reviews)[0], [])
 
+    def test_public_alias_hides_source_identity_without_changing_authority(self):
+        before = copy.deepcopy(self.catalog)
+        self.reviews["records"][0]["public_material_ref"] = "material-neutral-id"
+        self.write_reviews()
+        with patch.object(
+            self.adapter, "build_projection", wraps=self.adapter.build_projection
+        ) as projection:
+            self.publish()
+            source_queue = projection.call_args_list[0].args[0]
+            self.assertEqual(source_queue[0]["material_ref"], "material-public")
+        exported = q.load(self.publisher.targets["catalog.json"])
+        self.assertEqual(exported["entries"][0]["material_ref"], "material-neutral-id")
+        self.assertEqual(exported["entries"][0]["queue_rank"], 1)
+        self.assertEqual(self.catalog, before)
+        for name, path in self.publisher.targets.items():
+            if name != "PRIVATE_QUEUE.md":
+                self.assertNotIn("material-public", path.read_text())
+        self.prepare_change()
+        self.publisher.main(["apply"])
+        self.publisher.main(
+            ["rollback", "--expected-queue-revision",
+             q.load(self.publisher.pointer)["queue_revision"]]
+        )
+        self.assertEqual(q.load(self.publisher.targets["catalog.json"]), exported)
+
+    def test_invalid_or_colliding_public_aliases_are_rejected(self):
+        for alias in (None, "bad/id", "material-internal"):
+            with self.subTest(alias=alias):
+                self.reviews["records"][0]["public_material_ref"] = alias
+                self.write_reviews()
+                with self.assertRaises(ValueError):
+                    self.publisher.main(["prepare"])
+        second = self.reviews["records"][1]
+        second["classification"] = "external"
+        second["public_card"] = copy.deepcopy(self.reviews["records"][0]["public_card"])
+        second["public_card"]["material_ref"] = "material-internal"
+        for d in self.reviews["records"][:2]:
+            d["public_material_ref"] = "material-same-alias"
+        self.write_reviews()
+        with self.assertRaisesRegex(ValueError, "duplicate material_ref"):
+            self.publisher.main(["prepare"])
+
     def test_duplicate_membership_and_noncontiguous_source_ranks_rejected(self):
         for mode in ("duplicate", "gap"):
             changed = copy.deepcopy(self.catalog)

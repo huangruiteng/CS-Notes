@@ -27,6 +27,8 @@
 
 正文 hash 由来源 adapter 验证。record 的序列化约定见同步器 `canonical_json`：ASCII JSON、键排序、两空格缩进、末尾换行。审查输入包含 `scope=current_only`、授权依据 `owner_gate_ref`，以及每条记录的分类、理由、两个 digest 和可选 `public_card`。这是维护者的人工/agent 审查结果，不是按域名自动证明公开性的分类器。
 
+若来源 ID 含私人语义，审查记录可指定稳定的 `public_material_ref`，仅在公开导出时替换 ID；完整分区与来源验证仍使用 canonical ID，映射只留本地。别名不得重复或占用其他 canonical ID。纯书名清单可引用 `Learning-Materials/booklists/` 中的 Markdown，不附原始截图或私人收集记录。
+
 当前投影要求每个 ranked entry 只有一条主材料；组合条目须先完成语义拆分，否则拒绝生成。原材料 ID 不变，相同 URL 不自动合并；两个队列分别连续编号，保留各自原相对顺序。公开队列 rank 不等于混合 catalog 的全局 rank。
 
 ## 操作入口
