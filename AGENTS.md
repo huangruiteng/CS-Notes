@@ -132,6 +132,16 @@ open -a Typora <file.md>
 
 ### E. 调研 / 找素材
 
+**公开与私有队列**：`Learning-Materials/` 保存当前外部材料的审查后公开副本，
+内部材料、私人批注、待确认来源及历史归档维持本地。受管 catalog 仍是唯一
+生命周期与排序 authority；公开 Markdown 不是第二套可写队列。字段审查必须绑定
+稳定 material ref、正文与完整 record digest；新记录、正文变化和重新激活的归档记录默认留私有侧。
+内部入口发现的公开论文只能公开经核验的论文书目，不能带出内部入口或讨论。
+更新 catalog 后通过项目本地 `material_queues.py prepare/apply/check` 刷新两队列，
+同时核对公开字段审查、完整分区、连续排名和读回；命令位置与回滚见本地 adapter README。
+公开生成文件用 `python3 note-system/materials/material_queue.py --check` 验证，不直接手改表格。
+通用同步器与维护契约见 `note-system/materials/README.md`；具体来源 adapter 与审查证据留本地。
+
 当用户说“素材：”“调研”“找素材”“材料雷达”“学习材料”时，默认按素材管线处理：
 
 若当前项目已显式启用 LoopX Material Lifecycle，通用的 snapshot /

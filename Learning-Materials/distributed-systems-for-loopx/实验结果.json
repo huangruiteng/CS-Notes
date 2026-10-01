@@ -1,0 +1,25 @@
+{
+  "status": "teaching expectations passed",
+  "sqlite_version": "3.51.0",
+  "lost_response": {
+    "naive_balance": 80,
+    "idempotent_balance": 90
+  },
+  "payload_conflict": "rejected without a second debit",
+  "before_commit": "balance and receipt rolled back together",
+  "fencing": {
+    "unguarded_old_write": "overwrote new owner",
+    "stale_rejected": true
+  },
+  "projection": "revision 11 preserved after 10 and duplicate 11",
+  "write_skew_abstract_model": {
+    "concurrent_snapshot_remaining": 0,
+    "serial_remaining": 1
+  },
+  "limits": [
+    "no actual process kill or power loss",
+    "no network or multi-host authority",
+    "projection uses full snapshots, not deltas",
+    "no LoopX production qualification"
+  ]
+}
