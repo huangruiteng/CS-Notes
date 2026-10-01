@@ -57,6 +57,10 @@
 
 ### 笔记心得
 
+当前公开学习材料见 [Learning-Materials](Learning-Materials/README.md)：[Top30 与 ranked backlog](Learning-Materials/QUEUE.md)、[其余候选](Learning-Materials/CANDIDATES.md)，以及[数据库与分布式系统补课讲义](Learning-Materials/distributed-systems-for-loopx/补课讲义.md)。
+
+笔记与素材的管理代码、规则和测试集中在 [note-system](note-system/README.md)，与学习内容分开维护。
+
 * 用「子标题」清晰表达结构
 * 在「子标题」压缩信息：提炼正文内容
 
