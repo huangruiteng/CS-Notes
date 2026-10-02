@@ -2477,11 +2477,15 @@ $D_t$ 是此时允许使用的数据，$w$ 是被选中更新的部分。关键�
 
 **相邻概念的边界**：TTA（test-time adaptation）更宽，还包括只调整统计量等无需梯度训练的方法；TTT 通常强调测试时优化可训练参数，文献命名存在交叠。ICL 通常通过上下文与激活适应，模型权重不变，但仍可在激活中实现学习过程。Test-time scaling 关注增加推理阶段计算，搜索、采样和长推理链都不要求参数更新。持续 IPL 关注经验长期固化，TTT 的更新则可以用完即重置。TTT layer 的双层学习机制也不是所有 TTT 方法的必选项。
 
+与 hypernetwork 比较时，要分开“适应过程”与“参数生成架构”：TTT 根据当前数据的损失梯度更新参数；用于适应的 hypernetwork 学习从上下文直接生成参数，见 [参数适应机制中的对照](#in-parameter-learning部署期的经验固化)。两者可组合，是否长期保留更新则是独立维度。
+
 **评测重点**：除适应后的任务质量，还要比较冻结模型基线、更新延迟 / 显存 / 总成本、原分布回归、长流稳定性与重置策略。明确无标签、标签或反馈的可用时点；自回归预测必须先预测待评 token，再在它实际可见后用于后续适应，不能先训练答案再给同一答案评分。多个样本联合适应属于不同协议，也不能与逐样本独立适应混报。
 
 ## In-context Learning
 
 https://ai.stanford.edu/blog/understanding-incontext/
+
+这一组笔记按“新信息如何改变模型”组织：[ICL / IPL](#in-parameter-learning部署期的经验固化) 区分上下文与参数载体，[TTT](#test-time-trainingttt推理期学习与适应) 讨论测试时梯度更新，[PaST](#past通过参数增量迁移-rl-技能) 复用已学得的技能增量，[SHINE](#shine上下文到参数的超网络) 学习从上下文直接生成 adapter。基础复习顺序是 [LoRA](#lora) → [超网络、元学习与摊销适应](#超网络元学习与摊销适应) → SHINE 的信息流、梯度流与实验边界；这些机制是否长期保留经验，是另一条独立维度。
 
 ### In-Parameter Learning：部署期的经验固化
 
@@ -2618,8 +2622,9 @@ $$
 | 路线 | 写入方式 | 不能混淆的边界 |
 | --- | --- | --- |
 | RNN / SSM | 固定规则将输入累积到隐状态 | 隐状态变化不等于慢权重被训练 |
-| Hypernetwork | 学习一个从经验到参数增量 / adapter 的映射 | 一次前向生成参数不代表无需训练；写入网络本身要学会压缩和适应 |
+| [Hypernetwork / SHINE](#shine上下文到参数的超网络) | 学习一个从经验到参数增量 / adapter 的映射 | 一次前向生成参数不代表无需训练；写入网络本身要学会压缩和适应 |
 | TTT layer | 将小模型权重作为隐状态，按序列做自监督梯度更新 | 原始 TTT layer 为每条输入序列创建自己的状态；不会自动积累成终身能力 |
+| [PaST：技能参数迁移](#past通过参数增量迁移-rl-技能) | 提取源域 RL 相对 SFT 的参数增量，加到目标 SFT 模型上 | 复用源域训练成果，省去目标侧 RL；不保证增量只含通用技能或多份增量可任意相加 |
 | 持久参数适应 | 保留并版本化更新后的权重或 adapter | 仍需处理用户隔离、遗忘、撤销与跨任务验证 |
 
 [Hypernetwork](https://arxiv.org/abs/1609.09106) 让一个网络生成另一个网络的参数。在经验适应场景中，可概念化为：
@@ -2654,6 +2659,17 @@ $K,V,Q$ 分别决定“拿什么来学”“希望记住什么”“怎样查询
 | 外循环 | $K,V,Q$ 和其他慢参数 | 用语言建模目标学出有效的记忆与读出方式 |
 
 外循环可以通过内循环更新求梯度：既训练预测能力，也训练内部学习过程，这是“学习如何学习”的具体含义。原始 TTT layer 为每条输入序列维护自己的状态；推理期训练内部记忆，不等于跨会话持续积累。后者还需决定保留哪些状态、怎样合并不同任务、如何避免污染、何时遗忘，对应 §5.1 的稳定更新与 §5.3 的选择性固化。论文将这些路线放入 IPL 的宽泛视角，实际系统仍需区分运行状态、快权重与持久权重。
+
+**TTT 与 hypernetwork：在线优化与摊销生成。** 对照 [TTT layer §2](https://arxiv.org/html/2407.04620v4#S2) 与 [HyperNetworks](https://arxiv.org/abs/1609.09106)，在上下文适应场景中，前者现场根据学习目标更新权重，后者把“根据上下文生成合适权重”的能力预先学进生成器。Hypernetwork 本身是更宽的参数生成架构，不必用于测试时适应，也不必输出 LoRA。
+
+| 维度 | TTT / TTT layer | 用于适应的 hypernetwork |
+| --- | --- | --- |
+| 当前输入怎样影响参数 | 构造适应损失，根据当前参数的预测误差求梯度并更新 | 输入上下文，前向生成权重、参数增量或 adapter |
+| 训练期学什么 | 通用 TTT 视方法而定；TTT layer 的外循环学习表征、初始化等，使内循环更新有用 | 训练生成器，使生成的参数改善下游任务；不必用“正确权重”作监督，可通过目标网络的任务损失反传 |
+| 推理期的适应计算 | 执行梯度更新，可调整步数；实际成本取决于更新模块与实现 | 纯生成路径无需现场优化目标参数，但仍需编码上下文和生成参数；训练成本被摊到先前任务中 |
+| 主要失败方式 | 代理目标与主任务错位，更新不稳，遗忘或污染 | 上下文超出生成器训练分布，压缩遗漏，生成的参数彼此干扰 |
+
+两者都可能有跨任务学习，区别在于新上下文到来后是否显式执行损失驱动的优化。可先由 hypernetwork 生成初始 adapter，再用 TTT 做少量梯度修正；这是可组合的设计思路，不代表所有方法都如此实现。LoRA 只规定参数增量的低秩形式，既可以梯度训练，也可以由 hypernetwork 生成。两条路线都不自动保证分布外泛化或跨会话终身学习。
 
 #### 长上下文、能力上限与总成本：§2–4、Figure 1 与附录 A
 
@@ -2702,6 +2718,430 @@ $$
 
 **附录 A 怎么读。** 它用从 GPT-3 的 2K 到百万级窗口、以及更大窗口的特殊系统展示增长历程，并混列原生窗口与扩展能力。它是规格背景，不是统一评测；模型名、版本、是否原生支持和服务限制应分别核验。保留的判断是“窗口快速增长”，不把文中“约每年 30 倍”作为稳定规律外推，也不据此认定所有主流模型均有同等百万 token 能力。
 
+#### PaST：通过参数增量迁移 RL 技能
+
+> 来源：[Knowledge is Not Enough: Injecting RL Skills for Continual Adaptation（PaST，v2）](https://arxiv.org/html/2601.11258v2)；[官方权重合并代码](https://github.com/MuLabPKU/PaST/blob/35e55feba346f560dbccf4c4bf61421c75bd9f62/inherit_weight.py)。已读正文、关键附录、方法与消融的 TeX 及部分源码，未复现实验。
+
+核心思路：通过源域 RL 将使用知识的经验沉淀为参数增量，再加到学过目标知识的模型上，复用技能而免去目标侧 RL。它是参数适应的一种具体方法，尚不等于长期持续学习已经解决。
+
+- SFT（监督微调）：让模型学习文档、问答或示范输出。
+- RL（强化学习）：让模型尝试解决任务，根据结果获得奖励，调整行为。
+- PaST 用 SFT 写入知识、用 RL 改善知识使用与执行行为；这是一种训练分工，不能推广成“SFT 只会记忆、RL 只学通用推理”。
+
+![PaST 的错误处理案例与参数迁移流程](./AI-Algorithms/past-overview.png)
+
+[Figure 1 / 附录 A.1](https://arxiv.org/html/2601.11258v2#A1.SS1)：两个模型都能调用 Instagram API；遇到“账号私密”的返回后，SFT 模型编造不存在的工具，PaST 模型检查另一项请求后如实结束。优势是错误处理改善，并未成功下载私密内容。
+
+**技能从哪里来：减出一个增量，再加到另一个模型上。** 源域先 SFT、再 RL，目标域独立 SFT；$\theta$ 表示模型参数，$S/T$ 分别表示源域与目标域。
+
+$$
+v_{\mathrm{skill}}=\theta_S^{\mathrm{RL}}-\theta_S^{\mathrm{SFT}},\qquad
+\theta_{\mathrm{final}}=\theta_T^{\mathrm{SFT}}+\lambda v_{\mathrm{skill}}.
+$$
+
+实验统一取 $\lambda=1$。代码本质是对同名参数张量逐元素相减、相加：
+
+```python
+skill[name] = source_rl[name] - source_sft[name]
+target_sft[name] += skill[name]
+```
+
+减去的是源域 SFT checkpoint，不能误用最初的预训练基座；否则会混入源域 SFT 的知识更新。`inherit_weight.py` 中 `--base_model` 应按此语义选择。skill 是整份 RL 参数增量的行为性命名，并非逐项识别、抽取出的纯技能清单。
+
+在 LooGLE 中，源域用最后 10 篇文档，分两轮、每轮 5 篇，通过合成问答与 GPT-4.1 正确性奖励做 GRPO；目标文档另行 SFT。QA 用 GRPO，工具实验用 PPO。主要验证基座为 Qwen2.5-7B / 7B-Instruct；参数迁移需匹配基座、参数名称和形状，不能直接跨任意模型相加。
+
+**迭代技能精炼：换知识背景，携带技能继续训练。** [§4.3 / Algorithm 1](https://arxiv.org/html/2601.11258v2#algorithm1) 将源数据分成不重叠的批次，每轮重新学习当前知识，再注入上一轮技能作为 RL 的起点：
+
+```python
+skill = 0
+for source_batch in disjoint_batches:
+    sft = SFT(original_base, source_batch)
+    rl_start = sft + skill
+    rl = RL(rl_start, source_batch)
+    skill = rl - sft
+```
+
+这是解释性伪代码：每轮 SFT 从同一原始基座开始，跨轮携带的是 skill；最后减去当前轮 `sft`，不是 `rl_start`，才能保留继承的技能与本轮修正。反复更换知识背景，旨在减少增量对单批内容的依赖，让它更接近通用的知识使用能力。轮数并非越多越好：[Table 4](https://arxiv.org/html/2601.11258v2#S5.T4) 固定 10 篇源文档与总 RL 步数，1×10、2×5、5×2、10×1 的准确率依次为 42.9、44.6、45.3、42.1；过度分片反而退步。
+
+![PaST 的 SFT–RL 与 SFT–SFT 更新方向对照](./AI-Algorithms/past-orthogonality-controls.png)
+
+原文 [Figure 2](https://arxiv.org/html/2601.11258v2#S3.F2) 与 [Figure 4](https://arxiv.org/html/2601.11258v2#A2.F4) 拼接，未改数据。横轴是层数，纵轴是参数矩阵，颜色表示更新方向的余弦相似度。左侧 SFT–RL 多接近 0，右侧两次 SFT 更新的正相关更明显；附录 C 补充跨任务和跨域对照。作者据此提出知识与技能更新近乎正交、可分离组合的假设。
+
+边界：观测对象是参数更新方向，不能直接说“SFT 与 RL 本身正交”，也不能据此证明整个网络功能独立、不会遗忘。[附录 D](https://arxiv.org/html/2601.11258v2#A4) 的信号推导依赖激活近似各向同性等假设；归一化并不自动保证这些条件，局部平均信号重叠小也不保证后续非线性计算互不干扰。
+
+**效果提升、迁移方式、成本优势是三层证据。** [Table 1–2 / §5.2](https://arxiv.org/html/2601.11258v2#S5) 报告：SQuAD 单篇闭卷问答，合成数据 SFT 39.7%、SEAL 47.0%、PaST 两轮 56.9%；LooGLE 50 篇目标文档，SFT 30.1% → 一轮 35.0% → 两轮 38.1%；Movies → 20 个源域 RL 未见工具类别，平均成功率 21.9% → 32.2%。这些支持源域训练成果可迁移，但 PaST 额外用了源域 RL，超过只做 SFT 的模型不足以单独证明方法或总成本更优。
+
+更直接的对照来自 [Table 5](https://arxiv.org/html/2601.11258v2#S5.T5) 与 [Table 6](https://arxiv.org/html/2601.11258v2#S5.T6)。下表合并二者，均为 LooGLE 前 10 篇目标文档，不能与上面的 50 篇结果直接混比；RL 时间测于 8 张 A100。
+
+| 做法 | 准确率 | 每篇文档的目标侧 RL 时间 |
+| --- | --- | --- |
+| 只做目标 SFT | 32.9% | 0 |
+| 源 RL 模型直接继续做目标 SFT | 30.3% | — |
+| 先注入技能，再做目标 SFT | 36.5% | — |
+| 先做目标 SFT，再注入技能（PaST） | 44.6% | 0 |
+| 直接在目标域做 RL，75 步 | 44.0% | 72 分钟 |
+| 直接在目标域做 RL，100 步 | 46.2% | 91 分钟 |
+
+Table 5 支持“如何迁移、何时组合”有影响，但不能单凭得分确定内部退化机制；Table 6 支持源技能已训练好时，用复用增量替代大量目标侧 RL，效果接近 75 步目标 RL，仍低于 100 步。0 分钟不包括源域 SFT/RL、目标域 SFT、合并、验证和加载成本；总体是否划算取决于技能能复用多少次。
+
+**工具奖励覆盖格式、执行、终止与最终结果。** [附录 G.3.1](https://arxiv.org/html/2601.11258v2#A7.SS3.SSS1) 的奖励组成如下，各项作用于步骤、终止或整条轨迹，不能只把收益归为抽象推理增强：
+
+| 奖励项 | 条件 | 数值 |
+| --- | --- | --- |
+| 步骤 | ReAct 格式正确且 API 调用成功 | +0.1 |
+| 步骤 | 格式正确但调用失败 | −0.1 |
+| 步骤 | 格式错误或编造 API 名称 | −0.2 |
+| 终止 | 主动调用 `Finish` | +0.2 |
+| 终止 | 达到 5 轮上限仍未调用 `Finish` | −0.5 |
+| 最终结果 | 解决 / 部分解决 / 未解决 | +1 / +0.5 / 0 |
+
+模型推理时只看到 API 名称，目标 API schema 已通过 SFT 写入参数；“zero-shot”指未在目标类别上做源域 RL，不是从未学习其工具知识。环境由 GPT-4o-mini 模拟，GPT-4.1 判断最终解决程度，不能直接外推到真实 API 部署。[LooGLE 附录 F.5](https://arxiv.org/html/2601.11258v2#A6.SS5) 的三次运行指温度 1.0 的三次生成，不等于三次独立训练或已经验证统计显著。
+
+**延伸设想：每个垂直领域训练一套可复用技能增量。** 可以在共同基座上分别积累法律、金融、工具操作等领域经验，再与相应目标知识组合；这是潜在方向，论文没有验证多领域技能库或多份 skill 任意叠加。需要检验源知识残留、领域内与跨域迁移、技能互扰、旧能力退化、版本回滚和总成本。可记录 `base_revision / source_sft_revision / source_rl_revision / skill_revision / target_sft_revision / lambda`，在相同目标 SFT checkpoint 上对照无增量、学得增量与同范数随机增量，同时测知识正确率、错误恢复、工具幻觉、终止行为与旧任务回归。
+
+### SHINE：上下文到参数的超网络
+
+[SHINE 论文 v3](https://arxiv.org/html/2602.06358v3) 的核心问题是：**能否预先学会“如何把一篇上下文写成 LoRA”，使新文档到来时只做前向计算，不再逐篇运行梯度优化？** 主贡献是上下文编码与高维参数生成架构，属于模型适应专题。它验证了快速生成文档 adapter 的可行性；参数能被保存，不等于已经解决长期持续学习。
+
+本节依据论文正文、相关附录与[官方实现固定版本](https://github.com/MuLabPKU/SHINE/tree/fd606798c5d0e0f7d2c82df1204a83f8a1104036)。上文产业报道中的约 0.5 秒是厂商 Demo 口径；下文约 0.3 秒来自论文实验，两者不混用。
+
+进一步的研究问题是：**强教师的监督能否让超网络本身成为通用推理与学习能力的主要载体，通过生成参数驱动开源模型执行？**见 [超网络的智能来源与能力上限](#超网络的智能来源与能力上限)。[闭源教师蒸馏与开源模型服务](#延伸设想闭源教师蒸馏与开源模型服务)讨论其中一种应用路线；通用智能形成与业务专门化是不同问题，以下扩展均需区分架构上的可能性与已有实验证据。
+
+#### 超网络、元学习与摊销适应
+
+先复习三个互有关联、但不等价的概念：
+
+| 概念 | 回答的问题 | 在 SHINE 中的对应 |
+| --- | --- | --- |
+| [Hypernetwork](https://arxiv.org/abs/1609.09106) | 参数由谁产生？用一个网络输出另一个网络的参数 | 上下文编码器与 M2P 共同生成任务 LoRA |
+| Meta-learning | 跨任务训练后，如何更快适应新任务？ | 跨大量上下文学习“怎样生成有用 adapter”；不要求一定使用 MAML 式内外梯度循环 |
+| Amortized adaptation，摊销适应 | 能否把每次求解的工作，预先学成可复用映射？ | 用离线训练换取每篇新上下文的一次参数生成 |
+
+用最简形式比较逐篇优化与摊销映射（是机制对照，不是 SHINE 的逐字算法）：
+
+$$
+\begin{aligned}
+\text{逐篇优化：}\quad &\theta_{k+1}=\theta_k-\eta\nabla_{\theta_k}\mathcal L(c;W_0,\theta_k),\\
+\text{SHINE 部署：}\quad &\theta(c)=g_\phi(c),\qquad y=f_{W_0,\theta(c)}(q),\\
+\text{SHINE 离线训练：}\quad &\min_\phi\ \mathbb E_{(c,q,a)}[-\log p_{W_0,g_\phi(c)}(a\mid q)].
+\end{aligned}
+$$
+
+这里 $\theta$ 是生成的 LoRA 参数集合，$\phi$ 是写入网络的可训练参数，$W_0$ 是冻结基座。适配新上下文不做梯度下降，学习成本却已发生在 $\phi$ 的训练阶段。与 [PaST](#past通过参数增量迁移-rl-技能) 相比，PaST 迁移源域 RL 与 SFT 的参数差，SHINE 则根据当前上下文生成参数；与 [TTT](#test-time-trainingttt推理期学习与适应) 相比，SHINE 以学得的前向映射替代部署时逐步优化。
+
+#### 信息流：两种 LoRA、两次不同用途的模型计算
+
+![SHINE 总体架构：上下文编码、参数生成、带 adapter 回答](./AI-Algorithms/shine-overall-architecture.png)
+
+原图来源：[官方 overall_architecture.png](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/figures/overall_architecture.png)。从左到右读：**左侧读文档，中央产参数，右侧用参数回答**。雪花表示基座不更新，火焰表示离线训练的模块；右侧生成的 LoRA 虽然没有火焰，训练损失仍需要经过它反传到左侧。
+
+1. **编码上下文**：把文档 token 与可学习的 memory embeddings 拼接，送入带 Meta LoRA 的冻结基座。Meta LoRA 是跨文档共享的编码能力，默认 rank 128。
+2. **提取记忆状态**：取所有 Transformer 层末尾 memory tokens 的隐藏状态。learnable embeddings 是共享输入参数，memory states 是随文档变化的激活，二者不是同一个东西。
+3. **M2P 生成 LoRA**：将跨层记忆状态转换、切分并 reshape 成各线性模块的 LoRA 矩阵，默认生成 rank 8。
+4. **使用 adapter 回答**：同一个基座改用 generated LoRA，输入问题与必要的对话历史，不再输入原始文档。一个文档生成一次 adapter，可用于多轮问答。
+
+“一次前向”指写入超网络的一次计算路径，包含基座编码和 M2P；后续答案仍需自回归生成。“无上下文回答”也只是省去原始文档，并不删除问题、chat template 或已有对话历史。
+
+#### 从 attention 基础理解 memory tokens
+
+对因果 Transformer，位置 $i$ 只能看到不晚于自己的位置。把 memory tokens 放在文档**之后**，它们才能注意到整个文档；若放在前面且不改 mask，就看不到后面的内容。普通 attention 的加权汇聚为：
+
+$$
+\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+\mathrm{Mask}\right)V.
+$$
+
+memory tokens 可理解为学习到的信息读取位置；最终保留什么，由下游重建与问答损失决定，并不保证每个槽对应一个可解释事实。取所有层的状态保留了不同计算深度的表示，也为不同目标层生成参数提供更多信息。论文附录 E.2 的仅末层对照更差，支持该设计，但不能据此把每一层固定解释为某种语义。
+
+默认 Qwen3-8B 有 $L=36$ 层、隐藏维度 $H=4096$，memory token 数 $M=148$。加上 batch 后：
+
+$$
+\begin{aligned}
+X_{\mathrm{input}}&\in\mathbb R^{B\times(N+M)\times H},\\
+\mathcal M&\in\mathbb R^{B\times L\times M\times H},\\
+M&=\left\lceil\frac{rD}{H}\right\rceil,\qquad MH\ge rD.
+\end{aligned}
+$$
+
+$D$ 是每个基座层中被适配线性模块的输入、输出维度之和，$rD$ 是该层待生成的 LoRA 参数量。这个选取保证输出所需的数值槽位足够，**不证明上下文无损压缩**；维度相等不能保证语义、精确字符串、罕见事实都被保存。默认训练上下文上限为 1,150 tokens，不能把它直接视为任意长文档编码器。
+
+#### M2P：沿层与 token 两个轴交换信息
+
+![SHINE M2P 架构：层与 memory token 位置编码、交替轴注意力、切分为 LoRA](./AI-Algorithms/shine-m2p-architecture.png)
+
+原图来源：[官方 hypernetwork_architecture.png](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/figures/hypernetwork_architecture.png)。每个位置对应“某个基座层的某个 memory token”。先加入 layer / token 两套可学习位置编码，再交替做双向 column attention 与 row attention，最后展开为目标参数。这里的双向是已知文档表示之间的信息交换，不是让自回归答案偷看未来 token。
+
+| 操作 | 序列中的元素 | 实现中临时形状 | 含义 |
+| --- | --- | --- | --- |
+| Column / 跨层 attention | 同一个 memory token 在不同基座层的状态 | `[B*M, L, H]` | 让深层、浅层表示交流 |
+| Row / 跨 token attention | 同一基座层的各 memory token | `[B*L, M, H]` | 让不同记忆位置交流 |
+| 展开并切片 | 各层的参数槽位 | 最终参数向量 → 各模块 A、B | 输出可执行的 LoRA 参数 |
+
+若将 $LM$ 个位置一次全连接，attention 分数对数目为 $O((LM)^2)$；一组跨层与跨 token attention 为：
+
+$$
+O(ML^2+LM^2),\qquad
+\frac{ML^2+LM^2}{(LM)^2}=\frac1M+\frac1L.
+$$
+
+$L=36,M=148$ 时约为 3.45%。这是忽略隐藏维度等因子的 attention 配对量对比，**不是整个模型 FLOPs 或延迟下降 96.55%**；投影、FFN、编码基座和数据搬运仍有成本，信息交互路径也与全 attention 不同。默认 M2P 是 4 层。附录 E.2 支持其优于简单 MLP；row-only 后期可接近，交替轴注意力主要还有早期收敛优势。附录 E.1 的手工 A/B 耦合先验早期更快、后期反而更差，不能把结构先验一概当成收益。
+
+源码对照：[MetanetworkTransformer.forward，L44 起](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/metanetwork_family.py#L44) 中 `transpose(1, 2).flatten(0, 1)` 是把 batch 与 memory token 合并，让层轴成为序列；另一分支 `flatten(0, 1)` 把 batch 与层合并，让 token 轴成为序列。`unflatten` 恢复轴身份，reshape 本身不会学习信息。默认 `mean_pool_size=1`、`couple_num_layers=0`，不要把文件中可选 pooling / coupling 路径误读成主实验结构。
+
+#### 训练与梯度：冻结基座为何还能训练写入网络
+
+可训练部分是 Meta LoRA、初始 memory embeddings 和 M2P。generated LoRA 是它们的输出，通常不是逐篇独立由 optimizer 长期维护的一组参数。将它们统一记为 $\phi$：
+
+$$
+\theta=g_\phi(c),\qquad
+\frac{\partial\mathcal L}{\partial\phi}
+=\frac{\partial\mathcal L}{\partial f}
+\frac{\partial f_{W_0,\theta}}{\partial\theta}
+\frac{\partial g_\phi(c)}{\partial\phi}.
+$$
+
+**冻结的是 $W_0$ 的更新，不是经过 $W_0$ 的求导路径。** 最小例子：$h=w_0x$，即使 $w_0$ 是常数，仍有 $\partial h/\partial x=w_0$；前面的模块需要这个导数才能学习。训练时若把整个 answering forward 包进 `no_grad()`，或对 generated LoRA `detach()`，就会切断答案损失到写入网络的链路。编码基座也同理：基座不更新，经过它的 Meta LoRA 与 memory embeddings 仍要获得梯度。
+
+这解释了为什么**不需要先为每篇文档训练一套“标准答案 LoRA”**：监督来自最终输出文本，能让回答变好的参数就是学习信号。官方 [Metanetwork.forward / generate_lora_dict，L147 起](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/metanetwork_family.py#L147) 将生成的 `loradict` 直接传给任务模型；[inference.ipynb](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/inference.ipynb) 的推理函数才使用 `@torch.no_grad()`，并在问题循环外生成一次 adapter。仓库使用定制 `LoraQwen` 路径，不能据此假定直接兼容任意原生 PEFT serving。
+
+论文的两阶段训练：
+
+| 阶段 | 给超网络的内容 | 给回答模型的任务 | 作用与边界 |
+| --- | --- | --- | --- |
+| RECON 预训练 | 完整文档 $c$ | 从 `<RECON>` 重建 $c$ | 训练信息保留；不等于任意问题都能答对 |
+| COMP 预训练 | 去掉最后 10%–30% 的 $c'$ | 从 `<COMP>` 生成完整 $c$ | 训练补全与泛化；缺失事实也可能不可推断 |
+| IFT | 文档 $c$ | 输入问题，监督答案 token | 训练从参数中调用知识；多轮任务还保留历史 |
+
+$$
+\begin{aligned}
+\mathcal L_{\mathrm{pre}}&=0.5\mathcal L_{\mathrm{RECON}}+0.5\mathcal L_{\mathrm{COMP}},\\
+\mathcal L_{\mathrm{IFT}}&=-\sum_t\log p_{W_0,g_\phi(c)}(a_t\mid q,a_{<t}).
+\end{aligned}
+$$
+
+预训练用约 6B tokens 的 TransMLA，1 epoch；之后先 MQA（多轮问答）2 epochs，再 1QA（单轮问答）1 epoch。MQA 数据用 Qwen-Flash 为每篇生成 15 个 QA（10 个具体、5 个一般问题），做 JSON 与同模型事实检查，得到 366K 训练样本、各 10K 验证与测试样本。合成答案检查不是独立人工真值；训练包含相关 benchmark 家族的训练集，不能把所有测试结果称为未见任务迁移。
+
+顺带复习评测指标：
+
+$$
+\mathrm{PPL}=\exp\!\left(-\frac1T\sum_{t=1}^{T}\log p(x_t\mid x_{<t})\right),\qquad
+\mathrm{F1}=\frac{2PR}{P+R}.
+$$
+
+PPL 是 token 平均负对数似然的指数，teacher forcing 下每步已给出真实前缀；QA F1 中 $P,R$ 是按评测规则归一化后答案 token 重叠的 precision / recall。重建 PPL、问答 F1、Agent 任务成功率、长期保留率测的是不同能力，不能互相替代。
+
+#### 实验证据：写入很快，但质量与长文档仍有限
+
+论文 Table 1 的 MS MARCO MQA 设置：
+
+| 方法 | QA F1 | 适配时间 / s | 生成时间 / s |
+| --- | ---: | ---: | ---: |
+| Naive | 23.2 | 0.0 | 11.0 |
+| ICL | 69.4 | 0.0 | 14.2 |
+| SFT | 33.0 | 29.3 | 11.0 |
+| SHINE | 55.6 | 0.3 | 11.0 |
+
+同表适配时间比约 $29.3/0.3\approx98$ 倍，不能说完整回答快 98 倍。若只按该表给出的一个生成单位计算，ICL 与 SHINE 的总时间比是 $14.2/(0.3+11.0)\approx1.26$，且 SHINE 的 F1 更低；表中的生成时间也不是 TPOT。缓存 ICL、复用次数、输出长度、batching 和质量约束应另行比较，见 [MLSys：上下文写入参数的摊销成本](./LLM-MLSys.md#上下文写入参数的摊销成本)。
+
+Table 2 的结果不支持“全面超过 ICL”：SQuAD 86.8 → 63.6，HotpotQA 68.7 → 59.0，MuSiQue 36.3 → 28.5；MS MARCO V1 34.2 → 40.7、V2 31.3 → 40.1，2Wiki 48.7 → 60.2（箭头均为 ICL → SHINE）。SQuAD 随长度从 512 / 1K / 2K 增长，SHINE 为 53.4 / 44.5 / 37.5，ICL 仍为 85.9 / 85.1 / 84.9，显示长度泛化压力。
+
+另外三项关键对照：
+
+- **优化更充分的 SFT**：附录 E.3 中 10 conversations、20 epochs 的 LoRA 达到 F1 58.50、适配 187 秒，SHINE 为 55.6、0.3 秒。更准确的结论是速度—质量折中，主表低分 SFT 不是梯度微调能力上限；附录与主表的部分计时也有差异，不混用成统一倍数。
+- **PaST 对照**：附录 B.7 引用 PaST 的 Qwen2.5-7B-Instruct 结果，SHINE 使用 Qwen3-8B。不同 backbone / 协议下的表格并列，不是方法本身更优的严格因果证据。
+- **知识写入之外**：附录 E.5 的 GSM8K 中 SHINE 25.27、ICL 44.48，不能将文档适配结果外推为通用推理技能增强。[README 示例](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/README.md) 给定 “Apple is green” 后仍回答苹果可以是 green / red / yellow；这是先验未被完全覆盖的定性例子，不是可量化失败率。
+
+#### SHINE-R、参数记忆与持续学习的边界
+
+SHINE-R 按块读长文档，每块生成两类 LoRA：一类用于更新后续编码状态中的 Meta LoRA，一类保留供最终模型使用；最终按论文方案拼接各块 adapter。它扩展了顺序写入，但保留的参数随块数线性增长，**不是固定容量的终身记忆**。LongBench 的 ICL / SHINE-R 分别为 HotpotQA 55.9 / 32.7、2Wiki 45.5 / 33.1、MultiFieldQA 49.7 / 22.0、Qasper 42.38 / 20.06、QMSum 22.44 / 19.87，长文档能力仍有明显差距。
+
+##### Meta LoRA 的拼接与跨块递归
+
+依据：[论文 §5.5 / Figure 8](https://arxiv.org/html/2602.06358v3#S5.F8)、[沿 rank 拼接的源码](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/utils/myloradict.py#L24)、[LoraLinear.forward](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/LoraQwen.py#L37)。下面的符号推导统一采用列向量，源码采用行向量；两者是转置关系。递归顺序依据论文图文，矩阵拼接及前向计算依据源码，不将普通推理 notebook 当成完整 SHINE-R 实现。
+
+![SHINE-R 原图：Meta LoRA 增量逐块累积，Generated LoRA 分别保存并最终拼接](./AI-Algorithms/shine-r-architecture.png)
+
+原图中第三块编码器同时保留 `Meta LoRA`、`Meta LoRA 1`、`Meta LoRA 2`，表示**初始 Meta LoRA 加上此前生成的全部更新**。图里的 `Meta LoRA i` 指该块新生成的增量，不是把此前全部状态压缩成一份固定 rank 参数；右侧最终回答则使用各块另一路生成的 `Gen LoRA i`。
+
+**拼接发生在低秩中间维度，等价于相加两个增量矩阵。**考虑同一个线性模块，基座权重为 $W_0\in\mathbb R^{d_{\mathrm{out}}\times d_{\mathrm{in}}}$，旧 Meta LoRA 与新更新分别为：
+
+$$
+\begin{aligned}
+\Delta W_m&=B_mA_m,&
+A_m&\in\mathbb R^{r_m\times d_{\mathrm{in}}},&
+B_m&\in\mathbb R^{d_{\mathrm{out}}\times r_m},\\
+\Delta W_u&=B_uA_u,&
+A_u&\in\mathbb R^{r_u\times d_{\mathrm{in}}},&
+B_u&\in\mathbb R^{d_{\mathrm{out}}\times r_u}.
+\end{aligned}
+$$
+
+这里先把缩放吸收到 A、B 中。将 A 沿行方向拼接，将 B 沿列方向拼接：
+
+$$
+A_{\mathrm{cat}}=
+\begin{bmatrix}A_m\\A_u\end{bmatrix}
+\in\mathbb R^{(r_m+r_u)\times d_{\mathrm{in}}},\qquad
+B_{\mathrm{cat}}=
+\begin{bmatrix}B_m&B_u\end{bmatrix}
+\in\mathbb R^{d_{\mathrm{out}}\times(r_m+r_u)}.
+$$
+
+按分块矩阵乘法，两个 rank 分段分别配对相乘：
+
+$$
+\boxed{
+B_{\mathrm{cat}}A_{\mathrm{cat}}
+=\begin{bmatrix}B_m&B_u\end{bmatrix}
+\begin{bmatrix}A_m\\A_u\end{bmatrix}
+=B_mA_m+B_uA_u
+=\Delta W_m+\Delta W_u.
+}
+$$
+
+这要求两份 adapter 对应同一个目标模块、输入输出维度一致，各自 A/B 的 rank 配对正确；两个 rank 可以不同。拼接是在每层每个目标模块的对应矩阵之间进行，不把不同层的权重直接拼在一起。若直接计算 $(B_m+B_u)(A_m+A_u)$，不仅要求 rank 相同，还会多出 $B_mA_u+B_uA_m$ 两个交叉项，通常不等价。
+
+**拼接后的前向仍是同一层的计算。**先将输入投影到两个低秩空间，再分别映射回同一个输出空间并相加：
+
+$$
+\begin{aligned}
+z&=A_{\mathrm{cat}}x=
+\begin{bmatrix}A_mx\\A_ux\end{bmatrix},\\
+y&=W_0x+B_{\mathrm{cat}}z\\
+ &=W_0x+B_m(A_mx)+B_u(A_ux)\\
+ &=(W_0+\Delta W_m+\Delta W_u)x.
+\end{aligned}
+$$
+
+例如 $d_{\mathrm{in}}=d_{\mathrm{out}}=4096$，假设初始 rank 为 128、新增 rank 为 8，那么 A 从 $128\times4096$ 变为 $136\times4096$，B 从 $4096\times128$ 变为 $4096\times136$；输入输出仍为 4096 维，基座 $W_0$ 仍为 $4096\times4096$。这是维度示例，不把普通 SHINE 的默认 rank 当作已核实的 SHINE-R 全部配置。实现可继续保留低秩乘法，无需显式构造稠密的 $\Delta W$。
+
+**代入 SHINE-R：每块修改“下一块的编码器”。**记初始共享 Meta LoRA 为 $\mathcal M_0$，第 $i$ 块生成的更新用 adapter 为 $\mathcal U_i$，保存供回答的 adapter 为 $\mathcal G_i$；$\oplus$ 表示上面的逐模块 rank 拼接：
+
+$$
+\begin{aligned}
+H_i&=\operatorname{Encoder}_{W_0,\mathcal M_{i-1}}
+([c_i;\mathrm{memory\ embeddings}]),\\
+\mathcal U_i&=\operatorname{M2P}_{\mathrm{with\ extra\ LoRA}}(H_i),\\
+\mathcal G_i&=\operatorname{M2P}_{\mathrm{without\ extra\ LoRA}}(H_i),\\
+\mathcal M_i&=\mathcal M_{i-1}\oplus\mathcal U_i,\\
+\mathcal G_{\mathrm{final}}&=\mathcal G_1\oplus\cdots\oplus\mathcal G_K.
+\end{aligned}
+$$
+
+$H_i$ 表示提取出的跨层 memory states。M2P 内部的额外 LoRA 是生成器自身的适配模块，它生成的 $\mathcal U_i$ 则安装到后续 LLM 编码器，两者所在位置不同。对任一目标线性层，读第 $i$ 块时：
+
+$$
+W^{\mathrm{encode}}_i
+=W_0+\Delta W_{\mathcal M_0}
++\sum_{j=1}^{i-1}\Delta W_{\mathcal U_j}.
+$$
+
+因此，读第三块时使用 $W_0+\Delta W_{\mathcal M_0}+\Delta W_{\mathcal U_1}+\Delta W_{\mathcal U_2}$。新块的 token 经过这套已改变的计算，得到的 memory states 再决定下一份更新；前文通过参数影响后文的表示，这就是递归。最终回答使用的是 $W_0+\sum_{j=1}^{K}\Delta W_{\mathcal G_j}$ 这条独立的参数路径。上述都是每个对应模块的表达式，整个 Transformer 仍含 attention、归一化和非线性运算。
+
+**源码如何对应矩阵公式。**仓库的 `rl` 布局使用行向量输入 X，A 为 `[batch, in, r]`，B 为 `[batch, r, out]`，所以拼接轴与上面的列向量写法相反：
+
+```python
+A_cat = torch.cat([A_old, A_update], dim=2)  # [batch, in, r_old+r_update]
+B_cat = torch.cat([B_old, B_update], dim=1)  # [batch, r_old+r_update, out]
+# 忽略 batch 广播、bias：
+Y = X @ W0.T + (X @ A_cat) @ B_cat
+```
+
+若使用 adapter bias C，[拼接函数](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/utils/myloradict.py#L77)将 C 相加。这里的等价是给定输入时的线性模块等价，不意味着两份 adapter 的模型输出可直接相加，也不保证任意独立训练的知识互不干扰。虽然后来固定下来的增量矩阵之和可交换，$\mathcal U_i$ 的生成依赖之前状态，改变文档块顺序仍可能改变结果。
+
+**缩放与容量需要保留原含义。**一般 LoRA 若为 $s_mB_mA_m+s_uB_uA_u$，可以把 B 拼为 $[s_mB_m\ \ s_uB_u]$，或把正缩放的平方根分别乘进各自的 A、B。不能在拼接后随意套用新的 $\alpha/(r_m+r_u)$，否则会改变原有更新强度。SHINE 的[参数生成代码](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/LoraQwen.py#L88)已将 `sqrt(scale)` 分别乘入 A、B，C 乘 `scale`；`LoraLinear.forward` 直接计算并相加，没有再乘新的 rank 归一化因子。
+
+若每块更新与保存的 rank 分别固定为 $r_u,r_g$，则读完第 $i$ 块后，累积 Meta LoRA 的存储 rank 为 $r_0+i r_u$，最终回答 adapter 为 $K r_g$；实际矩阵秩至多为存储 rank 与输入输出维度的最小值，不一定等于 rank 之和。**拼接可以精确保留增量之和，但不会把状态压回固定容量**：存储及未合并低秩路径的计算随 rank 增长。它提供可执行的参数组合方式，语义效果仍依赖训练与评测。
+
+需要分开三个问题：**能生成参数、能复用参数、能长期可靠更新参数**。原文主要证明第一项并展示第二项；互相冲突的事实、精确值覆盖、非连贯输入、分布外任务、跨会话多次更新、遗忘与细粒度删除仍需单独验证。整体卸载 adapter 是停用一份参数载体，不等于从混合 adapter 中精确删除某条事实；任意多份 LoRA 也不能默认安全相加。
+
+应用设计可保留 `source_revision / base_revision / writer_revision / adapter_revision / scope / quality_eval / expiry / rollback_ref`，并分别测首次写入、重复问答、事实冲突、旧知识回归、跨会话复用和总成本。这是从论文导出的工程建议，非仓库已具备的完整产品能力；外部 memory 与参数 memory 的分工见 [Agent 记忆笔记](./AI-Applied-Algorithms.md)。
+
+#### 超网络的智能来源与能力上限
+
+**超网络有可能承载强推理与通用学习能力；输出参数这一形式不将它限定为知识压缩器。**这里的强能力指跨任务推理、从少量示例归纳新规则、组合已有知识并有效适应新问题，不把一次问答提升等同于通用智能。Hypernetwork 描述的是“网络生成另一个网络的参数”这一接口，内部仍可以进行复杂计算；但这种接口本身也不保证产生强智能。SHINE 提供了可训练路径，其当前实验并未建立通用强智能的结论。
+
+先区分两类参数：$\phi$ 是写入网络长期训练得到的权重，$\theta$ 是针对当前任务生成的权重。强教师的数据可以通过最终输出损失，**直接把能力训练进 $\phi$**，不要求先对开源基座做普通蒸馏。冻结的 $W_0$ 仍参与执行；整个系统的计算和容量包括超网络，而非只有 $W_0$。因此“基座冻结，所以最多只能释放它原来已有的能力”不是一般成立的能力上限；固定基座上新增的模块可以学习新的行为。实际约束来自写入网络的输入信息、计算量、可修改的模块与秩、优化难度和训练分布。
+
+超网络得到什么输入，决定它能承担哪一类思考。设 $s$ 为任务说明 / 示例 / 经验，$x$ 为待解问题：
+
+| 形式 | 超网络可能承担的计算 | 主要检验 |
+| --- | --- | --- |
+| $\theta_s=g_\phi(s)$，再用 $f_{W_0,\theta_s}(x)$ 解题 | 从示例归纳任务规则，将可复用策略写入参数；类似学会如何构造一个解题器 | 同一组生成参数能否解未见输入、泛化到新任务规则 |
+| $\theta_{s,x}=g_\phi(s,x)$，再用 $f_{W_0,\theta_{s,x}}(x)$ 解题 | 直接分析当前问题，把问题相关的计算结果或策略编码成参数 | 超网络新增计算是否提升新问题推理；是否只换一种形式编码当前答案 |
+| 多步计算 / 反馈后再生成或修正参数 | 迭代推理、试错和修正学习策略 | 额外计算带来的收益、稳定性与跨任务泛化；这不是原版 SHINE 已验证的机制 |
+
+原版 SHINE 主要采用第一种：生成 adapter 时只看文档，后续问题才给回答模型。它不能提前对尚未看到的具体问题推理，但可以尝试从文档与示例中归纳以后可用的解题规律。将问题也交给超网络、增加潜在状态迭代或反馈循环，属于架构扩展；不能直接引用原文的 0.3 秒来估计这些设计。
+
+以闭源教师 $T$ 的可验证输出 $y^*$ 为监督，两种输入方式都可通过以下路径训练（概念性扩展）：
+
+$$
+\begin{aligned}
+y^*&\sim T(\cdot\mid s,x),\qquad
+\theta=g_\phi(s)\ \text{或}\ g_\phi(s,x),\\
+\mathcal L(\phi)&=-\sum_t\log p_{W_0,\theta}(y_t^*\mid x,y_{<t}^*),\\
+\nabla_\phi\mathcal L&=
+\left(\frac{\partial\theta}{\partial\phi}\right)^\top\nabla_\theta\mathcal L.
+\end{aligned}
+$$
+
+教师不需要可微，也不需要提供一套“正确 LoRA”。但输出模仿只约束行为，不唯一确定内部学到了什么；同一份训练损失可以由记忆答案、路由现成策略或归纳新算法等不同机制降低。训练要包含足够广的任务、可检验的推理 / 执行结果与未见任务评测，才能推动并识别更通用的能力。增加教师强度或数据量不保证优化一定找到这样的机制。
+
+一个用于区分机制的研究任务是：每次生成一种新的符号变换规则，给出少量输入输出示例；超网络归纳规则并生成 adapter，执行模型处理该任务的未见输入。进一步保留未见规则组合、变化后的符号编码和更长求解长度。如果只有实例记忆或熟悉任务路由有效，不能据此宣称学会了通用学习算法。测试答案不进入支持材料；按任务族划分数据，避免把同一任务的换皮问题当作泛化。
+
+**SHINE 的“超网络”还包含用于读文档的基座与 Meta LoRA，不只是 4 层 M2P。**[官方实现](https://github.com/MuLabPKU/SHINE/blob/fd606798c5d0e0f7d2c82df1204a83f8a1104036/metanetwork_family.py#L147)先提取 memory states，再用 M2P 生成参数。因此当前表现不能全部归因于 M2P 自己具有推理能力。[论文附录 E.5](https://arxiv.org/html/2602.06358v3)报告的 GSM8K 数值为 SHINE 25.27、ICL 44.48；该表统一使用 SQuAD 风格 F1，不是常见的 GSM8K 精确答案准确率。作者提出先前 IFT 推理数据不足、未专门用 RL / 蒸馏增强的解释，但本附录也做了含 GSM8K 的联合任务微调；这些结果既未证明强智能，也不能据此断言超网络结构不可能学会推理。
+
+若要判断能力主要学到了哪里，可固定基座与任务分布，对照训练前后的写入网络、静态 LoRA、仅增加相当计算量的普通推理网络，并消融编码器 / M2P 或错配生成参数；同时测未见任务、组合泛化和分布变化。比较总参数、实际计算与训练数据，不能只拿“冻结的 8B 执行模型”代表整个系统的容量。即使证明超网络对能力提升有因果贡献，也不能单凭最终分数唯一定位某种内部认知机制。
+
+这条路线的研究价值是**把推理、学习与参数构造连接起来，探索能否学会生成新的有效计算方式**。若生成的参数可跨很多问题复用，较重的思考可能被摊销；若每道题都要运行强超网络，则要计入完整生成成本。通用能力增强与 serving 更便宜需要分别成立，输出权重不会自动让思考计算消失。
+
+#### 延伸设想：闭源教师蒸馏与开源模型服务
+
+**问题：用闭源强模型生成的数据训练 SHINE 式超网络，能否同时改善开源模型的任务质量与 serving 成本？** 这条训练链路成立，但收益需要实验。它连接了知识蒸馏、条件参数生成与摊销适应：教师提供行为监督，超网络学习为不同上下文生成 adapter，开源基座负责在线执行。
+
+已有依据是 [SHINE v3 的 MS MARCO MQA 数据构建附录](https://arxiv.org/html/2602.06358v3)：作者已用 Qwen-Flash 生成每篇 15 个 QA，并用同一模型检查事实一致性。这证明 API 教师的文本输出可以用于训练超网络；该数据主要要求答案可从原文抽取，并没有证明“换成更强教师就能迁移通用推理能力”。
+
+**训练不需要穿过闭源 API 求导。** 设教师 $T$ 看到文档 / 规则 / schema $c$ 与问题 $q$，生成可验证回答 $a^*$；写入网络只根据 $c$ 生成参数：
+
+$$
+\begin{aligned}
+a^*&\sim T(\cdot\mid c,q),\qquad \theta_c=g_\phi(c),\\
+\mathcal L_{\mathrm{distill}}(\phi)
+&=-\mathbb E_{c,q,a^*}\sum_t\log p_{W_0,\theta_c}(a_t^*\mid q,a_{<t}^*).
+\end{aligned}
+$$
+
+API 返回的文本作为固定标签；梯度通过开源学生与生成的 adapter 回到 $g_\phi$，无需教师权重、隐藏状态或完整 logits。这是基于采样输出的蒸馏，不等于匹配教师的完整概率分布。普通蒸馏通常学一套共享学生权重，这里学习的是随 $c$ 变化的一族 adapter；生成结果仍绑定特定学生基座与模块布局，不能跨不同模型架构直接搬用。
+
+需要区分两个部署方案：
+
+| 方案 | 新业务到来时做什么 | 教师成本何时发生 | 适用判断 |
+| --- | --- | --- | --- |
+| 教师只参与离线训练 | 输入新上下文，超网络直接生成 adapter | 训练数据构建阶段 | 接近原 SHINE；关键是泛化到未见业务 / 文档 |
+| 教师也参与新业务准备 | 教师先将新规则整理为可验证示例、边界条件和结构化说明，再交给超网络 | 每次新业务或规则版本准备时 | 可以吸收更具体的行为知识，但增加每次准备成本；需按这种输入分布训练写入网络 |
+
+第二种方案可以先在支持集上让教师纠错，再复用 adapter 服务许多问题；不能把测试问题的答案提前混入 adapter 输入。若每个请求都在线调用教师、再生成一次 adapter，教师调用和参数切换可能抵消 serving 收益。
+
+**业务专门化是一个可单独验证的 serving 应用。**例如每个租户有独立工具 schema 与业务规则：强教师离线生成正确调用、参数边界、拒绝条件与失败恢复示例，经工具执行 / 单元测试核验；超网络读入该业务支持材料生成 adapter；开源模型处理后续请求。“先普通蒸馏学生、再由超网络处理业务差异”可作为独立的工程备选，不是训练超网络形成通用能力的前提。两条路线应分别评测，也不能假定参数化工具知识能替代运行时权限控制与 schema 校验。
+
+| 期望收益 | 可能机制 | 关键约束 |
+| --- | --- | --- |
+| 质量更好 | 教师提供更好的答案、对比样例与纠错信号 | 教师正确性、学生容量、写入保真、分布外泛化；更长推理文本不保证更易蒸馏 |
+| 在线成本更低 | 小模型承接流量，同一 adapter 复用多次，减少长上下文读取 | 需对比缓存 ICL、RAG、摘要与普通蒸馏；写入、存储、加载和路由仍有成本 |
+| 新业务接入更快 | 以参数生成替代逐业务梯度训练 | 训练过的任务分布必须覆盖新业务，复杂输入可能超出 SHINE 的长度 / 表达范围 |
+| serving 吞吐更高 | 减少上下文长度带来的计算与 KV 负担 | 高 adapter 多样性可能降低 batching 效率、增加切换与显存压力；不是 kernel 自动加速 |
+
+**最小实验应隔离“数据变好”与“架构变好”。** 固定学生基座规模、教师数据预算和评测集，比较：① 开源基座 + 原文 / prefix cache；② 同一教师数据做普通学生蒸馏 + 上下文；③ 同一教师数据逐业务 LoRA 微调；④ 同一教师数据训练 SHINE 式超网络。同时用较弱教师或原始监督替换第四组的数据，测教师增益；摘要 / soft prompt 可作为进一步压缩基线。保持原 SHINE 超网络预训练起点一致，或将它的额外预训练单列计费，不能只比最后一段微调成本。
+
+按业务、文档或工具集合划分训练与测试，而非只把同一文档的问题随机拆开；在每个新业务内再分支持集与未见查询。测任务正确率 / 工具执行成功率、罕见边界与冲突规则、旧能力回归，以及不同复用次数和 adapter 多样性下的 TTFT、TPOT、吞吐、显存与总费用。只有在质量达标时，降低单位成功任务的总成本，才能说明改善了 serving；质量不及普通蒸馏或收益被缓存基线抹平时，应优先使用更简单的路线。
+
+#### 复习自检
+
+1. **给一篇新文档，部署时更新谁？** 生成新的 task LoRA；已训练好的 Meta LoRA / M2P 不为这篇文档再跑梯度优化，基座也不更新。
+2. **为什么 memory tokens 放最后？** 因果 mask 下才能读取前面的整篇文档；M2P 的双向 attention 发生在编码完成的记忆状态之间。
+3. **为什么冻结基座不等于 `no_grad()`？** 前面的可训练模块仍需要经过基座计算的导数；冻结参数只取消它们自己的更新。
+4. **rank 8 表示只记住 8 条事实吗？** 不是。它限制单个线性模块增量的矩阵秩，不是语义事实数量，多个模块与非线性共同产生行为。
+5. **0.3 秒和低 PPL 分别证明什么？** 指定设备 / 协议的适配延迟，以及指定重建任务的预测能力；都不足以证明长期记忆可靠或完整回答有同倍加速。
+
 ## SFT (Supervised Finetuning)、对齐
 
 ### Intro
@@ -2744,7 +3184,26 @@ $$
 
 ![image-20231026212212239](./AI-Algorithms/LoRA.png)
 
+**LoRA 先是一种参数增量的表示形式，再是一种常用微调方法。** 对列向量输入 $x$，冻结原矩阵 $W_0$，通过低秩分解表示增量：
 
+$$
+\begin{aligned}
+W_0&\in\mathbb R^{d_{\mathrm{out}}\times d_{\mathrm{in}}},\quad
+A\in\mathbb R^{r\times d_{\mathrm{in}}},\quad
+B\in\mathbb R^{d_{\mathrm{out}}\times r},\\
+y&=W_0x+\frac\alpha rB(Ax),\qquad \mathrm{rank}(BA)\le r,\\
+P_{\mathrm{LoRA}}&=r(d_{\mathrm{in}}+d_{\mathrm{out}}),\quad
+P_{\mathrm{full}}=d_{\mathrm{in}}d_{\mathrm{out}}.
+\end{aligned}
+$$
+
+例如 $4096\times4096$ 的矩阵有 16,777,216 个参数，rank 8 的 A、B 共 65,536 个，约为 0.39%。这是**单个矩阵可训练增量**的压缩比例，不是全模型显存下降到 0.39%；基座权重、激活和其他训练状态仍占空间。计算 $Ax$ 将输入映射到 $r$ 维，再用 $B$ 映射回输出空间；低秩约束的是增量，不是 $W_0+BA$ 的总秩，也不是“只能存 $r$ 条事实”。
+
+常规 LoRA 用梯度学习 A、B，常见初始化是 A 随机、B 为零，使起始增量为零；[SHINE](#shine上下文到参数的超网络) 则让超网络根据文档输出 A、B。**同样的 LoRA 形式，可以有不同的参数获取方式。** 有些论文使用行向量约定 $xAB$，此时 $A\in\mathbb R^{d_{\mathrm{in}}\times r},B\in\mathbb R^{r\times d_{\mathrm{out}}}$；先核对输入、输出维度，不应只凭 A/B 名字判断代码是否反了。
+
+独立 adapter 可以按需加载，推理时也可将适用的固定增量并入基座；这两种部署方式的切换、缓存与多租户代价不同。卸载整个 adapter 不保证能精确撤销其中某一条知识，多个 adapter 相加也不自动保持各自能力。来源：[LoRA 原论文](https://arxiv.org/abs/2106.09685)、[Hugging Face PEFT 概念说明](https://huggingface.co/docs/peft/main/en/conceptual_guides/lora)。
+
+多个低秩增量可以通过 A、B 沿 rank 维成对拼接，精确表示其矩阵之和；这一代数性质与组合后的任务质量是两层问题。形状推导、缩放处理和实际前向计算见 [SHINE-R：Meta LoRA 的拼接与跨块递归](#meta-lora-的拼接与跨块递归)。
 
 https://github.com/huggingface/peft
 
