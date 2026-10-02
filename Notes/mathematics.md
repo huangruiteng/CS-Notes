@@ -196,7 +196,7 @@ $$
 
 最直接的处理是：**用开发／验证集选择方案，冻结后再用未参与选择的测试集评估。** 冻结应覆盖方案、主要指标、分析和停止规则；划分按独立采样单位处理相关性与泄漏。若继续根据测试反馈修改方案，该集合也进入优化循环，需要新的独立测试，或明确考虑完整选择过程的方法。样本有限时，nested cross-validation 可让外层评估内层的选型流程；不能再根据外层成绩挑方案而仍把它当作未参与选择的证据。
 
-多重比较、选择后估计和序贯监测是不同维度，可能同时存在；调整其中一个不自动解决其余问题。单纯多做几次 bootstrap、降低某次 P 值或随意加宽区间，都不能替代正确的实验设计。工程操作见 [A/B Testing](./Software-Engineering.md#ab-testing)，模型外围代码搜索的实例见 [Agent 评测笔记](./AI-Applied-Algorithms.md)。
+多重比较、选择后估计和序贯监测是不同维度，可能同时存在；调整其中一个不自动解决其余问题。单纯多做几次 bootstrap、降低某次 P 值或随意加宽区间，都不能替代正确的实验设计。工程操作见 [A/B Testing](./Software-Engineering.md#ab-testing)，模型外围代码搜索的实例见 [Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)。
 
 #### 集成检验与元分析 (Ensemble Testing & Meta-Analysis)
 

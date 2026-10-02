@@ -13,6 +13,7 @@
 | **OpenForum Europe，[EU Open Source Policy Summit 2023 圆桌](https://www.youtube.com/watch?v=3cw75N8AzQ8)** | 从授权、专利、标准和互惠理解开源如何降低协作成本；嘉宾立场与法律条文分别判断。 |
 | **Open Source Initiative，[Open Source Definition](https://opensource.org/osd)** | 判断许可证是否属于开源；源码可读、允许商用、开放治理是不同维度。 |
 | **CHAOSS，[社区健康指标](https://github.com/chaoss/metrics#readme)** | 衡量贡献、响应和协作可持续性；与产品采用、商业收入指标配合使用。 |
+| **Apache Logging Services，[安全公告](https://logging.apache.org/security.html)与 [STF 资助公告](https://logging.apache.org/blog/20231214-announcing-support-from-the-stf.html)** | 用 Log4j 的漏洞修复与维护者资助，具体讨论安全责任、供应链和维护投入。 |
 
 **合作前先对齐的判断**：开发者社区、使用者与采购者可能是三群人；Stars、下载和收入不能互相替代。付费产品应解决客户的业务或运维问题，免费与收费边界需要稳定、可解释。社区信任、维护能力、产品交付和中立性可以构成竞争优势，但都需要投入与证据。
 
@@ -23,7 +24,7 @@
 | 讨论开放边界和治理 | [许可证](#3-开源许可证和知识产权管理) → [治理](#5-治理和托管模式) → [贡献者与维护者](#7-将贡献者发展为维护者) |
 | 形成合作方案 | [合作讨论清单](#合作讨论清单)；案例按需回查，第 15 章与 Zowe 附录提供工程和生态对照 |
 
-相关笔记：[非技术知识：开源与维护者](./非技术知识.md#开源)、[软件工程](./Software-Engineering.md)。文中原图为 a16z 2019 年演示稿截图，来源与读图边界随图说明；案例数字均按标注的历史时间理解。
+相关笔记：[软件著作权与任职期间归属](./非技术知识.md#软件著作权保护范围与任职期间归属)、[软件工程](./Software-Engineering.md)。文中原图为 a16z 2019 年演示稿截图，来源与读图边界随图说明；案例数字均按标注的历史时间理解。
 
 ## 1 什么是开源，为什么要开源
 
@@ -111,6 +112,8 @@
 
 ## 3 开源许可证和知识产权管理
 
+先分清著作权归属，再判断如何授权使用。软件还可能涉及商业秘密和专利；给仓库添加开源许可证，本身不能解决权属争议，也不自动解除其他义务。任职期间软件归属的具体条件见[软件著作权：保护范围与任职期间归属](./非技术知识.md#软件著作权保护范围与任职期间归属)。
+
 ### 3.1 许可证（License）
 
 * 宽松（permissive）：MIT / BSD / Apache 2.0 通常允许纳入闭源产品再分发，仍须履行各自声明等义务。
@@ -123,6 +126,8 @@
 2001 年 Ballmer 称 Linux 是在知识产权意义上附着到其他软件的“癌症”（[同期报道](https://www.theregister.com/2001/06/02/ballmer_linux_is_a_cancer/)），背景是微软专有授权模式与 GPL 的冲突。他把“衍生作品的分发义务”扩大为“使用任何开源就必须开放其余软件”，并不准确。[Linux 的系统调用说明](https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note)明确，正常调用内核服务的用户程序不因此成为内核衍生作品。微软后来在云业务中受益于 Linux，并于 [2016 年加入 Linux 基金会](https://www.linuxfoundation.org/press/press-release/microsoft-fortifies-commitment-to-open-source-becomes-linux-foundation-platinum-member)：竞争关系会随收费层次改变。
 
 * Source-available 与开源许可证要区分：Raft 使用的 **FSL-1.1-ALv2** 限制竞争性用途，每个版本在发布两年后另获 Apache 2.0 授权。当前源码可读、可在许可范围内使用，不等于当前已按 Apache 2.0 开源。参考：[Raft LICENSE](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/LICENSE#L30)、[Future License](https://github.com/botiverse/raft-source/blob/05f7d8fd77d2535f993d5d90b85118438bc18216/LICENSE#L87)。
+
+采用依赖时，应按具体版本记录许可证、修改与分发方式、声明及源码义务。MPL 的文件级边界意味着，分发受覆盖文件的修改版时须履行相应许可要求，不能只用“保留作者名字”概括。延伸线索：[《别不信，开源真的有毒》](https://mp.weixin.qq.com/s/eGdlu1G5jcMu8-_NAAzZJw)介绍依赖管理工具 NaiveSystems Depend，属于产品推广材料；工具可辅助清点依赖，不能代替许可证原文、权属判断和具体使用方式的审查。
 
 ### 3.2 TiVo 化 → GPLv3
 
@@ -327,6 +332,20 @@ Git history 仍用于定位版本、bisect、审计和追踪演化；决策与�
   * 公共演讲/布道：能代表项目对外沟通；
   * 社群管理：能处理冲突、授权、带人。
 * 成长路径本质：从“做贡献”到“做判断、带人、定规则”；项目要主动把责任和信任移交，而不是等贡献者自己抢。
+
+### Log4j / Log4Shell：维护成本与安全责任
+
+来源：[CVE-2021-44228（NVD）](https://nvd.nist.gov/vuln/detail/CVE-2021-44228)、[Apache 安全公告](https://logging.apache.org/security.html)、[STF 资助公告](https://logging.apache.org/blog/20231214-announcing-support-from-the-stf.html)；维护者处境与下载长尾分别参考[开源中国报道](https://www.oschina.net/news/173781/open-source-authors-and-companies)、[CSO Online 2024 年报道](https://www.csoonline.com/article/3560646/malicious-open-source-software-packages-have-exploded-in-2024.html)。原笔记整理于 2026-08-16，整合时复核 Apache 的安全与资助公告。
+
+**广泛采用不会自动支付维护成本。**2021 年 12 月公开的 Log4Shell 是 Log4j 2 中与 JNDI lookup 有关的远程代码执行漏洞，NVD 给出 CVSS 3.x 10.0。日志库嵌入大量 Java 应用，漏洞很快被利用，各公司必须识别间接依赖、核对配置并升级；应用知名度不等于每个版本都受影响。
+
+- **少数维护者承受全球需求**：媒体报道 Ralph Goers 当时只有 3 个 GitHub 赞助者，志愿维护者在连续修补之外还面对重复报告与指责。Apache 后来的公告也确认，项目长期主要依靠无偿志愿者。这里的“白嫖、无限责任”描述资源与期待的不对称，不能理解为维护者依法承担无限责任，也不能断言从未有任何资助。
+- **补丁也是高压迭代**：Java 8 及以上版本线先有 2.15.0；Apache 随后确认其修复在部分非默认配置下不完整。2.16.0 处理 CVE-2021-45046，2.17.0 处理 CVE-2021-45105 的递归拒绝服务问题，2.17.1 再处理 CVE-2021-44832。每次都应看漏洞、配置和版本范围，不能把这组历史版本当作今天的升级建议。
+- **漏洞有长期尾部**：CSO Online 在 2024 年转述，约 13% 的 Log4j 下载仍涉及易受攻击版本。这是当时的下载口径，不是受影响企业比例；新闻热度下降，并不意味着下游升级已完成。
+
+2023 年 12 月，STF 开始支持 Christian Grobmeier、Piotr Karwasz、Volkan Yazıcı 三名维护者，与项目管理委员会协作推进安全、质量和功能改进。公告列出的已完成工作包括 CI 发布流水线、代码与依赖现代化，以及为发布产物提供 **SBOM（软件物料清单）与 VDR（漏洞披露报告）**；文档、测试和稳定性是继续投入的方向。三人获得资助是公告事实，不能由此自行推断各人的全职或离职安排。
+
+合作上的启发是把关键依赖当作需要长期维护的基础设施：除了扫描漏洞，还要落实依赖清单、版本与升级通道、维护人力、资金来源和事故响应职责。SBOM 帮助回答“用了什么”，VDR 帮助传递漏洞状态，二者都不能替代实际升级和验证。资助也不自动等于有 SLA 的商业支持合同；应与[服务模式和交付责任](#102-商业模式与交付责任)分开约定。
 
 ### Agent 时代的贡献接口：意图、实现与验证（我的拓展）
 

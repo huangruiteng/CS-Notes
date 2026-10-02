@@ -371,7 +371,7 @@ Agentic Model 就是能支持 Agent 能力的模型。总结来说，Agent 需�
 * **基础设施自优化**：推理系统优化（内核、调度、量化、算子）本质是代码工程任务，GLM-5.3 驱动的 infra agent 协助工程师开发优化算子、诊断性能瓶颈、改进部署栈（GLM-5.3-Flash 推理引擎由此完成，端到端性能提升 3 倍）；slime 让训练与大规模推理 rollout 共用一套数据流
 * **RSI 边界**：2026 上半年已出现早期形态（GLM-5.3 参与优化服务 GLM 自身的推理引擎、GLM 生成的环境训练下一代 GLM），但回路里仍站着大量工程师；能力评估与风险判断最终由人裁量，并引入外部机构独立评估
 * **一手细节（2026-09 补充）**：Z.ai 官方复盘 [Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure) 把「基础设施自优化」这条闭环展开到工程细节——10 万+ 国产加速器承载全部生产流量、不到两周上线、端到端约 3× 的推理系统数据见 [LLM-MLSys.md](./LLM-MLSys.md#glm-53-flash-ox-alpha成本前沿架构与国芯推理)；agent 侧的 dense feedback 三条判据（可归因 / 可验证 / 可判定）、三层反馈与三个 case（KDA CP 的 TF32 精度、KV Transfer 的 GIL 阻塞、KDA Decode Kernel 的 1.71× 重切分）见 [AI-Agent-Engineering.md](./AI-Agent-Engineering.md#glm-infra-agent把端到端指标拆成可归因的-dense-feedback-闭环)。官方原文明确 `We have not yet reached recursive self-improvement.`
-* **资本面对照**：这条技术线在 2026-09 已成为一级市场主题——智谱约 50 亿美元融资被普遍解读为「下场做 RSI」，VC 投的是研究方向而非商业模式。区分「谁在讲 RSI」与「回路里哪一段真的交给了 AI」的行业观察见 [非技术知识.md - 智谱下场，投资人抢投 RSI](./非技术知识.md#ai--llm--agent)。
+* **资本面对照**：这条技术线在 2026-09 已成为一级市场主题——智谱约 50 亿美元融资被普遍解读为「下场做 RSI」，VC 投的是研究方向而非商业模式。同月形成的行业观察序列（谁在讲 RSI → 创业三路径 → 一线验证 → 人才与融资侧）见 [非技术知识.md - 政策与行业趋势](./非技术知识.md#政策与行业趋势)：智谱下场与 VC 逻辑、张牧涵「无涯智远」三路径、AGI House 五小时 RSI 纪要，以及 [投资人开始堵姚顺宇](https://mp.weixin.qq.com/s/S8LG8o8BRfdbd7McQ81HdA)（头部 VC 接触姚顺宇、超衍智能近 4 亿天使轮；人才流向与估值预期是先行指标）。区分「谁在讲 RSI」与「回路里哪一段真的交给了 AI」仍是这条线的基本读法。
 
 #### OpenAI 研究加速度自披露：coding agent 如何改变前沿实验室的研发流程（2026-09）
 
@@ -3054,7 +3054,7 @@ Y = X @ W0.T + (X @ A_cat) @ B_cat
 
 需要分开三个问题：**能生成参数、能复用参数、能长期可靠更新参数**。原文主要证明第一项并展示第二项；互相冲突的事实、精确值覆盖、非连贯输入、分布外任务、跨会话多次更新、遗忘与细粒度删除仍需单独验证。整体卸载 adapter 是停用一份参数载体，不等于从混合 adapter 中精确删除某条事实；任意多份 LoRA 也不能默认安全相加。
 
-应用设计可保留 `source_revision / base_revision / writer_revision / adapter_revision / scope / quality_eval / expiry / rollback_ref`，并分别测首次写入、重复问答、事实冲突、旧知识回归、跨会话复用和总成本。这是从论文导出的工程建议，非仓库已具备的完整产品能力；外部 memory 与参数 memory 的分工见 [Agent 记忆笔记](./AI-Applied-Algorithms.md)。
+应用设计可保留 `source_revision / base_revision / writer_revision / adapter_revision / scope / quality_eval / expiry / rollback_ref`，并分别测首次写入、重复问答、事实冲突、旧知识回归、跨会话复用和总成本。这是从论文导出的工程建议，非仓库已具备的完整产品能力；外部 memory 与参数 memory 的分工见 [记忆载体、写入方式与持久性](./AI-Applied-Algorithms.md#记忆载体写入方式与持久性)。
 
 #### 超网络的智能来源与能力上限
 
@@ -4230,6 +4230,19 @@ $$
 访谈给出的产品口径是 TTFF 约 300–600 ms、端到端 TTFR 约 1 s，单位成本以 YouTube 每小时约 0.2 美元的 CDN/带宽成本为目标。官方技术报告只确认 streaming generation、second-level latency 和低步数蒸馏，没有公开可复现的成本—延迟—质量联合 benchmark；这些数字应视为厂商自述的阶段性工程指标。
 
 这里的“世界模型”是功能主义定义：模型根据可观测的音视频状态和人类动作生成下一状态，服务互动叙事、游戏、直播或数字人。它不等于学习完整物理规律，也不能仅凭 demo 证明开放世界中的因果理解。当前 W1 的限制仍包括专业画质、复杂运动和密集场景；A1 仍会出现动作不一致、交互漂移与物理 grounding 错误。
+
+**Tavus Griffin：首个自称「Human Interaction Model」的全双工视频交互模型（2026-10）**
+
+> 触发来源：[Tavus 推文](https://x.com/tavus/status/2105704169009246248)（2026-10-01）；一手技术页：[Griffin: The First Human Interaction Model](https://www.tavus.io/griffin)（Tavus Research，2026-10-01，作者 Hassaan Raza / Ioannis Patras），本节机制与数字均取自该页并核对了推文口径。
+
+- **主张**：Griffin 自称第一个 **Human Interaction Model（HIM）**——理解并生成面对面实时人类交互的全双工 video-to-video 模型，把「实时感知 + 对话建模 + 表现力视听生成」合到一个系统里。**Griffin-Lite 是 research preview，只开放给受信任测试者**，尚未上 Tavus 平台；完整版计划在安全顾虑解决后发布。
+- **视频图灵测试实验**（核心证据，也是最该追问的部分）：参与者经独立研究平台招募，被告知将与另一位「参与者」做一分钟视频通话聊「今年期待什么」，对方其实是实时生成脸、声音与回应的 PAL。通话后先写下对方答案并给自然度、可信度打分，**最后**才问「你有没有想过对方可能不是真人」，然后统一告知是 AI。结果：54 人中 26 人（**48%**）认为对方是真人；同一协议下旧栈（Phoenix-4.5 + Sparrow-2 + Raven-1）41 人中 1 人（**2.4%**）。信心侧：判「真人」的平均信心 79%、判「AI」的 81%；过半参与者表示通话中压根没起过这个念头，起疑者多在头 20 秒内起疑。7 分制评分：自然 5.4、可信 5.6、想再聊 5.8（其中认为它是 AI 的人仍给 5.4）、感到「真的在听」5.5，**「对话流畅」最低，只有 4.9**。
+- **架构：两个部件、三个并行过程**：① **Continuous Conversational Modeling** 引擎持续读入音频与视频，按**亚秒级 mini-turn** 重新评估对话状态，决定「是否开口 / 说什么 / 怎么说」，输出带 timing、stance、expression、gesture 的表达控制信号；② **Audio-Visual Generation** 引擎（流式语音 + 流式视频）按同一组控制信号同时生成 voice、face、gaze、gesture。感知、决策、生成并发运行，**说话时感知不停**——这正是与 cascade 管线（ASR → LLM → TTS → avatar，要等用户说完才启动、脸的反应约滞后 1.5 秒静音）的核心差别。
+- **流式视频生成：三段蒸馏**：双向多步 diffusion 教师 → ① **Distribution Matching Distillation** 蒸馏成少步 student；② **teacher forcing** 转成逐 latent 自回归（可流式）；③ **Self-Forcing** 用自己生成的历史帧训练，让长自回归 rollout 不漂移，并额外对「续写起点帧」加机制提升稳定性。论文口径的结果：720p、**每 320 ms 出一个 chunk** 的实时生成，且接受多模态流式控制。
+- **评测数字**：视频生成器在 audio-to-video 设定下，H100 上**平均 0.43 秒**（单 latent、无 lookahead），是次快方法的一半；DOVER、FID、THEval 三项第一，LSE-C 口型对齐第二（7.27，作者解释 LSE-C 奖励夸张口型、而 THEval 有校正）。全系统在 **NVIDIA VideoFDB**（Video Full-Duplex Benchmark，NVIDIA 于 2026-09 独立评分）上两轨都最高：generation 轨 **3.83 / 5**（次优 Gemini 2.5 + Anam 2.80，人类参考 3.92，接管时机对齐 TOR 62.8%）；perception 轨 **3.73**（次优 MiniCPM-o 4.5 3.44，Gemini 2.5 Flash Native 3.17、OpenAI gpt-realtime 2.97 均为 audio-only 配置，人类参考 4.20，TOR 73.8%）。它是 15 个被评模型里 perception 最高者，也是唯一同时被评两个 track 的模型；推文里「比次优反应快 37%」对应的就是这套 TOR 口径。
+- **安全与限制（厂商自述）**：他们承认让 HIM 好用的那批性质，同时也能让人误以为对方不是 AI，因此需要额外的对齐与安全流程，正在做 safe disclosure 功能并与 AI 安全机构合作；这正是 Griffin-Lite 不面向客户开放的原因。
+- **定位与边界**：Tavus 把叙事框架叫「human computing」——计算从「操作」变成「共事」，用例是注意到学生没听懂的辅导、排练困难对话、把坏零件举到镜头前一起排查。与上面 Vivix W1/A1 对照：两者都在把「LLM → TTS → avatar」的串联管线换成原生实时生成 loop，但 Vivix 面向世界模型与叙事，Griffin 面向会话本身的非言语信号（gaze、停顿、backchannel、轮次让渡）。共同短板也一样——**没有第三方可复现的评测**：VideoFDB 虽是 NVIDIA 评分，但系统清单、judge 提示与采样协议仍来自厂商材料的转述；Turing 测试是 54 人、单一场景、一分钟通话。
+- 读法：这条最值得抄的不是 48% 这个数字，而是评测口径的两处变化——**把「什么时候反应」（TOR / 接管时机）当作一等指标**，以及**把 perception 与 generation 拆成两个 track 分别评**。这恰好对应 agent 领域里的打断、backchannel 与轮次让渡问题；同时它示范了「同协议对照自家旧系统」和「把人类参考分放在同一张图上」这两条做法。
 
 ## VLA (Vision Language Action) and Robot Foundation Model（具身智能）
 
