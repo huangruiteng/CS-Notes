@@ -8,6 +8,7 @@
 | [personal-workstation/](./personal-workstation/README.md) | 从公开仓库重建个人开发环境、仓库清单与 Astra 交接 |
 | [Learning-Materials/](../Learning-Materials/README.md) | 当前公开素材目录、阅读顺序、讲义与实验 |
 | [Notes/](../Notes/) | 整理后的长期知识笔记 |
+| [skills/](./skills/README.md) | 可移植技能选集、公开审查清单与 dotfiles 链接安装 |
 | 维护者本地状态 | 私有来源、混合 catalog、审查记录与运行证据，不进入 Git |
 
 从仓库根目录验证：

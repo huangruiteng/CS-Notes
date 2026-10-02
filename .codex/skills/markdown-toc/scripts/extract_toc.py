@@ -14,7 +14,20 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 
 def extract_toc(path: Path) -> List[Heading]:
     headings: List[Heading] = []
+    fence = None
     for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if marker:
+            run, tail = marker.groups()
+            if fence is None:
+                if run[0] == "`" and "`" in tail:
+                    continue
+                fence = (run[0], len(run))
+            elif run[0] == fence[0] and len(run) >= fence[1] and not tail.strip():
+                fence = None
+            continue
+        if fence is not None:
+            continue
         match = HEADING_RE.match(line)
         if match:
             level = len(match.group(1))

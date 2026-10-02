@@ -12,7 +12,7 @@ Use this skill to produce a high-signal AI daily report, not a raw hot-list dump
 When the user says `AI热点`, treat it as:
 
 ```text
-Find new AI-related products, papers, viewpoints, and cognition-shifting materials from the tracked sources. Pick the best 10. If an item is longer than 1000 Chinese characters or roughly 700 English words, summarize it in <=100 Chinese characters plus the link. Return a detailed bilingual AI daily report in HTML page format.
+Find new AI-related products, papers, viewpoints, and cognition-shifting materials from the tracked sources. Pick up to 10 well-supported items. If an item is longer than 1000 Chinese characters or roughly 700 English words, summarize it in <=100 Chinese characters plus the link. Return a detailed bilingual AI daily report in HTML page format.
 ```
 
 Default delivery: do not paste the full HTML source into chat. Save a polished HTML report under `.local/ai-hotspots/reports/ai-daily-YYYY-MM-DD.html`, then respond with a compact Markdown digest and a file link. Paste raw HTML only if the user explicitly asks for source code.
@@ -34,7 +34,7 @@ Do not treat social posts or aggregator summaries as final truth.
 
 ## Selection Rules
 
-Pick exactly 10 items unless the user asks for another count. Prefer:
+Aim for 10 items unless the user asks for another count; return fewer when evidence quality is insufficient and explain the coverage. Prefer:
 
 - new products or features with credible adoption or differentiated UX;
 - papers/repos that change agent infra, model behavior, evaluation, memory, RL, inference, or developer tooling;
@@ -69,7 +69,7 @@ Required sections:
 - metadata: generated time, source window, source coverage, unread/access-blocked notes;
 - top 10 list: each item has rank, category, Chinese title, English title, source link, why it matters, bilingual summary, and suggested action;
 - pattern synthesis: 3-5 cross-item trends;
-- user's action queue: 1-3 concrete next actions mapped to the user's Agent infra career line.
+- user's action queue: 1-3 concrete next actions mapped to the user's stated interests.
 
 Visual requirements:
 
@@ -83,6 +83,6 @@ Use concise Chinese first, English second. Do not pad bilingual text if English 
 
 ## Persistence
 
-If the report includes materials that deserve later reading, also add them to `.local/LEARNING_MATERIAL_CANDIDATES.md` using the existing S/A/B/Unread convention from the research material workflow.
+A report does not itself authorize queue mutations. If the user also requests material intake, use the project’s current material owner and supported workflow, verify its receipt/readback, and never append directly to retired candidate files. Without an active owner, provide reading suggestions only.
 
 If access fails, mark the source or item as unread. Never pretend a source was read.

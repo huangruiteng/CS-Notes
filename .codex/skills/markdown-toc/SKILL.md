@@ -15,17 +15,17 @@ Use this skill before editing a long Markdown file, especially when you need to:
 
 ## Quick start
 
-Run the bundled script:
+Resolve `{baseDir}` to this skill’s actual directory, then run the bundled script. It reports ATX (`#`) headings, excluding fenced code; Setext headings and full Markdown parsing are outside its scope:
 
 ```bash
-python3 {baseDir}/scripts/extract_toc.py /absolute/path/to/file.md
+python3 "{baseDir}/scripts/extract_toc.py" /absolute/path/to/file.md
 ```
 
 In this repository, common targets include:
 
 ```bash
-python3 {baseDir}/scripts/extract_toc.py Notes/Gourmet.md
-python3 {baseDir}/scripts/extract_toc.py Notes/AI-Agent-Product&PE.md
+python3 "{baseDir}/scripts/extract_toc.py" Notes/Gourmet.md
+python3 "{baseDir}/scripts/extract_toc.py" "Notes/AI-Agent-Product&PE.md"
 ```
 
 ## Workflow
