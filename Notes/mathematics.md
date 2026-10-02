@@ -117,6 +117,8 @@ $$Var(\bar{Y}) = \frac{\sigma^2}{N}$$
 
 用于判断样本观测结果是否支持某个假设（如 AB Test 中“新策略比旧策略好”），排除随机波动的干扰。
 
+推断还要包含“方案、指标和停止时间怎样选出来”：同一批数据既负责选优又负责证明赢家，普通 P 值和置信区间可能失去原有保证，见 [选优后的统计推断](#选优后的统计推断赢家诅咒多重比较与提前停止)。A/B 中的落地流程见 [实验设计](./Software-Engineering.md#实验设计)。
+
 #### Z-score (标准分数)
 
 *   **定义**：描述观测值距离总体均值有多少个标准差。用于衡量数据点在分布中的相对位置。
@@ -159,6 +161,42 @@ $$Var(\bar{Y}) = \frac{\sigma^2}{N}$$
         $$t = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{\frac{s_1^2}{N_1} + \frac{s_2^2}{N_2}}}$$
         *   $\bar{X}_i, s_i^2, N_i$: 第 $i$ 组的样本均值、样本方差、样本量。
     *   **自由度 (df)**: 计算较复杂（Welch–Satterthwaite equation），通常非整数。
+
+#### 选优后的统计推断：赢家诅咒、多重比较与提前停止
+
+> 参考：[Cawley & Talbot：模型选择中的过拟合与评估选择偏差](https://www.jmlr.org/papers/v11/cawley10a.html)、[Johari 等：Always Valid Inference for A/B Testing](https://arxiv.org/abs/1512.04922v3)；Harness 案例见 [HDA significance gate](https://github.com/Wenwen-D/HarnessDeltaAttribution/blob/9a382fdae83bed7489d368127397d3418ed02677/src/hda/HDA_SKILL.md#step-2--significance-gate)。
+
+**赢家诅咒（winner's curse）**：从很多方案里挑观测收益最高者，也更容易挑中正向噪声。每个方案单独估计无偏，不保证挑出的赢家仍无偏。记第 j 个方案的真实收益为 Δ_j、估计误差为 ε_j：
+
+$$
+\widehat{\Delta}_j=\Delta_j+\varepsilon_j,\qquad J=\arg\max_{1\le j\le m}\widehat{\Delta}_j
+$$
+
+简化到所有方案真实收益相同、m>1，误差独立同分布、非退化且均值为零时：
+
+$$
+\mathbb{E}[\widehat{\Delta}_J-\Delta]=\mathbb{E}[\max_j\varepsilon_j]>0
+$$
+
+因此“先在同一集合选优，再对赢家做普通显著性检验”会高估证据强度：普通检验把方案当成事先固定，忽略了先前搜索。只对已选中的方案做 paired bootstrap，也不会自动把搜索与选择过程纳入不确定性。即使没有硬编码答案，反复根据总分调模型、prompt 或 harness，也能过拟合选型集。
+
+| 问题 | 数据驱动的选择 | 需要处理什么 |
+| --- | --- | --- |
+| 赢家诅咒 / 选择后推断 | 选提升最大的方案，再报其提升和区间 | 赢家效果通常被高估；用独立确认数据估计，或使用明确考虑选择过程的推断方法 |
+| 多重比较 | 测多个版本、指标或人群，只报显著项 | 控制整组检验的错误率；预定义检验族，按目标使用 Holm / Bonferroni 等方法；校正 P 值不自动消除赢家点估计的偏差 |
+| 反复查看并提前停止（optional stopping） | 每天看普通 P 值，一显著就停 | 停止规则也在利用噪声；固定预先约定的样本量 / 分析时间，或使用适配的序贯检验、always-valid 推断 |
+
+多重比较的直观例子：若 m 个原假设都成立、检验相互独立且每次误报率为 α，则：
+
+$$
+P(\text{至少一次误报})=1-(1-\alpha)^m;\qquad m=20,\ \alpha=0.05\Rightarrow 64.2\%
+$$
+
+这是“整组至少一次误报”的概率，不是“某个赢家为假的概率”；共享对照组或相关指标下也不能直接套独立公式。
+
+最直接的处理是：**用开发／验证集选择方案，冻结后再用未参与选择的测试集评估。** 冻结应覆盖方案、主要指标、分析和停止规则；划分按独立采样单位处理相关性与泄漏。若继续根据测试反馈修改方案，该集合也进入优化循环，需要新的独立测试，或明确考虑完整选择过程的方法。样本有限时，nested cross-validation 可让外层评估内层的选型流程；不能再根据外层成绩挑方案而仍把它当作未参与选择的证据。
+
+多重比较、选择后估计和序贯监测是不同维度，可能同时存在；调整其中一个不自动解决其余问题。单纯多做几次 bootstrap、降低某次 P 值或随意加宽区间，都不能替代正确的实验设计。工程操作见 [A/B Testing](./Software-Engineering.md#ab-testing)，模型外围代码搜索的实例见 [Agent 评测笔记](./AI-Applied-Algorithms.md)。
 
 #### 集成检验与元分析 (Ensemble Testing & Meta-Analysis)
 
