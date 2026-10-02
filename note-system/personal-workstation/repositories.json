@@ -20,7 +20,7 @@
       "name": "loopx",
       "url": "https://github.com/loopx-project/loopx.git",
       "branch": "main",
-      "purpose": "Source reading and contributions; initial CLI installation uses the public package release",
+      "purpose": "Source reading and contributions; personal Desktop uses its matching public App/runtime installation",
       "phase": "base"
     }
   ]
