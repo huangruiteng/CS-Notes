@@ -5,6 +5,7 @@
 | 位置 | 内容 |
 | --- | --- |
 | [materials/](./materials/README.md) | 素材公开/私有分区、目录校验、Markdown 生成、同步与回滚 |
+| [personal-workstation/](./personal-workstation/README.md) | 从公开仓库重建个人开发环境、仓库清单与 Astra 交接 |
 | [Learning-Materials/](../Learning-Materials/README.md) | 当前公开素材目录、阅读顺序、讲义与实验 |
 | [Notes/](../Notes/) | 整理后的长期知识笔记 |
 | 维护者本地状态 | 私有来源、混合 catalog、审查记录与运行证据，不进入 Git |
