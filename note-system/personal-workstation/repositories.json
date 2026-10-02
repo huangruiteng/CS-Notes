@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "default_workspace": "~/Developer",
+  "repositories": [
+    {
+      "name": "CS-Notes",
+      "url": "https://github.com/huangruiteng/CS-Notes.git",
+      "branch": "master",
+      "purpose": "Public notes, reviewed external learning queue, portable note-system code",
+      "phase": "base"
+    },
+    {
+      "name": "dotfiles",
+      "url": "https://github.com/huangruiteng/dotfiles.git",
+      "branch": "master",
+      "purpose": "Use only the reviewed profiles/personal-mac directory; do not execute legacy bootstrap",
+      "phase": "base"
+    },
+    {
+      "name": "loopx",
+      "url": "https://github.com/loopx-project/loopx.git",
+      "branch": "main",
+      "purpose": "Source reading and contributions; initial CLI installation uses the public package release",
+      "phase": "base"
+    }
+  ]
+}
