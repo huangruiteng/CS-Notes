@@ -436,4 +436,10 @@
 
 ---
 
-*最后更新：2026-07-19*
+### 36. GitHub 仓库迁移提醒（2026-10-03 新增）
+- **仓库已迁移**：从 `github.com:huangrt01/CS-Notes.git` 迁移到 `github.com:huangruiteng/CS-Notes.git`
+- **更新本地 remote**：使用 `git remote set-url origin git@github.com:huangruiteng/CS-Notes.git` 更新本地仓库的 remote URL
+
+---
+
+*最后更新：2026-10-03*
