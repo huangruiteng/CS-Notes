@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
-| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、工具使用、工作流、安全评估和观测基建 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、Harness-Delta Attribution（捷径 / 计算 / 剩余收益）、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、涨分归因、工具使用、工作流、安全评估和观测基建 |
 | Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
@@ -1301,7 +1301,7 @@ Thought:{agent_scratchpad}
 
 这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、ALE、LHTB、GDPval、AppWorld、BFCL-v3 等具体任务世界。
 
-评测结论还需同时绑定主张、资源预算和有效性检查：见下节「预算—性能曲线与评测主张」。同预算比较、强引出能力与防护稳健性使用不同实验设计；单点分数无法独立表示系统能力上限。
+评测结论还需同时绑定主张、资源预算和有效性检查：见下节「预算—性能曲线与评测主张」。同预算比较、强引出能力与防护稳健性使用不同实验设计；单点分数无法独立表示系统能力上限。对于自动搜索出来的 harness，再用 [Harness-Delta Attribution](#harness-delta-attribution涨分后追问靠什么涨的) 区分额外计算、数据捷径和剩余结构收益，并独立验证 held-out 迁移。
 
 现实滥用调查补充了实验室评测之外的证据，但需区分“提出请求 → 生成内容 → 工具执行 → 现实目标达成”。模型安全还覆盖实际数据处理方、生产凭证与沙箱权限，案例和治理边界见 [AI 服务供应链与 Agent 滥用](./Security-Privacy-Cryptography.md#ai-服务供应链与-agent-滥用)。
 
@@ -1342,6 +1342,60 @@ Noam 引用 autoresearch 和 AISI 网络评测，说明部分系统在大预算�
 可复用报告字段：`claim_type`、模型 / harness / 任务 / verifier 版本、effort、预算上限与实际 tokens / 成本 / 耗时、attempts / retries / parallelism、停止条件、成功定义及有效性检查。重试可行时补每次成功解决的预期成本；比较 memory、multi-agent 或新 harness 时，额外检索、验证与协调开销都应计入预算。
 
 一个具体案例是 [Anthropic 多 Agent Research](#anthropic-多-agent-research信息容量委派与同步并行)：内部 research eval 的 90.2% 提升没有同预算对照；BrowseComp 分析中 token usage 解释 80% 表现方差，也不是因果贡献比例。系统效果、投入规模和协作结构的独立收益应分别报告。
+
+#### Harness-Delta Attribution：涨分后追问“靠什么涨的”
+
+> 来源：[What Evolves When We Talk About Harness Evolution?](https://wenwen-d.github.io/blog/harness-delta-attribution/)、[四类任务与代码案例附录](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html)、[HDA 方法与报告契约](https://github.com/Wenwen-D/HarnessDeltaAttribution/blob/9a382fdae83bed7489d368127397d3418ed02677/src/hda/HDA_SKILL.md)。2026-09-27 读完；以下数值为作者研究博客报告，未独立复现。
+
+这里的“演化”是让另一个 Agent 持续修改固定执行模型外围的代码，不更新执行模型权重。Proposer 读取代码、分数和轨迹，修改 prompt、工具接口、控制流，再评测并选择版本；文件系统中的历史代码与日志充当搜索记忆。涨分可能来自更好的流程，也可能来自更多模型调用，甚至把数据集规律直接写进代码。
+
+数据隔离要看反馈通道：TRAIN 向 proposer 提供逐题结果与轨迹，VAL 每轮反馈总分，TEST 在选定版本后评测且不回流。**反复看到验证集总分，也是在利用验证集优化；“不看逐题答案”不等于完全隔离。** 因此应区分用于搜索 / 选型的分数与最终 held-out 证据，记录反馈次数及可见内容。
+
+HDA 在同一评测集、同一评分规则下比较四个版本：
+
+| 版本 | 含义 | 要控制的变量 |
+| --- | --- | --- |
+| B | 原始 baseline | 固定执行模型、任务与评分规则 |
+| E | 演化后的 harness | 保存实际代码、轨迹与逐题资源消耗 |
+| B_cc | 给 baseline 匹配 E 的逐题推理预算 | 用模型 / 工具调用数或 samples 匹配，并声明聚合方式 |
+| E_neutral | 从 E 中去掉已识别的捷径 | 尽量保留其余流程；明确替代行为，避免把正常能力一并删掉 |
+
+令 S 表示分数，收益拆分为额外测试时计算 T、已识别捷径 O、剩余结构收益 G：
+
+$$
+T=S(B_{cc})-S(B),\qquad O=S(E)-S(E_{\mathrm{neutral}})
+$$
+
+$$
+G=S(E_{\mathrm{neutral}})-S(B_{cc}),\qquad T+O+G=S(E)-S(B)
+$$
+
+![Harness-Delta Attribution：四个版本与三段收益](./AI-Applied-Algorithms/harness-delta-attribution-method.png)
+
+上图为原文 Figure 2，用户提供截图。等式是严格的望远镜求和；因果解释依赖预算匹配和捷径消融是否成立。原文把 G 称为 Generalizable Improvement，但 **G 是残差，不是泛化证明**：没识别出的捷径、对选型集的拟合与干预误差仍可能留在 G 中。作者将 O 视为下界、G 视为上界，也依赖干预有效这一前提。确定性控制器或不调用 LLM 本身不等于过拟合，要看是否利用了任务边界之外的 benchmark 特定先验。
+
+![四类任务的收益归因汇总：原文 Figure 1 的 Avg 视图](./AI-Applied-Algorithms/harness-delta-attribution-summary.png)
+
+| 任务 | 作者汇总图最突出的分量 | 最值得记住的细节 |
+| --- | --- | --- |
+| [ALFWorld：家庭环境任务](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html#alfworld) | O≈98% | 小模型 harness 演化成硬编码控制器，部分完全不调用 LLM；代码包含物体位置先验表，大模型方案也会把类似先验写进 prompt / 模板 |
+| [LiveMath：数学选择题](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html#livemath) | O≈79% | 35 道训练题中，21 道含 “a stronger result can be proven”，且该选项总正确；0.8B 从 2/35 提升至 29/35，新答对的 27 题中有 20 题来自这类题 |
+| [CREATE：多样且有效的知识路径](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html#create) | T≈73% | 多采样解释大量收益；Qwen3.6-35B-A3B 的 13-call 复杂编排得 11.90，同调用次数简单基线得 18.74，G≈−6.84；Haiku 的 20-call 编排则仍有正结构收益 |
+| [SWE-bench Verified：修复真实仓库问题](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html#swebench) | G≈82% | 有有效的执行反馈机制，也有训练涨分、测试降分：Qwen3.6-27B 的 fresh-context patch review 训练 77→85%，测试 66→64%，其训练增益仍被归入 G |
+
+两图及表中比例是作者的汇总展示，不能直接当作净涨分的因果百分比。方法文件按分量绝对值归一化：
+
+$$
+\mathrm{share}(X)=\frac{|X|}{|O|+|T|+|G|},\qquad X\in\{O,T,G\}
+$$
+
+原文汇总图还将负 G 截为零；复核必须回到带符号的 O/T/G 与四个原始分数。三个评估细节同样关键：同调用次数不保证同 tokens / 成本 / 时延；CREATE 这类 pooled metric 要先合并输出再评分，不能相加每次运行的得分；paired bootstrap 的区间若包含零，应报告噪声范围内，选型集上的赢家还受 winner’s curse 影响。
+
+赢家诅咒来自“同一集合既选方案又证明赢家”：选中的最大涨幅往往含正向噪声，只对最终方案做普通显著性检验 / bootstrap 没有自动考虑此前搜索。最直接的做法是开发／验证集选优，冻结 harness、指标与分析规则后，再用未参与选择的测试集评估；若按测试反馈继续修改，该集合也进入优化循环。统计解释见 [选优后的统计推断](./mathematics.md#选优后的统计推断赢家诅咒多重比较与提前停止)，线上实践见 [A/B 实验设计](./Software-Engineering.md#实验设计)。
+
+一个值得迁移的正例是 SWE-bench 30B-A3B 的 `multi_action_feedback`：模型输出多个 action block，解析器只执行第一个；显式反馈哪些没有执行，可纠正“已经全部成功”的错误状态判断。机制与原话见 [工具执行的语义反馈](./AI-Agent-Engineering.md#工具执行的语义反馈让模型知道实际执行了什么)。该案例的 held-out 测试从 12% 到 26%，是独立于训练归因的迁移证据；SWE 划分为 48/24/50 个 train/val/test 实例且保持相似仓库构成，不等于向新仓库或任意任务迁移。
+
+可迁移到 eval 报告的字段：`scores(B/E/B_cc/E_neutral)`、带符号的 `raw(O/T/G)`、`shares`、逐题 `compute_ledger`、预算匹配 / neutralization `policies`、干预审查记录 `approvals`、`caveats`，另记 `split / feedback_visibility / selection_rule / held_out_score`。比较 memory、multi-agent 或 harness evolution 时，先保留同预算强基线和独立测试，再讨论结构本身的价值。
 
 #### AgentCompass：评测对象不是裸模型，而是完整执行配置
 
@@ -2887,6 +2941,8 @@ LLM-as-Judge 不能被当成天然 oracle。G-Eval 证明 LLM evaluator 可更�
 
 传统 eval 是 post-hoc measurement；新的方向是把 evaluator / verifier / environment feedback 作为 reward、validation signal 或 scaffold-selection signal。R2E-Gym、verifiers 这类 RL-style agent gym 把环境反馈接到训练和策略改进；Meta-Harness 进一步把 harness design 本身当成自动搜索对象，搜索 prompting strategy、tool interface、control loop 或 scaffold 结构。
 
+反馈一旦参与搜索，分数就同时成为优化信号；即使每轮只暴露验证集总分，也不能再把它视为完全隔离的最终测试。搜索出的涨分应继续拆成额外计算、已识别捷径与剩余结构收益，并检查独立测试迁移，见 [Harness-Delta Attribution](#harness-delta-attribution涨分后追问靠什么涨的)。
+
 这对 Agent Harness / OpenViking 的含义是：evaluation 不应停在报告层，而要变成 `trace -> judgement -> attribution -> regression case / reward / memory update / scaffold choice` 的反馈回路。也就是：eval 不是 pipeline 终点，而是 harness 继续变好的信号源。
 
 ### Anthropic long-running harness：跨 session 的控制面
@@ -4312,7 +4368,7 @@ CMA 仍然不是项目级长程控制面。它能保存 Session history、sandbo
 
 这几篇 paper 正在共同把 `agent memory` 从普通 RAG、聊天历史摘要和长上下文技巧中拆出来。一个更合适的定义是：**agent memory 是从 trajectory 中构建、在任务状态下被选择性曝光、并通过后续 outcome 反馈迭代的外部状态系统**。
 
-这里聚焦外部 memory；经验也可经选择性固化进入模型参数。两者的分工是保留可追溯、易变的事实与证据，同时探索将稳定规律转成可迁移能力。写入权重需要额外验证遗忘、污染、撤销与总成本，不能由 memory 有效直接推断微调有效。见 [In-Parameter Learning：部署期的经验固化](./AI-Algorithms.md#in-parameter-learning部署期的经验固化)。
+这里聚焦外部 memory；经验也可经选择性固化进入模型参数。两者的分工是保留可追溯、易变的事实与证据，同时探索将稳定规律转成可迁移能力。写入权重需要额外验证遗忘、污染、撤销与总成本，不能由 memory 有效直接推断微调有效。见 [In-Parameter Learning：部署期的经验固化](./AI-Algorithms.md#in-parameter-learning部署期的经验固化)。[SHINE](./AI-Algorithms.md#shine上下文到参数的超网络) 提供了文档直接生成 LoRA 的具体路线，但“表示存在参数中”与“经验能长期可靠累积”应分开，见 [载体、写入方式与持久性](#记忆载体写入方式与持久性)。
 
 当前 V0 框架可以按十二个问题组织：
 
@@ -5471,6 +5527,21 @@ reward(memory, task)
 ### Intro
 
 <img src="./AI-Applied-Algorithms/image-20251009204727078.png" alt="image-20251009204727078" style="zoom:50%;" />
+
+#### 记忆载体、写入方式与持久性
+
+讨论 online / continual learning，先拆开三个维度：**信息存在哪里、如何写入、保留多久**。它们不互相决定：外部记忆可以持久保存，参数 adapter 也可以只服务一次请求。
+
+| 载体与机制 | 写入 / 读取方式 | 单独不能保证什么 |
+| --- | --- | --- |
+| 原文、结构化记录与检索 memory | 保存证据，按任务选择后进入上下文 | 有数据库不等于模型会正确使用 |
+| hidden states / KV cache | 由前向计算形成，后续计算复用 | 缓存复用不等于训练了模型参数 |
+| 梯度训练的 adapter / 权重 | 根据损失更新参数，后续直接参与计算 | 写入成功不等于没有遗忘或污染 |
+| 超网络生成的 adapter，如 SHINE | 预训练的写入网络将上下文映射为参数 | 一次生成不等于跨任务长期可靠学习 |
+
+[SHINE v3](https://arxiv.org/html/2602.06358v3) 中共享 Meta LoRA 负责“怎样读取”，文档专属 generated LoRA 承载“这次读到什么”；它们不是同一份 memory。原始文档不进入回答阶段，但问题和多轮历史仍会进入。SHINE-R 将长文档分块并保留各块 adapter，存储随块数增长，不是固定容量的终身记忆。完整机制与基础复习见 [SHINE 专题](./AI-Algorithms.md#shine上下文到参数的超网络)。
+
+由此导出的设计要求是：文本证据、writer、基座与 adapter 分别保留版本；为 adapter 记录来源、适用范围、评测与回滚信息。整体卸载 adapter 是停用载体，细粒度删除某一事实、矛盾更新、多个 adapter 组合与旧能力保持需分别验证。评测至少覆盖写入后正确性、跨请求复用、连续更新后的回归、冲突事实覆盖与撤销效果；重建 PPL 或一次 QA F1 无法替代这些长期指标。
 
 #### Online learning 是通往 L4+ 智能的关键路径
 

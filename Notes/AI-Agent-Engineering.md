@@ -12,6 +12,7 @@
 | Sandbox / 远程执行控制面：环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
 | Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
+| Harness 涨分归因与执行反馈：同预算基线、数据捷径、验证集反馈、action block 静默丢弃 | [Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)、[工具执行的语义反馈](#工具执行的语义反馈让模型知道实际执行了什么) |
 | Muse：执行隔离、独立行动授权、工作流脚本与恢复条件 | [Secure VM / Sentinel](#muse-secure-vm-与-sentinel独立行动授权边界)、[Muse Code Workflows](#muse-code-workflows脚本编排与有条件恢复)；[Grok Bot / Muse 产品比较](./AI-Agent-Product&PE.md#agent-tobtoc-产品) |
 | Lorca：个人多设备 Agent，Device / Runner 分工、加密中继与执行权限 | [配对与信任边界](#lorca设备配对加密中继与执行权限)；[产品形态与发布状态](./AI-Agent-Product&PE.md#lorca本地运行手机操控的个人-agent-工作台) |
 | MCP、Skill、Function Calling、Assistants API 的开发用法；CLI 与 MCP 的选型；工具调用 ID 与结果关联 | 暂留 [AI-Agent-Product&PE.md](./AI-Agent-Product&PE.md#mcp)；[CLI 已经好用，为什么还需要 MCP](./AI-Agent-Product&PE.md#cli-已经好用为什么还需要-mcp)；[tool_use_id / tool_call_id / call_id 对照](./AI-Agent-Product&PE.md#工具调用-id-与结果关联)（协议 / API 工程边界，待后续决定是否迁入） |
@@ -19,6 +20,7 @@
 | verification-gated 协作：Prove2Me 用 Lean type-check 当裁判，把数学形式化拆成 open-leaves 众包任务树（sketch 分解 / 防自证规则 / 可复用引理依赖图） | [AI-Applied-Algorithms.md - Prove2Me](./AI-Applied-Algorithms.md#prove2me把数学形式化做成-open-leaves-众包验证器当裁判) |
 | KDA 性能优化 agent 规则（Profile → Diagnose → Plan → Candidate → Validate → Measure → Promote/Reject） | [GPU.md](./GPU.md) |
 | 一致性程序 = 公开契约 + 自证 + 官方审查 + 版本化徽章 → agent benchmark / harness 生态 | [Software-开源项目成功之道.md](./Software-开源项目成功之道.md) |
+| Agent 的个人数据源与工具边界：GreenBubbles（本机只读微信库 + policy / audit 授权层 + 个人记忆 skill 流水线） | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
 
 ## Agent Sandbox 与运行环境
 
@@ -1489,6 +1491,28 @@ mini-SWE-agent（SWE-bench/SWE-agent 团队出品）核心代码仅 ~310 行，S
 * Notes
   * "准备测试数据"容易被忽略
 
+#### 工具执行的语义反馈：让模型知道实际执行了什么
+
+> 来源：[Harness-Delta Attribution，SWE-bench 30B-A3B 案例与代码摘录](https://wenwen-d.github.io/blog/harness-delta-attribution/appendix.html#swebench)。作者报告，2026-09-27 读完；归因框架与证据边界见 [评估笔记](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)。
+
+Qwen3-30B-A3B-Instruct-2507 一轮会输出多个 `edit / bash / sh / mswea_bash_command` action block，但该 harness 的解析器只执行第一个，静默丢弃其余部分。模型却以为全部执行成功，后续推理建立在不存在的文件改动上。
+
+`multi_action_feedback` 统计 action block 数量，把被丢弃数量记录下来，在下一轮显式告知：
+
+> ONLY THE FIRST was executed — the rest were NOT run.
+
+同时指出模型自行写出的 “EDIT APPLIED” 不构成执行证据，要求剩余操作每轮一个、重新发出。其余 prompt、编辑工具、40 条消息窗口与 stuck-breaker 沿用所对照的 frontier 配置。
+
+这属于**语义反馈的提升**：把“模型请求了什么、runtime 实际执行了什么、哪些没有执行”之间的差异送回上下文，纠正模型对环境状态的错误判断。更多自然语言反思无法替代实际执行事实；工具的退出码与 stdout 也不能自动说明未执行的其余请求。
+
+| 边界 | 可复用的运行时设计（由案例归纳） |
+| --- | --- |
+| 请求 → 执行 | 用 parser 实际接受 / 执行的 action 及其 ID 生成回执；明确 `executed / not_run / failed`，不要只相信模型生成的成功标签 |
+| 执行 → 效果 | 编辑工具返回是否改变文件、影响范围与验证结果；“调用成功”与“预期效果成立”分开 |
+| 部分执行 → 恢复 | 已知未执行的 action 可重新发出；结果未知时先查状态，避免把整批重试变成重复副作用 |
+
+作者对 train-selected 30B-A3B harness 报告 O/T/G=0/6/94，训练成功率 25→58%，独立测试 12→26%（+14 个百分点）。这支持语义执行反馈是有价值的改进，但仍有额外采样预算，不能把全部涨分都归给一句提示语；原文的 G 也不等于已证明任意任务上的泛化。实际工程应修复静默丢弃：要么明确拒绝不支持的批量输入，要么返回逐 action 的执行回执，并让模型据此继续。
+
 #### Coding Agent 反摆烂机制：压力话术背后的 workflow 约束
 
 > 来源：[我用大厂PUA话术调教AI，打了3.25后它再也不敢摸鱼了](https://mp.weixin.qq.com/s/qmTIC6b_PlgvdIhYao4_KQ)、[tanweai/pua](https://github.com/tanweai/pua)、[PUAClaw](https://github.com/puaclaw/PUAClaw)，2026-05-01
@@ -1748,6 +1772,59 @@ Serving infra 层也有相同模式。Z.ai 的 Scaling Pain 把 GLM-5 在高并�
 - 值得借鉴的概念：`disk`（版本化工作区）、`checkpoint / fork / rollback`、`/mnt/archil` 权限分层 mount、active-time billing、强一致 S3 artifact API。
 
 **边界**：产品页宣称为主，未独立验证；“millions of stateful agents” 是营销口径。
+
+#### GreenBubbles：让 agent 读本机微信历史（本地只读 + 确定性工具边界）
+
+> 来源：[bojieli/greenbubbles](https://github.com/bojieli/greenbubbles)（MIT，Rust 内核 + Swift CLI/App，78★；本文按 `main` @ [`69f19c7`](https://github.com/bojieli/greenbubbles/tree/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b)，2026-10-01 读取，v0.10.0）。主要依据仓库文档：[README](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/README.md)、[ARCHITECTURE](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/docs/ARCHITECTURE.md)、[THREAT_MODEL](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/docs/THREAT_MODEL.md)、[AI_TOOL_BOUNDARY](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/docs/AI_TOOL_BOUNDARY.md)、[MEASUREMENTS](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/docs/MEASUREMENTS.md)、[KNOWN_LIMITATIONS](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/docs/KNOWN_LIMITATIONS.md) 与 [personal-memory skill](https://github.com/bojieli/greenbubbles/blob/69f19c7089d7ef011e9ba43d44c6fb4e6e5be98b/skills/greenbubbles-personal-memory/SKILL.md)。**未安装试用、未审计源码**，下面按文档口径记录。
+
+**一句话**：把本机微信的 SQLCipher 数据库以**只读、有界、类型化**的方式暴露给自己已有的 coding agent（Codex / Claude Code / OpenCode / Kimi Code / Gemini CLI / Grok Build），让 agent 用已有订阅把聊天整理成带引用的私人 wiki；可选加密备份。默认在线读取路径以避免创建完整明文副本为目标；显式 canonical corpus 与备份路径的存储边界另行讨论。
+
+**核心取舍：不做导出，读原始库**
+
+- 默认路径直接以只读方式打开微信原始加密库（`SQLITE_OPEN_READ_ONLY` + `sqlite3_key()` + `PRAGMA query_only=ON`），解码所需行后返回有界结果，不生成第二份聊天库、不需要刷新导出。
+- 决定架构的测量（作者自己的账号，2026-08-29）：源库 26 组 / 2.98 GB、1,855,548 条消息、6,292 张消息表；全量还原成 canonical JSONL 是 ~13.50 GB（其中 `messages.ndjson` 单独 12.71 GB）、staging SQLite 峰值 ~7.42 GB、一次媒体派生 ~30 GB。所以默认路径改成 `live read → keyset 分页 → 小 JSON 响应`，canonical 导出降级为显式的取证/互操作路径。
+- 「JSON 是响应格式，不是存储格式」；无任意 SQL、无 `--all`、无持有跨调用事务。
+- 硬上限：会话/消息每页 100（硬 500）、搜索 50（硬 200）、单个文本字段 16 KiB、序列化响应 8 MiB；调用方不能抬高硬上限。
+
+**响应信封与一致性（可直接借鉴的契约）**
+
+- 每个响应都返回信封：`schema / formatVersion / operation / ok / source / consistency / page / warnings / items`；错误复用同一 schema 与稳定错误码，内容、路径、SQL、密钥永不出现在错误里。
+- `consistency` 明确报告 `databaseCount` 与 `crossDatabaseAtomic`——跨库查询**不是**一个全局瞬时快照，需要稳定输入就读 snapshot generation。
+- 游标是 keyset + 复合排序键（`sort_seq, create_time, server_id, shard_id, rowid`），包含 shard/rowid 是为了避免 server_id 为 0 或重复时漏消息；**游标不是授权**，每次仍独立校验策略。
+- WAL 细节：只读连接仍会参与 WAL 可见性，长事务会 pin 旧 frame、拖住 checkpoint，因此不做跨调用事务、取一页立即结束、设 busy timeout 与 deadline，且绝不单独复制带未 checkpoint WAL 的 `.db`。
+
+**取密钥这一步是硬约束，文档没有美化**
+
+- 需要 `sudo` 与对自己的微信客户端做 ad-hoc 重签名，从一个运行中的进程里抓 account secret（LLDB helper），落到 `~/.greenbubbles-acquire/passphrase.txt`（仅本人可读）；每个库用自身 salt 派生密钥，捕获的是 account secret 而非每表一把钥匙。
+- 重签名会替换微信原签名、直到重装或应用更新——威胁模型把这条写成「你对自己机器软件状态的改动」，不假装客户端仍然纯净。
+
+**面向 AI 的边界是确定性授权层，不是 prompt**
+
+- 四层边界，保证强度递减：① source→adapter（read-only/query_only/owner 检查/读代码里没有写路径）；② adapter→caller（类型化操作 + allowlist 过滤 + 硬上限，无 SQL/`--all`）；③ caller→model（policy 绑定 account，逐会话授予 operations / fields / 时间窗 / destination，local 默认、remote 必须显式开启，每次 allow 与 deny 都进 journal）；④ model→其它（**明确不保证**）。
+- 按文档，connector 不把消息文本直接解析为工具请求或 policy，以缩小注入的执行面；这不保证外部调用 agent 的其它能力不受注入影响。connector 里没有 send / approval / network 能力；草稿是不可变 `0600` 记录；`greenbubbles send` 只能从本地 shell 进入，且需要人用 `send approve --confirm` 产生审批证据，真正驱动客户端的进程不持有 key、replica 与 policy。公开版本还把所有发送锁到 dry-run。
+- 审计 journal：每次完成的请求与每次确定性拒绝都追加 `0600` JSONL，记录 opaque account/会话、requester、operation、local/remote、outcome 与计数，**不记正文**；format-2 事件把自身与前一事件摘要做 hash chain。文档自己声明这是 tamper-evident 而非签名/attestation：中间的编辑/重排/插入/删除能被检出，干净地截断尾部检不出，有本机 root 的人可以整条重算。
+
+**个人记忆流水线（对 memory 主线最相关的一段）**
+
+- 交付形态是 **skill**：`skills/greenbubbles-personal-memory/SKILL.md` + `references/{workflow,priorities,format-markdown,format-python,cli}.md` + `selection-policy.json`；在你已有的 agent 会话里跑，不需要额外 model API key，`scripts/install-skills.py --agent codex` 可装进 agent 的 skills 目录。
+- 产物是 Git 跟踪的私人目录：`index.md` + `domains/*.md`（每个生活领域一篇，短摘要 + 逐条带来源）+ `manifest.md`（覆盖时间范围与真正读过的会话）；后续增量修订同一个项目，不开第二套笔记。
+- 选择策略默认按「**自己发出的消息数**」排序——≥10 条自我消息才进入、单聊先于群聊、按 selfCount 降序与 recency tie-break；文档强调这是选择指标，不等于「未被选中的聊天没有价值」。读取顺序按**时间**而不是按会话，时间片是批量单位（同一件事常同时出现在单聊与群里，按时间排序才能拼成一个 episode）。
+- 全量语料面：`memory prepare` 在本地做百万行遍历并产出不可变 canonical corpus（可 `--extend`）；`memory next / page / acknowledge / commit` 返回 ≤49,152 字节的紧凑 actor/时间/类型/文本字段与短 evidence key；`memory commit` 没有模型调用，只校验不可变 unit/page hash、顺序完整、上一版 wiki 快照与引用证据，再原子推进 crash-safe cursor。
+- 明确写出的能力边界：agent 读到全部消息 **≠** 笔记正确概括了全部；长消息被截断并标 `tr=true`、附件只有简短描述；没有 merge 或冲突消解；同一项目同一时间只允许一个 writer（`tick` 把 `--parallel` 限为 1），因为并行 agent 会互相覆盖编辑。
+
+**可迁移到 harness / personal context 的判断**
+
+- 把**数据最小化写成默认读取路径的架构目标**（不创建完整明文副本），而不是事后合规声明；定位上与导出工具是不同物种，文档还主动写了「什么时候你该用导出器」。
+- 边界放在确定性授权层：模型看到的内容 = policy ∩ 请求 ∩ 硬上限，且每个决定都有可验证的 journal；这与 [Loop Engineering Toolkit](#loop-engineering-toolkit把-loop-工程纪律做成-audit--scaffold--guardrail) 那类「把纪律做成可审计产物」的思路同向。
+- **覆盖率必须显式输出**：被跳过的 shard、无法解码的类型、未解析的关系都要报 gap 且顶层 verdict 保持 false（`crossDatabaseAtomic: false`、`contactDisplayNameUnresolved`、`rowCoverageComplete` vs `sourceCoverageComplete`），禁止静默省略。
+- 度量纪律值得当模板：所有数字集中在 MEASUREMENTS 页并标注机器、日期、样本数与「不能证明什么」；连项目自己的目标（新消息 60 秒内 p95 可搜索）都没达成，并写明「没有任何证据组合能拼出这个结论」。
+
+**边界与未验证**
+
+- research alpha；macOS 14+ Apple silicon 专用，无 Windows/Linux/Android/iOS 计划；只支持微信 4.1+，微信改私有格式就会读不到并显式报 gap。
+- 搜索 fallback 只在最近 500 条消息窗口内扫描（单会话优化后 p95 ~246 ms、16 会话 ~352 ms），不是全量检索；项目据此**拒绝了**建持久加密文本缓存（实测 ~352 ms 不值得多留一份消息副本）。
+- 备份只含数据库（含库内语音），**不含**图片/视频/文档；旧备份不自动删除，需你自己彻底删除。
+- 加密栈（BIP-39、HKDF-SHA-256、Argon2id、XChaCha20-Poly1305）未经外部评审；审计链无签名；所有时延都是合成 benchmark 或单台 M2 Max 的样本，没有在真实活跃账号上测过。
 
 #### [一口气学会如何思考AI Agent系统设计](https://www.bilibili.com/video/BV1WoeozgEyn/)
 
