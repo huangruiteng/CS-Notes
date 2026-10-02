@@ -1,6 +1,6 @@
 # 个人开发电脑：从公开资料重建
 
-目标是形成可以重复搭建的个人开发与阅读环境。配置层在 [dotfiles 的 personal-mac profile](https://github.com/huangruiteng/dotfiles/tree/master/profiles/personal-mac)，知识与工作方式在本仓库，长程执行机制来自 [LoopX](https://github.com/loopx-project/loopx)。使用前确认相关 PR 已合并；若尚未合并，按 PR 指明的分支读取并记录 commit，不执行缺失 profile 的替代脚本。
+目标是形成可以重复搭建的个人开发与阅读环境。配置层在 [dotfiles 的 personal-mac profile](https://github.com/huangruiteng/dotfiles/tree/master/profiles/personal-mac)，知识与工作方式在本仓库，长程执行机制来自 [LoopX](https://github.com/loopx-project/loopx)。使用前确认相关 PR 已合并；若尚未合并，按 PR 指明的分支读取并记录 commit，不执行缺失 profile 的替代脚本。skills 链接安装还需 dotfiles 中的 `tools/install.py` 与本仓库的技能 manifest 同时存在；缺一项就先更新到相应已审查版本。
 
 ## 本人先做，随后交给 Astra
 
@@ -38,6 +38,12 @@ LoopX 的公开安装文档目前要求 Python 3.11+、Node 22.22.3+，推荐 No
 Astra 先盘点新机已有软件，逐项写出“已有 / 安装 / 暂缓 / 需本人操作”，再执行缺项安装。起步 GUI 用独立的 `Brewfile.apps`；Mendeley、CodexBar、CC Switch、Sublime Text、Office、个人通讯等按实际用途补充。同类编辑器选一个；搁置的 Hammerspoon / Karabiner 不自动恢复，来源未确认的同名工具先暂缓。
 
 不仅安装软件，还要验收阅读和操作习惯：Typora inline math、块公式与相对图片；iTerm2 新 shell 与可选 Meslo / Pastel 外观；触控板轻点；编辑器打开项目；解压与有期限防休眠。原 README 的无限回看、旧浏览器扩展与整套 shell 插件是历史偏好，需要重新判断，不能批量导入。账号、许可证、浏览器 profile、应用数据库和组织托管设置在新机单独处理。
+
+## Skills 与 shell 一起安装
+
+读取 [技能选集](../skills/README.md)，通过 dotfiles `bootstrap.sh --skills-repo "$HOME/Developer/CS-Notes"` 预览，确认后加 `--apply`。技能用 symlink 指向仓库源文件，后续优化进入 Git diff；不用整目录迁移旧机 skills。已有配置冲突先审查，再按安装器的备份/回滚流程处理。
+
+新版 dotfiles 直接加载 shell 插件并保留补全缓存。安装基础 Brewfile 后，验证 Ctrl-R、上下方向键、命令建议与高亮、`j` 目录跳转、虚拟环境 Python 和新 shell 的 PATH；用 `dotfiles-doctor` 与启动计时工具记录实际结果。软件偏好整理仍是必要步骤。
 
 ## 数据、素材与 Agent 状态
 

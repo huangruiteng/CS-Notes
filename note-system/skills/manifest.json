@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "cs-notes-writing-style",
+      "files": {
+        "SKILL.md": "c35a3dae63b30113b51fec8837c0ba0a41ea3b21cfdb0e6c04b3395a7a71cadf"
+      }
+    },
+    {
+      "name": "help-me-review",
+      "files": {
+        "SKILL.md": "fa7d983ed101004773cce3de8efe41b4183a956fdf155cfa8f3432354f51638c"
+      }
+    },
+    {
+      "name": "git-split-commit-pr",
+      "files": {
+        "SKILL.md": "94538efb1e15f56c8e81f2f47647f0028ddc5b462d326243b16f0854e9e27309"
+      }
+    },
+    {
+      "name": "cli-creator",
+      "files": {
+        "LICENSE.txt": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+        "SKILL.md": "4f5d9032156561df841d2c6d4f8b59c29d0294ccdb16b49913b177aef65a0bc3",
+        "references/agent-cli-patterns.md": "02c9da7229fb0c623dadeeba3e9d5e371a01be20a9f0470550b019c76450f0cd"
+      }
+    },
+    {
+      "name": "external-research",
+      "files": {
+        "SKILL.md": "0b19777df2edf01c5785dd180c7af5ca94123bebc2c1ee6fb157c3ae74b9beee",
+        "references/platform-and-demo-research.md": "ccfe1d909ea2e280af48d00d44331f3e202a146d61462a28edca580c40240b34",
+        "references/research-integration.md": "dced4584ac984a1fb3ba5e24e2cf07cd0851f72d09072129f383c72f9fbdc95a"
+      }
+    },
+    {
+      "name": "markdown-toc",
+      "files": {
+        "SKILL.md": "f71d41691daf0b745664bbc164a9394c533aadc9d6da32162b64defeed84988c",
+        "agents/openai.yaml": "9da5e7f152ce0f05cd99fc4d130dca3bdb15d866d0c077ec23b96316e5ac27ff",
+        "scripts/extract_toc.py": "0ff1fb29e544bc41380fc862995750fbdc81a335eabbccfa2ad517631d243c99"
+      }
+    },
+    {
+      "name": "gourmet-organizer",
+      "files": {
+        "SKILL.md": "5dd76407242a3625f1161349c2e5f4f1e693e5528acedf2df386a5778082849b",
+        "agents/openai.yaml": "f635cbbd7b5a7abb058c785a7ea8d104251272f04ff38b39e802f3b84775d4b4"
+      }
+    },
+    {
+      "name": "github-gh-cli",
+      "files": {
+        "SKILL.md": "ea8034fe88e55c10a9a8b79397613acaf26ddffc4e9ad8ab64b0048e913199c5",
+        "agents/openai.yaml": "f7a33fec17c9c9410a76fdba93d9e2ddc74133ed41c7f398cc4ab74835d3043a"
+      }
+    },
+    {
+      "name": "ai-hotspots",
+      "files": {
+        "SKILL.md": "6910284b496a78a3d0b9d9d96c8216cd7064eab556d4dcb8b70597f567482b9e",
+        "agents/openai.yaml": "689cf70a60da6d9f20688a2b28de658b12cd8ff7d824dce3d1d397e028e27e76",
+        "references/source-list.md": "9479615d9e52fc777ad953b7d5e1c5dc35c36bd8308abf57227a7257b3042317"
+      }
+    },
+    {
+      "name": "wechat-article-reader",
+      "files": {
+        "SKILL.md": "ae173f9fd76a2f38bc180ebc2e84556bd88af0016c53b8668e195f891d360d7c"
+      }
+    },
+    {
+      "name": "xiaohongshu-reader",
+      "files": {
+        "SKILL.md": "34d718f667e5c50af6dcfb6cdba961aacb37b4538fcd94db03fe855921409c5d"
+      }
+    }
+  ]
+}

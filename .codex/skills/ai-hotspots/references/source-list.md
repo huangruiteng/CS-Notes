@@ -19,4 +19,4 @@ Operational notes:
 - Treat these as discovery sources. Follow original links before making factual claims.
 - If a source blocks access, list it under unread/access-blocked coverage rather than silently dropping it.
 - For very recent model, product, legal, benchmark, price, or release claims, verify with official docs, release notes, repo commits/releases, paper pages, or company posts.
-- If SenSight is available in the CS-Notes private cache, use it as an extra broad-recall layer for social and cross-platform signal, then verify selected items.
+- Use any available authorized discovery service as an optional supplement, then verify selected items against primary sources. No private cache is required.
