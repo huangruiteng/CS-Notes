@@ -1,4 +1,6 @@
 import importlib.util
+import sys
+sys.dont_write_bytecode = True  # Keep reviewed skill directories free of test caches.
 from pathlib import Path
 import tempfile
 import unittest
