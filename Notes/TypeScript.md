@@ -5,7 +5,7 @@
 ## 阅读地图
 
 1. “TypeScript 心智模型”先建立 TS / JS / Node 的分工，理解类型擦除；`erasableSyntaxOnly` 约束源码语法，实际运行兼容性仍需验证。
-2. “类型基础”把 interface、readonly、泛型、Generator、`as const`、判别联合、`unknown`、Promise 看作同一种动作：把协议或状态写进类型；Generator 区分产出、结束返回与恢复输入，惰性迭代不等于端到端流式读取；Node 调度、`return await` 与回调时序三节说明类型不表达运行时边界。
+2. “类型基础”把 interface、readonly、泛型、Generator、`as const`、判别联合、`unknown`、Promise 看作同一种动作：把协议或状态写进类型；初学者可用 [fp-ts Eq](#fp-ts-eq从元素比较规则生成数组比较规则) 串起 import、泛型、函数返回类型与箭头函数；Generator 区分产出、结束返回与恢复输入，惰性迭代不等于端到端流式读取；Node 调度、`return await` 与回调时序三节说明类型不表达运行时边界。
 3. “状态机建模”讲核心设计原则：让非法状态无法构造，而不是靠运行时 `if` 拦截。
 4. “Effect Program 与语义内核”以 LoopX PR-1 为例，讲纵向迁移如何把 settlement / journal 语义收口到 TS。
 5. “Runtime 工程模式”沉淀幂等重试、fail closed、常驻 runtime 生命周期、共享解析缓存与性能基线；缓存内容有效性和共享对象的修改隔离需要分别保证。
@@ -14,7 +14,15 @@
 
 类型工具的组合读法：`Pick` 限制函数依赖，`Partial<Pick<…>>` 限制构造器可调项，`Extract<Awaited<ReturnType<…>>, …>` 从异步接口派生阶段输入；更新协议用判别联合区分 keep / clear / set。内置 `Omit` 不会分配到联合成员上（`keyof` 只留共同键），需要保留分支时改用分配式条件类型。静态类型、运行时校验与业务授权分别承担不同约束。
 
+外部数据沿着 [smart constructor](#smart-constructor校验品牌与构造边界) → [io-ts codec](#io-ts由运行时-codec-推导静态类型) 理解：先执行校验，再把结果交给业务；同一份 codec 定义可以组合复杂校验并推导静态类型。
+
 数组与集合操作还要区分值、位置与顺序：[`map` 的 ordinal](#map--filter位置属于来源快照)可以被推断为 `number`，但类型不证明它属于正确的数组快照；[`Map` 的首次插入顺序](#map首次插入顺序与分组)可以决定分组展示顺序，不能随意换成普通对象。
+
+连续箭头函数的读法见 [`contramap` 与柯里化](#contramap连续箭头函数柯里化与闭包)：区分函数类型里的箭头和创建函数的箭头，再按 `contramap(f)(E)` 的两次调用拆解。
+
+[`IO` 与 `Monoid`](#io-与-monoid把多个动作组合成一个动作) 接着区分“创建动作”和“执行动作”：函数也能作为被合并的值，组合后的动作仍可交给下一个组合器；[`time` 的 chain / map](#io-的-time用-chain-串联动作用-map-保留结果) 展示如何插入计时、日志并保留原返回值。
+
+沿着 [Functional Design 系列主线](./Functional-Programming.md#组合式设计组合器数据与效果抽象) 继续：[`fastest`](#fastest用-ord-与-semigroup-选择耗时最短的结果) 把耗时作为数据来组合策略，[`Tagless Final / MonadIO`](#tagless-final-与-monadio把效果实现作为参数) 再把 IO / Task 实现作为参数，复用同一计时流程；后续通过 [类型驱动开发](#类型驱动开发用-declare-拆解实现) 拆实现，通过 [判别联合](#判别联合与-never状态机的穷尽检查) 建模合法状态。
 
 对象操作还要区分“值类型合法”“必填键齐全”与运行时属性语义：[`Record` + `satisfies`](#record--satisfies在动态转换前检查键完整性)先检查领域对象，动态写入还需正确处理 `__proto__` 等键。跨语言排序也要明确比较的是 UTF-16 码元还是 Unicode 码点，不能仅按运算符外观迁移。
 
@@ -238,6 +246,381 @@ recover(revision); // 类型错误
 在 LoopX 中，`OperationId` 用于定位原操作，`RequestDigest` 用于核对请求意图，`ProviderRevision` 用于并发版本比较。品牌只防内部误接线：JSON 字符串仍须在解析边界验证后才能获得对应品牌，也不代表权限、存在性或租约有效。
 
 参考：[TypeScript 名义类型示例](https://www.typescriptlang.org/play/typescript/language-extensions/nominal-typing.ts.html)。
+
+### fp-ts Eq：从元素比较规则生成数组比较规则
+
+> 来源：fp-ts [`Eq` 与 `fromEquals`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Eq.ts#L26)、[`ReadonlyArray.getEq`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/ReadonlyArray.ts#L1910)。下例使用用户提供的 `function` 声明形式，原库使用箭头函数声明；比较逻辑相同。
+
+这段代码接收“元素怎样算相等”的规则，生成“数组怎样算相等”的规则。`getEq` 返回比较规则对象；真正比较两个数组，要调用返回对象的 `.equals()`。
+
+```ts
+import { Eq, fromEquals } from 'fp-ts/Eq'
+
+export function getEq<A>(E: Eq<A>): Eq<ReadonlyArray<A>> {
+  return fromEquals(
+    (xs, ys) =>
+      xs.length === ys.length &&
+      xs.every((x, i) => E.equals(x, ys[i]))
+  )
+}
+```
+
+先认识 `Eq<A>`：它是“有一个 equals 函数，能比较两个 A”的对象类型。库中的核心定义是：
+
+```ts
+export interface Eq<A> {
+  readonly equals: (x: A, y: A) => boolean
+}
+```
+
+`(x: A, y: A) => boolean` 在这里是函数的**类型**：接收两个 A，返回真假。`readonly equals` 表示不能通过这个类型重新给 `equals` 属性赋值，不会自动冻结整个对象。
+
+从外到内读函数声明：
+
+| 语法 | 初学者读法 |
+|---|---|
+| `import { Eq, fromEquals } from 'fp-ts/Eq'` | 从指定模块按名字导入；大括号列出导入项。`Eq` 是类型，`fromEquals` 是运行时函数 |
+| `export function getEq` | 声明名叫 getEq 的函数，并允许其他文件导入 |
+| `<A>` | 声明一个类型占位符 A，叫泛型；A 可代表 number、string 或对象类型，不是运行时参数 |
+| `(E: Eq<A>)` | 接收参数 E，其类型是“比较两个 A 的规则”。E 只是变量名，也可改名为 elementEq |
+| 参数括号后的 `: Eq<ReadonlyArray<A>>` | 标注函数返回值类型：比较两个 A 数组的规则对象；不是 boolean |
+| `ReadonlyArray<A>` | A 元素组成的只读数组，等价写法是 `readonly A[]`；限制 TypeScript 中的写操作，不是运行时冻结 |
+| `Eq<ReadonlyArray<A>>` 末尾的 `>>` | 依次关闭 ReadonlyArray 和 Eq 两层类型参数，不是右移运算 |
+
+当 A 是 number，签名就是“输入 `Eq<number>`，输出 `Eq<ReadonlyArray<number>>`”。`Eq` 只用于类型检查；若项目开启 `verbatimModuleSyntax`，应把导入拆成 `import type { Eq } from 'fp-ts/Eq'` 与 `import { fromEquals } from 'fp-ts/Eq'`，见 [import type](#import-type类型导入在运行时被擦除)。
+
+`fromEquals` 把一个返回真假的比较函数包装成带 `.equals()` 的对象。实际实现先判断 `x === y`：相同值 / 同一对象引用直接返回 true，否则再调用传入的函数。它不是一执行就比较数组，而是在创建之后可复用的比较规则。
+
+再看两层箭头函数：
+
+| 表达式 | 含义 |
+|---|---|
+| `(xs, ys) => 表达式` | 定义比较两个数组的函数。箭头后没有 `{}` 时直接返回表达式；若使用 `{}`，需要显式 `return` |
+| `xs.length === ys.length` | 两个数组长度严格相等 |
+| `条件一 && 条件二` | 两个条件都成立；第一个为 false 时不执行第二个，叫短路 |
+| `xs.every((x, i) => ...)` | 遍历检查 xs 的元素；全部通过才返回 true，遇到 false 就停止 |
+| `(x, i)` | x 是当前元素，i 是它在 xs 中的下标，从 0 开始 |
+| `E.equals(x, ys[i])` | 按传入的元素规则，比较两数组相同位置的元素 |
+
+例如 `[1, 2]` 与 `[1, 3]`：长度相同 → 下标 0 的 1 与 1 相等 → 下标 1 的 2 与 3 不等 → 返回 false。空数组与空数组相等；这里讨论常规稠密数组，JS 的 `every` 会跳过稀疏数组的空槽。
+
+完整调用：
+
+```ts
+// ① 两个数字怎样算相等
+const numberEq: Eq<number> = {
+  equals: (x, y) => x === y
+}
+
+// ② 把元素规则变成数组规则；从 numberEq 推断 A = number
+const arrayEq = getEq(numberEq)
+// 也可以显式写 getEq<number>(numberEq)
+
+// ③ 现在才传入两个数组，得到 boolean
+arrayEq.equals([1, 2], [1, 2]) // true
+arrayEq.equals([1, 2], [2, 1]) // false：顺序不同
+arrayEq.equals([1, 2], [1])    // false：长度不同
+```
+
+数组结构的比较方式保持不变，元素的相等规则交给 E；例如对象可以按 id 比较，而不是默认深比较所有字段。这体现了函数式组合的一种做法：把规则作为普通参数传入，再由小规则构造更大结构的规则。
+
+### contramap：连续箭头函数、柯里化与闭包
+
+> 来源：fp-ts [`Eq.contramap`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Eq.ts#L131)。承接上节 Eq；示例把原库单独声明的函数类型写回参数与返回值注解中。
+
+`f => E => 结果` 可以理解为 `f => (E => 结果)`：外层函数接收 f，返回一个接收 E 的内层函数。箭头函数可以返回任意值，函数本身也是一种值，所以可以连续写 `=>`。
+
+```ts
+import { Eq, fromEquals } from 'fp-ts/Eq'
+
+export const contramap = <A, B>(f: (b: B) => A) =>
+  (E: Eq<A>): Eq<B> =>
+    fromEquals((x, y) => E.equals(f(x), f(y)))
+```
+
+代码含泛型与类型注解，属于 TypeScript。`const contramap = ...` 把一个函数赋给变量；`export` 让其他文件可以导入它。这里的四个箭头需要分清：
+
+| 位置 | 含义 |
+|---|---|
+| `f: (b: B) => A` | **类型中的箭头**：要求 f 是“接收 B、返回 A”的函数；没有在这里执行或创建 f |
+| `<A, B>(f: ...) => ...` | 外层箭头函数：接收转换函数 f，返回内层函数 |
+| `(E: Eq<A>): Eq<B> => ...` | 内层箭头函数：接收 A 的比较规则，返回 B 的比较规则；冒号后的 Eq<B> 是返回类型 |
+| `(x, y) => E.equals(f(x), f(y))` | 传给 fromEquals 的比较函数：x、y 是 B，先转成 A，再按 E 比较 |
+
+把运行时的箭头函数全部展开成普通函数，逻辑相同：
+
+```ts
+export function contramap<A, B>(f: (b: B) => A) {
+  return function (E: Eq<A>): Eq<B> {
+    return fromEquals(function (x: B, y: B): boolean {
+      return E.equals(f(x), f(y))
+    })
+  }
+}
+```
+
+外层 `return` 返回函数，内层 `return` 返回 Eq 对象，最里面的 `return` 才返回 boolean。f 与 E 被内层函数通过**闭包**保留，所以外层调用结束后，后续比较仍能使用它们；闭包保留的是变量绑定，不会自动深拷贝对象。
+
+一个完整例子：用户对象按 id 判断是否相等，忽略 name。
+
+```ts
+type User = { id: number; name: string }
+
+const numberEq: Eq<number> = {
+  equals: (x, y) => x === y
+}
+const getId = (user: User): number => user.id
+
+// ① 先给 f；A = number，B = User，返回一个等待 Eq<number> 的函数
+const withId = contramap(getId)
+
+// ② 再给 E，得到 Eq<User>
+const userEq = withId(numberEq)
+// 上面两步也可合写：const userEq = contramap(getId)(numberEq)
+
+// ③ 调用 equals，才真正比较两个用户
+userEq.equals({ id: 1, name: '甲' }, { id: 1, name: '乙' }) // true
+userEq.equals({ id: 1, name: '甲' }, { id: 2, name: '甲' }) // false
+```
+
+调用分为三层：`contramap(f)` 返回函数 → 再传 `(E)` 返回比较器 → `.equals(x, y)` 返回真假。定义 `contramap` 或调用前两层都不会立即执行 `f(x)`；比较时才执行投影，且 `fromEquals` 对同一引用会直接短路为 true。
+
+这种“参数分两次接收”的写法是**柯里化形式（currying）**；`const withId = contramap(getId)` 先固定一部分参数，称为部分应用（partial application）。因此调用写成 `contramap(f)(E)`，不是 `contramap(f, E)`；后者是另一种函数签名。这里同时接收、返回函数，也属于高阶函数。
+
+名字的直觉：f 把 B 转成 A，而 contramap 用“比较 A 的能力”构造“比较 B 的能力”，方向相反。具体到例子就是“用户 → id”，配合“比较两个 id”，得到“比较两个用户”。上节 getEq 扩展到数组结构，本节 contramap 则通过预处理输入复用已有规则。
+
+### IO 与 Monoid：把多个动作组合成一个动作
+
+> 来源：gcanti，[Functional design: combinators — Example 2](https://dev.to/gcanti/functional-design-combinators-14pn)。概念与结合律 / 单位元见 [函数式编程笔记](./Functional-Programming.md#monoid-与组合器从合并值到组合动作)。
+
+`Monoid<A>` 包含 `concat: (x: A, y: A) => A` 和 `empty: A`；`IO<A>` 则是 `() => A`。下面把结果的合并规则变成动作的合并规则，并据此重复执行动作：
+
+```ts
+import type { IO } from 'fp-ts/IO'
+import type { Monoid } from 'fp-ts/Monoid'
+import { concatAll } from 'fp-ts/Monoid'
+import { replicate } from 'fp-ts/ReadonlyArray'
+
+function getMonoid<A>(M: Monoid<A>): Monoid<IO<A>> {
+  return {
+    concat: (x, y) => () => M.concat(x(), y()),
+    empty: () => M.empty
+  }
+}
+
+const monoidVoid: Monoid<void> = {
+  concat: () => undefined,
+  empty: undefined
+}
+
+function replicateIO(n: number, mv: IO<void>): IO<void> {
+  return concatAll(getMonoid(monoidVoid))(replicate(n, mv))
+}
+
+const sayHello: IO<void> = () => console.log('你好')
+const program = replicateIO(3, sayHello) // 只创建组合动作，没有打印
+program() // 顺序打印三次“你好”
+```
+
+读法只抓三处：
+
+| 代码 | 执行含义 |
+|---|---|
+| `(x, y) => () => M.concat(x(), y())` | 外层接收两个动作，返回无参新动作；调用新动作时，才依次执行 x、y 并合并返回值 |
+| `empty: () => M.empty` | 空动作只返回结果类型的单位元；`Monoid<void>` 对应不做事、返回 undefined |
+| `concatAll(M)(replicate(n, mv))` | replicate 构造 n 个 mv 函数引用；concatAll 从 M.empty 开始依次合并，得到一个动作；n=0 时得到空动作 |
+
+**`M.concat` 忽略结果，不等于 x、y 没有执行。** JavaScript 调用 `M.concat(x(), y())` 时先求实参：执行 x()、执行 y()，最后才调用 M.concat。`IO<void>` 只是没有有用的返回值，仍可产生打印等副作用。
+
+`replicateIO(3, printFib)()` 的前一对括号创建组合动作，后一对括号运行它，效果近似 `printFib(); printFib(); printFib()`。文章的 printFib 每次都会重新取随机数、计算 Fibonacci、打印；重复的是函数调用，不是复用某一次的计算结果。组合结果仍是 IO，所以可继续包成 `time(replicateIO(3, printFib))()`。
+
+### IO 的 time：用 chain 串联动作，用 map 保留结果
+
+> 来源：[Functional design: combinators — Example 3](https://dev.to/gcanti/functional-design-combinators-14pn)；实现核对：fp-ts [`IO.Monad`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/IO.ts#L205)、[`flatMap / chain`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/IO.ts#L78)、[`now`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Date.ts#L77)、[`log`](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Console.ts#L9)。
+
+`time` 接收动作 `ma: IO<A>`，返回带计时的新动作 `IO<A>`：执行顺序是“开始时间 → 原动作 → 结束时间 → 打印耗时 → 返回原结果”。A 可以是任意结果类型，计时没有把它改成耗时或 void。
+
+```ts
+import type { IO } from 'fp-ts/IO'
+import { Monad } from 'fp-ts/IO'
+import { now } from 'fp-ts/Date'
+import { log } from 'fp-ts/Console'
+
+export function time<A>(ma: IO<A>): IO<A> {
+  return Monad.chain(now, (start) =>
+    Monad.chain(ma, (a) =>
+      Monad.chain(now, (end) =>
+        Monad.map(log(`Elapsed: ${end - start}`), () => a)
+      )
+    )
+  )
+}
+```
+
+这里 IO 是类型，Monad 是 IO 模块提供的操作对象。Monoid 规定同类值如何合并；这里的 Monad.chain 则让后续动作依赖前一步的结果。
+
+| 代码 | 读法 |
+|---|---|
+| `now` | `IO<number>`，即获取当前毫秒时间戳的无参函数；传函数本身，由 chain 安排调用 |
+| `Monad.chain(ma, f)` | 返回新 IO；运行时先执行 ma() 得到值，再调用 f 得到下一动作并执行。此处可展开为 `() => f(ma())()` |
+| `Monad.map(ma, f)` | 返回新 IO；运行时执行 ma()，再用 f 转换其结果。此处可展开为 `() => f(ma())` |
+| `log(message)` | 创建 `IO<void>`，调用该动作才打印；构造日志动作本身不打印 |
+| `() => a` | 忽略日志返回的 undefined，返回此前算出的 a；不会重新执行原动作 |
+
+区别在 f 的返回值：chain 的 f 返回 **IO 动作**，map 的 f 返回 **普通值**。若用 map 接收返回 IO 的 f，会得到嵌套的 `IO<IO<B>>`，不会自动执行里面的动作。这里 `Monad.chain(ma, f)` 是两参数调用；文章另一处单独导入的 `chain(f)(ma)` 是柯里化接口，语义相同。
+
+把嵌套代码展开成普通函数，执行行为就直观了：
+
+```ts
+export function time<A>(ma: IO<A>): IO<A> {
+  return () => {
+    const start = now()
+    const a = ma()
+    const end = now()
+    log(`Elapsed: ${end - start}`)()
+    return a
+  }
+}
+
+const measured = time(() => 42) // 只创建动作，没有读取时间或打印
+const result = measured()      // 打印耗时，result 仍为 42
+```
+
+嵌套回调让 start、a、end 都能被最后一层访问；反引号中的 `${end - start}` 将毫秒差值插入字符串。结束时间在打印之前取得，所以不包含最后的日志耗时。此例针对同步 IO；若 ma 抛错，后面的取时间和打印不会执行；若返回 Promise，也不会自动等待其完成。
+
+保留 `IO<A>` 接口，才能继续组合：`time(replicateIO(3, printFib))()` 测三次执行的总耗时，`replicateIO(3, time(printFib))()` 则分别记录三次耗时。
+
+### fastest：用 Ord 与 Semigroup 选择耗时最短的结果
+
+> 来源：[Functional design: how to make the time combinator more general](https://dev.to/gcanti/functional-design-how-to-make-the-time-combinator-more-general-3fge)；源码：[Ord.contramap](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Ord.ts#L140)、[getMeetSemigroup / min](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Semigroup.ts#L77)、[IO.getSemigroup](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/IO.ts#L421)。
+
+这里的 time 已升级为 `IO<A> → IO<[A, number]>`，把结果与耗时一起返回，供调用者选择用途。前节的 time 只打印耗时并返回 A，不能直接接到这段代码；下文将新版命名为 `timeWithElapsed`，补齐 ignoreSnd，并把原文同名局部变量 fastest 改为 fastestRun。
+
+第二篇拆开了“测量”与“怎样使用测量结果”：`withLogging` 在计时之后打印结果和耗时，再返回 A；`ignoreSnd` 只保留 A；`fastest` 按耗时选择 A。这三种策略复用同一个计时动作，无需修改测量逻辑。
+
+```ts
+import type { IO } from 'fp-ts/IO'
+import { getSemigroup, Monad } from 'fp-ts/IO'
+import { fold, getMeetSemigroup } from 'fp-ts/Semigroup'
+import { contramap, ordNumber } from 'fp-ts/Ord'
+import { now } from 'fp-ts/Date'
+
+function timeWithElapsed<A>(ma: IO<A>): IO<[A, number]> {
+  return () => {
+    const start = now()
+    const a = ma()
+    return [a, now() - start]
+  }
+}
+
+function ignoreSnd<A>(ma: IO<[A, unknown]>): IO<A> {
+  return Monad.map(ma, ([a]) => a)
+}
+
+export function fastest<A>(head: IO<A>, tail: Array<IO<A>>): IO<A> {
+  const ordTuple = contramap(([_, elapsed]: [A, number]) => elapsed)(ordNumber)
+  const semigroupTuple = getMeetSemigroup(ordTuple)
+  const semigroupIO = getSemigroup(semigroupTuple)
+  const fastestRun = fold(semigroupIO)(timeWithElapsed(head), tail.map(timeWithElapsed))
+  return ignoreSnd(fastestRun)
+}
+```
+
+逐行读成一条“排序规则 → 选择规则 → 动作组合”的链：
+
+| 代码 / 类型 | 含义 |
+|---|---|
+| `head: IO<A>, tail: Array<IO<A>>` | head 保证至少一个动作，tail 可以为空。Semigroup 只有满足结合律的 concat，不要求 empty，所以由 head 提供归约初值 |
+| `([_, elapsed]: [A, number]) => elapsed` | 解构二元组 `[结果, 耗时]`，取第二项。`_` 是未使用的普通变量名，不是特殊运算符 |
+| `ordTuple: Ord<[A, number]>` | Ord.contramap 将数字排序规则 ordNumber 搬到二元组上，只按耗时比较，不比较 A 的值；与 Eq.contramap 同样是先提取字段再应用规则 |
+| `semigroupTuple: Semigroup<[A, number]>` | getMeetSemigroup 把“能排序”变成“二选一”：concat 返回耗时较小的整个二元组；耗时相等时保留左边 |
+| `semigroupIO: Semigroup<IO<[A, number]>>` | 把二元组选择规则提升为动作组合：新动作运行时先执行左动作，再执行右动作，最后从两个结果中选较小者 |
+| `fold(semigroupIO)(timeWithElapsed(head), tail.map(timeWithElapsed))` | tail.map 只给每个动作包计时，不执行；fold 从带计时的 head 开始，依次合并 tail，构造一个 `IO<[A, number]>` |
+| `ignoreSnd(fastestRun)` | snd 指 second；运行组合动作后只取 `[a]`，丢弃耗时，返回 `IO<A>`；不会再跑一次胜出的原动作 |
+
+用普通循环展开，行为更直观：
+
+```ts
+function fastestPlain<A>(head: IO<A>, tail: Array<IO<A>>): IO<A> {
+  return () => {
+    let best = timeWithElapsed(head)()
+    for (const action of tail) {
+      const candidate = timeWithElapsed(action)()
+      if (candidate[1] < best[1]) best = candidate
+    }
+    return best[0]
+  }
+}
+```
+
+`fastest(head, tail)` 只创建动作，末尾再加 `()` 才执行。假设三次测得 `['甲', 12]`、`['乙', 5]`、`['丙', 9]`，最终返回“乙”。**所有候选都按顺序执行过，落败者的副作用也已发生**；整体等待时间包含所有候选，fastest 指本轮观测耗时最短的返回值，不是并发竞速或自动选择以后只跑哪一个。普通 IO 遇到异常会中断，不会自动跳过失败候选。
+
+代码保留文章的 fp-ts v2 命名，其中 fold、getMeetSemigroup、ordNumber、IO.getSemigroup 在所读源码中已标为 deprecated。设计上值得保留的是：先把耗时从固定日志变成可组合的数据，再复用 Ord / Semigroup 完成选择；Monoid 与 Semigroup 的关系见 [函数式编程笔记](./Functional-Programming.md#monoid-与组合器从合并值到组合动作)。
+
+### Tagless Final 与 MonadIO：把效果实现作为参数
+
+> 来源：[Functional design: tagless final](https://dev.to/gcanti/functional-design-tagless-final-332k)；源码核对：[Kind](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/HKT.ts#L108)、[IO.MonadIO](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/IO.ts#L236)、[Task.MonadIO](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Task.ts#L325)。概念见 [组合式设计](./Functional-Programming.md#组合式设计组合器数据与效果抽象)。
+
+同步 `IO<A> = () => A` 与异步 `Task<A> = () => Promise<A>` 都需要“开始 → 动作 → 结束”。把具体的 `IO.Monad` 换成参数 ops，计时流程就可以复用；但 `fp-ts/Date` 导出的动作 `D.now` 是 IO，还需要 `fromIO` 将它提升到目标效果。原文用 M 同时命名类型参数和运行时对象；这里分别改成 F、ops。
+
+“把效果实现作为参数”具体就是：把一组规定如何组合这类计算的函数传进去。类似 `sort(compare)` 接收比较规则，`time(ops)` 接收动作组合规则。这里 F 表示计算形式，ops 是普通 JavaScript 对象，ma 才是具体业务动作：
+
+| 传入的 ops | `ops.chain(ma, a => next(a))` 在组合动作运行时的含义 |
+|---|---|
+| `I.MonadIO` | 调用同步动作 ma 得到 a，再构造并运行下一动作 |
+| `T.MonadIO` | 调用异步动作 ma，等待 Promise 完成得到 a，再构造并运行下一动作 |
+
+所以 time 只写“读开始时间 → 跑业务动作 → 读结束时间”，顺序如何落实由 ops.chain 的实现负责。`time(I.MonadIO)` 与 `time(T.MonadIO)` 复用相同流程，分别生成接收 IO、Task 的计时函数；业务动作通过后续的 `(ma)` 传入。F 是编译期的类型参数，真正运行时传入的是带 map / chain / fromIO 等函数的 ops 对象。
+
+```ts
+import type { Kind, URIS } from 'fp-ts/HKT'
+import type { Monad1 } from 'fp-ts/Monad'
+import * as I from 'fp-ts/IO'
+import * as T from 'fp-ts/Task'
+import * as D from 'fp-ts/Date'
+
+interface MonadIO<F extends URIS> extends Monad1<F> {
+  readonly fromIO: <A>(fa: I.IO<A>) => Kind<F, A>
+}
+
+function time<F extends URIS>(
+  ops: MonadIO<F>
+): <A>(ma: Kind<F, A>) => Kind<F, [A, number]> {
+  const now = ops.fromIO(D.now)
+  return ma => ops.chain(now, start =>
+    ops.chain(ma, a => ops.map(now, end => [a, end - start]))
+  )
+}
+
+const monadIOIO: MonadIO<I.URI> = {
+  ...I.Monad,
+  fromIO: fa => fa // identity：返回动作函数本身
+}
+
+const monadIOTask: MonadIO<T.URI> = {
+  ...T.Monad,
+  fromIO: T.fromIO
+}
+
+const timeIO = time(monadIOIO)
+const timeTask = time(monadIOTask)
+timeIO(() => 42)()                       // [42, 耗时毫秒]
+timeTask(() => Promise.resolve(42))()    // Promise<[number, number]>
+```
+
+`Writing a MonadIO instance` 就是补齐一份符合接口的操作字典，不需要 `class` 或 `new`：
+
+| 代码 / 术语 | 读法 |
+|---|---|
+| `F extends URIS`、`Kind<F, A>` | F 标识一种类型构造器；`Kind<'IO', A>` 是 `IO<A>`，`Kind<'Task', A>` 是 `Task<A>`。TypeScript 没有原生 HKT，fp-ts 通过类型映射编码 |
+| `Monad1<F>` | 已有的 map / of / ap / chain 接口；`MonadIO` 在它之上加 fromIO。Monoid 负责合并同类值，Monad 负责组合带效果的计算，两者不同 |
+| `...I.Monad` / `...T.Monad` | 对象展开，复制已有的 URI 与 Monad 操作，再补 fromIO；原文使用旧聚合对象 `...io` / `...task`，原理相同 |
+| `fromIO: fa => fa` | IO → IO 无需转换，返回同一个函数；写成 `fa()` 才会执行，并错误地返回 A。也不能用 of 替代：`of(fa)` 把函数当普通值，会多包一层 |
+| `fromIO: T.fromIO` | 复用库函数，将 IO 包成 Task；[实现](https://github.com/gcanti/fp-ts/blob/c0a6472121c67a2b083e62fcff13e7d022e39d8f/src/Task.ts#L57) 是 `fa => () => Promise.resolve().then(fa)`，运行 Task 后才安排执行 fa，不创建新线程 |
+
+`I.URI` 和 `T.URI` 分别是 `'IO'`、`'Task'` 的类型标识，原文两段代码中导入的同名 URI 来自不同模块。上述 instance 也已有库内实现，可直接写 `time(I.MonadIO)`、`time(T.MonadIO)`。
+
+调用分三层：`time(instance)` 选实现 → `(action)` 构造计时动作 → `()` 执行并得到值或 Promise。`const now` 保存的是可重复执行的动作，不是时间值；两处使用分别取开始、结束时间。Task.chain 等原动作的 Promise 完成后才执行结束计时；普通 IO 不会自动等待 Promise。示例只记录成功完成的动作，抛错 / reject 时不会自动生成耗时结果。
 
 ### Generator<Y, R, N>：产出、结束与恢复输入
 
@@ -466,6 +849,18 @@ JSON.stringify(sources); // '{"__proto__":7}'
 
 ### 判别联合与 never：状态机的穷尽检查
 
+> 来源补充：[Functional design: Algebraic Data Types](https://dev.to/gcanti/functional-design-algebraic-data-types-36kf)；积 / 和的状态数与 Option / Either / fold 见 [函数式编程笔记](./Functional-Programming.md#代数数据类型积和与合法状态)。
+
+先把有依赖关系的字段放进同一分支。例如 `{ editable: boolean; onChange?: (text: string) => void }` 允许可编辑却没有回调；可以改为：
+
+```ts
+type Props =
+  | { type: 'READONLY' }
+  | { type: 'EDITABLE'; onChange: (text: string) => void }
+```
+
+判断 `props.type === 'EDITABLE'` 后，onChange 必然存在。这里的改进来自模型已表达字段关联，再由编译器跟踪收窄。
+
 **`|`：联合类型（union type）**
 
 `|` 读作「或」。`type X = A | B` 表示 X 可以取 A 或 B 中的一种形态。下面 `SettlementNextAction` 是三个对象形状的联合：一个结算决策要么是 `failed`、要么是 `execute`、要么是 `complete`。
@@ -654,6 +1049,63 @@ async function run(): Promise<number> {
 返回值列全失败状态，不等于异常通道消失。对 `Promise<AuthorityStoreCommitResult>`，LoopX 将 `try/catch` 精确放在可能产生提交副作用的 `store.commitAuthority` 周围：调用已经进入写入边界，异常不能证明“没有写入”，所以恢复成 `status: "ambiguous"`，而不是重试或伪装成明确失败。回执 payload 解码则只把已知的 `AuthorityStoreProtocolError` 转成 typed failure，其他异常继续抛出，避免把程序 bug 包装成存储异常。见 [提交与回执恢复](https://github.com/loopx-project/loopx/blob/709734cd6f8183017b528857bff63b773cdd7ac9/loopx/control_plane/coordination/command_receipt.ts#L59-L89)。
 
 阅读习惯可压缩为一句话：先看返回值和异常分别代表什么，再判断异常发生前是否已经跨过副作用边界。
+
+### liftA2：把二元函数提升到 Promise
+
+来源：[Functional design: TDD in TypeScript](https://dev.to/gcanti/functional-design-tdd-in-typescript-aka-abusing-declare-59il)。它是下节类型驱动开发中，从普通数组追加操作推导 Promise 追加操作的辅助函数。
+
+下面来自用户提供的代码。`lift` 表示提升，`A` 指 Applicative，`2` 指函数接收两个参数；名字里的 A 与泛型参数 A 无关。它把普通函数 `(A, B) => C` 变为接收两个 Promise、返回 `Promise<C>` 的函数。
+
+```ts
+function liftA2<A, B, C>(
+  f: (a: A, b: B) => C
+): (fa: Promise<A>, fb: Promise<B>) => Promise<C> {
+  return (a, b) => a.then(aa => b.then(bb => f(aa, bb)))
+}
+
+const addAsync = liftA2((x: number, y: number) => x + y)
+addAsync(Promise.resolve(2), Promise.resolve(3)).then(console.log) // 5
+```
+
+`<A, B, C>` 分别表示两个输入与一个输出的类型，可以不同。外层参数 f 是普通二元函数；冒号后 `(fa: Promise<A>, fb: Promise<B>) => Promise<C>` 是“返回的函数”的类型。类型签名里的 fa / fb 不要求与实现里的 a / b 同名：这里 a / b 是 Promise，aa / bb 才是成功后拿到的 A / B。
+
+执行分两次调用：`liftA2(f)` 创建并返回函数，闭包保留 f；再传 `(fa, fb)` 时注册 then 回调，立即返回新 Promise。a 成功后拿到 aa，再等待 b 拿到 bb，最终计算 `f(aa, bb)`。then 回调返回普通 C 时兑现新 Promise；返回另一个 Promise 时跟随它的状态，所以嵌套 then 仍得到一个 `Promise<C>`。此处按 f 返回普通值理解；原生 Promise 还会展开回调返回的 Promise / thenable。
+
+便于理解的 async / await 写法（替换上面 return 部分）：
+
+```ts
+return async (fa, fb) => {
+  const a = await fa
+  const b = await fb
+  return f(a, b)
+}
+```
+
+先等待 a 再读取 b，不代表两个异步任务串行启动：入参是已经创建的 Promise，它们可能已同时运行。原版直到 a 成功才给 b 挂处理链；若 b 先拒绝，可能暂时无人处理该拒绝。两个独立输入通常可改成 `return (fa, fb) => Promise.all([fa, fb]).then(([a, b]) => f(a, b))`，同时订阅二者；成功值仍按输入顺序交给 f，但拒绝的观察时机与原版不同。Promise.all 不负责启动或取消传入 Promise 的底层任务。
+
+### 类型驱动开发：用 declare 拆解实现
+
+> 来源：[Functional design: TDD in TypeScript (aka abusing declare)](https://dev.to/gcanti/functional-design-tdd-in-typescript-aka-abusing-declare-59il)。这里 TDD 指 Type-Driven Development，即类型驱动开发；不同于通常所说的测试驱动开发。
+
+先声明目标签名，把实现缺口拆成带类型的辅助函数，再逐一填上。原文要将 `Array<Promise<T>>` 变成 `Promise<Array<T>>`：
+
+```ts
+declare function sequence<T>(promises: Array<Promise<T>>): Promise<Array<T>>
+```
+
+推导链：用 reduce 归约 → 元素类型是 `Promise<T>`，累加器是 `Promise<T[]>` → 初值为 `Promise.resolve([])` → 普通 `push: (T[], T) => T[]` 经 liftA2 提升为 Promise 累加器。复用上节 liftA2，可将原文的 push / pushPromise 合写为：
+
+```ts
+function sequence<T>(promises: Array<Promise<T>>): Promise<Array<T>> {
+  const pushPromise = liftA2<T[], T, T[]>((xs, x) => xs.concat([x]))
+  return promises.reduce(pushPromise, Promise.resolve<T[]>([]))
+}
+// sequence([]) 成功得到 []；多个成功结果按输入顺序组成数组
+```
+
+`declare` 只为类型检查提供签名，不生成函数、变量或 mock。草稿可以在编辑器中继续推导，但若没有实际运行时提供者，调用声明的函数会报 ReferenceError。declare 不能直接写在函数体里；原文用顶层 `declare const TODO: any` 临时表示缺口，any 会放宽检查，最终应补齐这些占位并验证实际行为。
+
+类型能指导“哪些部件可以接起来”，不能证明算法满足全部要求。这份 sequence 演示类型推导，不完整复刻 Promise.all：它按累加链逐个订阅输入，拒绝的观察时机不同；逐次 concat 还会反复复制数组。成功顺序、失败传播与执行成本都需单独考虑，不能由签名推出。
 
 ### Node 调度：async 不等于并行
 
@@ -964,6 +1416,98 @@ const ids = values.filter(value => value !== undefined); // string[]
 ```
 
 推断要求：无显式返回类型、只有一个返回且无隐式返回、不修改参数，返回与参数收窄相关的布尔表达式。给回调标 `: boolean` 会阻止本例的谓词推断；`!!value` 也不能在这里替代 `value !== undefined`，因为它还会排除空字符串，返回 `false` 不代表值一定是 `undefined`。参考：[TS 5.5 — Inferred Type Predicates](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-5.html#inferred-type-predicates)。
+
+### Smart constructor：校验、品牌与构造边界
+
+> 来源：[Functional design: smart constructors](https://dev.to/gcanti/functional-design-smart-constructors-14nb)。与 [函数式编程中的 smart constructor](./Functional-Programming.md#smart-constructor让非法状态不可构造) 对照。
+
+约束由四部分配合：运行时条件验证值，类型谓词传递检查结果，品牌类型区分已验证值与原始值，smart constructor 用 Option 显式表达失败。
+
+```ts
+import { none, some } from 'fp-ts/Option'
+import type { Option } from 'fp-ts/Option'
+
+interface NonEmptyStringBrand {
+  readonly NonEmptyString: unique symbol
+}
+type NonEmptyString = string & NonEmptyStringBrand
+
+function isNonEmptyString(s: string): s is NonEmptyString {
+  return s.length > 0
+}
+
+function makeNonEmptyString(s: string): Option<NonEmptyString> {
+  return isNonEmptyString(s) ? some(s) : none
+}
+
+function greet(name: NonEmptyString): void {
+  console.log(name)
+}
+
+greet('')       // 编译错误：普通 string 没有品牌
+greet('Alice')  // 同样编译错误：合法内容也须先获得品牌
+const result = makeNonEmptyString('Alice')
+if (result._tag === 'Some') greet(result.value)
+```
+
+真正执行检查的是 `s.length > 0`；`s is NonEmptyString` 是类型谓词，声明返回 true 时可以把 s 当作 NonEmptyString。运行时函数仍只返回 boolean，品牌和谓词注解均被擦除，不会给字符串附加属性。make 的 true 分支把收窄后的 s 包成 Some；false 分支返回 None。直接写同样的长度判断，TypeScript 不会自动推导出这个自定义品牌。
+
+TypeScript 信任开发者声明的谓词，**不会证明其实现正确**：将函数体改为 `return true` 仍可通过类型检查，却破坏了业务不变量；`'' as NonEmptyString`、any 或未受检的 JavaScript 调用也可绕过约束。因此只公开受检构造入口，业务函数只收品牌值，并保证构造器检查正确。类型负责保留和传播校验结果；greet / person 本身不会自动插入运行时校验。
+
+检查只能保证它实际检查的性质：`length > 0` 接受空白字符串；外部输入若为 unknown，还要先验证 `typeof value === 'string'`。原文 `Int` 的条件是 `Number.isInteger(n) && n >= 0`，实际表示非负整数，包含 0。
+
+### io-ts：由运行时 codec 推导静态类型
+
+> 来源：[io-ts 稳定模块文档](https://github.com/gcanti/io-ts/blob/864a3a2f03c5d7b974afeb1da0faf46c21758779/index.md)、[Type 实现](https://github.com/gcanti/io-ts/blob/864a3a2f03c5d7b974afeb1da0faf46c21758779/src/index.ts#L146)。本节按所读 v2.2.22 的 `import * as t from 'io-ts'` 整理；[README](https://github.com/gcanti/io-ts/blob/864a3a2f03c5d7b974afeb1da0faf46c21758779/README.md#experimental-modules-version-22) 中的 Decoder / Codec / Schema 等实验模块采用独立、不向后兼容的 API。
+
+io-ts 将手写 smart constructor 变成可组合的 codec：基础规则可以组成对象、数组与联合类型；同一份定义既执行运行时校验，又通过 `TypeOf` 提取静态类型，减少 interface 与 validator 分别维护的漂移。安装时需要 `io-ts` 和其 peer dependency `fp-ts`，后者提供 Either 等类型。
+
+核心是 `Type<A, O = A, I = unknown>`：I 是输入，A 是解码成功后的业务值，O 是编码输出。
+
+| 接口 | 含义 |
+|---|---|
+| `codec.decode(input)` | `I → Either<Errors, A>`；实际调用带默认上下文的 validate，成功 Right(A)，失败 Left(Errors) |
+| `codec.is(value)` | 类型守卫：判断 value 本身是否已经符合 A，返回 boolean；不做解码转换，也不给详细错误 |
+| `codec.encode(value)` | `A → O`；按 codec 编码，接口假定输入已是合法 A，不会自动先调用 decode 校验 |
+| `t.TypeOf<typeof codec>` | 编译期提取 A；`InputOf` / `OutputOf` 分别提取 I / O，这些类型工具不执行检查 |
+
+承接上节非空字符串，基础类型检查和业务条件可以分层组合：
+
+```ts
+import * as t from 'io-ts'
+import { isLeft } from 'fp-ts/Either'
+import { PathReporter } from 'io-ts/PathReporter'
+
+interface NonEmptyStringBrand { readonly NonEmptyString: unique symbol }
+const NonEmptyString = t.brand(
+  t.string,
+  (s): s is t.Branded<string, NonEmptyStringBrand> => s.length > 0,
+  'NonEmptyString'
+)
+
+const UserCodec = t.type({ name: NonEmptyString })
+type User = t.TypeOf<typeof UserCodec>
+
+const input: unknown = { name: 'Alice' }
+const result = UserCodec.decode(input)
+if (isLeft(result)) {
+  console.error(PathReporter.report(result))
+} else {
+  const user: User = result.right
+  console.log(user.name)
+}
+// UserCodec.decode({ name: '' }) 或 { name: 42 } 均返回 Left
+```
+
+这里真正的检查链是“对象形状 → t.string → 长度谓词”。[`brand / refinement`](https://github.com/gcanti/io-ts/blob/864a3a2f03c5d7b974afeb1da0faf46c21758779/src/index.ts#L2074) 先执行基础 codec 的 validate，成功后才运行 predicate；品牌仍只存在于类型层，自定义 predicate 的正确性仍由开发者保证。库负责组合与传递结果，不会证明业务条件。
+
+常用组合：`t.type` 定义对象字段，`t.partial` 定义可选字段，`t.array(C)` 校验数组元素，`t.union` 表达多种合法形态，`t.intersection` 合并约束。`t.Int` 只要求整数，包含负数；非负 / 正数需要另加谓词。
+
+使用边界：
+
+- 解码可能转换值，例如 `Type<Date, string, unknown>` 把合法日期字符串解成 Date、再编码成字符串；`.is` 检查的是 Date 本身。因此成功后使用 `result.right`，而非继续把原始 input 当成校验结果。
+- `t.type` 默认保留多余字段；[`t.exact`](https://github.com/gcanti/io-ts/blob/864a3a2f03c5d7b974afeb1da0faf46c21758779/src/index.ts#L1952) 在解码结果中裁掉它们，`t.strict(props)` 等价于 `t.exact(t.type(props))`。若协议要求遇到未知字段就报错，需要另外检查。
+- `Errors` 保留失败值、字段路径 / codec 上下文与可选 message，`PathReporter` 将其转成字符串数组；对比只表达成功 / 失败的 Option，Either 保留了失败原因。内置校验失败返回 Left，由调用方决定如何处理。
 
 ### `asserts`：把检查结果传给后续代码
 
