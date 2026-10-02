@@ -739,6 +739,14 @@ YC 则认为，现在可以利用 AI 技术去帮国家讨债，然后按比例�
 
 随着行业趋势从"训练通用大模型"转向"垂直领域专用模型"的微调与精炼，模型开发的门槛必须大幅降低。这些工具将不仅是辅助插件，而是会进化为未来软件开发的底层基石。谁能率先交付稳定、简洁且高效的训练全链路产品，谁就能掌握 AI 原生应用时代的开发定义权。
 
+#### AI 视频工作流：生成、编辑与互动内容的边界
+
+> 线索：[虎嗅黄青春频道：剪映 Hub / ICG Studio 报道](https://mp.weixin.qq.com/s/j4BKvstNrtAxT0aHE7HewQ)（2026-10-02）。二级来源，未独立试用；下文保留产品设计问题，不将发布会测算和作者判断当作已验证结果。
+
+报道描述了将脚本、分镜、素材生成和多轨编辑接在同一工作台的方向。可验证的产品问题是：生成结果能否直接进入可编辑时间线，局部修改能否保留已有人工编辑，以及任务是否真正减少跨工具往返。效率数字要绑定素材、输出质量、人工介入和计费口径，不能仅比较演示用时。
+
+互动内容还增加了三层约束：分支叙事与素材一致性；存档、分支树和分发入口；素材授权、计费与分成规则。分支数量取决于分叉、合流和深度，不能只用节点数乘选项数推算完整故事路径。创作工具可降低生产成本，是否形成完整消费体验仍需作品与用户反馈验证。
+
 ## Agent Sandbox 与运行环境（已迁移）
 
 > 内容已迁至 [AI-Agent-Engineering.md - Agent Sandbox 与运行环境](./AI-Agent-Engineering.md#agent-sandbox-与运行环境)。
@@ -2068,6 +2076,8 @@ Lorca 补充了另一条路线：**用户自己的电脑执行，手机控制，
 
 Tutti 也属于这一类 agent workspace 产品，但它的主贡献更偏 **shared workbench / workspace reference / local daemon**，详见 [AI-Agent-Engineering.md - Tutti](./AI-Agent-Engineering.md#tutti把多-agent-协作从-summary-handoff-变成-shared-workspace)。按产品谱系看，它介于 ego lite 的 browser runtime、Raft 的 human-agent collaboration workspace、Flowith Matrix 的 agent organization 之间：先解决一个人和多个本地 agent / app 的上下文共享，再通过 Tutti VM 扩展到多人 Room。
 
+Comma（AFK）是这条轴上的另一种切法：把**主动性**与**身份隔离**同时当做一等设计——Proactive Loop 不随对话窗口关闭而停止，敏感的身份与支付动作则回到用户自己的设备完成（Cloud for work, your device for identity）。它把「App 不再是入口、Intent 才是」推到产品层，见下文 [Comma](#commaafk永不下班的-personal-agent)。
+
 ### Grok Bot：xAI 的 AI teammate 产品（2026-08 发布）
 
 > 来源：[CNET - SpaceXAI Joins the AI Agent Game With Grok Bot](https://www.cnet.com/tech/services-and-software/spacexai-ai-agent-grok-bot/)、[Yahoo Tech](https://tech.yahoo.com/ai/articles/spacexai-joins-ai-agent-game-222324976.html)
@@ -2145,6 +2155,46 @@ Muse Code 则把编码协作进一步产品化为「多 Agent 编排脚本 + 后
 
 **产品比较的落脚点**：不能仅用「对方做 runtime，我们做 control plane」判断互补关系。Grok Bot / Muse 已覆盖一部分调度、授权、状态、通知与恢复；独立控制面仍需证明跨运行时治理、可复核证据与恢复语义的增量，并把这些能力转成更少的人工协调。对 LoopX 一类系统，可用五个场景验收：委派后关掉客户端；中途出现新信息；遇到审批；worker 失败 / 进程重启；多任务同时完成。每次记录结果是否推进、是否重复副作用、用户转述 / 催办次数、必要决策等待时间与无行动价值的通知数。这是从材料提出的评估方法，不是两家已公布的 benchmark。
 
+### Comma（AFK）：永不下班的 Personal Agent
+
+> 来源：[AI 决定永不下班：Comma 发布，想要掀翻 Personal Agent 牌桌！](https://mp.weixin.qq.com/s/pEsNgHwJRxD3XjcGlQAD3A)（公众号「特工宇宙」，2026-09-30，约 4300 字）。**二级来源**：内容来自厂商演示与采访口径，我未定位到官方站点或开源仓库，也未安装试用；下文机制按媒体转述记录，一手核验项见文末。
+
+**定位**：AFK 推出的 Personal Agent，主张「持续在线、主动推进、长期运行」。用户给一个长期目标后可以离开键盘（Away From Keyboard），它继续 24h 推进、主动发起提醒，并把长期目标组织成 Task / Project。作者把它与现有 Work Agent 的差别概括为：现有产品是为「短期任务」设计的实习生，Comma 想对标的是「积极主动、独当一面」的一线大头兵。
+
+**三条产品主张**：
+
+- **消灭三件事**：不需要管理 Session、不需要选择 Agent、不需要管理任务如何执行。用户只提出目标状态，其余交给它；Conversation 只是交互方式，Task 才是持续存在的执行状态。
+- **内部复杂、外部单一**：自述包含 Cloud Computer、Agent Harness、长期记忆、Personal Context 与 Proactive Loop；复杂任务在后台自动拆解、由 Agent Swarm 调度多个 worker，但用户始终只面对一个 Agent。
+- **控制权**：自称开源并支持 self-hosting / BYOK，数据与长期记忆归用户。
+
+**核心机制：Prompt → Response 变成 Context → Reason → Action**
+
+- 传统对话式 AI 是「你说一句、它回一句、你不说它就停」；Comma 围绕一个未完成的 Goal 持续运行，自己判断什么还没做完、什么条件发生了变化、什么时候该再次行动。
+- Proactive Loop 不因关闭对话窗口而停止，一直转到目标完成。作者的推论是：订阅的云算力 / token 额度会被 Agent 主动消耗，算力不再闲置。
+- 原文明确拿它跟 [龙虾 / OpenClaw](#dongxu-的龙虾实践agentic-engineering-in-2026) 对比：从能力上看，Codex、Workbuddy 这类主流产品与龙虾的差别已经不大，差别在稳定性——龙虾「实现不稳定」，出现过 Agent 错误判断导致用户核心信息泄漏、重要邮件被代操作的问题，因此很多人提到 Personal Agent 就从内心恐惧。这也是本文把信任设计单独拿出来讲的原因。
+
+**信任设计：Cloud for work, your device for identity**（本文最值得记录的一点）
+
+- 把工作环境与身份环境物理隔离：搜索、研究、处理文件、等待、沟通都在云端完成，不占用用户设备；一旦走到身份鉴权、支付这类敏感边界，就切回用户自己的电脑或手机，用已有登录态完成最后一步。
+- 例子：点咖啡时云端完成找店、比价、选品、填单，付款不把银行卡信息复制进 Cloud Computer，而是进入手机、用已有支付环境收尾。两个环境被连成同一个连续 Agent Runtime，但敏感身份始终留在用户自己手里。
+- 作者由此推出一条行业判断：拦住 Personal Agent 大规模落地的不是能力，而是**身份、鉴权与支付基础设施还没有为 Agent 建好**——验证码、人脸识别、短信确认这些机制默认操作者是人类；谁先解决「让 Agent 安全地代表我」，谁才真正拿到入场券。
+
+**交互范式判断：App 不再是入口，Intent 才是**
+
+- 今天软件的本质是让人通过 UI 去操作数据库和服务——想通知团队不发版要打开 Slack 找频道打字，想看任务进度要打开 Linear 点进 Board；当 Computer Use 足够强，这些操作可以交给 AI，用户不再需要知道「这件事该打开哪个 App」。
+- 原文的说法是：应用不会一夜消失，但「打开 App、学 UI、点按钮」这条路径的价值正在被压缩，App 退化成 Agent 调用的后端服务；对应出现从 Prompt / Context / Loop / Harness Engineer 到 **Intent Engineer** 的角色迁移。
+
+**能力演示清单**（均为产品方口径）：打通手机 / 电脑 / IoT；可在微信内直接使用；控制 NAS、智能音箱、空调、灯；叫车与支付；在 Slack 里与团队 Agent 沟通；可直接与它打电话（作者类比豆包语音，差别是「豆包只能帮你答疑，Comma 可以帮你更好地管理你的世界」）。
+
+**证据边界与待验证项**：
+
+- 「开源、self-hosting、BYOK」以及 Cloud Computer / Agent Swarm / Proactive Loop 的内部实现，目前全部是厂商口径，未核一手来源。
+- 「没有多个 Agent、没有 Session」是界面层承诺，不等于底层没有会话边界与调度状态；要对照 Grok Bot 的「多 Bot + 共享电脑」与 Lorca 的「一台电脑 + 多 Bot」，看它把 loop 与身份放在哪一层。
+- 跨设备最后一跳（敏感动作回到用户设备）在工程上等价于一个 action relay：授权粒度、凭据是否确实留在用户设备、支付动作如何避免重复副作用与审计，均未披露。
+- 24h 主动推进的成本、触发频率与打扰控制没有公开口径（对照 Muse「先判断结果是否有实质新信息再决定通知」）。
+
+**与相邻产品的关系**：Grok Bot / Muse 的公开材料展示了「持久环境 + 后台执行 + 审批 + 结果返回」的产品方向；媒体所述 Comma 的主张是把**主动性**（不等用户开启新一轮对话）与**身份隔离**（敏感动作回到用户设备）同时做成一等设计，而 Lorca 走的是相反分工（执行留在用户电脑、手机只做控制端）。三者回答的是同一组问题——loop 放在哪、身份放在哪、控制权交给谁——但答案不同。
+
 ### Raft（原 Slock）：human-agent 协作空间
 
 > 来源：[slock.ai](https://slock.ai/)（已跳转到 [raft.build](https://raft.build/)）、[Introducing Raft](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)、[Raft use cases](https://raft.build/resources/use-cases/)、第三方 setup guide [CodePick: Slock Setup Guide](https://codepick.dev/en/guides/slock-setup/)、npm 包 [`@slock-ai/daemon`](https://www.npmjs.com/package/%40slock-ai/daemon)（2026-06-15 `npm view` 显示已 renamed to `@botiverse/raft-daemon`）
@@ -2199,7 +2249,15 @@ Flowith 在 2026-06-23 预告 Matrix，把它定义为“0 人公司运行器”
 
 Claude Tag（Anthropic 的 Slack AI Coworker）的产品分析与 LoopX 能力验证见 [AI-Agent-Engineering.md - Claude Tag](./AI-Agent-Engineering.md#claude-tagai-coworker-的范式精华与-loopx-的验证)。
 
+### 个人 Agent 的平台边界与利益一致性
 
+> 线索：[Z Finance：个人 Agent 行业观察](https://mp.weixin.qq.com/s/-5dmi750MahvSkJrgFSWTw)（2026-10-01）。二级来源；这里仅讨论通用产品约束，不采用未经官方确认的人员、组织分工、代号和发布计划。
+
+个人 Agent 可以从现有应用、持续在线的云端环境或独立客户端切入。三条路线分别受到既有交互习惯、环境维护成本和身份授权的约束；产品入口改变，不会自动解决长程记忆、失败恢复、跨设备执行与敏感动作确认。
+
+“平台 Agent”还要回答利益一致性：推荐、排序与代办究竟受用户意图、平台商业目标还是二者共同驱动？可检查的设计包括结果来源与排序理由、商业关系披露、可替换服务、授权范围和用户撤回控制。不能由个人助理的命名推断它已经完全代表用户利益。
+
+与 [Comma](#commaafk永不下班的-personal-agent) 的对照重点是执行与身份分别放在哪一层、主动推进何时触发、失败后怎样恢复、成本和通知是否有界。终端感知可能提供更多上下文，也会增加持续授权与数据最小化要求；“必然走向某种硬件”仍是行业假设。
 
 ## Agent 领域概述
 
@@ -2215,6 +2273,8 @@ ICLR 2025/2026 Agent 方向论文的综合启示：Agent 系统设计应以 prot
 Multi-agent 的产品形态也可以按 sharing model 切：全量 shared workspace、mailbox + task / event ledger、session-to-session dialogue。Tutti 更像 shared workspace，Claude Code Agent Teams 主要是 mailbox + dialogue，LoopX 的短中期价值是把 mailbox + ledger 做成可恢复的 state kernel。概念层整理见 [SubAgent / Agent-as-Tool / MultiAgent](./AI-Applied-Algorithms.md#subagent--agent-as-tool--multiagent从多开模型到上下文与证据控制)。
 
 OpenAI ICML Q&A 图文线索给出的产品侧判断是：下一阶段 agent 产品不会只拼“单次回答更聪明”，而会拼长程运行、动态环境、可信 eval、样本效率、系统可靠性、个性化、可解释性和 human control。编码仍是最先商业化的入口，但更大的产品形态会走向交互式创作、完整项目代理、企业系统连接、AI for Science 和按任务 / 结果 / 成本节省定价。技术层整理见 [OpenAI ICML Q&A 图文线索](./AI-Applied-Algorithms.md#openai-icml-qa-图文线索下一阶段竞争从单次推理转向长程系统能力)。
+
+个人 Agent 还需明确平台利益、跨设备身份与执行边界，见 [平台边界与利益一致性](#个人-agent-的平台边界与利益一致性)。
 
 ### Agent Scaling 与群体智能
 
@@ -4666,6 +4726,8 @@ for hat in queue:
 
 本节按七个问题组织：为什么 AI 编程先成熟、产品如何选、个人如何使用、系统如何规模化、质量如何闭环、团队如何协作，以及工具如何落地。
 
+团队层面的提效还要看[责任闭环与协作方式](#闭环全栈开发)：局部生成变快，未必缩短从问题到验收、再到用户反馈的周期。
+
 ### 核心判断与能力边界
 
 #### 为什么编程是当前最强的垂直领域
@@ -5441,6 +5503,8 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
 
 #### 闭环全栈开发
 
+补充来源：Henry [《致超级个体》](https://mp.weixin.qq.com/s/R04uChJ_mUOZz_XIUCoT6g)。核心变化是跨岗位执行成本下降：过去 PM 主要通过文档与协调推动闭环，如今可以借 Agent 先完成原型、验证和部分实现。**Agent 接走任务，人保留问题选择、结果验收与后果责任。**
+
 **研发领域：**
 - 让一个人带领 agent 完成全栈的开发测试运维工作
 - 不再需要多个角色之间的流程依赖和沟通交接
@@ -5450,6 +5514,8 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
 - 传统：销售→售前→实施→技术支持，每次交接面临信息完整性、理解一致性和排期依赖问题
 - 未来：一个客户经理带领 agent，闭环从线索跟进、方案输出、项目交付到售后支持的全流程
 - 客户问题不再在不同角色之间流转和衰减，而是在一个统一的上下文中被持续跟进和解决
+
+上述是缩短交接链条的方向，适用范围取决于人的判断能力、验证工具和授权边界。独立复核、专业支持、生产发布与敏感数据访问仍按风险保留；“负责到底”不等于默认获得所有权限。产品感也应覆盖用户痛点、工程代价、交互体验、发布风险和反馈信号，而不只看能否快速做出 Demo。
 
 #### 人类员工分工边界的变化
 
@@ -5474,6 +5540,15 @@ backlog/tasks 本身也可以考虑用一个文件夹的形式放在项目库里
    - 拥有新生产力的员工可能会很不适应原先的流程（业务反馈不够快、需求不够多、沟通与等待时间过长等）
    - 观念保守的员工可能在原有工作流程下不会觉得有任何问题
    - 管理者需要意识到这些变化，做一些主动设计
+
+3. **让管理者接触真实任务与失败样本**
+   - [《致超级个体》](https://mp.weixin.qq.com/s/R04uChJ_mUOZz_XIUCoT6g)把管理认知延迟归因于信息路径和风险激励：一线从具体任务获得手感，管理者更多接收报告、汇报和供应商方案，并承担稳定性、成本与合规责任。
+   - 可让管理者亲自完成一个有代表性的任务，观察 Agent 误读、失败、人工修正与最终验收；讨论范围从“工具定位”推进到“哪些任务可用、需要哪些支持”。一线成功样本也要说明选择偏差和失败率，不能直接等同于 PMF。
+
+4. **分阶段接纳原型，再决定规模投入**
+   - 原文把内部原型、Research Preview、个人开源项目作为三类观察样本；共同点是先让有限范围的真实使用产生反馈。这里的 Product Overhang 指模型能力尚未被合适的入口、工具权限、上下文与反馈机制接住。
+   - 将其转为实践时，先约定试验范围、预算、数据边界、验收与退出条件，再观察自发采纳、重复使用、任务结果和人工介入成本。早期不必证明成熟商业收入，进入规模阶段仍要验证需求、可靠性与经济性。
+   - Preview 是反馈安排，不能代替必要的上线审查；换用新工具的次数、代码量和账号活跃度，都不足以证明端到端提效。
 
 #### 飞书 CodeM：AI Coding 从个人工具进入团队协作面
 
