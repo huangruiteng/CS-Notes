@@ -23,13 +23,14 @@ git clone https://github.com/loopx-project/loopx.git "$HOME/Developer/loopx"
 
 | 层 | 起步选择 | 何时补充 |
 | --- | --- | --- |
-| Agent | 一个官方桌面客户端与个人账号 | 需要另一个模型或运行时再装 Claude Code 等 |
+| Agent | 官方桌面客户端的 GPT / DS 独立入口 | GPT 用个人账号，DS 按需在本机配置；不装 secondary |
+| 工作台与浏览器 | LoopX Desktop、Ego Lite | 验证配套 runtime、CLI 与公开 browser skill |
 | 基础开发 | Git、gh、uv、Node 24、ripgrep、jq、tmux、Git LFS | 版本按目标仓库约束验证 |
 | 阅读写作 | Typora、公开 CS-Notes 与 Learning-Materials | PDF 提取用 poppler；OCR 用 tesseract |
 | 构建 | Python 项目独立 venv，Node 项目锁文件 | Rust、Go、CMake、Ninja 按源码需要装 |
 | 容器 | 起步不要求常驻 VM | 有 Dockerfile 或测试依赖时用 Colima + Docker CLI；其他容器桌面二选一 |
 
-LoopX 的公开安装文档目前要求 Python 3.11+、Node 22.22.3+，推荐 Node 24 LTS。先使用专用 Python 环境安装公开发行版，运行 `loopx workflow-skills --install` 与 `loopx doctor --deep`；源码 checkout 留作阅读和贡献。具体命令先核对 [安装文档](https://github.com/loopx-project/loopx/blob/main/docs/guides/installing-loopx.md)，选一个安装方式作为唯一维护入口，不把源码 canary 和发行版混装。
+LoopX 需要 Python 3.11+ 与合适的 Node（推荐 24 LTS）。本交接包含 Desktop，默认先按 [桌面说明](https://github.com/loopx-project/loopx/blob/main/apps/desktop/loopx-control-plane/README.md) 安装公开 App 与匹配 runtime，再验证 CLI、安装 workflow skills、运行 doctor。已有 CLI 时保留，按 App 的版本匹配提示决定维护入口，不混装 canary。源码 checkout 仅作阅读与贡献；不用 Desktop 时按 [CLI 安装文档](https://github.com/loopx-project/loopx/blob/main/docs/guides/installing-loopx.md) 选择独立安装。
 
 ## 实用软件整理是装机必要步骤
 
@@ -40,6 +41,8 @@ Astra 先盘点新机已有软件，逐项写出“已有 / 安装 / 暂缓 / �
 不仅安装软件，还要验收阅读和操作习惯：Typora inline math、块公式与相对图片；iTerm2 新 shell 与可选 Meslo / Pastel 外观；触控板轻点；编辑器打开项目；解压与有期限防休眠。原 README 的无限回看、旧浏览器扩展与整套 shell 插件是历史偏好，需要重新判断，不能批量导入。账号、许可证、浏览器 profile、应用数据库和组织托管设置在新机单独处理。
 
 ## Skills 与 shell 一起安装
+
+App 交接见 [APP_COLLABORATION.md](./APP_COLLABORATION.md)，涵盖 `codex app` / `codex ds app` 切换、LoopX、Ego Lite、Typora、独立状态与 Dock。dotfiles 必须包含 `tools/personal_apps.py`、`tools/personal-apps`、`shell/apps.zsh`；缺少时更新已审查版本，不用旧机脚本替代。基础安装链接命令，`personal-apps init` 另行预览初始化，不复制认证或历史。
 
 读取 [技能选集](../skills/README.md)，通过 dotfiles `bootstrap.sh --skills-repo "$HOME/Developer/CS-Notes"` 预览，确认后加 `--apply`。技能用 symlink 指向仓库源文件，后续优化进入 Git diff；不用整目录迁移旧机 skills。已有配置冲突先审查，再按安装器的备份/回滚流程处理。
 
