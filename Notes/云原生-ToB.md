@@ -664,7 +664,7 @@ docker-compose up -d
 
 #### Controller：声明式目标如何落到实际状态
 
-来源：[Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[API Concepts](https://kubernetes.io/docs/reference/using-api/api-concepts/)、[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)、[Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)。实现对照固定为 controller-runtime **v0.20.4** 与 client-go **v0.32.3**，用于说明机制，不代表当前最新版本。
+来源：[Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[API Concepts](https://kubernetes.io/docs/reference/using-api/api-concepts/)、[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)、[Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)。实现对照固定为 Kubernetes **v1.32.3**、controller-runtime **v0.20.4** 与 client-go **v0.32.3**，用于说明机制，不代表当前最新版本。
 
 **Controller 是围绕某种资源运行的反馈控制循环：读目标与现状 → 判断差距 → 做必要动作 → 再观察。**一次 Reconcile（调谐）只是循环中的一次检查，不要求一次调用完成部署，也不要求系统永远静止。收敛依赖于目标可实现、调谐能继续被触发、依赖最终可用，以及不同控制器没有持续互相覆盖。
 
@@ -744,7 +744,19 @@ controller-runtime 的返回值控制后续调度，见固定版本的 [Reconcil
 
 generation 与 condition 的定义可核对 [ObjectMeta / Condition](https://github.com/kubernetes/apimachinery/blob/59e9003f02d6f0c8fff53719a7a0604ec82ee9a9/pkg/apis/meta/v1/types.go)。`observedGeneration` 只说明报告对应的代次，仍需结合 condition 的类型、真假和具体语义判断是否达标。
 
-**幂等的目标是“重复检查仍把状态推向同一个结果”，不是每次都调用同一条创建命令。**[controller-runtime FAQ](https://github.com/kubernetes-sigs/controller-runtime/blob/0f7927c52ef41f261195054ec7f01902357e2c33/FAQ.md)特别提醒缓存延迟：刚创建成功，下一轮缓存可能还没看到它；此时盲目按“还差几个”再创建，就可能超量。固定子资源名、检查 UID／归属、处理 AlreadyExists，以及记录尚未被观察到的创建／删除预期（expectations），都是应对办法；expectations 还需超时与重建策略。
+**缓存可以暂时落后，但“缓存没看到”不能直接推出“应该再创建”。**幂等是重复检查仍趋向同一结果，要落实为具体保护，不能只依赖最终一致性。[controller-runtime FAQ](https://github.com/kubernetes-sigs/controller-runtime/blob/0f7927c52ef41f261195054ec7f01902357e2c33/FAQ.md)给出的办法可与版本控制一起理解：
+
+| 场景 | 保护机制 | 缓存落后时怎样工作 |
+| --- | --- | --- |
+| 创建有稳定身份的对象 | 确定性命名＋服务端唯一性约束 | 两次都创建 `app-2`，第二次收到 `AlreadyExists`；核对 owner UID 与用途后继续调谐。类似数据库唯一键，不能把别人的同名对象当成成功 |
+| 创建使用生成名字的对象 | expectations：记录尚未观察到的创建／删除 | 上一批预期未满足时暂缓副本增删，等待缓存追上，避免根据旧数量再补一批 |
+| 修改已有对象 | 携带 `resourceVersion` 的条件更新 | 用旧版本更新被拒绝，收到 `409 Conflict` 后重读、重算；Patch 也须明确所需前置条件 |
+
+ReplicaSet 的例子：目标 3、缓存只有 2 → **先记“待观察创建数 = 1”，再创建** → 创建成功但缓存未更新，暂缓增删 → Informer 观察到新 Pod，计数归零并重新入队 → 缓存已有 3，无须再补。先记账可避免通知早于登记；等待期间仍可更新 status。源码对应 [ExpectCreations](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L587)、[CreationObserved](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L405) 与 [SatisfiedExpectations 门禁](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L696)。
+
+expectations 是控制器实现的内存记账，controller-runtime 不会自动提供这层保护；需处理请求失败、重启和通知异常。该版本设有 [5 分钟过期](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/controller_utils.go#L70)，过期后再次检查可以放行，避免永久等待。**它不保证副本数任何时刻都不超量**；短暂偏差仍可能发生，后续调谐再纠正。
+
+必要时可绕过本地缓存查询 API Server，但“查询 → 写入”之间仍有并发窗口，直接读不能替代唯一身份、条件写入或幂等键。判断缓存方案时追问：**旧读会触发什么副作用、由谁拒绝重复或过时的动作、剩余偏差能否接受并修复？**副本数可以收敛；扣款等副作用需要执行端提供持久幂等或事务保证。
 
 下面是需要外部资源的自定义控制器结构示意，省略具体 API；所有读取、ensure、persist 失败都应返回 error，不继续执行后续步骤。这不是可直接部署的实现：
 
