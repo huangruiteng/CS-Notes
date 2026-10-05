@@ -37,7 +37,7 @@
 
 ```bash
 python3 note-system/materials/material_queue.py --check
-python3 -m unittest discover -s note-system/materials/tests -p 'test_material_queue*.py'
+python3 -m unittest discover -s note-system/materials/tests -p 'test_material*.py'
 ```
 
 要修改公开渲染，在修改 `catalog.json` 后运行不带 `--check` 的渲染命令。本仓库维护者应先更新来源 authority 与审查，再同步投影；直接改公开副本会在下次同步中被检测为变化，不能代替来源更新。
@@ -58,6 +58,8 @@ python3 -m unittest discover -s note-system/materials/tests -p 'test_material_qu
 2. **Apply**：同一发布锁内检查源版本、审查、目标文件与指针；先备份并演练恢复，再逐文件原子替换，读回后更新投影指针。重复 apply 返回 `no_change`。这里的“发布”仅指写入本机投影文件，不执行 Git commit、push 或 PR。
 3. **Check**：检测源/审查过期或输出被编辑。修改文件后，应先比较差异，再重新 prepare，不能用刷新覆盖未审查的改动。
 4. **Rollback**：指定当前投影 revision，先验证全部备份与旧指针，再恢复；不回滚 catalog 的 intake、生命周期或排名。
+
+写入门禁应绑定实际调用宿主的活动 Turn，不能把普通 Codex 会话误当成“缺少 Bot Turn”。[Codex 宿主上下文读取器](./material_host_context.py)只读校验环境中的线程 ID、宿主索引、会话来源、工作区、活动 Turn 与写入策略，不创建 Session、Turn 或授权。来源 adapter 仍须核验当前 owner 与 App／工作区 grant，并把宿主上下文绑定到有期限、限定操作的 gate；换 Turn、撤权、只读或宿主信息不一致时拒绝，不回退借用其他宿主。真实线程信息和审计证据留在私有侧，不进入公开目录。
 
 可捕获的部分写入失败会恢复原文件；合成测试覆盖这条路径。多文件替换不是一个数据库事务，不承诺进程强杀或掉电时整体原子性，也不阻止绕过发布锁的手动编辑。发生此类中断时先检查私有备份、目标文件和指针，再修复投影；不得因此修改或覆盖来源 authority。
 
