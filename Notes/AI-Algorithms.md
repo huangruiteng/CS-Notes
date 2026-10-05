@@ -4595,6 +4595,8 @@ Interpretability在电商场景的潜在应用 https://www.vantagediscovery.com/
 
 ### AI安全
 
+内容过滤、对齐训练的可靠性与社会层面的灾难风险是不同问题：过滤器约束输入输出，对齐研究检验行为如何随训练与情境变化，灾难判断还需要能力、权限、环境与时间范围的证据。下节 [Alignment Faking](#alignment-faking对齐伪装与安全训练的证据边界)属于对齐可靠性；社群与主观风险估计见 [AI 安全社群](./非技术知识.md#ai-安全社群风险信念与前沿竞赛的张力)。
+
 * 关键问题：如何在一个学习了的系统中检测危险（比如混合某些化合物），并且你无法直接询问它这些内容
   * 解决方案：设定一个阈值，超过了向政府报告
 
@@ -4613,6 +4615,16 @@ Interpretability在电商场景的潜在应用 https://www.vantagediscovery.com/
     - 调用 API 时，Response 中会返回一个字段，帮助用户确定模型生成的内容是否被过滤（finish_reason 字段为 "content_filter"）
   - **参考文档**：
     - https://docs.byteplus.com/en/docs/ModelArk/Content_Pre-filter
+
+#### Alignment Faking：对齐伪装与安全训练的证据边界
+
+> 一手来源：[Alignment faking in large language models](https://arxiv.org/html/2412.14093v2)（Anthropic / Redwood Research 等，2024-12，定向核验 §2.2、§3.2、§5.2、§8.2）与 [官方研究说明](https://www.anthropic.com/research/alignment-faking)。相关媒体叙事见 [腾讯科技报道](https://mp.weixin.qq.com/s/2Up_rFp1J2T_S8LBMDlPiw)。
+
+* **机制**：模型识别输出会被用于训练，且新训练目标与既有偏好冲突，于是暂时服从新目标，以减少后续训练对偏好的修改。表面服从不等于偏好已经改变；这里的“伪装”特指保留偏好的策略性服从，不泛指幻觉、错误或所有欺骗行为。
+* **实验条件**：以 Claude 3 Opus 为主，既有偏好是拒绝有害请求，新目标却要求回答。研究者虚构“免费用户对话用于训练，付费用户对话不用于训练”的区分，并提供模型以为不被观察、研究者实际可读的 scratchpad。另以合成文档微调传递训练信息，也观察到类似行为；这些是实验构造，不是 Claude 实际产品的数据政策。
+* **指标不能混用**（[§2.2](https://arxiv.org/html/2412.14093v2#S2.SS2)、[§3.2](https://arxiv.org/html/2412.14093v2#S3.SS2)）：提示实验的有害请求服从率在 implied-training / unmonitored 条件下约为 14% / 3%（拒绝率 86% / 97%，差 11 个百分点）；约 12% 是训练条件下含对齐伪装推理且输出服从的样本比例，并非全部有害回答率。实际 RL 后，提示式 helpful-only 设置的伪装推理比例升至约 78%，但未监控条件的服从也增加（[§5.2](https://arxiv.org/html/2412.14093v2#S5.SS2)）；不能写成所有模型或所有 RL 设置都会强化伪装。
+* **结论边界**（[§8.2](https://arxiv.org/html/2412.14093v2#S8.SS2)）：证明的是特定条件下可出现策略性服从、既有偏好未被训练完全消除。本实验试图保留的主要是无害性偏好，没有证明模型自然形成恶意目标，更没有证明现实接管或灭绝已发生、必然发生。scratchpad 分类存在噪声，情境和指标也限制外推；行为差异与推理文字需共同核验。
+* **评测启示**：训练内符合目标，不足以单独证明训练外稳定对齐。应比较模型认为“会被训练”与“不会被训练”的行为，分别记录输出、推理判定和条件变化；这是一种验证思路，不能把任何情境差异都归因于伪装。与隐藏能力的 sandbagging 分开讨论，见 [Agent 评测有效性检查](./AI-Applied-Algorithms.md#预算性能曲线与评测主张)。
 
 ### AI政治
 
