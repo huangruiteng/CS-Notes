@@ -644,7 +644,7 @@ docker-compose up -d
 
 **一切皆对象 (Object)**
 
-给定对象预期状态（Spec），控制循环持续观察并推动实际状态趋近目标（声明式架构）；Status 是观察结果的报告，与 Spec 不是同一种结构，也可能有延迟。资源不足或依赖失败时，目标可能暂时无法实现。机制见 [Controller](#controller声明式目标如何落到实际状态)。
+先通过 API 保存对象预期状态（Spec），控制循环再持续观察并推动实际状态趋近目标，回报 Status（声明式架构）。Status 是观察结果的报告，与 Spec 不是同一种结构，也可能有延迟。资源不足或依赖失败时，目标可能暂时无法实现。机制见 [Controller](#controller声明式目标如何落到实际状态)。
 
 **基本对象** 
 
@@ -667,6 +667,18 @@ docker-compose up -d
 来源：[Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[API Concepts](https://kubernetes.io/docs/reference/using-api/api-concepts/)、[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)、[Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)。实现对照固定为 controller-runtime **v0.20.4** 与 client-go **v0.32.3**，用于说明机制，不代表当前最新版本。
 
 **Controller 是围绕某种资源运行的反馈控制循环：读目标与现状 → 判断差距 → 做必要动作 → 再观察。**一次 Reconcile（调谐）只是循环中的一次检查，不要求一次调用完成部署，也不要求系统永远静止。收敛依赖于目标可实现、调谐能继续被触发、依赖最终可用，以及不同控制器没有持续互相覆盖。
+
+**先保存 desired state，再执行调节，最后回报 observed state。**这句话把持久化意图、落实动作与报告事实分开：
+
+| 环节 | 谁做、保存什么 | 为什么这样安排 |
+| --- | --- | --- |
+| 保存 desired state（期望状态） | 用户、API 客户端或上层控制器通过 API Server 持久化 `spec`，如 `replicas: 3` | 目标独立于执行进程存在；控制器重启后仍能找回“应该做到什么”。API 写入成功只确认目标已保存 |
+| 执行调节（reconcile） | 控制器读取目标与实际状态，通过子资源或外部 API 推动变化 | 每轮重新判断差距，动作应可安全重试；创建请求被接受不等于资源已经可用 |
+| 回报 observed state（观察状态） | 相应控制器或节点组件把已观察到的数量、conditions、错误等写入 `status`；适用时注明 `observedGeneration` | 用户和其他控制循环据此判断进展；不能把期望值直接抄成完成结果 |
+
+例如，目标是 3 个可用副本，目前只有 1 个：先保存目标 3，再由各控制循环补齐资源；状态按实际观察报告当前可用数量，可能从 1 → 2 → 3，也可能因故障一直停在 1。**“最后回报”不意味着等全部成功才写 status**：执行期间也要报告进度或失败，调节前同样需要观察现状。Status 是有延迟的观测快照，下一轮仍须检查相关对象或外部系统。
+
+这个顺序让恢复有据可依：目标已保存但尚未执行，下轮可以重新发现差距；动作已成功但报告未写入，下轮应查询并认领已有结果，避免重复创建。它跨越多个组件和多次 API 调用，**并不是一个原子事务，也不自动保证 exactly-once**。具体故障窗口与幂等手段见下文。
 
 以 Deployment 希望运行 3 个副本为例，责任沿对象链分开：
 
