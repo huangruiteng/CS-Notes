@@ -10,6 +10,8 @@
 > todo 《Software Design X-Rays》
 >
 > 开源项目运营、许可与商业价值 → [Software-开源项目成功之道.md](Software-开源项目成功之道.md)
+>
+> 开源参与、维护分工与协作流程 → [高效参与开源：时间、信任与维护负担](Software-开源项目成功之道.md#高效参与开源时间信任与维护负担tison)
 
 ### Intro
 
