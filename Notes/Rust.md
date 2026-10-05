@@ -2,14 +2,58 @@
 
 ## 阅读地图
 
-1. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏、Serde wire 状态与 JSON Schema 构造的基础。
-2. “表达式、模式匹配与闭包”解决 `Result`、`match`、`=>`、`self` 和 `|x|` 等常见语法。
-3. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
-4. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
-5. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
-6. “错误处理、Option 与重试”集中整理 `?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
-7. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
-8. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
+1. “代码组织”区分 workspace、package、crate 与 module，解释 `crate::`、`mod`、`use` 和可见性边界。
+2. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏、Serde wire 状态与 JSON Schema 构造的基础。
+3. “表达式、模式匹配与闭包”解决 `Result`、`match`、`=>`、`self` 和 `|x|` 等常见语法。
+4. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
+5. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
+6. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
+7. “错误处理、Option 与重试”集中整理 `?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
+8. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
+9. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
+
+## 代码组织：crate、package 与 module
+
+来源：[Rust Book：Packages and Crates](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)、[模块速查](https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html#modules-cheat-sheet)、[Cargo Targets](https://doc.rust-lang.org/cargo/reference/cargo-targets.html)、[Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)。
+
+**crate 是 Rust 的编译单元，由一个 crate root 源文件及其模块树组成；一个 crate 可以跨多个 `.rs` 文件。**日常说“用了某个 crate”通常指使用某个库，但 crate 也可以编译为可执行程序。
+
+| 层次 | 管什么 | 识别方式 |
+| --- | --- | --- |
+| workspace | 一起管理一组 package，共享 `Cargo.lock` 与默认构建目录 | 根 `Cargo.toml` 的 `[workspace]`；可以不含 `[package]` |
+| package | Cargo 的构建、版本与发布组织单位，包含一个或多个 crate | `Cargo.toml` 中的 `[package]`、依赖和 targets |
+| crate | 编译与跨 crate API 边界 | library crate 提供可复用功能；binary crate 生成可执行程序，通常以 `main` 为入口 |
+| module | crate 内部的命名空间与可见性组织 | `mod` 声明，可内联或分文件；不独立成为 crate |
+
+一个 package 至少包含一个库或可执行 crate，**最多一个 library target，可以有多个 binary targets**。默认布局如下；路径也可由 `[lib]`、`[[bin]]` 配置：
+
+```text
+demo-app/                ← 一个 package，下面有两个 crate
+├── Cargo.toml
+└── src/
+    ├── lib.rs           ← library crate root，默认库名 demo_app
+    ├── math.rs          ← lib.rs 声明的模块，属于这个库 crate
+    └── main.rs          ← binary crate root，默认可执行文件名 demo-app
+```
+
+最小调用关系（以下分属三个文件）：
+
+```rust
+// src/lib.rs
+pub mod math;
+
+// src/math.rs
+pub fn add(a: i32, b: i32) -> i32 { a + b }
+
+// src/main.rs
+use demo_app::math::add;
+fn main() { println!("{}", add(1, 2)); }
+```
+
+- **`crate::` 指当前 crate 的根**：库内可写 `crate::math::add`；在这里的 `main.rs` 中，`crate::` 指 binary 的根，访问库须用 `demo_app::math::add`。同属一个 package 不等于同一个 crate；库名默认把 package 名中的 `-` 换成 `_`。
+- `mod math;` 声明模块并让编译器寻找其代码；`use` 只是把已有路径引入当前作用域，不负责下载依赖。第三方依赖先写入 `[dependencies]` 或用 `cargo add` 添加，再通过库名引用。
+- `pub` 允许外部访问，但路径上的可见性也要满足，或通过 `pub use` 重导出；[`pub(crate)`](https://doc.rust-lang.org/reference/visibility-and-privacy.html#vis.scoped)只对当前 crate 开放，因此库里的 `pub(crate)` 项也不能由同 package 的 binary 访问。
+- `cargo new demo-app --lib` 创建带库的 package；新增 `src/main.rs` 即可同时提供 CLI。`src/bin/tool.rs` 可再定义一个 binary，用 `cargo run --bin tool` 选择；`cargo check --workspace` 检查工作区成员。
 
 ## 类型系统、结构体与反序列化
 
