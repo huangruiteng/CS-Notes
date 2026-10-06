@@ -65,6 +65,35 @@ class NativeOwnerTurnTests(unittest.TestCase):
         self.flush()
         self.assertEqual(self.resolve()["host_surface"], "codex-cli")
 
+    def test_loopx_native_app_server_turn_keeps_provenance_and_write_fences(self):
+        self.records[0]["payload"].update(source="vscode", originator="loopx_chat")
+        self.flush()
+        before = self.index.read_bytes(), self.rollout.read_bytes()
+        context = self.resolve()
+        self.assertEqual(context["host_surface"], "codex-app")
+        self.assertEqual(context["turn_id"], self.turn)
+        self.assertNotIn("private_fixture", json.dumps(context))
+        self.assertEqual(before, (self.index.read_bytes(), self.rollout.read_bytes()))
+        for policy in ("read-only", "external-sandbox"):
+            with self.subTest(policy=policy):
+                self.records[2]["payload"]["sandbox_policy"] = {"type": policy}
+                self.flush()
+                with self.assertRaisesRegex(ValueError, "does not grant workspace writes"):
+                    self.resolve()
+        self.records[2]["payload"]["sandbox_policy"] = {"type": "workspace-write"}
+        self.records.append({"type": "event_msg", "payload": {"type": "task_complete", "turn_id": self.turn}})
+        self.flush()
+        with self.assertRaisesRegex(ValueError, "not active"):
+            self.resolve()
+
+    def test_loopx_origin_does_not_allow_a_different_or_structured_host_source(self):
+        for source in ("cli", "unknown", {"subagent": {"other": "fixture"}}):
+            with self.subTest(source=source):
+                self.records[0]["payload"].update(source=source, originator="loopx_chat")
+                self.flush()
+                with self.assertRaisesRegex(ValueError, "unsupported native Codex host"):
+                    self.resolve()
+
     def test_unreadable_host_index_is_rejected(self):
         self.index.write_bytes(b"invalid fixture database")
         with self.assertRaisesRegex(ValueError, "unavailable or incompatible"):
