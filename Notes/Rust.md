@@ -8,7 +8,7 @@
 4. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
 5. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
 6. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
-7. “错误处理、Option 与重试”集中整理 `?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
+7. “错误处理、Option 与重试”集中整理 `Result::map`、`?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
 8. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
 9. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
 
@@ -526,6 +526,8 @@ Ok(3) = 成功返回整数 3
 ```
 
 `Ok` 不是布尔值，也不是普通函数。它是 `Result` 的 enum variant constructor，可以粗略读成 `Result::Ok(value)`。
+
+成功值还可以用 [`Result::map`](#resultmap校验成功后再构造)转换，错误则原样传递。
 
 ### `match` 与 `=>`
 
@@ -2087,6 +2089,50 @@ Result<Vec<Message>, StoreError>
 - `Err(error)`：发生了已建模的存储错误。
 
 但 `Ok(vec![])` 仍属于 `Ok`。Rust 不会自动把空列表解释成异常。
+
+#### `Result::map`：校验成功后再构造
+
+来源：[Result::map](https://doc.rust-lang.org/std/result/enum.Result.html#method.map)、[and_then](https://doc.rust-lang.org/std/result/enum.Result.html#method.and_then)、[map_err](https://doc.rust-lang.org/std/result/enum.Result.html#method.map_err)。以下使用通用配置构造示例。
+
+假设 `Config` 不实现 `Copy`，`validate(&self) -> Result<(), ConfigError>` 只借用配置，`Client::from_config(&ClientBuilder, Config) -> Client` 消费配置。`ClientBuilder` 的方法可以写成：
+
+```rust
+pub fn build(
+    &self,
+    config: Config,
+) -> Result<Client, ConfigError> {
+    config
+        .validate()
+        .map(|()| Client::from_config(self, config))
+}
+```
+
+**先校验；成功才构造 `Client` 并包装成 `Ok(client)`，失败则直接返回 `Err(error)`。**逐段读：
+
+| 语法 | 含义 |
+| --- | --- |
+| `pub fn build`、`&self` | 公开方法，共享借用当前 builder，不取得 builder 的所有权 |
+| `config: Config` | 参数按值传入，配置所有权移进方法；即使校验失败，也不会自动退回给调用方 |
+| `Result<Client, ConfigError>` | 成功值的类型是 `Client`，错误值的类型是 `ConfigError`；返回 `Ok(client)` 或 `Err(error)`，不同时返回二者 |
+| `Result<(), ConfigError>` | 校验成功只返回单位值 `()`，没有额外数据；失败携带具体错误 |
+| `.map(闭包)` | 把 `Result<T, E>` 变为 `Result<U, E>`：只把 `Ok` 中的 `T` 交给闭包，再包装返回的 `U`；`Err` 原样通过，闭包体不执行 |
+| `\|()\| ...` | 闭包接收一个 `()` 参数，用单位模式匹配它；不同于无参闭包 `\|\| ...` |
+| `Client::from_config(self, config)` | 调用类型的关联函数，返回 `Client`；函数名本身没有特殊语法含义 |
+
+这里 `T = ()`、`U = Client`、`E = ConfigError`。方法体最后的表达式没有分号，所以整个 `map` 结果直接作为返回值；参数末尾的逗号只是允许的尾随逗号。
+
+等价的显式分支是：
+
+```rust
+match config.validate() {
+    Ok(()) => Ok(Client::from_config(self, config)),
+    Err(error) => Err(error),
+}
+```
+
+也可用下一节的 `?` 写成 `config.validate()?;`，随后 `Ok(Client::from_config(self, config))`。校验借用结束后，闭包再将配置移入构造函数；`map` 接受 `FnOnce`，支持这种至多调用一次的闭包，无需 `clone`。若校验本身按值消费非 `Copy` 配置，就不能照此再次使用它。
+
+选择方法看返回类型：**转换成功值用 `map`，串联另一个返回 `Result` 的步骤用 `and_then`，转换错误用 `map_err`**。若构造函数也返回 `Result<Client, ConfigError>`，这里用 `and_then` 可避免 `map` 产生嵌套的 `Result<Result<Client, ConfigError>, ConfigError>`。
 
 #### `?` 的展开
 
