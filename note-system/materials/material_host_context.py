@@ -42,7 +42,9 @@ def _active_turn(rollout, thread_id, workspace):
                     context = payload
     if not metadata or metadata.get("id") != thread_id:
         raise ValueError("native host session identity mismatch")
-    origins = {("vscode", "Codex Desktop"), ("cli", "codex_cli_rs")}
+    # LoopX uses the native Codex app-server with its own client originator.
+    # That label is provenance only; the indexed active Turn/write checks remain.
+    origins = (("vscode", "Codex Desktop"), ("vscode", "loopx_chat"), ("cli", "codex_cli_rs"))
     if (metadata.get("source"), metadata.get("originator")) not in origins:
         raise ValueError("unsupported native Codex host")
     if Path(metadata.get("cwd", "")).resolve() != workspace:
