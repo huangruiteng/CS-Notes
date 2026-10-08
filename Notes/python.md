@@ -1772,6 +1772,38 @@ sys.exit(main())
 
 
 
+#### typing 类型注解
+
+* `TypeGuard[T]`（3.10+，[PEP 647](https://peps.python.org/pep-0647/)）标注自定义类型守卫函数：`if f(x):` 的 True 分支里，类型检查器把参数 `x` 收窄为 `T`。
+
+```python
+from typing import Any, TypeGuard
+
+def work_lane_contract_is_due_monitor_attempt(
+    contract: dict[str, Any] | None,
+) -> TypeGuard[dict[str, Any]]:
+    return bool(
+        isinstance(contract, dict)
+        and contract.get("monitor_kind") == WORK_LANE_TODO_MONITOR_DUE_KIND
+    )
+
+if work_lane_contract_is_due_monitor_attempt(contract):
+    contract["must_attempt_work"]  # contract 已从 dict[str, Any] | None 收窄为 dict[str, Any]
+```
+
+要点：
+
+- `TypeGuard` 只提供静态标注，运行时仍返回普通 `bool`；实际校验由函数体负责。收窄只发生在调用点的 True 分支，False 分支不收紧，`else` 里仍是原类型（`dict | None`）。
+- 只对第一个位置参数（方法的 `self` / `cls` 之后那个）生效，不能指定收窄哪个参数。
+- `T` 不必是入参类型的子类型，允许「不健全」的收窄，正确性完全由实现负责；`T` 也只应写 True 真正能证明的性质。
+- `isinstance(contract, dict)` 只在函数体内收窄局部变量；`TypeGuard` 的作用是把这条结论传给调用方。类型检查器不解析函数体里的业务判断，所以要显式签名。
+- 入参值类型是 `Any` 时，收窄只去掉 `None` / 非 dict 分支，字段值仍是不受检的 `Any`；`TypeGuard` 不替代 schema 校验。
+- 3.13+ 的 `TypeIs[T]`（[PEP 742](https://peps.python.org/pep-0742/)）更严格：要求 `T` 与入参类型相容，且 False 分支也会排除 `T`。除「收窄到不相关类型 / 只覆盖部分实例」外，优先用 `TypeIs`。
+
+参考：[typing.TypeGuard](https://docs.python.org/3/library/typing.html#typing.TypeGuard)；3.10 以下用 `typing_extensions.TypeGuard`。TS 的对应机制见 [TypeScript.md - 用户定义类型谓词](./TypeScript.md#用户定义类型谓词--const-type-parameter从白名单到精确类型)。
+
+
+
 #### warnings
 
 ```python
