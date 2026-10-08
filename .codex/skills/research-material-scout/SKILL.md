@@ -11,17 +11,13 @@ Use this skill when the user asks for research, material discovery, learning-mat
 
 Build a high-signal learning and career material pipeline for the user.
 
-The material pipeline serves the user's broader career development goal, not a single artifact. The current north star is to position the user as an LLM / Agent infra engineer at the intersection of RecSys, ToB platform work, benchmark/eval, and agent memory-context-runtime systems.
+Use the user's current, explicitly confirmed Decision Context to select the next learning action. Read its current version and distinguish user facts, source evidence, and assistant proposals. Career themes are defaults, not permanent weights: new responsibilities, a decision deadline, or a completed reading can change the order. Keep private context out of public queries and skill text.
 
-This career north star applies to `素材：`, `调研：`, material radar, Top30, and career-learning prioritization. It must not override user-directed note integration. When the user says `整理笔记`, names a note such as `AI-Algorithms`, or points to a specific section/theme, route by the user's target and the source material's primary domain before considering Agent infra / career mapping.
+Before recommending a first read, check existing Notes, managed material records, and the user's latest read-completion statements. Material importance and remaining reading effort are separate: a central paper already understood may need only one missing experiment, a design delta, or a later revisit. Do not invent a completed/archive transition; use the active lifecycle contract and an explicit disposition.
 
-The user's current priority stack:
+For user-directed note integration, the named target and source's primary domain take precedence over career mapping. Common discovery lanes include agent runtime/evaluation/memory, model learning, serving and RL systems, product workflows, and career signals; select among them from the current task rather than a fixed percentage split.
 
-1. Agent infra / Agent Harness / OpenClaw / ArkClaw / OpenViking / agent memory.
-2. RL infra / agent runner bridge / verl / Ray rollout / agentic RL.
-3. Inference serving anchor / vLLM / SGLang / agent workload serving constraints.
-4. RecSys + LLM / search and recommendation infra as a differentiating background.
-5. Career narrative / interview deep dives / market sensing / personal technical taste and distribution.
+For decision-driven X discovery or benchmark reading recommendations, read [the focused scout protocol](references/decision-driven-scouting.md).
 
 ## Boundary With LoopX Material
 
@@ -29,7 +25,7 @@ This skill is the CS-Notes source-discovery and exact-reading adapter. It owns
 source recall, primary-source verification, reader maps, domain scoring, and
 the private CS-Notes landing decision.
 
-When the connected goal explicitly activates Material Lifecycle, use the
+When the connected project or goal explicitly activates Material Lifecycle, use the
 project-local managed `loopx-material` skill for generic store inventory, candidate/archive
 transitions, lossless migration, ranked-entry rebuild, bounded rerank,
 owner-gated apply, rollback, and audit. Pass exact-read evidence and the
@@ -57,9 +53,7 @@ ranked backlog without loss. Do not move protected anchors without a changed
 Decision Context or explicit owner instruction.
 
 The installed project skill does not itself activate Material Lifecycle.
-Without an explicit goal-scoped todo/profile and declared private source
-authority, this skill may research or read material but must not rewrite the
-managed candidate/archive/ranking store.
+Without an active project- or goal-scoped profile, declared source authority, and current native owner authorization, this skill may research or read material but must not rewrite the managed store. An already authorized ordinary project source does not require a new Goal or a borrowed agent identity.
 
 ## Source Strategy
 
@@ -221,40 +215,9 @@ The script is only a recall layer; it complements rather than replaces the older
 
 ## SenSight Backend
 
-The SenSight OpenClaw skill has been downloaded locally for Codex adaptation:
+Discover callable SenSight tools or the current project's private `.local/sensight-skill-source/sensight` directory. Do not assume a previous machine's absolute path or installed version. If the source exists, read its SKILL.md and actual command help before invoking it. Do not execute placeholder installers.
 
-```text
-/Users/bytedance/CS-Notes/.local/sensight-skill-source/sensight
-```
-
-This source directory is private and ignored by git. It contains:
-
-```text
-SKILL.md
-scripts/sensight.py
-scripts/auth.py
-scripts/init.sh
-scripts/calc_time.sh
-references/workflows.md
-references/author-posts-guide.md
-references/daily-pulse-filters.md
-```
-
-Before using SenSight, check that the directory exists. If missing, install it into the private cache, not global OpenClaw:
-
-```bash
-# Use an approved private skill source, then install into the ignored local cache.
-<private-skill-installer> --skill sensight --dir /Users/bytedance/CS-Notes/.local/sensight-skill-source
-```
-
-Run SenSight commands from its source directory:
-
-```bash
-cd /Users/bytedance/CS-Notes/.local/sensight-skill-source/sensight
-python3 scripts/sensight.py <action> [args]
-```
-
-If the command returns an auth-required response, do not treat it as data. Tell the user SenSight needs one-time device authorization and wait for confirmation before retrying. Do not expose internal API endpoints, raw service JSON, client IDs, or stale auth URLs in final answers.
+When SenSight is absent or unavailable, record that limitation and continue with web search plus an authenticated platform reader and primary-source verification. Optional discovery tooling should not block already authorized research. If its authentication is essential, follow its current authorization flow; never treat an auth response as source content.
 
 ### Useful Actions
 
@@ -291,19 +254,11 @@ python3 scripts/sensight.py search_author_posts \
   --author_name "Anthropic"
 ```
 
-Known limitation from the downloaded version: the local source currently reports `version: 0.3.1`, while the user-provided article mentions `0.3.2` with direct social-link reading. If direct link reading is needed and unavailable, fall back to existing Codex readers (`wechat-article-reader`, `xiaohongshu-reader`, browser/web tools) and note the version gap.
-
 ## Authenticated Social Link Reading
 
-For concrete X/Twitter links, use a layered route before marking the material unread:
+Use public metadata when sufficient; for incomplete posts, replies, or signed-in search, read the installed `ego-browser` skill and follow its current TaskSpace and API contract. Do not copy stale browser methods into this skill. Reuse the user's sign-in; inspect visible posts and original links, and close only task-owned surfaces.
 
-1. Try lightweight public metadata first:
-   - `https://publish.twitter.com/oembed?omit_script=1&url=<encoded-url>` for author, timestamp, and main post text.
-   - `https://cdn.syndication.twimg.com/tweet-result?id=<tweet-id>&lang=en` only as a best-effort fallback; it often returns `{}`.
-2. If public metadata is incomplete, use `ego-browser` because it can reuse the user's logged-in browser state. Open the original URL in a task space, run `snapshotText()` for accessible text, and then use one `js(String.raw\`...\`)` extraction over `document.querySelectorAll("article")` to capture visible post/reply text, links, and image nodes.
-3. For X images, the visible media may appear as a background image or as an image only on `/photo/1`. Use browser-side DOM inspection to find `pbs.twimg.com/media/...` URLs. If shell `curl` is reset, retry with Python `urllib` plus `User-Agent` and `Referer: https://x.com/`.
-4. Store screenshots/media only under ignored local cache paths such as `.local/source-cache/x-materials/`; do not put social screenshots into public `Notes/` unless the user explicitly asks and the content is safe to publish.
-5. Treat X content as social/product signal unless it points to a primary source. For technical claims, follow links to papers, repos, official docs, release notes, or author long-form posts before ranking as S/A.
+Capture relevant author, date, post URL, primary-source links, read scope, and the claim to verify. Avoid unrelated recommendations, DMs, account statistics, or a bulk feed dump. Inspect needed images through supported browser/media tools; do not download remote media to work around display restrictions. Store private evidence under `.local/`. A social post can be a first-party statement of its author's claim, but reported experimental results still require the paper, code, or data protocol.
 
 ## Agent-Reach Complement
 
@@ -354,7 +309,7 @@ For each user-provided material:
 0. Classify the request intent before choosing tools or files:
    - `整理笔记`: use the repository note-integration workflow. If the user named a file/section, inspect that target first; if not, classify the source's primary contribution such as model algorithm, training method, inference system, agent runtime, product strategy, or career signal, then find the matching note. Do not default to Agent infra just because the material is AI-related.
    - `素材`: intake to the current managed material authority. Do not write the legacy candidate Markdown.
-   - `调研`: prioritize by the user's 70/20/10 career plan.
+   - `调研`: prioritize by the user's current confirmed Decision Context.
    - `请你读 / 精读`: read and explain in the conversation, with relevant images displayed inline. Save only source caches, figure assets and reading evidence under `.local/` or the task artifact directory; do not edit `Notes/`, its indexes, or the material lifecycle/ranking. Note integration requires an explicit `整理笔记` or `读完` request; an artifact delta here is a proposal, not permission to implement it.
 
 ### Illustrated Reading Output
@@ -389,7 +344,7 @@ The note-writing rules below apply to `整理笔记 / 读完`. During `请你读
    - A: Codex summary is enough unless the theme becomes active.
    - B: useful background, tool lead, or product observation.
    - Unread: not read; never pretend.
-5. If Material Lifecycle is active, write exact-read evidence and staged content, then use `.local/material-lifecycle/managed_candidate_intake.py` to prepare/apply one candidate. Verify the candidate authority revision advanced by one record, then create the separate Decision Context-backed ranking revision in the same workflow. Verify the disposition, ranked membership when required, authority readback, readable projection, audit receipt, and rollback path before reporting completion.
+5. If Material Lifecycle is active, write exact-read evidence and staged content, then use the active project source adapter documented in `.local/material-lifecycle/README.md` to intake one candidate or revise its existing stable ref. Verify an intake adds exactly one record, or a revision preserves identity, lifecycle and membership, then create the separate Decision Context-backed ranking revision in the same workflow. Verify the disposition, ranked membership when required, authority readback, readable projection, audit receipt, and rollback path before reporting completion.
 
 ## Active Research Workflow
 
@@ -426,7 +381,7 @@ Before reporting that a research task is done:
    - source type,
    - query/profile lane,
    - evidence sentence,
-   - why it matters to the user's 70/20/10 career plan,
+   - why it matters to the user's current confirmed Decision Context,
    - next action.
 4. Confirm the candidate stable ref exists exactly once in the current managed catalog, the immutable content backing digest verifies, and an intake receipt records CAS/readback success.
 5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when applicable, visibly includes relevant images with source attribution and explanation, and contains a concrete "用户本人还需要读什么" reader map. Verify that no note/index or lifecycle/ranking edits were made as part of reading. If the answer is "不用读原文", still name the inspected sections and provide a substitute-quality digest.
@@ -440,7 +395,7 @@ Reject or demote materials that are:
 
 - pure hype without implementation detail,
 - duplicate commentary on already captured material,
-- unrelated to the user's current 70/20/10 priority split,
+- unrelated to the user's current decision and learning priorities,
 - not traceable to a primary source when factual claims matter.
 
 ## Output Style
