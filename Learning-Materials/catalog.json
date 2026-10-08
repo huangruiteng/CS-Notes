@@ -160,7 +160,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "把企业 Agent 采用拆为业务结果、运营责任、留存与成本，避免只看单次演示。",
-      "queue_rank": 19
+      "queue_rank": 40
     },
     {
       "material_ref": "material-e53faefdbd16de1d3e9b1cae",
@@ -172,7 +172,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 93
+      "queue_rank": 111
     },
     {
       "material_ref": "material-56c5827a0463d91465ce4ba2",
@@ -184,7 +184,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 72
+      "queue_rank": 90
     },
     {
       "material_ref": "material-ec276db233a4675ec64b84af",
@@ -197,7 +197,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 96
+      "queue_rank": 114
     },
     {
       "material_ref": "material-37a051ef523244900857c773",
@@ -216,7 +216,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "追踪 rubric 如何进入逐步行动选择，区分训练奖励、推理约束与结果评分。",
-      "queue_rank": 4
+      "queue_rank": 8
     },
     {
       "material_ref": "material-339de746a405eae0374a44a5",
@@ -234,7 +234,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "从最小 agent loop 追到 session 与扩展点，区分核心责任和可替换策略。",
-      "queue_rank": 24
+      "queue_rank": 46
     },
     {
       "material_ref": "material-9ca7ef3f36a72cef9555014d",
@@ -246,7 +246,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 45
+      "queue_rank": 63
     },
     {
       "material_ref": "material-0db6c4e971df5ecd11e66788",
@@ -359,7 +359,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 131
+      "queue_rank": 149
     },
     {
       "material_ref": "material-14e8a21af0e062124540c992",
@@ -372,7 +372,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 115
+      "queue_rank": 133
     },
     {
       "material_ref": "material-ae77740cc8cc7cfedee33a8a",
@@ -387,7 +387,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 133
+      "queue_rank": 151
     },
     {
       "material_ref": "material-a104d35beef828465a95ccea",
@@ -412,7 +412,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 112
+      "queue_rank": 130
     },
     {
       "material_ref": "material-ed0b36188bc1bfcad7700631",
@@ -427,7 +427,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 155
+      "queue_rank": 173
     },
     {
       "material_ref": "material-efa25fd8e2ad813dcec01344",
@@ -440,7 +440,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 127
+      "queue_rank": 145
     },
     {
       "material_ref": "material-63853ea819ff4e50c796e59e",
@@ -509,7 +509,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 154
+      "queue_rank": 172
     },
     {
       "material_ref": "material-c78f39785227b8bdea2ac380",
@@ -523,7 +523,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 149
+      "queue_rank": 167
     },
     {
       "material_ref": "material-ab6c1f052a21c00f19831b3e",
@@ -535,7 +535,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 111
+      "queue_rank": 129
     },
     {
       "material_ref": "material-3df93baac8889f2ca91808fd",
@@ -547,7 +547,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 110
+      "queue_rank": 128
     },
     {
       "material_ref": "material-24257c7cfd07b806c2eb27b9",
@@ -559,7 +559,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 136
+      "queue_rank": 154
     },
     {
       "material_ref": "material-004cc513955d49c2bb4917b8",
@@ -597,7 +597,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 132
+      "queue_rank": 150
     },
     {
       "material_ref": "material-78fee7a3a0afb44c2897a216",
@@ -693,7 +693,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 160
+      "queue_rank": 179
     },
     {
       "material_ref": "material-c67db08b4c65092b8f7e8512",
@@ -826,7 +826,7 @@
       "lifecycle": "candidate",
       "read_scope": "abstract",
       "note": "本次核验公开论文页面；技术细节沿用既有阅读记录。",
-      "queue_rank": 157
+      "queue_rank": 176
     },
     {
       "material_ref": "material-e1806e13a19008f4bfde3e2f",
@@ -839,7 +839,7 @@
       "lifecycle": "candidate",
       "read_scope": "abstract",
       "note": "本次核验公开论文页面；技术细节沿用既有阅读记录。",
-      "queue_rank": 158
+      "queue_rank": 177
     },
     {
       "material_ref": "material-3768d2aae7056821752258c3",
@@ -864,7 +864,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 134
+      "queue_rank": 152
     },
     {
       "material_ref": "material-416bc407aaac593498417ce5",
@@ -912,7 +912,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 49
+      "queue_rank": 67
     },
     {
       "material_ref": "material-8893e07da266c19ade43924e",
@@ -952,7 +952,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 121
+      "queue_rank": 139
     },
     {
       "material_ref": "material-1db8895bf48dcb04a03f9710",
@@ -989,7 +989,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 122
+      "queue_rank": 140
     },
     {
       "material_ref": "material-1ef034b461a4c8524da22a1e",
@@ -1001,7 +1001,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 123
+      "queue_rank": 141
     },
     {
       "material_ref": "material-4c2ce03194abf34ac8a039aa",
@@ -1040,7 +1040,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 125
+      "queue_rank": 143
     },
     {
       "material_ref": "material-6228dd0c6e81b39a2046a356",
@@ -1277,7 +1277,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 116
+      "queue_rank": 134
     },
     {
       "material_ref": "material-32b78afaf3a1f71049795a8f",
@@ -1315,7 +1315,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 135
+      "queue_rank": 153
     },
     {
       "material_ref": "material-16acb48d8bc166c1c2423978",
@@ -2411,7 +2411,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 164
+      "queue_rank": 183
     },
     {
       "material_ref": "material-c5cd5cd28234911ce49a4369",
@@ -3063,7 +3063,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 67
+      "queue_rank": 85
     },
     {
       "material_ref": "material-cec278eb6436ef9c0315593a",
@@ -3914,7 +3914,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 147
+      "queue_rank": 165
     },
     {
       "material_ref": "material-79f3ebb16d91748a21c59bb3",
@@ -3994,7 +3994,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 159
+      "queue_rank": 178
     },
     {
       "material_ref": "material-2d9c4bb927b600f7896696e1",
@@ -4057,7 +4057,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 150
+      "queue_rank": 168
     },
     {
       "material_ref": "material-f27e7ced2a7b6b0ba8c01623",
@@ -4095,7 +4095,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 153
+      "queue_rank": 171
     },
     {
       "material_ref": "material-05a04ac17c7fea85836776b7",
@@ -4107,7 +4107,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 163
+      "queue_rank": 182
     },
     {
       "material_ref": "material-0ea3caef91ad53df679788bf",
@@ -4400,7 +4400,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 165
+      "queue_rank": 184
     },
     {
       "material_ref": "material-ee88682cff60a48046051a4c",
@@ -4439,7 +4439,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 166
+      "queue_rank": 185
     },
     {
       "material_ref": "material-8d7813583112aa4442b6abb9",
@@ -4685,7 +4685,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 78
+      "queue_rank": 96
     },
     {
       "material_ref": "material-261f0603a6f664e39b84a80d",
@@ -4735,7 +4735,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 113
+      "queue_rank": 131
     },
     {
       "material_ref": "material-d6bb4d099a3030f6d8245ce9",
@@ -4941,7 +4941,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 114
+      "queue_rank": 132
     },
     {
       "material_ref": "material-95479dc1950778de0640db7d",
@@ -5308,7 +5308,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 142
+      "queue_rank": 160
     },
     {
       "material_ref": "material-005960e723c690a480784258",
@@ -5442,7 +5442,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 106
+      "queue_rank": 124
     },
     {
       "material_ref": "material-e37753b6b3de7913a5643e1b",
@@ -5516,7 +5516,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 152
+      "queue_rank": 170
     },
     {
       "material_ref": "material-67394142050d76325ee45272",
@@ -5581,7 +5581,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 143
+      "queue_rank": 161
     },
     {
       "material_ref": "material-a22aa75c309f07375dacf371",
@@ -5595,7 +5595,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 148
+      "queue_rank": 166
     },
     {
       "material_ref": "material-545ff416217357ef3d5f9812",
@@ -5620,7 +5620,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 117
+      "queue_rank": 135
     },
     {
       "material_ref": "material-7a118133dd1080fd59b75566",
@@ -5634,7 +5634,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 118
+      "queue_rank": 136
     },
     {
       "material_ref": "material-49fe2a25d57736e7ced95f05",
@@ -5695,7 +5695,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 75
+      "queue_rank": 93
     },
     {
       "material_ref": "material-e1a345004ce2437685aee5a0",
@@ -5707,7 +5707,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 100
+      "queue_rank": 118
     },
     {
       "material_ref": "material-0f736297f153d68a96d5e9fe",
@@ -5779,7 +5779,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 74
+      "queue_rank": 92
     },
     {
       "material_ref": "material-f0b0eb072f6153b1a2de0e46",
@@ -5804,7 +5804,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 54
+      "queue_rank": 71
     },
     {
       "material_ref": "material-7ce659640a863726997eeb49",
@@ -5817,7 +5817,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 53
+      "queue_rank": 5
     },
     {
       "material_ref": "material-a631d8a5c026eb96c8f30cba",
@@ -5929,7 +5929,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 128
+      "queue_rank": 146
     },
     {
       "material_ref": "material-5f034a425910f6439333309e",
@@ -6374,7 +6374,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 80
+      "queue_rank": 98
     },
     {
       "material_ref": "material-f8b5937345664a9319dce4ea",
@@ -6450,7 +6450,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 129
+      "queue_rank": 147
     },
     {
       "material_ref": "material-130d87a965f22e7d0db811c2",
@@ -6677,7 +6677,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 79
+      "queue_rank": 97
     },
     {
       "material_ref": "material-688df099644899ecab3b00a4",
@@ -6706,7 +6706,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 103
+      "queue_rank": 121
     },
     {
       "material_ref": "material-509731ff4647a337e0850393",
@@ -6721,7 +6721,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 104
+      "queue_rank": 122
     },
     {
       "material_ref": "material-ecef42fa9fe3bb1bfba43d0d",
@@ -6736,7 +6736,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 144
+      "queue_rank": 162
     },
     {
       "material_ref": "material-759ca3d0efb66fac1bde86a9",
@@ -7091,7 +7091,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 57
+      "queue_rank": 74
     },
     {
       "material_ref": "material-94697c74ce6f23f7c075172e",
@@ -7103,7 +7103,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 82
+      "queue_rank": 100
     },
     {
       "material_ref": "material-d7f88ce3e18de6d8ae6d7ca7",
@@ -7115,7 +7115,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 83
+      "queue_rank": 101
     },
     {
       "material_ref": "material-0e4771e2a095683e67ae38c7",
@@ -7128,7 +7128,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 84
+      "queue_rank": 102
     },
     {
       "material_ref": "material-8140ed4bfcb6623a7c6ddcf7",
@@ -7141,7 +7141,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 85
+      "queue_rank": 103
     },
     {
       "material_ref": "material-d65217ad8753dfd787856b31",
@@ -7337,7 +7337,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 119
+      "queue_rank": 137
     },
     {
       "material_ref": "material-ad7b56fd8d0d4112a6c450c9",
@@ -7350,7 +7350,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 162
+      "queue_rank": 181
     },
     {
       "material_ref": "material-566228f7529f76da6d8f042b",
@@ -7363,7 +7363,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 52
+      "queue_rank": 70
     },
     {
       "material_ref": "material-2a43270f372bddbcef8c627c",
@@ -7380,7 +7380,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 97
+      "queue_rank": 115
     },
     {
       "material_ref": "material-bc498711267e24c7d378dc6a",
@@ -7478,7 +7478,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 71
+      "queue_rank": 89
     },
     {
       "material_ref": "material-4e22a1bc3a1d32d0015d3e8b",
@@ -7635,7 +7635,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 120
+      "queue_rank": 138
     },
     {
       "material_ref": "material-f91238eaf19f2aa92421c1e9",
@@ -7874,7 +7874,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 73
+      "queue_rank": 91
     },
     {
       "material_ref": "material-f3ec3addd8a022798070e1f7",
@@ -7886,7 +7886,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 138
+      "queue_rank": 156
     },
     {
       "material_ref": "material-04477656470c8b559ee22838",
@@ -7898,7 +7898,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 76
+      "queue_rank": 94
     },
     {
       "material_ref": "material-e01566b6ca0794b2fa737e33",
@@ -7910,7 +7910,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 130
+      "queue_rank": 148
     },
     {
       "material_ref": "material-6c35e56da8ac221bddac4b1e",
@@ -7922,7 +7922,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 156
+      "queue_rank": 174
     },
     {
       "material_ref": "material-7c174bd21b49e37ceeb5522b",
@@ -7934,7 +7934,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 86
+      "queue_rank": 104
     },
     {
       "material_ref": "material-0e841d0d6b8246fd85c9a9bd",
@@ -7946,7 +7946,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 139
+      "queue_rank": 157
     },
     {
       "material_ref": "material-bb04dd2aa90d7d86b2982aff",
@@ -7958,7 +7958,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 140
+      "queue_rank": 158
     },
     {
       "material_ref": "material-2f591056cb730e44dc8e5593",
@@ -7970,7 +7970,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 126
+      "queue_rank": 144
     },
     {
       "material_ref": "material-dcb211c28cf16fa7d2c1aceb",
@@ -7996,7 +7996,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 107
+      "queue_rank": 125
     },
     {
       "material_ref": "material-a3b0b284e00d6dc3629b6061",
@@ -8184,7 +8184,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 161
+      "queue_rank": 180
     },
     {
       "material_ref": "material-477c8a78f2590d3aee766cb7",
@@ -8196,7 +8196,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 108
+      "queue_rank": 126
     },
     {
       "material_ref": "material-88cbd882450db379197ca2d0",
@@ -8208,7 +8208,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 146
+      "queue_rank": 164
     },
     {
       "material_ref": "material-df031f15c2d2ee54a15d9b2f",
@@ -8224,7 +8224,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 50
+      "queue_rank": 68
     },
     {
       "material_ref": "material-0b4d97e61976e035d16991b7",
@@ -8491,7 +8491,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "区分共享知识更新和 Agent 实现更新；追踪知识如何验证、复用及失效。",
-      "queue_rank": 15
+      "queue_rank": 14
     },
     {
       "material_ref": "material-orca-94009f63",
@@ -8503,7 +8503,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 81
+      "queue_rank": 99
     },
     {
       "material_ref": "material-skillopt-lite-2607-03451",
@@ -8517,7 +8517,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "比较 rollout 调试、skill 更新和 harness 修改三个优化对象及其验证边界。",
-      "queue_rank": 16
+      "queue_rank": 12
     },
     {
       "material_ref": "material-workbuddy-real-demand-20260723",
@@ -8529,7 +8529,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "关注越界使用怎样暴露需求，以及怎样把通用 Agent 包装为可验收的结果工作流。",
-      "queue_rank": 13
+      "queue_rank": 38
     },
     {
       "material_ref": "material-dan-shipper-ai-paradox-20260524",
@@ -8541,7 +8541,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 60
+      "queue_rank": 77
     },
     {
       "material_ref": "material-repo-harness-142d4ccb",
@@ -8553,7 +8553,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 77
+      "queue_rank": 95
     },
     {
       "material_ref": "material-hai-stack-geju-f9af2306",
@@ -8601,7 +8601,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 137
+      "queue_rank": 155
     },
     {
       "material_ref": "material-oracle-68b8c51b",
@@ -8650,7 +8650,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "检查真实任务分布、双 harness 对照、评分边界和预算记录。",
-      "queue_rank": 12
+      "queue_rank": 15
     },
     {
       "material_ref": "material-prime-agent-20260804",
@@ -8664,7 +8664,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 70
+      "queue_rank": 88
     },
     {
       "material_ref": "material-pi-agent-book-20260809",
@@ -8677,7 +8677,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 38
+      "queue_rank": 57
     },
     {
       "material_ref": "material-pi-harness-v3-20260811",
@@ -8689,7 +8689,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "读 durable runtime 的状态、恢复和接口契约；规范声明需与具体实现区分。",
-      "queue_rank": 17
+      "queue_rank": 25
     },
     {
       "material_ref": "material-openrsi-20260812",
@@ -8702,7 +8702,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 87
+      "queue_rank": 105
     },
     {
       "material_ref": "material-zesen-huang-astroai-20260812",
@@ -8714,7 +8714,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 167
+      "queue_rank": 186
     },
     {
       "material_ref": "material-unverified-mlsys2026-centralized-agent-control-plane-20260812",
@@ -8739,7 +8739,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "追踪插件、Session Log、权限和工具执行的所有权边界。",
-      "queue_rank": 21
+      "queue_rank": 42
     },
     {
       "material_ref": "material-cordis-spatiotemporal-composability-20260813",
@@ -8752,7 +8752,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "用一个插件加载与卸载例子理解服务注入、资源生命周期和可回收副作用。",
-      "queue_rank": 23
+      "queue_rank": 45
     },
     {
       "material_ref": "material-jiqizhixin-deepseek-harness-report-20260814",
@@ -8764,7 +8764,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 64
+      "queue_rank": 82
     },
     {
       "material_ref": "material-state-monad-brandon-si-20260814",
@@ -8776,7 +8776,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 168
+      "queue_rank": 187
     },
     {
       "material_ref": "material-koishi-disposable-20260815",
@@ -8788,7 +8788,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 36
+      "queue_rank": 55
     },
     {
       "material_ref": "material-anthropic-multiagent-patterns-20260813",
@@ -8800,7 +8800,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "按共享目标、信息隔离与激励结构归类多 Agent 失败，思考哪些需要协议而非提示词。",
-      "queue_rank": 5
+      "queue_rank": 29
     },
     {
       "material_ref": "material-amie-video-google-20260816",
@@ -8812,7 +8812,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 98
+      "queue_rank": 116
     },
     {
       "material_ref": "material-antinomie-blog-cordis-dsh-20260816",
@@ -8824,7 +8824,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 65
+      "queue_rank": 83
     },
     {
       "material_ref": "material-crouzeix-conjecture-repo-20260817",
@@ -8836,7 +8836,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 44
+      "queue_rank": 62
     },
     {
       "material_ref": "material-ai4ai-test-time-20260817",
@@ -8848,7 +8848,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "核对 builder/target 分工、验证集预算与基线；避免把 test-time 搜索收益混为模型增益。",
-      "queue_rank": 25
+      "queue_rank": 47
     },
     {
       "material_ref": "material-dots3-note-xhs-20260817",
@@ -8860,7 +8860,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 124
+      "queue_rank": 142
     },
     {
       "material_ref": "material-j-space-deepseek-v4-report-20260818",
@@ -8872,7 +8872,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 105
+      "queue_rank": 123
     },
     {
       "material_ref": "material-palantir-ontology-debunk-wechat-20260819",
@@ -8884,7 +8884,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 58
+      "queue_rank": 75
     },
     {
       "material_ref": "material-dsh-awiki-agent-identity-wechat-20260820",
@@ -8896,7 +8896,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 61
+      "queue_rank": 78
     },
     {
       "material_ref": "material-envharness-20260822",
@@ -8909,7 +8909,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 55
+      "queue_rank": 72
     },
     {
       "material_ref": "material-rust-book-enums-pattern-matching-20260822",
@@ -8921,7 +8921,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 40
+      "queue_rank": 58
     },
     {
       "material_ref": "material-wiki-referential-transparency-20260822",
@@ -8933,7 +8933,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 41
+      "queue_rank": 59
     },
     {
       "material_ref": "material-scala-adt-blog-20260822",
@@ -8945,7 +8945,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 48
+      "queue_rank": 66
     },
     {
       "material_ref": "material-mastra-observational-memory-20260824",
@@ -8957,7 +8957,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "画出 Observer/Reflector 与检索回查链路，观察压缩对 token 成本和信息保真的影响。",
-      "queue_rank": 11
+      "queue_rank": 27
     },
     {
       "material_ref": "material-russell-dsh-explainer-20260826",
@@ -8969,7 +8969,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 66
+      "queue_rank": 84
     },
     {
       "material_ref": "material-ai-native-sdlc-playbook-20260826",
@@ -8981,7 +8981,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "对照六阶段产物链，说明模型自动化、人工 gate 与持续评估分别落在哪里。",
-      "queue_rank": 14
+      "queue_rank": 33
     },
     {
       "material_ref": "material-f67bd6e238be438de8d6f6d8",
@@ -8993,7 +8993,7 @@
       "read_scope": "metadata",
       "note": "《沃顿商学院时间管理课（修订版）》《小米创业思考》《埃隆·马斯克传》《冲向火星》《金钱博弈：重振韩国第一银行内幕》《进化论50讲》；正文未读。",
       "lifecycle": "candidate",
-      "queue_rank": 169
+      "queue_rank": 188
     },
     {
       "material_ref": "material-ewind-effect-continuation-20260828",
@@ -9005,7 +9005,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "用续延解释中断、虚拟时间与确定性调度；区分用户态解释器和运行时支持。",
-      "queue_rank": 10
+      "queue_rank": 24
     },
     {
       "material_ref": "material-codex-persistent-mode-20260829",
@@ -9017,7 +9017,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 68
+      "queue_rank": 86
     },
     {
       "material_ref": "material-antigravity-teamwork-20260829",
@@ -9029,7 +9029,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "读协作 patterns 与动态 Agent 数量；区分竞争式搜索、并行分工和结果集成。",
-      "queue_rank": 8
+      "queue_rank": 36
     },
     {
       "material_ref": "material-uber-software-factory-20260830",
@@ -9041,7 +9041,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 59
+      "queue_rank": 76
     },
     {
       "material_ref": "material-dimension-cross-pacific-ai-20260830",
@@ -9053,7 +9053,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "公开译文的产业观点；对照开源成本、云厂商价值捕获与 RSI 判断，事实需追一手证据。",
-      "queue_rank": 20
+      "queue_rank": 41
     },
     {
       "material_ref": "material-julin-durable-agents-20260830",
@@ -9065,7 +9065,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "画出 durable state 与 leased executor 的边界，解释 worker 重启和任务恢复的区别。",
-      "queue_rank": 3
+      "queue_rank": 18
     },
     {
       "material_ref": "material-learn-shareai-claude-code-20260831",
@@ -9077,7 +9077,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 69
+      "queue_rank": 87
     },
     {
       "material_ref": "material-falcon-fast-weight-attention-20260901",
@@ -9089,7 +9089,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "从在线学习看 fast weights，区分参数记忆、上下文记忆和持续学习假设。",
-      "queue_rank": 26
+      "queue_rank": 48
     },
     {
       "material_ref": "material-grok-bot-engineering-org-20260902",
@@ -9101,7 +9101,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 43
+      "queue_rank": 61
     },
     {
       "material_ref": "material-reef-continual-self-improving-infra-20260902",
@@ -9114,7 +9114,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 99
+      "queue_rank": 117
     },
     {
       "material_ref": "material-maka-log-is-the-runtime-20260903",
@@ -9127,7 +9127,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 37
+      "queue_rank": 56
     },
     {
       "material_ref": "material-hgm-harness-iclr26-20260904",
@@ -9140,7 +9140,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 42
+      "queue_rank": 60
     },
     {
       "material_ref": "material-xai-designing-grok-bot-20260904",
@@ -9152,7 +9152,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "比较 Bot 身份、存在感、自有计算机、能力与上下文、Routine 触发五个产品原语。",
-      "queue_rank": 7
+      "queue_rank": 30
     },
     {
       "material_ref": "material-longhorizonos-20260905",
@@ -9164,7 +9164,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 46
+      "queue_rank": 64
     },
     {
       "material_ref": "material-jeremy-xu-chat-not-endgame-20260905",
@@ -9176,7 +9176,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 62
+      "queue_rank": 79
     },
     {
       "material_ref": "material-cxjwin-pstack-20260905",
@@ -9189,7 +9189,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 63
+      "queue_rank": 81
     },
     {
       "material_ref": "material-linear-sync-engine-summary-20260906",
@@ -9201,7 +9201,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "按本地事务、delta 顺序、离线重试和权限订阅追一条同步路径。",
-      "queue_rank": 28
+      "queue_rank": 51
     },
     {
       "material_ref": "material-gaocegege-server-side-agent-20260906",
@@ -9213,7 +9213,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "比较本地单用户与服务端多租户的 sandbox、session、资源隔离与 eval 约束。",
-      "queue_rank": 9
+      "queue_rank": 23
     },
     {
       "material_ref": "material-argus-wechat-20260907",
@@ -9227,7 +9227,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "关注四角色的证据交接、验证门禁与 Core/Vertical 分层，而不只看运行时长。",
-      "queue_rank": 22
+      "queue_rank": 43
     },
     {
       "material_ref": "material-omarchy-homepage-20260908",
@@ -9240,7 +9240,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 47
+      "queue_rank": 65
     },
     {
       "material_ref": "material-teamai-cli-20260910",
@@ -9252,7 +9252,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 35
+      "queue_rank": 54
     },
     {
       "material_ref": "material-grokbot-lennys-20260910",
@@ -9264,7 +9264,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "关注原型到上线的产品取舍、手动 onboarding 与功能减法；区分采用证据和发布叙事。",
-      "queue_rank": 2
+      "queue_rank": 34
     },
     {
       "material_ref": "material-deepseek-v41-flash-20260911",
@@ -9277,7 +9277,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "拆解 prefill/decode 计算与 KV 存储账本；核对压缩收益成立的模型和负载条件。",
-      "queue_rank": 18
+      "queue_rank": 39
     },
     {
       "material_ref": "material-kvro-trading-poster-20260913",
@@ -9289,7 +9289,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "来源真实性未确认；保留为核验案例，不作为论文结论。",
-      "queue_rank": 170
+      "queue_rank": 189
     },
     {
       "material_ref": "material-poteto-pstack-pt1-20260914",
@@ -9301,7 +9301,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "选一个工程动作设计验证 CLI，列出输入、可观察结果和失败判定。",
-      "queue_rank": 6
+      "queue_rank": 35
     },
     {
       "material_ref": "material-rohonchain-gpt6-astra-trading-funnel-20260914",
@@ -9313,7 +9313,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 171
+      "queue_rank": 190
     },
     {
       "material_ref": "material-real-workflow-training-data-20260722",
@@ -9325,7 +9325,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 141
+      "queue_rank": 159
     },
     {
       "material_ref": "material-temporal-architecture-20260916",
@@ -9337,7 +9337,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 34
+      "queue_rank": 21
     },
     {
       "material_ref": "material-dream-rsi-20260917",
@@ -9350,7 +9350,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "手算发现树上的一次策略回放，检查候选预算、零执行评估与收益估计的条件。",
-      "queue_rank": 27
+      "queue_rank": 10
     },
     {
       "material_ref": "material-typesafe-system-one-20260918",
@@ -9362,7 +9362,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 101
+      "queue_rank": 119
     },
     {
       "material_ref": "material-harness-with-jev-langchain-20260918",
@@ -9374,7 +9374,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 102
+      "queue_rank": 120
     },
     {
       "material_ref": "material-metarsi-v1-harness-rsi-20260914",
@@ -9387,7 +9387,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 89
+      "queue_rank": 107
     },
     {
       "material_ref": "material-manus-context-engineering-20250718",
@@ -9399,7 +9399,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "比较缓存稳定前缀、文件外置记忆、目标复述与失败证据各自解决什么问题。",
-      "queue_rank": 1
+      "queue_rank": 26
     },
     {
       "material_ref": "material-raft-source-available-prompt-request-20260924",
@@ -9411,7 +9411,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 109
+      "queue_rank": 127
     },
     {
       "material_ref": "material-rsiagent-aether-autonomous-exploration-20260915",
@@ -9424,7 +9424,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 90
+      "queue_rank": 108
     },
     {
       "material_ref": "material-rsi-views-agi-house-event-20260921",
@@ -9436,7 +9436,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "公开转载或观点整理；不复制非公开原始录音、转写或内部文档，观点不作为已验证事实。",
-      "queue_rank": 91
+      "queue_rank": 109
     },
     {
       "material_ref": "material-xiaomimimo-verl-agentic-rl-20260926",
@@ -9448,7 +9448,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 151
+      "queue_rank": 169
     },
     {
       "material_ref": "material-jit-agent-just-in-time-harness-evolution-20260829",
@@ -9462,7 +9462,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 51
+      "queue_rank": 69
     },
     {
       "material_ref": "material-evomap-gep-self-evolution-network-20260926",
@@ -9475,7 +9475,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 56
+      "queue_rank": 73
     },
     {
       "material_ref": "material-tasteful-agent-taste-bench-20260926",
@@ -9489,7 +9489,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 145
+      "queue_rank": 163
     },
     {
       "material_ref": "material-pat-grady-ai-outlook-20260926",
@@ -9501,7 +9501,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "公开转载或观点整理；不复制非公开原始录音、转写或内部文档，观点不作为已验证事实。",
-      "queue_rank": 94
+      "queue_rank": 112
     },
     {
       "material_ref": "material-dream-rsi-replications-and-forks-20260928",
@@ -9513,7 +9513,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "对照论文与第三方实现的回放和预算契约；独立复现不等于作者官方代码。",
-      "queue_rank": 29
+      "queue_rank": 52
     },
     {
       "material_ref": "material-sol-pi-20260929",
@@ -9525,7 +9525,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 39
+      "queue_rank": 6
     },
     {
       "material_ref": "material-x-davidgeorge-openai-distribution-20260929",
@@ -9537,7 +9537,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 95
+      "queue_rank": 113
     },
     {
       "material_ref": "material-x-evolvent-ai-20260929",
@@ -9549,7 +9549,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 88
+      "queue_rank": 106
     },
     {
       "material_ref": "material-x-evolvent-ai-github-org-20260929",
@@ -9573,7 +9573,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "公开转载或观点整理；不复制非公开原始录音、转写或内部文档，观点不作为已验证事实。",
-      "queue_rank": 92
+      "queue_rank": 110
     },
     {
       "material_ref": "material-distributed-systems-loopx-lecture",
@@ -9585,7 +9585,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "17 节连接类型、纯决策、提交时验证、并发历史、日志与恢复、共识、存储与排队；用公开 commit 固定的 LoopX 代码作案例。",
-      "queue_rank": 30
+      "queue_rank": 20
     },
     {
       "material_ref": "material-distributed-systems-loopx-exercises",
@@ -9597,7 +9597,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "8 道故障题、10 组讨论与四周安排；区分会复述、会推演、能实现和能提出反例。",
-      "queue_rank": 32
+      "queue_rank": 53
     },
     {
       "material_ref": "material-distributed-systems-loopx-recovery-lab",
@@ -9609,46 +9609,7 @@
       "lifecycle": "candidate",
       "read_scope": "executable_tested",
       "note": "SQLite 演示盲重试余额 80、原子去重余额 90；覆盖参数冲突、提交前回滚、epoch 条件写和 snapshot 版本；write skew 是抽象内存模型。",
-      "queue_rank": 33
-    },
-    {
-      "material_ref": "material-siliconexchange-gpu-vaults-20261003",
-      "title": "Silicon Exchange GPU Vaults：算力收益权融资的公开产品页记录",
-      "sources": [
-        "https://siliconexchange.com/",
-        "https://siliconexchange.com/vaults/genesis-b300"
-      ],
-      "tier": "B",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "2026-10-03 读取首页和 Genesis B300 Vault 页面，未执行页面 JS。发行方当时标示募资目标 $670,000、估算 APY 22–25%、三年租约谈判中；均是网页声明，不是收益保证或已签约事实。条款、费用、托管、监管及承租方证据未核验。",
-      "queue_rank": null
-    },
-    {
-      "material_ref": "material-siliconexchange-reexamination-20261004",
-      "title": "Silicon Exchange GPU Vaults：次日页面快照复核",
-      "sources": [
-        "https://siliconexchange.com/",
-        "https://siliconexchange.com/vaults/genesis-b300"
-      ],
-      "tier": "B",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "2026-10-04 与前一日缓存比较：归一化页面文本相同，原始字节因构建哈希不同。保留独立稳定 ID 作为时点记录，不据此推断融资、签约或运营进度。条款、合同及第三方资质仍未核验。",
-      "queue_rank": null
-    },
-    {
-      "material_ref": "material-agentdiscover-2610-05334",
-      "title": "AgentDiscover：自主搜索策略、图数据库记忆与上下文重置",
-      "sources": [
-        "https://arxiv.org/html/2610.05334v1",
-        "https://github.com/mhdfb/AgentDiscover"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读摘要、方法、主要实验与附录 A；图形和源码未逐项读取。关注 search agent／meta agent 的权限分工、图数据库记忆、上下文重置，以及共享起点的 fork 消融。性能数字是作者报告，主表单次运行、无方差；源码仓库读取时无 LICENSE。",
-      "queue_rank": 31
+      "queue_rank": 19
     },
     {
       "lifecycle": "candidate",
@@ -9661,25 +9622,26 @@
       ],
       "tier": "S",
       "title": "长程智能体自我检查与早停行为：Reward Seeking 现象及其缓解措施",
-      "queue_rank": 172
+      "queue_rank": 9
     },
     {
       "lifecycle": "candidate",
       "material_ref": "material-chyroc-open-muse",
       "note": "已读固定 commit 的 README、关键设计文档和部分源码，未运行测试或应用。关注 MA 云端循环与设备操作分界、未确认会话恢复、记忆写后读回、Agent 版本和跨设备 claim。优先读 conversations／identity 的恢复路径及 verification 未覆盖项。跨设备编辑没有原子 CAS；历史验证记录不等于当前版本实测。",
+      "queue_rank": 32,
       "read_scope": "recorded_review",
       "sources": [
         "https://github.com/chyroc/open-muse",
         "https://github.com/chyroc/open-muse/blob/d144a7a59134f67fd8d1d4b40a773ade429e9594/README.zh-CN.md"
       ],
       "tier": "S",
-      "title": "Open Muse：跨设备个人 Agent 的 MA 客户端、未确认写入恢复与权限边界",
-      "queue_rank": 173
+      "title": "Open Muse：跨设备个人 Agent 的 MA 客户端、未确认写入恢复与权限边界"
     },
     {
       "lifecycle": "candidate",
       "material_ref": "material-deepseek-dsec-2609-22978",
       "note": "已选读 DSec v1 摘要、引言及 §2、§4–6、§8；X 仅截断预览，配图与后续未读。关注环境分层、按需加载、超卖 QoS、trainer／worker／sandbox 状态归属、结果复用和 pause／resume。性能与规模是作者报告，未复现；§8 不验证 RL 集成。优先读 §4、§6。",
+      "queue_rank": 22,
       "read_scope": "recorded_review",
       "sources": [
         "https://x.com/jerrychaox/status/2106956444923015589",
@@ -9687,8 +9649,275 @@
         "https://arxiv.org/html/2609.22978v1"
       ],
       "tier": "S",
-      "title": "DeepSeek DSec：Agent 训练沙箱的平台约束与 RL 协同（jerrychaox 线索）",
-      "queue_rank": 174
+      "title": "DeepSeek DSec：Agent 训练沙箱的平台约束与 RL 协同（jerrychaox 线索）"
+    },
+    {
+      "material_ref": "material-raft-cold-wake-20261005",
+      "title": "Raft Constructed Initial Context：冷缓存唤醒、确定性上下文重建与行为保持评测",
+      "sources": [
+        "https://x.com/istdrc/status/2107182410559578355",
+        "https://x.com/i/article/2107177286214828032",
+        "https://x.com/istdrc/article/2107182410559578355"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读作者正文、成本表、图注及文本 schema；图片像素、实现与原始实验未核验。关注冷缓存唤醒时的确定性上下文重建、后台任务门禁和行为保持评测；成本与评审数字属于作者小样本报告，不能推广为连续性保证。",
+      "queue_rank": 28
+    },
+    {
+      "material_ref": "material-pair-counterfactual-context-compression-20261006",
+      "title": "PAIR：用成对反事实延续定位长程 Agent 的上下文压缩损害",
+      "sources": [
+        "https://x.com/dair_ai/status/2107264582687584567",
+        "https://arxiv.org/abs/2609.36526",
+        "https://arxiv.org/html/2609.36526v1"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读一手论文的核心方法、实验设置与局限；完整 X 帖、图片、附录和代码未读，未复现。关注成对反事实延续如何定位上下文压缩损害；X 线索与论文的关联来自名称和机制匹配，尚未直接确认。",
+      "queue_rank": 13
+    },
+    {
+      "material_ref": "material-veriloop-e2-wechat-20261006",
+      "title": "VeriLoop E2：验证合同、受保护提交与数学证据边界",
+      "sources": [
+        "https://mp.weixin.qq.com/s/XR-b8BRaXFdEXQ1psQ2F6Q",
+        "https://huggingface.co/tsinghua-sigs-robot-lab/VeriLoop-E2/blob/9379d199adcc44acdf836558037163878e3a37ae/README.md",
+        "https://github.com/brucewang123456789/GeniusTrail/blob/86d7bceb5ddea22bfa16422f250a6c2b3f0c902b/riemann-hypothesis/README.md",
+        "https://github.com/brucewang123456789/GeniusTrail/blob/86d7bceb5ddea22bfa16422f250a6c2b3f0c902b/riemann-hypothesis/ARTIFACTS.md"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公众号文字、模型卡指定章节及固定版本的数学验证 README/ARTIFACTS；技术报告、生产 Harness 与逐任务结果未核验。关注固定验证合同、受保护的提交与可验证产物；有限维证书和发布方分数不能替代完整数学证明或独立复现。",
+      "queue_rank": 44
+    },
+    {
+      "material_ref": "material-awesome-rsi-understanding-20261007",
+      "title": "万字长文带你读懂 RSI（自进化，Self-Evolving）",
+      "sources": [
+        "https://mp.weixin.qq.com/s/tn33R6hUW1fxf6Pg7nIp4w"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读原始导读正文第1–6节、参考资料与分类总图；其余图片、引用论文全文、代码与复现未完成。按进化对象、更新者、离线/在线方式和验收契约建立分类；文中收益数字为二手转述，宽定义 RSI 不等于完全自主递归自修改。",
+      "queue_rank": 50
+    },
+    {
+      "material_ref": "material-sage-topological-guidance-2609-30192",
+      "title": "SAGE：以代数稀疏化与双曲结构引导缓解长程推理偏差（机器之心解读）",
+      "sources": [
+        "https://mp.weixin.qq.com/s/-N-Wo8ra1YqC1-HHKkprnQ",
+        "https://arxiv.org/abs/2609.30192v1",
+        "https://github.com/Susan571/SAGE-NeurIPS2026"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公众号文字、论文§1–5/表1–4、部分附录与机制图，以及作者仓库 README；全部证明、源码与训练复现未完成。关注残差投影软引导与双曲距离的前缀反馈；局部有效性、先验分离条件及非符号近似限制适用范围。",
+      "queue_rank": 175
+    },
+    {
+      "material_ref": "material-ronacher-codemode-20261006",
+      "title": "What is Codemode：Harness 编排、执行环境与 MCP 组合边界（Armin Ronacher）",
+      "sources": [
+        "https://x.com/yibie/status/2107513509806534723",
+        "https://lucumr.pocoo.org/2026/10/6/codemode/"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读作者文章正文；嵌入视频和关联源码未核验，未复现。关注 Harness 编排与执行环境的职责、受限 QuickJS/WASM 工具组合、真实图像载荷、结构化 MCP 结果及嵌套执行失败；不将机制描述提升为独立性能收益。",
+      "queue_rank": 37
+    },
+    {
+      "material_ref": "material-karpathy-understanding-outputs-20261002",
+      "title": "Karpathy：从文字到交互网页与讲解视频，降低理解模型输出的成本",
+      "sources": [
+        "https://x.com/karpathy/status/2105819303471976479"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读原帖完整文字；图片、外链、ASD-STE100 全规范和视频复现未完成。讨论模型输出从简化文字到图示、交互网页和定制讲解视频，如何帮助人理解与监督；属于作者经验与预判，非受控效果实验。",
+      "queue_rank": 80
+    },
+    {
+      "material_ref": "material-rsi-gym-rmax-20261008",
+      "title": "RSI-Gym：冻结评测器下的声明式 Harness 演化与负结果实验",
+      "sources": [
+        "https://github.com/rmax-ai/rsi-gym",
+        "https://github.com/rmax-ai/rsi-gym/blob/50ce4005dad1a0ed8c2b50209522f454d7dc2f0d/README.md",
+        "https://github.com/rmax-ai/rsi-gym/blob/50ce4005dad1a0ed8c2b50209522f454d7dc2f0d/SPEC.md"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读固定版本 README 和 SPEC §1–4/7–9/11–12/18；未核验全部源码和实验产物，未复现。关注冻结评测器、声明式 Harness 变更、分层反馈及接受/拒绝账本；作者记录为单模型/单 seed 小实验，meta 层有负结果，不能推断普遍自改进收益。",
+      "queue_rank": 17
+    },
+    {
+      "material_ref": "material-vals-rsi-index-20261008",
+      "title": "Vals RSI Index：固定预算下的自主 AI 研发评测与实验账本",
+      "sources": [
+        "https://www.vals.ai/benchmarks/rsi_index"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公开页面总榜、方法、Compression 详情、一个模型面板与讨论；其他折叠面板、实验账本和原始数据未核验。关注固定资源预算、单产物验收及指标/参考值来源；模型与 Harness 混杂、单次运行和时间外推限制结论，不构成 RSI 已实现的证明。",
+      "queue_rank": 16
+    },
+    {
+      "material_ref": "material-claude-eval-hillclimb-20261008",
+      "title": "Claude build-eval / hillclimb：生产分布、评分器校准与防过拟合迭代",
+      "sources": [
+        "https://x.com/claudedevs/status/2104676099083190435",
+        "https://claude.dev/blog/automating-eval-design-and-hillclimbing/"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读官方长文完整文字与图注/部分图表文字；图像像素、视频、skill 源码与实际命令未验证。关注生产分布、评分器校准、成本估计、数据划分隔离和单补丁迭代。作者示例不是独立因果复现；反复用 test 选版本仍需另设最终未触碰集。",
+      "queue_rank": 4
+    },
+    {
+      "material_ref": "material-harness-zero-2609-24974",
+      "title": "Harness-Zero：将优化 Harness 行为蒸馏进权重的 Agent-as-Harness 方法",
+      "sources": [
+        "https://mp.weixin.qq.com/s/wymvqX6g03qdT1qD8OLfBw",
+        "https://arxiv.org/html/2609.24974v1",
+        "https://github.com/metaevo-ai/harness-zero/blob/c0c3f7c698b612e8835e1b48ed6e564aaeb63cd7/README.md"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读论文§1–5/表1–4、附录C–F、Figure1和固定版本 README；其余附录、源码、权重与复现未完成。关注把优化 Harness 的行为转为 student 动作空间中的监督，再蒸馏进权重；特权 review 不进入轨迹。跨领域收益不一致，仍需执行环境和权限边界，不等于零 Harness 或完整 RSI。",
+      "queue_rank": 7
+    },
+    {
+      "material_ref": "material-agentgarten-mirros-20261008",
+      "title": "AgentGarten：代码世界、神经渲染与逐轮 Playbook 的 Physical RSI 环境",
+      "sources": [
+        "https://mp.weixin.qq.com/s/3UNskWhdmGUOaxYyxV0SwQ",
+        "https://mirros.ai/blog/worlds-for-evolving-agents",
+        "https://github.com/MirroS-Lab/AgentGarten/blob/1b14015324c65d0a84507078145bc0b9b39705d8/README.md"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公众号、官方博客可见正文及固定版本 README；技术报告、交互任务、图像/视频、源码和复现未完成。关注代码世界、神经渲染、预算内演练与冻结 Playbook 继承；经验保存在外部手册，未证明权重递归更新，不能与早期从零 RL 作等条件效率比较。",
+      "queue_rank": 49
+    },
+    {
+      "material_ref": "material-siliconexchange-gpu-vaults-20261003",
+      "title": "Silicon Exchange GPU Vaults：算力收益权融资的公开产品页记录",
+      "sources": [
+        "https://siliconexchange.com/",
+        "https://siliconexchange.com/vaults/genesis-b300"
+      ],
+      "tier": "B",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "2026-10-03 读取首页和 Genesis B300 Vault 页面，未执行页面 JS。发行方当时标示募资目标 $670,000、估算 APY 22–25%、三年租约谈判中；均是网页声明，不是收益保证或已签约事实。条款、费用、托管、监管及承租方证据未核验。",
+      "queue_rank": 191
+    },
+    {
+      "material_ref": "material-siliconexchange-reexamination-20261004",
+      "title": "Silicon Exchange GPU Vaults：次日页面快照复核",
+      "sources": [
+        "https://siliconexchange.com/",
+        "https://siliconexchange.com/vaults/genesis-b300"
+      ],
+      "tier": "B",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "2026-10-04 与前一日缓存比较：归一化页面文本相同，原始字节因构建哈希不同。保留独立稳定 ID 作为时点记录，不据此推断融资、签约或运营进度。条款、合同及第三方资质仍未核验。",
+      "queue_rank": 192
+    },
+    {
+      "material_ref": "material-agentdiscover-2610-05334",
+      "title": "AgentDiscover：自主搜索策略、图数据库记忆与上下文重置",
+      "sources": [
+        "https://arxiv.org/html/2610.05334v1",
+        "https://github.com/mhdfb/AgentDiscover"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读摘要、方法、主要实验与附录 A；图形和源码未逐项读取。关注 search agent／meta agent 的权限分工、图数据库记忆、上下文重置，以及共享起点的 fork 消融。性能数字是作者报告，主表单次运行、无方差；源码仓库读取时无 LICENSE。",
+      "queue_rank": 11
+    },
+    {
+      "material_ref": "material-edgebench-seed-20261009",
+      "title": "EdgeBench：长程环境学习评测、反馈条件与 SForge 实验协议",
+      "sources": [
+        "https://edge-bench.org/",
+        "https://github.com/ByteDance-Seed/EdgeBench",
+        "https://arxiv.org/html/2607.05155v1"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读官方页面、仓库说明及论文§2.3、5.2/5.3、附录A/B/C、G.1/G.3；未全文精读或运行。关注反馈与预算条件、同预算采样、基线续跑、best/final 区分和评分漏洞；优先核对具体任务协议，不把系统运行时间直接视为学习收益。",
+      "queue_rank": 1
+    },
+    {
+      "material_ref": "material-shine-2602-06358",
+      "title": "SHINE：单次前向 Context→LoRA 的参数内化与适配边界",
+      "sources": [
+        "https://proceedings.mlr.press/v306/liu26ek.html",
+        "https://github.com/MuLabPKU/SHINE"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "本轮核对正式发表页面、作者仓库及已有机制笔记，未重新精读全文或复现。关注 Context→LoRA 的超网络、双 LoRA、质量/延迟边界和蒸馏成本；持续写入、遗忘及模型与 Harness 协同仍需分别验证。",
+      "queue_rank": 193
+    },
+    {
+      "material_ref": "material-rethinking-harness-evolution-2607-12227",
+      "title": "Rethinking Harness Evolution：同预算采样对照与长程 OOD 收益边界",
+      "sources": [
+        "https://arxiv.org/html/2607.12227",
+        "https://x.com/yikewang_/status/2107150404819812399"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读作者原帖、旧博客与最新论文摘要、§5.1–5.3/Table5；未全文精读或复现。最新论文区分 Terminal-Bench 的同预算采样对照与长程 OOD 游戏的任务特定收益；五游戏、两模型、每格两次、12小时最高分不足以证明普遍泛化。",
+      "queue_rank": 2
+    },
+    {
+      "material_ref": "material-servelearnbench-2610-07792",
+      "title": "ServeLearnBench：变化环境中的经验学习、旧能力回归与成本",
+      "sources": [
+        "https://arxiv.org/html/2610.07792",
+        "https://infini-ai-lab.github.io/ServeLearnBench/",
+        "https://x.com/InfiniAILab/status/2107908386398605313"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读作者原帖、项目页、论文摘要及附录B.3协议；未全文精读或复现。关注变化任务流中的隐含规则学习、独立无反馈测试、旧能力回归和适应成本；探索多样性与收益的相关性不能直接当成因果。",
+      "queue_rank": 3
+    },
+    {
+      "material_ref": "material-continual-learning-bench-2606-05661",
+      "title": "Continual Learning Bench：stateful/stateless gain 与稳定性—可塑性",
+      "sources": [
+        "https://arxiv.org/html/2606.05661",
+        "https://sky.cs.berkeley.edu/project/continual-learning-bench/",
+        "https://x.com/pgasawa/status/2051361012838957144"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读项目页、论文摘要、§4.2/4.3与相关结果段落；未全文精读或复现。关注同任务实例的 stateful/stateless gain 与稳定性—可塑性；归一化分母受 baseline 剩余空间影响，应同时报告原始收益和不确定性。",
+      "queue_rank": 31
     }
   ]
 }

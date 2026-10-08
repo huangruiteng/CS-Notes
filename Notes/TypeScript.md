@@ -1407,6 +1407,8 @@ function isStringLiteral<const Values extends readonly string[]>(
 
 因此 `requireStringLiteral(value, QUOTA_SPEND_SOURCES, ...)` 同时完成两件事：运行时白名单校验 + 返回精确的 `QuotaSpendSource`，没有任何不受验证的 `as QuotaSpendSource`——类型收窄来自真实的运行时证据。谓词 = 可执行的真值函数 + 类型契约。
 
+跨语言对照：Python 的 `typing.TypeGuard[T]` 是同一机制（True 分支收窄，False 分支不收紧；TS 另用 `asserts` 表达「正常返回后收窄」），细节见 [python.md - typing 类型注解](./python.md#typing-类型注解)。
+
 **TS 5.5 起可自动推断部分类型谓词**，使 `filter` 的结果随之收窄（开启 `strictNullChecks`）：
 
 ```ts

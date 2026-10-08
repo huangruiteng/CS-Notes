@@ -21,6 +21,7 @@
 
 * *Interfaces* are contracts between systems. Effective interfaces decouple clients from the encapsulated implementation. Durable interfaces **expose all the underlying essential complexity and none of the underlying accidental complexity**.
 * Delightful interfaces are [Eagerly discerning, discerningly eager](https://increment.com/apis/api-design-for-eager-discering-developers/).
+* 接口演进需要明确兼容性承诺。[语义化版本 SemVer](./Metaprogramming.md#semver兼容性承诺与发布)以公共 API 为基准区分兼容修复、兼容新增与不兼容变化；工程上应先声明契约，用测试验证消费者行为，再决定版本与迁移路径。依赖范围表达升级边界，lock file 固定当前解析结果；版本号不替代兼容性验证。规范来源：[SemVer 2.0.0](https://semver.org/)。
 
 ### State
 
