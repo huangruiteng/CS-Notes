@@ -40,4 +40,3 @@ loopx --registry <project-root>/.loopx/registry.json \
    redacted registration. Refresh existing state/Todo/rationale through their
    owners when the document changed project decisions, acceptance, or next
    actions. Keep private bodies and operational values out of projections.
-
