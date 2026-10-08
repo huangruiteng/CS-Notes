@@ -1,10 +1,11 @@
 # 可移植的个人 skills
 
-公开源文件维护在 `.codex/skills/`；[manifest.json](./manifest.json) 只列审查过的 11 个 skill 与每个文件的 SHA-256。这个清单是个人装机选集，不是整台电脑的技能备份。
+公开源文件维护在 `.codex/skills/`；[manifest.json](./manifest.json) 只列审查过的 12 个 skill 与每个文件的 SHA-256。这个清单是个人装机选集，不是整台电脑的技能备份。
 
 | Skill | 保留的价值 | 本轮优化 |
 | --- | --- | --- |
 | [cs-notes-writing-style](../../.codex/skills/cs-notes-writing-style/SKILL.md) | 凝练、重机制与证据的中文写作 | 去掉特定项目历史与设备渲染路径，保留原意、协作标记和证据边界 |
+| [managed-lark-docs](../../.codex/skills/managed-lark-docs/SKILL.md) | 飞书文档局部 patch、评论锚点保护与远端读回 | 移除私有项目 profile；mirror 保持私有，LoopX 集成按需启用 |
 | [help-me-review](../../.codex/skills/help-me-review/SKILL.md) | 沿调用链带读，解释为什么这样实现 | 分清发现与教学，移除私人项目专属检查项 |
 | [git-split-commit-pr](../../.codex/skills/git-split-commit-pr/SKILL.md) | 脏工作区拆分、公开审查、独立 PR | 删除特定机器的合并例外，保留无关修改 |
 | [cli-creator](../../.codex/skills/cli-creator/SKILL.md) | 可组合命令、稳定 JSON、认证与安装验收 | 按已装工具链选择语言，保留原 Apache 许可与参考文件 |
@@ -17,6 +18,8 @@
 | [xiaohongshu-reader](../../.codex/skills/xiaohongshu-reader/SKILL.md) | 图片笔记阅读与来源核验 | 不自动提取登录态、安装第三方读取器或批量下载图片 |
 
 两种社媒 reader 是工作流指引，需要客户端已有网页/浏览器读取能力；没有该能力或遇到访问限制时，必须报告缺口。它们不是已通过在线平台回归测试的独立爬虫。
+
+`managed-lark-docs` 维护已有飞书文档，沿用官方 `lark-doc` / `lark-drive` / `lark-shared` 的工具与格式规则，不复制这些上游 skills。按当前授权读取最新内容、拆分局部 patch，并验证评论锚点、高亮和引用是否保留。镜像与来源映射留在项目私有目录；仅当项目已接入 LoopX 时才读取可选集成说明。它不授权清空文档、发送消息或扩大账号权限。
 
 ## 从 dotfiles 安装链接
 
@@ -51,4 +54,4 @@ python3 note-system/skills/check.py
 
 ## Astra 验收
 
-核对 manifest、11 个链接与源 commit；确认改一个测试副本会进入对应 checkout 的 diff，测试后还原测试副本。检查客户端发现路径，试用一次 Markdown 标题提取、一次短文改写与一次只读代码带读。校验脚本通过不代表所有自然语言工作流效果已验证；报告实际调用和未测试范围。
+核对 manifest、12 个链接与源 commit；确认改一个测试副本会进入对应 checkout 的 diff，测试后还原测试副本。检查客户端发现路径，试用一次 Markdown 标题提取、一次短文改写与一次只读代码带读。试用飞书维护时，在用户授权的目标上检查局部 patch 与评论锚点，不用真实文档做未经授权的写入测试。校验脚本通过不代表所有自然语言工作流效果已验证；报告实际调用和未测试范围。

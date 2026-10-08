@@ -1,0 +1,4 @@
+interface:
+  display_name: "Managed Lark Docs"
+  short_description: "Patch Lark docs while preserving review signals"
+  default_prompt: "Use $managed-lark-docs to patch the requested Lark document, preserve comments, highlights and citations, and verify the changed sections against the latest remote state."

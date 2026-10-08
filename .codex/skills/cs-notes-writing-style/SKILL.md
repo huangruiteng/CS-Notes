@@ -19,4 +19,6 @@ description: Write or refine Chinese technical notes and articles in a concise, 
 
 修改已有协作文档，先读最新内容与评论、高亮等人工标记，再做局部修改并读回；不要用整篇覆盖抹掉协作线索。同步或发布按当前任务授权执行，写稿本身不授权发送。
 
+持续维护飞书文档或同步本地 mirror 时，使用 [managed-lark-docs](../managed-lark-docs/SKILL.md) 的局部 patch、协作标记保护与读回流程；文风要求不扩大远端写入范围。
+
 完成时检查：读者能否理解核心判断、证据是否支持它、重要原意是否保留、引用是否可追溯、是否混入私有来源或编辑过程。
