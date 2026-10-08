@@ -354,9 +354,9 @@ APPLICATION-ORIENTED INFRASTRUCTURE
 * containers's generic APIs
   *  the health check uses a user-specified HTTP endpoint or exec command that runs inside the container.)
 
-every Kubernetes object has three basic fields in its description: ObjectMetadata, Specification (or Spec), and Status.
+典型工作负载对象通过 ObjectMetadata、Spec、Status 分别表达身份、期望与观察结果；并非每种 Kubernetes 资源都具有 spec/status 结构。
 
-* 基于对容器“观测”的设计，让k8s对controller依赖小
+* 基于可观察状态的控制循环，降低不同 controller 之间对直接调用和执行顺序的依赖；Kubernetes 本身仍依赖 controller 持续调谐。见 [Controller：声明式目标如何落到实际状态](#controller声明式目标如何落到实际状态)。
 * The design of Kubernetes as a combination of microservices and small control loops is an example of control through choreography—achieving a desired emergent behavior by combining the effects of separate, autonomous entities that collaborate. This is a conscious design choice in contrast to a centralized orchestration system, which may be easier to construct at first but tends to become brittle and rigid over time, especially in the presence of unanticipated errors or state changes.
 * 声明式API
 
@@ -634,7 +634,7 @@ docker-compose up -d
 * API Server：API 入口
 * Scheduler：任务和资源调度中心
 * Controller Manager：对象控制中心
-  * 不断驱动对象向用户指定的Spec进行变更
+  * 运行多种内置控制循环，不断驱动实际状态趋近用户指定的 Spec；controller 也可以独立运行
   * e.g. 无状态服务的升级、扩容、回滚
 * Kubelet：计算节点 
   * 单机层面的agent，负责容器的生命周期管理、单机维度的资源管控
@@ -644,7 +644,7 @@ docker-compose up -d
 
 **一切皆对象 (Object)**
 
-给定对象预期状态 (Spec)，系统不断自驱运行直到最终状态 (Status) 符合 Spec（声明式架构）
+先通过 API 保存对象预期状态（Spec），控制循环再持续观察并推动实际状态趋近目标，回报 Status（声明式架构）。Status 是观察结果的报告，与 Spec 不是同一种结构，也可能有延迟。资源不足或依赖失败时，目标可能暂时无法实现。机制见 [Controller](#controller声明式目标如何落到实际状态)。
 
 **基本对象** 
 
@@ -661,6 +661,138 @@ docker-compose up -d
 * 持续存储：本地盘/远程盘
 
 
+
+#### Controller：声明式目标如何落到实际状态
+
+来源：[Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[API Concepts](https://kubernetes.io/docs/reference/using-api/api-concepts/)、[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)、[Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)。实现对照固定为 Kubernetes **v1.32.3**、controller-runtime **v0.20.4** 与 client-go **v0.32.3**，用于说明机制，不代表当前最新版本。
+
+**Controller 是围绕某种资源运行的反馈控制循环：读目标与现状 → 判断差距 → 做必要动作 → 再观察。**一次 Reconcile（调谐）只是循环中的一次检查，不要求一次调用完成部署，也不要求系统永远静止。收敛依赖于目标可实现、调谐能继续被触发、依赖最终可用，以及不同控制器没有持续互相覆盖。
+
+**先保存 desired state，再执行调节，最后回报 observed state。**这句话把持久化意图、落实动作与报告事实分开：
+
+| 环节 | 谁做、保存什么 | 为什么这样安排 |
+| --- | --- | --- |
+| 保存 desired state（期望状态） | 用户、API 客户端或上层控制器通过 API Server 持久化 `spec`，如 `replicas: 3` | 目标独立于执行进程存在；控制器重启后仍能找回“应该做到什么”。API 写入成功只确认目标已保存 |
+| 执行调节（reconcile） | 控制器读取目标与实际状态，通过子资源或外部 API 推动变化 | 每轮重新判断差距，动作应可安全重试；创建请求被接受不等于资源已经可用 |
+| 回报 observed state（观察状态） | 相应控制器或节点组件把已观察到的数量、conditions、错误等写入 `status`；适用时注明 `observedGeneration` | 用户和其他控制循环据此判断进展；不能把期望值直接抄成完成结果 |
+
+例如，目标是 3 个可用副本，目前只有 1 个：先保存目标 3，再由各控制循环补齐资源；状态按实际观察报告当前可用数量，可能从 1 → 2 → 3，也可能因故障一直停在 1。**“最后回报”不意味着等全部成功才写 status**：执行期间也要报告进度或失败，调节前同样需要观察现状。Status 是有延迟的观测快照，下一轮仍须检查相关对象或外部系统。
+
+这个顺序让恢复有据可依：目标已保存但尚未执行，下轮可以重新发现差距；动作已成功但报告未写入，下轮应查询并认领已有结果，避免重复创建。它跨越多个组件和多次 API 调用，**并不是一个原子事务，也不自动保证 exactly-once**。具体故障窗口与幂等手段见下文。
+
+以 Deployment 希望运行 3 个副本为例，责任沿对象链分开：
+
+| 角色 | 负责什么 |
+| --- | --- |
+| Deployment controller | 管理 ReplicaSet 和滚动更新，把副本目标分配给新旧 ReplicaSet |
+| ReplicaSet controller | 根据自己的副本目标与受控 Pod 集合，创建或删除 Pod 对象；Pod 被删后补建 |
+| Scheduler | 为尚未调度的 Pod 选择 Node，写入绑定结果 |
+| kubelet | 在所分配的节点上通过容器运行时落实 Pod，报告状态；按重启策略处理容器退出 |
+| API Server / etcd | 前者提供受校验和权限控制的对象 API，后者持久化控制面数据；控制器通常经 API Server 读写 |
+
+因此，“有 3 个 Pod 对象”与“有 3 个可用副本”不同；镜像拉取失败、探针失败或调度失败，要在对应环节处理。Deployment controller 不直接在机器上启动容器。多个小循环通过对象协作，形成上层目标的实现路径。
+
+##### 从事件到调谐：Informer、Workqueue 与 Reconcile
+
+下面是 client-go / controller-runtime 常见结构的简化示意；外部系统的变化还可以通过 webhook 或轮询入队。
+
+```mermaid
+flowchart LR
+    API[API Server 中的对象] -->|List / Watch| CACHE[Informer 本地缓存]
+    CACHE -->|变化通知| MAP[映射到受影响的主对象]
+    MAP -->|namespace/name| Q[Workqueue 去重与重试]
+    Q --> R[Worker 执行 Reconcile]
+    CACHE -->|读取目标与关联对象| R
+    R -->|创建、更新、删除对象| API
+    R -->|报告 status| API
+    R -->|必要时调用| EXT[外部系统 API]
+    EXT -->|查询实际状态| R
+```
+
+- **List / Watch**：先建立对象集合，再接收变化；连接断开可以重连，历史版本失效（`410 Gone`）时重新列举并继续观察。事件流不充当必须逐条消费的业务日志。新版客户端也可能用流式初始化建立集合，不能把某条传输流程当成 controller 的定义。
+- **Informer / Lister**：Informer 维护本地缓存，Lister 从缓存查询，减少直接访问 API Server。缓存最终一致；同一对象看到的状态可跳过中间版本，但保留已看到版本的顺序，不保证不同对象间的全局顺序。普通 resync 可重新通知缓存中的对象，不等于每次重新从服务端拉全量。参见 [SharedInformer 契约](https://github.com/kubernetes/client-go/blob/c106b23895edc59ff05c65770a17e6a6d3caee66/tools/cache/shared_informer.go#L40)。
+- **Event handler**：快速计算“谁需要重新检查”，不要在回调里执行慢任务。子对象变化通常映射回主对象：例如 Pod 状态变化触发其所属 ReplicaSet 的检查；自定义控制器也需建立自己的依赖映射。
+- **Workqueue**：典型队列放对象 key，合并重复请求并交给 worker。排队期间同一 key 多次变化，可合并为一次检查；不能用通知数量代表业务动作次数。
+- **Reconcile**：根据 key 重新读取所需状态，决定要做什么。[默认 Request](https://github.com/kubernetes-sigs/controller-runtime/blob/0f7927c52ef41f261195054ec7f01902357e2c33/pkg/reconcile/reconcile.go#L47)仅含 namespace/name，不含旧对象、新对象和事件类型。读取结果仍可能来自缓存，“重新读”不等于强一致读。
+
+这叫 **level-based reconciliation（按当前状态调谐）**：目标从 3 → 5 → 2，等 worker 真正执行时已经看到 2，就围绕 2 处理；无须机械重放“先加 2，再减 3”。如果每一次变化都是不可省略的业务义务，应另用持久任务或事件记录建模。
+
+[client-go 队列](https://github.com/kubernetes/client-go/blob/c106b23895edc59ff05c65770a17e6a6d3caee66/util/workqueue/queue.go#L234)用 `dirty` 和 `processing` 两个集合处理一个容易漏掉的场景：`Get(key)` 后标记正在执行并清除 dirty；执行期间再次 `Add(key)`，只重新标 dirty；`Done(key)` 发现 dirty，就把它再入队。因此同一队列遵守 Get/Done 协议时，同一 key 不会同时交给两个 worker，又不会漏掉执行期间发生的新变化。**这不是跨进程锁，也不保证副作用恰好一次。**
+
+controller-runtime 的返回值控制后续调度，见固定版本的 [Reconciler 契约](https://github.com/kubernetes-sigs/controller-runtime/blob/0f7927c52ef41f261195054ec7f01902357e2c33/pkg/reconcile/reconcile.go#L104)：
+
+| 返回 | 含义 |
+| --- | --- |
+| 空 Result，`nil` | 本轮没有主动重排要求；后续变化仍可触发，不代表永久完成 |
+| `RequeueAfter: d`，`nil` | 安排延时检查，适合外部操作尚在进行；期间有事件仍可更早触发 |
+| 非 `nil` 普通 error | 按队列的限速／退避策略重试；同时返回的 Result 被忽略 |
+| `TerminalError` | 该次错误不触发自动退避重试；不是永久封禁这个 key，后续事件仍可再入队 |
+
+重启时内存队列会丢失，控制器依靠重新观察对象恢复待做工作；必须配置足够的 watch、映射或轮询，不能假设任何遗漏都会自动修好。高层框架通常管理 `Done` 与重试状态清理；直接写 client-go worker 时，`Done` 结束本轮占用，限速队列的 `Forget` 清除该 key 的退避记录，两者不能互相替代。
+
+##### 对象协议与失败恢复
+
+| 字段／机制 | 实际含义与易错点 |
+| --- | --- |
+| `spec` / `status` | 前者描述期望，后者报告实际观察；API 写入成功不等于资源已 Ready。只在内容实际改变时更新 status，避免自触发的无效循环 |
+| `metadata.generation` | 期望状态的代次，具体递增规则依资源类型而定；不是所有对象写入的流水号 |
+| `observedGeneration` / conditions | 控制器说明状态基于哪一代期望，例如 `Ready=True` 却基于旧 generation，不能证明新配置已就绪。写在顶层 status 还是各条 condition 里依 API 设计；并非所有资源都有相同结构 |
+| `metadata.resourceVersion` | 对象版本和并发控制依据。带旧版本更新可能收到 `409 Conflict`，需要重新读、重算；把它视为不透明值，不拿它充当业务序号。普通 Patch 不自动提供所需的并发保护，应明确版本或字段前置条件 |
+| `metadata.uid` | 对象这一次生命期的身份；同 namespace/name 删除重建后 UID 改变。外部资源关联与幂等键不能只依赖名字 |
+| labels / `ownerReferences` | labels 用于选择与分组，ownerReferences 表达归属并参与垃圾回收；标签相同不自动构成所有权。操作前核对实际 owner，避免接管或删除别人的资源 |
+| `deletionTimestamp` / `finalizers` | 删除意图与删除前必须履行的条件；finalizer 是标记，由对应控制器完成工作，不是 API Server 自动执行的脚本 |
+
+generation 与 condition 的定义可核对 [ObjectMeta / Condition](https://github.com/kubernetes/apimachinery/blob/59e9003f02d6f0c8fff53719a7a0604ec82ee9a9/pkg/apis/meta/v1/types.go)。`observedGeneration` 只说明报告对应的代次，仍需结合 condition 的类型、真假和具体语义判断是否达标。
+
+**缓存可以暂时落后，但“缓存没看到”不能直接推出“应该再创建”。**幂等是重复检查仍趋向同一结果，要落实为具体保护，不能只依赖最终一致性。[controller-runtime FAQ](https://github.com/kubernetes-sigs/controller-runtime/blob/0f7927c52ef41f261195054ec7f01902357e2c33/FAQ.md)给出的办法可与版本控制一起理解：
+
+| 场景 | 保护机制 | 缓存落后时怎样工作 |
+| --- | --- | --- |
+| 创建有稳定身份的对象 | 确定性命名＋服务端唯一性约束 | 两次都创建 `app-2`，第二次收到 `AlreadyExists`；核对 owner UID 与用途后继续调谐。类似数据库唯一键，不能把别人的同名对象当成成功 |
+| 创建使用生成名字的对象 | expectations：记录尚未观察到的创建／删除 | 上一批预期未满足时暂缓副本增删，等待缓存追上，避免根据旧数量再补一批 |
+| 修改已有对象 | 携带 `resourceVersion` 的条件更新 | 用旧版本更新被拒绝，收到 `409 Conflict` 后重读、重算；Patch 也须明确所需前置条件 |
+
+ReplicaSet 的例子：目标 3、缓存只有 2 → **先记“待观察创建数 = 1”，再创建** → 创建成功但缓存未更新，暂缓增删 → Informer 观察到新 Pod，计数归零并重新入队 → 缓存已有 3，无须再补。先记账可避免通知早于登记；等待期间仍可更新 status。源码对应 [ExpectCreations](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L587)、[CreationObserved](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L405) 与 [SatisfiedExpectations 门禁](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/replicaset/replica_set.go#L696)。
+
+expectations 是控制器实现的内存记账，controller-runtime 不会自动提供这层保护；需处理请求失败、重启和通知异常。该版本设有 [5 分钟过期](https://github.com/kubernetes/kubernetes/blob/32cc146f75aad04beaaa245a7157eb35063a9f99/pkg/controller/controller_utils.go#L70)，过期后再次检查可以放行，避免永久等待。**它不保证副本数任何时刻都不超量**；短暂偏差仍可能发生，后续调谐再纠正。
+
+必要时可绕过本地缓存查询 API Server，但“查询 → 写入”之间仍有并发窗口，直接读不能替代唯一身份、条件写入或幂等键。判断缓存方案时追问：**旧读会触发什么副作用、由谁拒绝重复或过时的动作、剩余偏差能否接受并修复？**副本数可以收敛；扣款等副作用需要执行端提供持久幂等或事务保证。
+
+下面是需要外部资源的自定义控制器结构示意，省略具体 API；所有读取、ensure、persist 失败都应返回 error，不继续执行后续步骤。这不是可直接部署的实现：
+
+```text
+Reconcile(key):
+    obj = read(key)
+    if NotFound: return success             # 其余读取错误应返回 error
+    if obj.deletionTimestamp is set:
+        if ourFinalizer exists:
+            ensure external resource absent # 可重复、核对所属 UID
+            if cleanup still pending: return RequeueAfter
+            persist removal of ourFinalizer # 只移除自己负责的 key
+        return success
+    if ourFinalizer is absent:
+        persist ourFinalizer                # 创建外部资源前先保存清理责任
+        schedule another check; return
+    actual = observe owned children / external resource
+    ensure desired state using obj.spec and stable operation identity
+    report observed result and its generation in status
+    if operation still pending: return RequeueAfter
+    return success
+```
+
+删除路径是 `DELETE → 标记 deletionTimestamp → 控制器清理 → 移除 finalizer → 对象最终删除`，还须满足其他 finalizer 和删除宽限期。删除开始后不能再补加 finalizer，因此要在产生需清理的副作用之前持久化它。清理 API 失败可以重试；“外部资源已经不存在”应按成功处理。Finalizer 不能保证外部清理一定成功，控制器失联或依赖不可用都可能令对象长期 Terminating。
+
+| 故障窗口 | 应保留的设计能力 |
+| --- | --- |
+| Kubernetes 创建请求超时，不知道是否成功 | 按稳定身份重新查询并核对归属；超时不等于未执行 |
+| 外部创建成功，写 status 前进程崩溃 | 外部 API 支持按稳定幂等键重试，或能按对象 UID 找回结果；status 里的“未完成”不能证明外部没执行。API 与外部服务之间没有天然的原子事务 |
+| 两个控制器修改同一字段 | 明确字段所有权，处理冲突并重算；持续互相覆盖是设计冲突，增加重试无法解决 |
+| 删除外部资源成功，移除 finalizer 前崩溃 | 再次清理应安全，确认不存在后继续移除；避免因 NotFound 卡住删除 |
+| controller 多副本与 leader 切换 | leader election 降低重复工作；[client-go 明确不保证 fencing](https://github.com/kubernetes/client-go/blob/c106b23895edc59ff05c65770a17e6a6d3caee66/tools/leaderelection/leaderelection.go#L17)。旧执行者的外部请求可能仍在途，必要时由目标系统校验 fencing token／epoch，并保留幂等保护 |
+
+**CRD 定义资源类型，CR 是该类型的对象，controller 实现行为；Operator 则把应用运维知识编码进一个或多个控制循环。**例如数据库 Operator 还需要理解备份、升级顺序、主从切换，而不只是替用户创建一个 StatefulSet；并非每个 controller 都需要 CRD，也不是安装 CRD 就会自动运行调谐。
+
+复习时沿一个问题走完整链路：“目标 3 个副本，删掉 1 个 Pod 后，谁观察、谁入队、谁补建、谁调度、谁启动？”再推演两个窗口：“创建成功但响应丢了”“外部资源删完但 finalizer 未移除”。能解释为何下一轮不会乱建、漏清理或误报 Ready，才抓住 controller 的核心。测试应断言最终状态与副作用约束，不机械断言 Reconcile 次数；`envtest` 可以验证 API 行为，但默认不会替你运行全部内置控制器或真实外部服务。
 
 #### 云原生联调：从声明配置到真实行为
 
@@ -980,6 +1112,8 @@ rclone copy README.txt tos:ABC --s3-no-head-object
 ### GitOps & ArgoCD
 
 Git 与集群一致只证明声明同步；发布验收还需核对 Pod 有效配置与真实业务行为，见 [云原生联调](#云原生联调从声明配置到真实行为)。
+
+ArgoCD 负责让集群中的声明趋近 Git 配置；Deployment、ReplicaSet 等 controller 再推动工作负载实际状态趋近声明。它们是不同层次的[调谐循环](#controller声明式目标如何落到实际状态)，因此 `Synced` 不能代替应用健康检查。
 
 #### GitOps 理念
 

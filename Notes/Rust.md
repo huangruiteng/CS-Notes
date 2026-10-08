@@ -2,14 +2,58 @@
 
 ## 阅读地图
 
-1. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏、Serde wire 状态与 JSON Schema 构造的基础。
-2. “表达式、模式匹配与闭包”解决 `Result`、`match`、`=>`、`self` 和 `|x|` 等常见语法。
-3. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
-4. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
-5. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
-6. “错误处理、Option 与重试”集中整理 `?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
-7. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
-8. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
+1. “代码组织”区分 workspace、package、crate 与 module，解释 `crate::`、`mod`、`use` 和可见性边界。
+2. “类型系统、结构体与反序列化”建立 `struct`、enum、字符串、派生宏、Serde wire 状态与 JSON Schema 构造的基础。
+3. “表达式、模式匹配与闭包”解决 `Result`、`match`、`=>`、`self` 和 `|x|` 等常见语法。
+4. “源码阅读方法与综合例题”练习先读签名，再追踪值的状态与控制流。
+5. “所有权、借用与生命周期”解释 `&self`、`'a`、clone、`Arc`、`Mutex`、`Send` 和 `Sync`。
+6. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
+7. “错误处理、Option 与重试”集中整理 `Result::map`、`?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
+8. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
+9. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
+
+## 代码组织：crate、package 与 module
+
+来源：[Rust Book：Packages and Crates](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)、[模块速查](https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html#modules-cheat-sheet)、[Cargo Targets](https://doc.rust-lang.org/cargo/reference/cargo-targets.html)、[Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)。
+
+**crate 是 Rust 的编译单元，由一个 crate root 源文件及其模块树组成；一个 crate 可以跨多个 `.rs` 文件。**日常说“用了某个 crate”通常指使用某个库，但 crate 也可以编译为可执行程序。
+
+| 层次 | 管什么 | 识别方式 |
+| --- | --- | --- |
+| workspace | 一起管理一组 package，共享 `Cargo.lock` 与默认构建目录 | 根 `Cargo.toml` 的 `[workspace]`；可以不含 `[package]` |
+| package | Cargo 的构建、版本与发布组织单位，包含一个或多个 crate | `Cargo.toml` 中的 `[package]`、依赖和 targets |
+| crate | 编译与跨 crate API 边界 | library crate 提供可复用功能；binary crate 生成可执行程序，通常以 `main` 为入口 |
+| module | crate 内部的命名空间与可见性组织 | `mod` 声明，可内联或分文件；不独立成为 crate |
+
+一个 package 至少包含一个库或可执行 crate，**最多一个 library target，可以有多个 binary targets**。默认布局如下；路径也可由 `[lib]`、`[[bin]]` 配置：
+
+```text
+demo-app/                ← 一个 package，下面有两个 crate
+├── Cargo.toml
+└── src/
+    ├── lib.rs           ← library crate root，默认库名 demo_app
+    ├── math.rs          ← lib.rs 声明的模块，属于这个库 crate
+    └── main.rs          ← binary crate root，默认可执行文件名 demo-app
+```
+
+最小调用关系（以下分属三个文件）：
+
+```rust
+// src/lib.rs
+pub mod math;
+
+// src/math.rs
+pub fn add(a: i32, b: i32) -> i32 { a + b }
+
+// src/main.rs
+use demo_app::math::add;
+fn main() { println!("{}", add(1, 2)); }
+```
+
+- **`crate::` 指当前 crate 的根**：库内可写 `crate::math::add`；在这里的 `main.rs` 中，`crate::` 指 binary 的根，访问库须用 `demo_app::math::add`。同属一个 package 不等于同一个 crate；库名默认把 package 名中的 `-` 换成 `_`。
+- `mod math;` 声明模块并让编译器寻找其代码；`use` 只是把已有路径引入当前作用域，不负责下载依赖。第三方依赖先写入 `[dependencies]` 或用 `cargo add` 添加，再通过库名引用。
+- `pub` 允许外部访问，但路径上的可见性也要满足，或通过 `pub use` 重导出；[`pub(crate)`](https://doc.rust-lang.org/reference/visibility-and-privacy.html#vis.scoped)只对当前 crate 开放，因此库里的 `pub(crate)` 项也不能由同 package 的 binary 访问。
+- `cargo new demo-app --lib` 创建带库的 package；新增 `src/main.rs` 即可同时提供 CLI。`src/bin/tool.rs` 可再定义一个 binary，用 `cargo run --bin tool` 选择；`cargo check --workspace` 检查工作区成员。
 
 ## 类型系统、结构体与反序列化
 
@@ -482,6 +526,8 @@ Ok(3) = 成功返回整数 3
 ```
 
 `Ok` 不是布尔值，也不是普通函数。它是 `Result` 的 enum variant constructor，可以粗略读成 `Result::Ok(value)`。
+
+成功值还可以用 [`Result::map`](#resultmap校验成功后再构造)转换，错误则原样传递。
 
 ### `match` 与 `=>`
 
@@ -2043,6 +2089,50 @@ Result<Vec<Message>, StoreError>
 - `Err(error)`：发生了已建模的存储错误。
 
 但 `Ok(vec![])` 仍属于 `Ok`。Rust 不会自动把空列表解释成异常。
+
+#### `Result::map`：校验成功后再构造
+
+来源：[Result::map](https://doc.rust-lang.org/std/result/enum.Result.html#method.map)、[and_then](https://doc.rust-lang.org/std/result/enum.Result.html#method.and_then)、[map_err](https://doc.rust-lang.org/std/result/enum.Result.html#method.map_err)。以下使用通用配置构造示例。
+
+假设 `Config` 不实现 `Copy`，`validate(&self) -> Result<(), ConfigError>` 只借用配置，`Client::from_config(&ClientBuilder, Config) -> Client` 消费配置。`ClientBuilder` 的方法可以写成：
+
+```rust
+pub fn build(
+    &self,
+    config: Config,
+) -> Result<Client, ConfigError> {
+    config
+        .validate()
+        .map(|()| Client::from_config(self, config))
+}
+```
+
+**先校验；成功才构造 `Client` 并包装成 `Ok(client)`，失败则直接返回 `Err(error)`。**逐段读：
+
+| 语法 | 含义 |
+| --- | --- |
+| `pub fn build`、`&self` | 公开方法，共享借用当前 builder，不取得 builder 的所有权 |
+| `config: Config` | 参数按值传入，配置所有权移进方法；即使校验失败，也不会自动退回给调用方 |
+| `Result<Client, ConfigError>` | 成功值的类型是 `Client`，错误值的类型是 `ConfigError`；返回 `Ok(client)` 或 `Err(error)`，不同时返回二者 |
+| `Result<(), ConfigError>` | 校验成功只返回单位值 `()`，没有额外数据；失败携带具体错误 |
+| `.map(闭包)` | 把 `Result<T, E>` 变为 `Result<U, E>`：只把 `Ok` 中的 `T` 交给闭包，再包装返回的 `U`；`Err` 原样通过，闭包体不执行 |
+| `\|()\| ...` | 闭包接收一个 `()` 参数，用单位模式匹配它；不同于无参闭包 `\|\| ...` |
+| `Client::from_config(self, config)` | 调用类型的关联函数，返回 `Client`；函数名本身没有特殊语法含义 |
+
+这里 `T = ()`、`U = Client`、`E = ConfigError`。方法体最后的表达式没有分号，所以整个 `map` 结果直接作为返回值；参数末尾的逗号只是允许的尾随逗号。
+
+等价的显式分支是：
+
+```rust
+match config.validate() {
+    Ok(()) => Ok(Client::from_config(self, config)),
+    Err(error) => Err(error),
+}
+```
+
+也可用下一节的 `?` 写成 `config.validate()?;`，随后 `Ok(Client::from_config(self, config))`。校验借用结束后，闭包再将配置移入构造函数；`map` 接受 `FnOnce`，支持这种至多调用一次的闭包，无需 `clone`。若校验本身按值消费非 `Copy` 配置，就不能照此再次使用它。
+
+选择方法看返回类型：**转换成功值用 `map`，串联另一个返回 `Result` 的步骤用 `and_then`，转换错误用 `map_err`**。若构造函数也返回 `Result<Client, ConfigError>`，这里用 `and_then` 可避免 `map` 产生嵌套的 `Result<Result<Client, ConfigError>, ConfigError>`。
 
 #### `?` 的展开
 

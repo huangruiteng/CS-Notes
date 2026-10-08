@@ -610,3 +610,5 @@
 | 602 | [赵克常《炒股挣钱》：风险认知课，不是可复制的投资研究方法](<https://x.com/ActionXAi/status/2083691580196856018>) | B | 沿用既有阅读记录 |
 | 603 | [未核实的 MLSys 截图线索：集中式推理、确定性信号与知识图谱控制面](<https://mlsys.org/Conferences/2026/CallForResearchPapers>) | B | 沿用既有阅读记录；来源真实性未确认；保留为核验案例，不作为论文结论。 |
 | 604 | [Evolvent AI GitHub 组织复核：与既有研究目录的重复记录](<https://github.com/evolvent-ai>) | B | 沿用既有阅读记录；保留稳定 ID 与重复记录；不因重复而静默删除。 |
+| 605 | [Silicon Exchange GPU Vaults：算力收益权融资的公开产品页记录](<https://siliconexchange.com/>) · [来源 2](<https://siliconexchange.com/vaults/genesis-b300>) | B | 沿用既有阅读记录；2026-10-03 读取首页和 Genesis B300 Vault 页面，未执行页面 JS。发行方当时标示募资目标 $670,000、估算 APY 22–25%、三年租约谈判中；均是网页声明，不是收益保证或已签约事实。条款、费用、托管、监管及承租方证据未核验。 |
+| 606 | [Silicon Exchange GPU Vaults：次日页面快照复核](<https://siliconexchange.com/>) · [来源 2](<https://siliconexchange.com/vaults/genesis-b300>) | B | 沿用既有阅读记录；2026-10-04 与前一日缓存比较：归一化页面文本相同，原始字节因构建哈希不同。保留独立稳定 ID 作为时点记录，不据此推断融资、签约或运营进度。条款、合同及第三方资质仍未核验。 |

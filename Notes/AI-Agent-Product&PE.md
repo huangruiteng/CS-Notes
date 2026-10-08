@@ -2196,6 +2196,22 @@ Muse Code 则把编码协作进一步产品化为「多 Agent 编排脚本 + 后
 
 **与相邻产品的关系**：Grok Bot / Muse 的公开材料展示了「持久环境 + 后台执行 + 审批 + 结果返回」的产品方向；媒体所述 Comma 的主张是把**主动性**（不等用户开启新一轮对话）与**身份隔离**（敏感动作回到用户设备）同时做成一等设计，而 Lorca 走的是相反分工（执行留在用户电脑、手机只做控制端）。三者回答的是同一组问题——loop 放在哪、身份放在哪、控制权交给谁——但答案不同。
 
+### Muse Gadgets：把 Muse 接到 ESP32 与 Linux 设备（2026-10 开源）
+
+> 来源：Alexandr Wang 的公告推文 [@alexandr_wang](https://x.com/alexandr_wang/status/2106113742266089526)（2026-10-02，配图见下）；一手代码与文档 [facebookincubator/muse-gadget-sdk](https://github.com/facebookincubator/muse-gadget-sdk)（Apache-2.0，2026-10-02 建库）。2026-10-09 核对固定 commit `86cf33f` 的 [README](https://github.com/facebookincubator/muse-gadget-sdk/blob/86cf33fb4092ba700b4dc33928966d1bcb31556d/README.md)、[Linux SDK](https://github.com/facebookincubator/muse-gadget-sdk/blob/86cf33fb4092ba700b4dc33928966d1bcb31556d/linux/README.md)、[命令执行器](https://github.com/facebookincubator/muse-gadget-sdk/blob/86cf33fb4092ba700b4dc33928966d1bcb31556d/linux/src/musegadget/executor.py)与 [ESP32 SDK](https://github.com/facebookincubator/muse-gadget-sdk/blob/86cf33fb4092ba700b4dc33928966d1bcb31556d/esp32/README.md)。`gadgets.muse.ai` 站点未直读；公告长帖正文截断于「smart devices (TV, …」，Home Link 的完整规格未核实。
+
+![Muse Gadgets 公告配图：ESP32、Home Link、树莓派与墨水屏设备](./AI-Agent-Product&PE/muse-gadgets-announcement-20261002.jpg)
+
+- **两套 SDK**：① **ESP32 Device SDK** —— 刷到任意 ESP32 板把 Muse 接进家庭 Wi-Fi，带 **home-network tunnel** 的板子可以让 Muse 访问你已有的设备、以及任何提供本地 HTTP API 的东西；② **Linux Device SDK** —— 把树莓派或 Linux 机器变成 Muse gadget，让 Muse 能在机器上跑命令、读写文件。
+- **Meta 自家硬件**：公告同时发布 **Muse Home Link**，让 Muse 操作智能设备（电视等）。它在仓库 hero 图里与 Waveshare AMOLED、M5Stack StickS3、树莓派、Seeed 墨水屏并列，仓库中对应 `link_*` 系列实现与测试（配对、设备发现、OTA、墨水屏状态、VM API）。
+- **接入方式（产品侧）**：需从 `gadgets.muse.ai` 申请 **SDK token**（`mgst_…`；每个 gadget 都要一个，自己给自己做的也要）并先读 Gadget SDK Terms；用手机 Muse app 配对——Settings > Devices 打开 **Developer mode**，添加 `MuseGadgetXXXXXX`，app 会提示这是 community device。
+- **Linux 侧 Muse 到底能做什么（权限面最关键）**：只暴露四个命令——`system.run`（跑 shell，返回输出与退出码）、`file.read`（每次 64 KB）、`file.write`（每次 64 KB，完整写入才替换）、`device.health`（uptime / load / memory / disk / temperature）；**以安装时指定的账号身份运行，拥有该账号的全部权限——该账号能用 sudo，Muse 就能用**。官方示例包括「找出 Pi 上占满磁盘的是什么」「在我 Pi 上装 Home Assistant」「每天早上 7 点检查备份有没有跑」。
+- **可扩展方式**：机器上任何程序都能无凭据地向 Muse 推消息（`musegadget send-user-msg`，`--session-id` 可投到 side chat；示例 `examples/pebble_ring_bridge.py` 把 Pebble 戒指的每条通知转进自己的 Muse 聊天）；命令定义在 `src/musegadget/executor.py` 的 `COMMAND_SPECS`；`install.sh --run-as someone` 可把权限降到无 sudo 的账号；SDK token 存在 `/var/lib/musegadget/sdk_token`（仅 root 可读）。
+- **ESP32 侧**：仓库列出多款支持的开发板（默认 ESP32-C5 DevKitC-1；其余含 Seeed SenseCAP Indicator / Watcher、reTerminal E1001 墨水屏、Home Assistant Voice PE、Waveshare AMOLED 1.75C / 1.75、M5Stack StickS3 / StopWatch / StickC Plus2 / Cardputer ADV、AIPI Lite、ESP32-S3-BOX-3 等）；各板的网络隧道、图像、UI、语音、传感器与电量能力须按板卡文档核对，部分新板卡仍标 experimental；构建固定 **ESP-IDF v6.0.1**。
+- **给 agent 的入口**：每个目录都带 `README.md` + **`AGENTS.md`**；官方推荐直接用 **Muse Code**（`muse --disable-sandbox`）读 AGENTS.md 完成装工具链、按板编译、刷机、读串口日志，并说明任何会读 AGENTS.md 的 coding agent 都能做，只是刷机需要 USB 串口权限、沙箱内要放行。
+- **安全边界（官方自述，建议单独记）**：配对窗口 10 分钟、每次建立新的加密会话、配对只能在机器上执行 `musegadget pair` 或跑安装脚本时开启；但文档明确写 **community device 没有厂商验证、无法防止主动中间人攻击**，要「在可信网络上设置」。落到权限上：**你把机器交给 Muse 的深度取决于安装账号，而不是设备本身**；旁注同时提醒刷固件可能变砖、失保修。
+- **许可与例外**：整体 Apache-2.0，但 `esp32/components/minimp3`（CC0）与 `esp32/main/pixel_font.c`（Adafruit 字体，BSD-2-Clause）保留上游许可，**Jollybot avatar 不在 Apache 授权范围内**。
+
 ### Raft（原 Slock）：human-agent 协作空间
 
 > 来源：[slock.ai](https://slock.ai/)（已跳转到 [raft.build](https://raft.build/)）、[Introducing Raft](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)、[Raft use cases](https://raft.build/resources/use-cases/)、第三方 setup guide [CodePick: Slock Setup Guide](https://codepick.dev/en/guides/slock-setup/)、npm 包 [`@slock-ai/daemon`](https://www.npmjs.com/package/%40slock-ai/daemon)（2026-06-15 `npm view` 显示已 renamed to `@botiverse/raft-daemon`）
@@ -2259,6 +2275,18 @@ Claude Tag（Anthropic 的 Slack AI Coworker）的产品分析与 LoopX 能力�
 “平台 Agent”还要回答利益一致性：推荐、排序与代办究竟受用户意图、平台商业目标还是二者共同驱动？可检查的设计包括结果来源与排序理由、商业关系披露、可替换服务、授权范围和用户撤回控制。不能由个人助理的命名推断它已经完全代表用户利益。
 
 与 [Comma](#commaafk永不下班的-personal-agent) 的对照重点是执行与身份分别放在哪一层、主动推进何时触发、失败后怎样恢复、成本和通知是否有界。终端感知可能提供更多上下文，也会增加持续授权与数据最小化要求；“必然走向某种硬件”仍是行业假设。
+
+### 个人 Agent 的三层形态：手机 / 专业电脑 / 企业 IT 系统（indigo，2026-10）
+
+> 来源：[indigo (@indigox) 推文](https://x.com/indigox/status/2105924545354100937)（2026-10-02）。第二、三层来自配图，本次已逐列核对；原图保存在本笔记资源目录。同一天的引用帖是该推文作者预告的个人 Agent 直播（讨论 Grok Bot / Muse / ChatGPT dots 的体验）：[引用帖](https://x.com/indigox/status/2105914048651125046)。
+
+![个人 Agent 的三层形态：普通用户、专业用户与企业用户](./AI-Agent-Product&PE/indigo-agent-three-layers-20261002.jpg)
+
+- **第一层（推文正文原文）**：普通用户 ≈ 手机，拥有一个 Personal Agent——帮你管日程、整理信息、安排出行、调用生活服务；手机、眼镜、手表都只是入口，背后是同一个 Agent；它主要跑在云端、调用云端模型，一台小 VPS 就能承载。
+- **第二、三层（只在图中）**：配图是一张三层对照表，可辨认的骨架为——用户类型 **普通用户 Consumer / 专业用户 Pro User / 企业用户 Enterprise**；设备形态 **手机与可穿戴设备 / 专业电脑 / 企业 IT 系统**；部署形态（手机 · 眼镜 · 手表 / 本地 · 云端 / 云端 · 私有环境）；Agent 形态 **个人 Agent / Agent 组合 / Agent 基础设施**；目标 **处理日常事务 / 形成工作闭环 / 支撑组织流程**。
+- **读取边界**：推文可见正文在配图处截断；上面的第二、三层来自图中标签与箭头关系。配图没有展开各层的实现规格，不据此推断硬件必需性、企业部署细节或能力成熟度。
+- **对主线的信号**：这张图的价值是把 personal agent 的讨论从「某个产品好不好用」提升为**按用户类型分层**的坐标——同一套能力在消费级是「一个 Agent、多入口」，到专业用户要变成「Agent 组合 + 本地 / 云端协同的工作闭环」，到企业则成为「Agent 基础设施 + 私有环境」。与本节其它条目互为参照：[Comma](#commaafk永不下班的-personal-agent) 是消费级的完整样本，[Grok Bot / Muse](#agent-tobtoc-产品) 覆盖「专业用户」那一层的多 Bot 与工作台形态，[Raft](#raft原-slockhuman-agent-协作空间) 与 [Flowith Matrix](#flowith-matrix从-agent-workspace-到-agent-company) 更接近「组织」那一层。
+- 作者预告的 Personal Agent 直播发布后，可用来校准这张分层图；本次未读取直播内容。
 
 ## Agent 领域概述
 
