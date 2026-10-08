@@ -95,6 +95,8 @@ Browser 也采用独立 broker：cell 外控制 CDP，浏览器 sub-agent 只获
 
 证据边界：文章披露纵深防御，未给出可直接比较的攻击成功率；prompt injection 仍是开放问题。当前 Secure VM 对 Meta 人员访问依赖运营策略，不能写成「Meta 无法访问」。文中 Confidential VM 属于计划当年稍后推出、处于测试 / 审计中的能力；用户 VM 隔离也不等于无云端推理或无训练使用，文章说明经脱敏的推理轨迹默认用于训练、可 opt out。
 
+2026-10 开源的 Muse Gadgets 把这条授权边界推到用户自己的硬件上：Linux gadget 对 Muse 只暴露 `system.run` / `file.read` / `file.write` / `device.health` 四个命令，但一律以安装账号的身份执行（该账号能 sudo，Muse 就能 sudo），且社区设备没有厂商验证、官方写明无法防主动中间人攻击。设备侧的产品形态、已支持板卡与配对流程见 [AI-Agent-Product&PE.md - Muse Gadgets](./AI-Agent-Product&PE.md#muse-gadgets把-muse-接到-esp32-与-linux-设备2026-10-开源)。
+
 ### E2B：AI agent 的 Firecracker 沙箱云（专项）
 
 > 来源：[E2B 官网](https://e2b.dev/)、[GitHub e2b-dev/E2B](https://github.com/e2b-dev/E2B)（SDK / CLI）、[GitHub e2b-dev/infra](https://github.com/e2b-dev/infra)（自托管基础设施，Terraform）、[Docs](https://e2b.dev/docs)、[llms.txt](https://e2b.dev/llms.txt)。整理时间 2026-08-25。
