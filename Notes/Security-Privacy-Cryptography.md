@@ -320,20 +320,22 @@ AI API key 和会话令牌有三重价值：转卖获利、使用受害者的计
 
 #### 主动模型归因：用生成数字偏差反推后端身份（ModelTrace）
 
-> 来源：[ModelTrace 浏览器本地版](https://xqy2006.github.io/ModelTrace/) 与 [xqy2006/ModelTrace](https://github.com/xqy2006/ModelTrace)（MIT，2026-09-15 读取，commit `3f0dd2f4`；含 `static/` 纯前端版与 Codex 插件 `codex-plugin/modeltrace-guard/`）；前置工作参考 [hlwy-ai-checker](https://github.com/hanlinwenyuan/hlwy-ai-checker)。整理时间：2026-09-17。
+> 来源：[ModelTrace 浏览器本地版](https://xqy2006.github.io/ModelTrace/) 与 [xqy2006/ModelTrace](https://github.com/xqy2006/ModelTrace)（MIT；初版整理基于 commit `3f0dd2f4`，2026-10-25 复核至 [`6cd4a8ff`](https://github.com/xqy2006/ModelTrace/tree/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2)）。算法与建库见 [`fingerprint.py`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/fingerprint.py)、[`bank_builder.py`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/bank_builder.py) 和 [`challenge_suite.py`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/challenge_suite.py)；前置工作参考 [hlwy-ai-checker](https://github.com/hanlinwenyuan/hlwy-ai-checker)。
 
 上一节 GTG-50021 的边界是「价格和界面名称都不能证明后端身份」。ModelTrace 把这条边界变成可操作的检测：**不问供应商要证据，而是让模型自己产出可统计的偏差**。做法是三条独立的「长整数生成」挑战（每次 218–333 个 `[1, 355]` 区间整数，要求逐项凭第一反应、禁止工具 / 计算器 / 搜索 / 计数递增 / 等差 / 循环 / 重复区块），把输出分布当成指纹，在候选库里做归因。
 
 - **指纹表示**：`355` 维计数分布（取值区间 `[1, 355]`，α = 0.5 平滑）做 Hellinger 特征，叠加有序块特征（序列切 4 段各 16 桶 + 末位数字分布）。总分 `0.75 × Hellinger 模型中心相似度 + 0.25 × 有序块特征`（库内 `ordered_block_weight = 0.25`）。
-- **环境去偏是核心设计**：建库时把各共享环境下特征的平均偏移做 SVD，取前 `2` 个方向当 nuisance basis；归因时先投影掉这些方向再与全部模型中心比较。这样「换了 system prompt / 中英文 / 上下文长度」造成的整体位移不会被误算成模型差异。挑战套件本身也刻意铺了 12 组环境（通道 `clean / user / system` × 格式 `json / 中文 / 英文` × 前缀 `96 / 512 / 2048` 词）。
-- **概率与校准**：三份回答分别打分取平均，再用与查询数配套的温度做全局 softmax（库内 β：1 次查询 `6.84`、2 次 `12.0`、3 次 `12.0`；对应分组交叉验证准确率 `0.955 / 0.996 / 1.000`）。家族概率是该家族具体模型概率之和；单次检测要求至少 80 个有效数字。
-- **闭集边界**：结果是「当前候选库内、均匀先验」的闭集概率，**库外模型照样会被归到最相似的候选**，这是最常见的误用点。当前库 13 个模型（GPT 6：`gpt-5.4 / 5.5 / 5.6-sol / -terra / -luna / gpt-6-astra`；Claude 7：`haiku-4-5 / sonnet-4-6 / sonnet-5 / opus-4-6 / -4-7 / -4-8 / opus-5`）。GPT 采自官方订阅 Codex，Claude 采自第三方中转 OAIPro——**Claude 侧指纹刻画的是那条渠道的行为，不等于官方 API 特征**。
+- **环境去偏是核心设计**：建库时把各共享环境下特征的平均偏移做 SVD，取前 `2` 个方向当 nuisance basis；归因时先投影掉这些方向再与全部模型中心比较。这样「换了 system prompt / 中英文 / 上下文长度」造成的整体位移不会被误算成模型差异。挑战套件预设 12 种环境，并非三组变量的完整笛卡尔积：既有 `clean` 下的 JSON / 中文 / 英文基线，也有 `system / user` 通道中的 96 / 512 / 2048 词中文前缀，以及固定 system prompt 的 JSON 条件。
+- **概率与校准**：多份回答分别打分取平均，再用与查询数配套的温度做全局 softmax。当前库中，1 / 2 / 3 次查询的 β 为 `7.1295 / 12 / 12`；grouped cross-validation 分别为 `624/648 = 0.9630`、`646/648 = 0.9969`、`216/216 = 1.0000`。这些数字来自建库数据的分组交叉验证，不是独立真实渠道的 holdout 识别率。家族概率是该家族具体模型概率之和；单次检测要求至少 80 个有效数字。
+- **闭集边界**：结果是「当前候选库内、均匀先验」的闭集概率，**库外模型照样会被归到最相似的候选**，这是最常见的误用点。参考库从初版 13 个模型扩到 18 个：原有 GPT 6 个与 Claude 7 个保留，新增 `gpt-6-sol / gpt-6-luna / claude-opus-5-5 / claude-sonnet-5-5 / claude-haiku-5-5`。GPT 采自官方订阅 Codex，Claude 采自第三方中转 OAIPro——**Claude 侧指纹刻画的是那条渠道的行为，不等于官方 API 特征**。
+- **参考数据卫生不等于外部效度**：[`validate-reference-data.mjs`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/validate-reference-data.mjs) 对部分新增模型检查每模型 36 条、12 种环境各 3 条、记录与输出唯一、解析数量与请求数量之比在 `[0.8, 1.2]`，并锁定 provider / model / CLI / reasoning metadata。这能防止坏样本混入参考库，不能替代跨渠道、同上下文和多语言条件下的独立校准。
 - **作者自述的失效条件**：结果仅供参考、不是决定性证据；system prompt 会强烈影响数字偏好，因此在 Claude Code 里测得的结果偏差较大，官方建议不要在 Claude Code 内测试。API 自动测试支持 OpenAI Chat Completions 与 Anthropic Messages 两种格式，Key 只用于当次请求、不落盘。
 
 对工程判断的意义：
 
 - **模型身份是需要主动验证的运行时属性，而不是配置项**：路由、fallback、渠道替换、量化版本差异都会改变实际后端，而客户端能拿到的只有行为，所以「行为统计 + 参考库」是少数可落地的证据形式。
 - **它的证据强度由可探测能力决定**：只有三条挑战、闭集候选库、且依赖环境去偏，因此适合当 canary / 可疑信号，不适合当判定结论；把它当开放集识别使用会系统性高估把握度。
+- 当前插件的 [`provenance.json`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/modeltrace-guard/assets/provenance.json) 明示 `sameContextCalibrated: false`、`multilingualCalibrated: false`。SVD 去除共享环境方向只能减弱已建模的整体偏移，不能把未校准条件变成可靠概率。
 - 与上面 [模型名称不等于数据处理边界](#模型名称不等于数据处理边界) 是同一问题的两面：那一节说「名义供应商 ≠ 实际处理方」，这一节给的是「用输出行为反推实际处理方」的一个具体手段。
 - 同一指纹库还被封装成任务内监测（按工具调用间隔 fork 快照做后台复测），用于发现**任务进行中后端模型被静默替换**，机制见 [AI-Agent-Engineering.md - ModelTrace Guard](./AI-Agent-Engineering.md#modeltrace-guard把后端模型被静默替换做成任务内可探测信号)。
 

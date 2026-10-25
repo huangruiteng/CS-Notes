@@ -2284,18 +2284,20 @@ Serving infra 层也有相同模式。Z.ai 的 Scaling Pain 把 GLM-5 在高并�
 
 #### ModelTrace Guard：把「后端模型被静默替换」做成任务内可探测信号
 
-> 来源：[ModelTrace](https://xqy2006.github.io/ModelTrace/) 与 [xqy2006/ModelTrace](https://github.com/xqy2006/ModelTrace) 的 Codex 插件 [codex-plugin/modeltrace-guard](https://github.com/xqy2006/ModelTrace/blob/main/codex-plugin/modeltrace-guard/README.md)（MIT，2026-09-15 读取，commit `3f0dd2f4`）。指纹算法与参考库细节见 [Security-Privacy-Cryptography.md - 主动模型归因](./Security-Privacy-Cryptography.md#主动模型归因用生成数字偏差反推后端身份modeltrace)。整理时间：2026-09-17。
+> 来源：[ModelTrace](https://xqy2006.github.io/ModelTrace/) 与 [xqy2006/ModelTrace](https://github.com/xqy2006/ModelTrace) 的 Codex 插件 [`modeltrace-guard`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/modeltrace-guard/README.md)（MIT；初版整理基于 commit `3f0dd2f4`，2026-10-25 复核至 [`6cd4a8ff`](https://github.com/xqy2006/ModelTrace/tree/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2)）。指纹算法与参考库细节见 [Security-Privacy-Cryptography.md - 主动模型归因](./Security-Privacy-Cryptography.md#主动模型归因用生成数字偏差反推后端身份modeltrace)。
 
 上一节的 failure bucket 全部假设「后端还是同一个模型，只是工程层退化了」。这里补一个正交的维度：**后端身份本身变了**（路由切换、fallback、渠道替换、量化版本替换）。用户侧能看到的现象同样是「变笨」，但原因不在 prompt / context / cache，而在「你以为在调 A，实际返回的是 B」——这一层如果不可观测，前面所有中间指标都会被错误归因。
 
 插件把「主动归因」从一次性检测变成任务内巡检：
 
 - **触发**：按工作工具调用次数计数（默认 16–32 次，可调；无每轮或任务累计上限），空闲不发起新采样；同一任务最多一个在途探针。
-- **快照 fork 而不是另发请求**：先用 Codex 原生 `thread/fork` 建一个不跑模型的持久化临时基准，固定轮次边界；首次探针与 N 次复测分别对该基准做 `ephemeral: true` 的 fork，且固定同一个 `lastTurnId` 与原工作目录，只允许显式的一轮输出（子 fork 只回一个数字数组，工具调用被 hook 拦截）。复测之间不互相继承探针数字，也不包含告警后主任务新增的内容。
+- **快照 fork 而不是另发请求**：先用 Codex 原生 `thread/fork` 建一个不跑模型的持久化临时基准，固定轮次边界；首次探针与 N 次复测分别对该基准做 `ephemeral: true` 的 fork，且固定同一个 `lastTurnId` 与原工作目录，只允许显式的一轮输出。复测之间不互相继承探针数字，也不包含告警后主任务新增的内容。[`FORK_ROLE_MARKER`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/modeltrace-guard/scripts/prompts.mjs) 还明确告诉子 fork：它是一次性采样角色，不接管原任务的 `/goal`、不继续原工作、不运行插件管理命令。角色投影避免继承上下文后把探针误判为与原任务冲突。
+- **采样输出是严格合同**：[`probe-output.mjs`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/modeltrace-guard/scripts/probe-output.mjs) 只接受裸 JSON 整数数组，或由单个无语言 / `json` code fence 包裹的数组；不从解释文本里抽数字，不拼接多段数组，也不修复样本。回复至多 5000 字符，元素必须在 `[1, 355]`，数量必须落在 `max(80, ceil(0.55n))` 到 `ceil(1.25n)`。这条边界把「模型自然计数错误」和「解析器替模型补答案」分开。
 - **hook 结构**：同步 `PreToolUse` 做工具拦截，异步 `SessionStart / UserPromptSubmit / PostToolUse` 跑后台执行器（fork → 生成 → 评分 → 清理）。**正常结果静默保存，不向主会话注入状态、不阻塞工具调用与最终回答**；只有异常才把提醒交给智能体。
 - **升级语义（最值得抄的部分）**：首次不一致 → 智能体必须先告知「预期 X，指纹第一候选 Y」再暂停工作；随后连续 N 次（默认 3）复测期间原任务保持暂停；**全部 N 次都不一致**才锁定任务，`PreToolUse` 拒绝后续受支持的工作工具，只放行状态查询、告知确认、停止与用户显式授权恢复；任一次相符则该组不触发停止，但异常记录保留。缺失 / 无效 / 超时 / 中断不计为不一致。恢复必须用户明确要求（`resume --halt`），停止监测、确认提醒或换模型都不会自动解锁。
+- **失败是 coverage gap，不是 mismatch**：连接、快照、fork 准备、推理、清理与提交分别记为 `connect / snapshot / fork_preparation / inference / cleanup / submission`。`forkHealth.diagnostic` 只保存阶段、错误码、字符数和数组长度等结构化元数据，不保存失败回复正文、数字或任务上下文。无效输出与运行失败会中断当前确认组并重新调度，不进入不一致 streak；否则监测基础设施故障会被误报成模型替换。
 - **清理纪律**：每组结束后由独立进程按任务与轮次核对，用 `thread/delete` 删除临时基准，且检查包括已归档在内的所有持久化后代；若基准已被使用或产生其他持久化后代，则保留并报告清理阻塞，避免连带删除用户内容。清理状态落盘（`active / pending / deleted / blocked`），任务重启时扫描遗留记录。
-- **成本与缓存**：探针由 Codex 自身生成、消耗对应推理额度，不需要另填 API Key；沿用原任务缓存会话时标记 `fork.cacheScope: source_session`，API Key / 自定义地址 / 代理场景则记为 `native_fork`，缓存过期或上下文压缩后首次请求可能重建缓存。
+- **成本与缓存**：探针由 Codex 自身生成、消耗对应推理额度，不需要另填 API Key；沿用原任务缓存会话时标记 `fork.cacheScope: source_session`，API Key / 自定义地址 / 代理场景则记为 `native_fork`，缓存过期或上下文压缩后首次请求可能重建缓存。Codex 0.157+ 把 cache relay 的 `session-id` 改成每连接 UUID；新版 [`cache-transport.mjs`](https://github.com/xqy2006/ModelTrace/blob/6cd4a8ff0f3f4e49d6d6969dd2fbadfa1569fde2/codex-plugin/modeltrace-guard/scripts/cache-transport.mjs) 仍以 disposable thread id 授权，再把上游 `session-id` 改写为源任务 cache session。**运行时协议版本本身也是监测基础设施的失败面**，因此诊断应保留 Codex build、插件版本和 cache mode。
 
 边界写得很克制，值得当作 harness 巡检的 claim boundary 模板：
 

@@ -2131,6 +2131,37 @@ Josh 描述的节奏是多年愿景、约六个月路线图，以及从想法到
 
 产品选择会表达团队的价值观。访谈把效率优化、修复细小体验问题和探索模型边界分别纳入奖励；这提醒团队同时保护新能力、持续可用性与服务成本，而不是只奖励发布数量或模型跑分。
 
+#### 新基础能力：先用原型让潜在需求显影
+
+> 来源：Frank Wang 玉伯《[Jev：离开 OpenAI 后，他做了一个不跟人聊天的 AI](https://x.com/lifesinger/status/2102764610109813192)》（2026-09-23）。文章依据 Latent Space 对 TypeSafe 联合创始人兼 CEO Diogo Almeida 的访谈整理；下述创业经历、产品判断和市场反馈来自嘉宾自述，未独立核验。
+
+**对于一种新的基础能力，需求未必会以完整、清晰的句子提前出现在用户访谈里。**用户擅长描述已经经历的问题、现有流程和替代方案；当一种能力还没有共同语言、代表作品和稳定使用范式时，用户很难回答“你会拿它做什么”。先出现可操作的原型和作品，用户才可能把新能力类比到自己的任务，认出“原来我也需要”。
+
+Jev 把这个问题具体化了。Diogo Almeida 认为，未来大量 AI 调用会来自代码，而非人与聊天框：代码管理确定的流程，模型在分类、排序、选择和条件判断等需要语义理解的环节介入。产品发布前，试用者中有一半以上没有理解它；理解的人觉得很酷，但商业采用仍显得遥远。发布后，开发者开始做出团队未预料的用途，有人主动要求更高调用额度，甚至询问能否借 GPU。需求从抽象描述变成了资源和行动承诺。
+
+这条需求发现路径可以写成：
+
+```text
+新的基础能力
+→ 能展示结果的代表性原型
+→ 用户把结果迁移到自己的任务
+→ 出现复刻、集成和越界使用
+→ 聚类高频且高价值的任务
+→ 用持续使用、付费和流程替代验证 PMF
+```
+
+原型与用户访谈承担不同职责：
+
+| 方法 | 更适合回答什么 | 主要盲区 |
+| --- | --- | --- |
+| 用户访谈 | 当前任务怎样完成、哪里痛、谁负责、已有替代方案和损失多大 | 用户未见过新能力时，容易把答案限制在旧流程内 |
+| 原型 / 作品 | 新能力能产出什么，能否触发用户的识别、类比和新用法 | “很酷”只说明想象空间被打开，不说明需求足够强 |
+| 行为与承诺 | 用户是否复刻、接入工作流、持续调用、申请资源、付费或替换旧方案 | 早期样本可能偏向爱尝鲜者，需要看 cohort 与任务分布 |
+
+因此，这不是闭门造车的理由。更可靠的做法是：访谈先找现有摩擦和约束；原型扩大用户能够想象的方案空间；再用真实行为筛选用途。证据强度大致从“觉得有趣”，依次上升到主动复刻、迁移到自己的任务、持续在后台调用、申请额度或算力、付费并替换旧流程。已有产品中的非目标用户持续越界使用，则是另一种相近信号，见[从越界使用发现需求：CodeBuddy 到 WorkBuddy](#从越界使用发现需求codebuddy-到-workbuddy)。
+
+Jev 的案例还说明，新需求往往要等能力、成本和可靠性共同跨过阈值才会出现。文章以“单位美元智力”描述目标：单次判断足够便宜、快速且稳定后，软件才会在过去不值得调用模型的环节加入语义判断，并处理因成本过高而闲置的暗数据。是否真的跨过阈值，应在客户工作流中测任务正确性、无关输入扰动下的稳定性、延迟和成本；公开跑分或发布后的短期热度不能代替这些证据。
+
 ### Agent 创作的几个要点
 
 主要来源：[Anshu Chimala — How to turn your AI into a world-class designer](https://www.lennysnewsletter.com/p/how-to-turn-your-ai-into-a-world)，2026-09-01。原文已核对引言、Discover / Define / Deliver 与 Technique 1–6 的可见正文、prompt 和关键前后图；Technique 7 起受订阅墙限制。以下按创作问题重组；Blender、ASD-STE100 与交互学习部分另附来源或标明应用推导，不把它们归为原文方法。
@@ -2485,6 +2516,43 @@ Lenny 原文 Technique 5 给出两种视频用法：
 | 出海             | ✅             | ✅             | ✅         |
 | 数据安全特别重要 | 🛑             | 🛑             | ✅         |
 
+#### BYOK：模型接入的身份、计费与数据边界
+
+> 来源：[GitHub Copilot app support for BYOK](https://github.blog/changelog/2026-06-23-github-copilot-app-support-for-byok/)（2026-06-23）、[Adding LLM models to the GitHub Copilot app](https://docs.github.com/en/copilot/how-tos/github-copilot-app/use-byok-models)。后者在本次整理时仍将该能力标为 public preview。
+
+BYOK（Bring Your Own Key）是把 Agent 产品与模型账户拆开：产品继续提供项目、Session、工具、工作区和交互界面，用户连接自己的模型供应商账户，模型调用消耗该账户的额度，并受其区域、账单与数据条款约束。
+
+| 边界 | 主要责任 |
+| --- | --- |
+| 产品账户 | 用户与组织身份、项目 / 仓库、Session、工具、团队策略和交付物 |
+| Provider 账户 | 可用模型、Endpoint、配额、账单、区域与模型侧数据条款 |
+| Credential store | 保存 Provider 密钥；Session 只引用凭据，不应把密钥写进 prompt、轨迹或工作区 |
+| Session 配置 | 明确本轮使用的 Provider、模型与 fallback policy，供成本、故障和结果追溯 |
+
+GitHub Copilot app 是一个具体实现：用户仍需登录 GitHub，但只使用自有 Provider 时不需要 Copilot 订阅；已有订阅的用户可以在同一应用里混用 GitHub 托管模型与 BYOK 模型。它支持 OpenAI、Azure OpenAI、Microsoft Foundry、Anthropic、Ollama、Foundry Local、LM Studio 和 OpenAI-compatible HTTP endpoint。Provider 配好后，模型进入统一 model picker，由用户按 Session 选择；凭据保存在操作系统 credential store，UI 不再回显。个人本机配置与组织 / Enterprise 的 custom model 管理是两套入口，企业策略仍然生效。
+
+BYOK 改变了三类产品约束：
+
+1. **成本归属**：模型 token、限额和 Provider 折扣归用户账户，产品可以把价值集中在 harness、工具、工作区和协作层；但排障会横跨产品与 Provider 两个账单和限流系统。
+2. **模型选择**：同一产品可以按任务选择 frontier、私有部署或本地模型。产品需要维护能力矩阵，因为“OpenAI-compatible”通常只保证请求协议相似，tool calling、structured output、streaming、reasoning、上下文长度和错误语义仍可能不同。
+3. **企业控制**：推理可以经过企业自己的云租户或内部 gateway，沿用既有区域、审计和数据处理合同。这个结论只覆盖模型推理路径；仓库上下文、工具结果、遥测、会话存储和插件仍可能经过产品控制面，需分别核验。
+
+实现和评审 BYOK 时，应至少记录以下信息：
+
+```yaml
+provider_profile:
+  endpoint_ref: "不含密钥的端点标识"
+  credential_ref: "指向安全存储的句柄"
+  billing_owner: "user | organization"
+  region_and_data_policy: "适用区域与条款"
+session:
+  provider_profile_id: "本轮实际使用的配置"
+  model_id_and_version: "可追溯的模型标识"
+  fallback_policy: "是否允许、允许切到哪里"
+```
+
+自动 fallback 可能同时改变模型能力、费用归属和数据边界，不能只当成普通重试。密钥过期、配额耗尽、Provider 故障和模型下线也需要可区分的错误与更新入口。密钥应留在独立凭据通道，由运行时在授权后使用，不交给模型生成的代码或普通插件；更完整的凭据隔离机制见 [Muse Secure VM 与 Sentinel](./AI-Agent-Engineering.md#muse-secure-vm-与-sentinel独立行动授权边界)。
+
 * 不要依赖榜单
   * 榜单已被应试教育污染。唯一值得相信的榜单：[LMSYS Chatbot Arena Leaderboard](https://chat.lmsys.org/?leaderboard)
   * 榜单体现的是整体能力。放到一件具体事情上，排名低的可能反倒更好
@@ -2630,6 +2698,8 @@ Muse 把一个持续的主对话作为关系入口，side chats 提供话题上�
 - **能力发现与执行分层**：onboarding tips、Ideas 与基于 Goals 的建议帮助用户发现可委派任务；会执行很多工具，不代表用户知道该交给它什么。
 
 Muse 的控制并不限于 UI：Sentinel 位于执行 cell 之外，是 connector 动作和网络出口的唯一授权者；审批请求与答复直接在 Sentinel 和客户端间传递，模型不能用聊天文本替代授权。组件与请求链详见 [Muse Secure VM 与 Sentinel](./AI-Agent-Engineering.md#muse-secure-vm-与-sentinel独立行动授权边界)。
+
+2026-09，Shopify 与 Tobi Lütke 官宣 Shop Pay 成为 Muse 的钱包，并称覆盖 Shopify stores；同一时期 Amazon 阻止 Muse 继续代用户浏览和下单。两者共同说明购物 Agent 已开始争夺发现、结账与客户关系，但核心分界是商家是否同意接入、Agent 是否明确身份和授权，而不是简单的“支持 / 反对 AI”。详见[购物 Agent：入口权、商家许可与协议化交易](#购物-agent入口权商家许可与协议化交易)。
 
 Muse Code 则把编码协作进一步产品化为「多 Agent 编排脚本 + 后台运行面板 + 可保存 / 分享的方法 + 有条件的失败恢复」，会挤压仅包装 spawn / wait 的通用 Harness 空间。但必须区分产品和发布状态：workflow 同时依赖 engine-enabled build 与灰度开关，当前官方文档明确公开 Apple Silicon 包尚未包含引擎；恢复也依赖保留脚本与记录。机制见 [Muse Code Workflows](./AI-Agent-Engineering.md#muse-code-workflows脚本编排与有条件恢复)。
 
@@ -3790,6 +3860,7 @@ SkillsMP 是一个面向 AI 编程助手的「Agent Skills 技能市场/聚合�
 ![image-20250616204411908](./AI-Agent-Product&PE/image-20250616204411908.png)
 
 * AI 搜索是对一个传统互联网杀手级应用技术的强大重塑。互联网搜索是一种基于网络索引的导航技术。AI 搜索则是一种基于大语言模型的信息技术，能够阅读并从语义层面理解知识。对白领工作者来说，这将是巨大的福音。AI 搜索可能会使当前这个一统天下的市场出现分化。
+* 当搜索 Agent 能继续组购物车、请求授权并下单时，搜索不再只分配点击流量，也开始分配交易入口与客户关系；协议、商家许可、支付授权和售后责任成为新的产品边界。见[购物 Agent：入口权、商家许可与协议化交易](#购物-agent入口权商家许可与协议化交易)。
 * 我们可以想象这样一个世界：每个专业都有自己专门的 AI 搜索引擎--
   * 分析师和投资者默认使用 Perplexity
   * 律师会使用 Harvey 这样的平台
@@ -3846,6 +3917,55 @@ O-DataMap 更像一个“科研机会地图”，而不是普通论文搜索。�
 
 
 #### 电商
+
+##### 购物 Agent：入口权、商家许可与协议化交易
+
+> 来源：公众号《[亚马逊封杀 Muse、Shopify 拥抱 Muse](https://mp.weixin.qq.com/s/qgirbb5aJ21HQIOjkHkYAA)》（每日 AI 前沿，2026-09-22）；[Shopify / Tobi Lütke 官宣](https://x.com/tobi/status/2102090718546198790)；[Amazon 阻止 Muse 的报道与双方口径](https://www.geekwire.com/2026/amazon-blocks-metas-muse-ai-assistant-in-new-standoff-over-agentic-shopping/)；第九巡回法院 [Amazon v. Perplexity 判决](https://cdn.ca9.uscourts.gov/datastore/opinions/2026/08/04/26-1444.pdf)；[UCP](https://ucp.dev/)、[ACP](https://www.agenticcommerce.dev/)、[AP2](https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol) 官方资料。公众号正文与两张分析图已读，图中判断已回到一手来源校正；未测 Muse 购物体验、商户转化率或协议实现。
+
+Shopify 与 Amazon 的不同动作，首先反映两种接入关系：Shopify 主动把 Shop Pay 接入 Muse，Muse 用户可在 Agent 中完成 Shopify 商店结账；Amazon 则称 Meta 未事先取得许可、Muse 浏览时没有表明 Agent 身份，并可能触及账户与订单数据，因此阻止其继续访问。前者是**商家授权的交易通道**，后者是**通用浏览器 Agent 直接操作未授权站点**。
+
+公众号把差异概括成“控制入口”与“服务交易”，有解释力但不能写成已证实的唯一动机：
+
+| 角色 | Agent 可能带来的收益 | Agent 可能夺走的控制权 |
+| --- | --- | --- |
+| Marketplace / 广告平台 | 新交易量、自己的 Agent 与支付服务 | 站内搜索、广告曝光、排序权与第一方客户关系 |
+| 商家基础设施 / 支付平台 | 新渠道、支付量与更多商家成交 | Agent 平台可能逐渐控制流量分配、佣金和展示规则 |
+| 独立商家 | 更低的跨渠道触达门槛 | 品牌被压缩为可比价的结构化 SKU，复购关系留在 Agent 侧 |
+
+Amazon 并非笼统反对 Agent 商务：它已有自己的购物能力，当前 UCP 官网也把 Amazon 与 Meta 列在参与者中。更稳妥的判断是，竞争从“是否允许 Agent”转向**谁批准 Agent、Agent 如何表明身份、谁保存客户关系，以及交易走哪套协议与支付通道**。广告与入口利益是合理的商业解释，Amazon 对外给出的直接理由则是许可、身份透明和安全。
+
+**Perplexity 判决没有宣布“购物 Agent 普遍合法”。**第九巡回法院撤销的是 CFAA / CDAFA 框架下的初步禁令。法院依据案中事实认为，Comet 在用户本机运行，用户下达具体指令并借助 Assistant 访问 Amazon，因此当前记录不足以证明是 Perplexity 自己“accessed” Amazon 的计算机。判决没有终结合同与服务条款争议，也没有评价所有云端 Agent。Muse 运行在云端 VM，架构和事实不同；平台即使暂时不靠反黑客法胜诉，仍能做技术阻断并主张合同权利。
+
+这场冲突可以抽象成一条交易链：
+
+```text
+用户意图
+→ Agent 发现与比较商品
+→ 商家确认是否接纳该 Agent / 渠道
+→ 生成购物车与最终价格
+→ 用户或预授权策略批准
+→ 支付、履约、退款与争议处理
+```
+
+协议并非公众号图里的三个必经台阶，也不存在通用的 `ACP → UCP → AP2` 接入优先级：
+
+| 协议 | 主要解决什么 | 边界 |
+| --- | --- | --- |
+| UCP（Universal Commerce Protocol） | 覆盖 catalog、cart、identity linking、checkout、order 等完整商业生命周期 | Google、Shopify 等共同推动的开放协议；可组合 AP2、A2A、MCP，商家仍是 Merchant of Record |
+| ACP（Agentic Commerce Protocol） | Agent 与商家如何发起和完成可编程 checkout | OpenAI 与 Stripe 发起，但协议开源，并非仅限 ChatGPT；支持 REST / MCP 与不同支付服务商 |
+| AP2（Agent Payments Protocol） | 如何证明用户授权了 Agent 支付 | 用可验证凭证签署 Intent Mandate 与 Cart Mandate，留下意图、条件、商品和价格的审计链；它不负责商品发现和完整售后 |
+
+这里的 ACP 是 **Agentic Commerce Protocol**，不要与 Coding Agent 的 [Agent Client Protocol](./AI-Applied-Algorithms.md#acpagent-client-protocolclient-与-coding-agent-的-session-协议) 混淆。
+
+商家应按目标渠道、现有 commerce stack、支付服务商、Merchant of Record 责任和目标市场选择实现，而不是按热度把三个协议全接一遍。真正需要优先做的是把 Agent 可消费的数据和责任边界准备好：
+
+- 商品、变体、库存、价格、配送、退换政策与兼容关系结构化，并保留更新时间和来源；漂亮详情页不能替代机器可验证字段。
+- 记录 `agent identity / user mandate / merchant consent / cart hash / final price / payment token / fulfillment status`，使代购失败、重复扣款和退款可以追责。
+- 对高风险或不可逆交易设置金额、品类、时间与商家范围，最终结账再次核对购物车；后台任务要用可验证的预授权约束。
+- 衡量渠道的增量转化、毛利、佣金、取消 / 退货、支付争议、复购归属和获客成本。GMV 上升不等于商家获得了长期客户关系。
+- 保留多渠道出口。Agent 平台今天是增量流量，形成入口后也可能改变排序、费用和访问规则。
+
+因此，“协议兼容性是新的 SEO”只说对了一半。传统 SEO 争夺可见性；Agent 商务还要求**机器可读商品、可验证授权、商家许可、可执行结账与可追责售后**。结构化数据决定能否被理解，协议与商业关系决定能否成交。
 
 * [Product Search And Recommendation Trends In 2024 For Better Converting eCommerce Stores](https://blog.boostcommerce.net/posts/product-search-and-recommendation-trends)
 * [Inside Product Recommendation Feature Of Boost AI Search & Discovery](https://blog.boostcommerce.net/posts/product-recommendation-feature-of-boost-ai-search-discovery)
