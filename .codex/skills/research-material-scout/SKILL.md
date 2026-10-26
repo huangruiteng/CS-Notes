@@ -1,13 +1,17 @@
 ---
 name: research-material-scout
-description: Use when the user asks Codex to research, find learning materials, process "素材：" links, "请你读" / "精读" a material, build a material radar, or use multi-source information retrieval for career learning and Agent infra tracking. Do not use the career/Agent-infra routing bias for user-directed `整理笔记` into a named note.
+description: Research and triage learning materials; read and explain sources for "请你读" / "精读"; process "素材：" intakes and "读完" closure. Explicit reading follows the source's argument, not career or project ranking.
 ---
 
 # Research Material Scout
 
-Use this skill when the user asks for research, material discovery, learning-material triage, or sends links with the `素材：` prefix. Treat `调研：` as the explicit active-research directive.
+## Choose the mode first
 
-## Mission
+- `请你读 / 精读 / 帮我读一下`: read [the reading protocol](references/paper-reading-protocol.md) before source work. It owns source coverage, explanation, figures and delivery checks for articles, papers, chapters, repos and bundles. Use the source routes below as needed; skip discovery ranking and intake workflows. Explain the author's argument before project applications. Do not edit notes, indexes or lifecycle/ranking; cache only reading artifacts.
+- `素材 / 调研 / 继续调研`: follow discovery, source verification and managed intake below. Decision Context guides what to select, not what an explicitly requested reading may omit.
+- `整理笔记 / 读完`: follow repository note-integration rules and detail preservation below; only user-backed completion authorizes archiving.
+
+## Discovery Mission
 
 Build a high-signal learning and career material pipeline for the user.
 
@@ -138,20 +142,6 @@ Why this matters:
 - PDF extraction can lose figures, captions, math, and table structure; it is acceptable for quick scanning but weaker for `请你读` / `精读`.
 - For `请你读` / `精读`, always provide the user-facing HTML link when it exists, even if Codex also used the PDF for extraction.
 
-### Paper / Research Reading Protocol
-
-For papers, research reports, benchmark papers, method repos, arXiv / OpenReview links, and paper collections, `请你读` / `精读` must use the protocol in `references/paper-reading-protocol.md`.
-
-Use it as a progressive-disclosure reference rather than copying it into every answer. It synthesizes Keshav's three-pass method, CMU 11-785's paper-reading recitation, and academic / PhD / AI research lenses into a concrete output contract, plus selected ideas from a local scan of research-related skills.
-
-Operational defaults:
-
-- `请你读` = read first, then answer with Keshav pass 1 plus targeted pass 2 on decision-relevant sections; escalate selected parts to pass 3 only when the material is high-value.
-- `精读` = same output schema, but default to pass 2 plus selective pass 3: virtually reimplement the method, challenge assumptions, and produce artifact deltas.
-- Explain high-value material in layers: global position -> object and interface model -> end-to-end control flow -> one source-backed worked case -> evidence and limits. For iterative, evolutionary, training, search, controller, or state-machine systems, reconstruct at least one real longitudinal trace; follow the detailed contract in `references/paper-reading-protocol.md`.
-- For paper radars or collections, first triage all visible papers with pass 1, then deep-read only the highest-leverage subset.
-- Always state what was actually read: HTML, TeX source, PDF, repo paths, figures/tables, appendix, code, or only metadata.
-
 ### Paper Radar Pattern
 
 For recurring or paper-heavy exploration, use `daily-paper-reader` as a design reference, not as a dependency to install. Its useful increment is the pipeline shape: intent profiles -> multi-lane recall -> fusion/rerank -> evidence scoring -> deep/quick/carryover selection.
@@ -258,7 +248,7 @@ Directive convention:
 - `素材：<link/text>` means intake. Read, classify, summarize, preserve the original link, and append one managed candidate through exact-read evidence, immutable content backing, authority CAS, readback, and receipt.
 - `调研：<question/topic>` means active research. Use broad recall plus source verification, then write high-signal candidates and recommendations.
 - `整理笔记：<link/text>` or "整理笔记 + named note/theme" means direct note integration. The output surface is `Notes/`, not the candidate library by default. Named target and source-domain taxonomy win over career priority.
-- `请你读：<material id/link/title>` means Codex reads first, then returns an illustrated mechanism-first summary and a reader map in the conversation. Do not organize or edit notes during this command. For papers / research artifacts, load `references/paper-reading-protocol.md` and follow its output contract. `精读` is a compatibility alias with the same output boundaries, but defaults to deeper pass-3 reconstruction when warranted.
+- `请你读 / 精读`: use the reading-only route at the top; do not run intake.
 - `读完：<material id/link/title + user notes>` means close the reading loop. Update the best `Notes/` landing before archiving unless the content is private-only. Treat user-highlighted points as retention requirements: concrete prompts, env flags, schema fields, tool/API names, figures/tables, failure cases, doubts, and comparison phrases should be preserved in the public note when safe and conceptually useful; `.local` may keep raw/private/full detail, but must not be the only landing for points the user explicitly asked to remember.
 - `继续调研` means continue the latest active-research theme, but only if adding new sources or a new decision-relevant synthesis.
 
@@ -268,11 +258,7 @@ For each user-provided material:
    - `整理笔记`: use the repository note-integration workflow. If the user named a file/section, inspect that target first; if not, classify the source's primary contribution such as model algorithm, training method, inference system, agent runtime, product strategy, or career signal, then find the matching note. Do not default to Agent infra just because the material is AI-related.
    - `素材`: intake to the current managed material authority. Do not write the legacy candidate Markdown.
    - `调研`: prioritize by the user's current confirmed Decision Context.
-   - `请你读 / 精读`: read and explain in the conversation, with relevant images displayed inline. Save only source caches, figure assets and reading evidence under `.local/` or the task artifact directory; do not edit `Notes/`, its indexes, or the material lifecycle/ranking. Note integration requires an explicit `整理笔记` or `读完` request; an artifact delta here is a proposal, not permission to implement it.
-
-### Illustrated Reading Output
-
-For `请你读 / 精读`, show relevant images in the final answer, not only image links or a claim that figures were inspected. Prefer a small selection of source figures, table screenshots or source-rendered diagrams that explain the core mechanism and evidence. Inspect each image and explain its labels, axes, main comparison and limitations next to it. Cite the original figure/page. If the source has no suitable readable figure, create a faithful explanatory diagram and explicitly label it as a Codex illustration, not an original figure or measured result. Never fabricate unseen figures; if source access blocks an image, state the gap. Keep reading assets outside `Notes/` until note integration is explicitly requested.
+   - `请你读 / 精读`: use the reading protocol, not the intake steps below.
 
 ### User-Highlighted Detail Preservation
 
@@ -326,7 +312,7 @@ When proactively finding materials:
 
 ## Self-Verification
 
-Before reporting that a research task is done:
+For discovery/intake (reading-only checks live in the reading protocol):
 
 1. Verify actual source coverage: which relevant lanes were read, returned no useful results, or could not be accessed. State read scope and unresolved evidence gaps; do not repeatedly probe or report an unconfigured optional service.
 2. Check at least two source types for active research whenever possible, such as paper + repo, official docs + social discussion, or product page + engineering blog.
@@ -339,10 +325,8 @@ Before reporting that a research task is done:
    - why it matters to the user's current confirmed Decision Context,
    - next action.
 4. Confirm the candidate stable ref exists exactly once in the current managed catalog, the immutable content backing digest verifies, and an intake receipt records CAS/readback success.
-5. For `请你读` / `精读`, check the final answer follows `references/paper-reading-protocol.md` when applicable, visibly includes relevant images with source attribution and explanation, and contains a concrete "用户本人还需要读什么" reader map. Verify that no note/index or lifecycle/ranking edits were made as part of reading. If the answer is "不用读原文", still name the inspected sections and provide a substitute-quality digest.
-6. For tool / standard / API / framework bundles, check that the answer starts with background and workflow introduction: why this thing exists, what pain it solves, what breaks without it, and how each component is positioned. Then explain each component as a standalone material before mapping to Agent Harness / OpenViking. Do not start directly from jargon, fields, or claim maps, and do not let the project mapping crowd out the source-content explanation.
-7. For `读完` / note integration, run a user-highlighted point audit: every explicit bullet, numbered item, prompt snippet, schema field, env flag, comparison phrase, or doubt from the user is either present in `Notes/`, present only in `.local` with a privacy/version reason, or intentionally skipped with a reason reported.
-8. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
+5. For `读完` / note integration, run a user-highlighted point audit: every explicit bullet, numbered item, prompt snippet, schema field, env flag, comparison phrase, or doubt from the user is either present in `Notes/`, present only in `.local` with a privacy/version reason, or intentionally skipped with a reason reported.
+6. If any source could not be read, say so explicitly and ask for paste/screenshot/export only when necessary.
 
 ## Quality Bar
 
@@ -355,7 +339,7 @@ Reject or demote materials that are:
 
 ## Output Style
 
-Be concise. Tell the user what was added, where it was added, and the key judgment.
+For intake and note edits, report concisely what changed, where, and the key judgment. Reading explanations follow the reading protocol; concise status reporting does not set their depth.
 
 When writing into `Notes/`:
 
@@ -364,20 +348,6 @@ When writing into `Notes/`:
 - If a figure from the source or user-provided material is essential to understanding the mechanism, save it into the target note's relative asset folder (for example `Notes/AI-Applied-Algorithms/`) and link it with a relative Markdown path. Prefer primary-source figures when available.
 - For high-value cross-layer case studies, do not create a monolithic material section by default. First extract the general mechanism into the highest-level framework section, then add only small local deltas to existing eval / memory / runtime / tooling sections. Keep the source case as evidence, not as the organizing axis.
 - Preserve user-highlighted concrete details in `Notes/` when safe: prompt snippets, command/env flags, schema fields, API/tool names, mode names, version boundaries, and failure cases. Prefer short excerpts or paraphrases over long raw prompt dumps, and mark version-sensitive/platform-specific details instead of silently dropping them.
-
-For `请你读` / `精读`, Codex should read first and then provide a mechanism-first guide rather than a broad reading plan. Because personal original-reading recommendations are conservative, `Codex-summary-enough` answers must be more detailed, not thinner: include enough background, source-content explanation, core design, fields/schemas, evidence, artifact mapping, and caveats to substitute for the user's first-pass read. Use a two-focus structure: first explain the material itself, then map it to the user's current artifact. For papers / research artifacts, load `references/paper-reading-protocol.md`; the short form below is the minimum answer shape:
-
-1. 一句话判断.
-2. 背景和工作流介绍: why this material exists, what pain it solves, and where it sits in the broader ecosystem.
-3. 我实际读了什么: HTML/PDF/repo/code/figures/tables/appendix, plus unread parts.
-4. 原材料内容卡: for each paper/tool/standard/repo in the bundle, explain its standalone purpose, core abstraction, important fields/APIs, common usage, and limits.
-5. Claim map: main claims, evidence, confidence, and what would make each claim false.
-6. 精要内容和核心设计: problem, boundary, input/output, data/interface format, workflow, metrics, baselines, main results, limitations, and key figure/table/code path.
-7. 核心机制和 worked trace: 3-6 numbered mechanisms, each with "what the author does/proves" and "how the user should interpret it". When the source has an iterative process, add one real trace from baseline through observation, candidate diff, evaluation, acceptance/rejection, inheritance, and later outcome. Show concrete before/after fields or policies and distinguish changed from unchanged components.
-8. 对用户 artifact 的改造建议: schema, feedback signal, benchmark variant, TODO, steering, or interview/deep-dive line; discuss proposals without implementing changes during reading.
-9. 用户本人还需要读什么: mandatory reader map with concrete original sections, figures, tables, code paths, and a decision for each: `must-read`, `optional`, or `skippable`. Do not only say "读摘要即可"; name the exact parts that justify that decision.
-10. 边读边核验的问题: 3-6 sharp checks, especially leakage, counterfactual reliability, metric validity, transferability to Agent Harness / TAU2.
-11. Display the relevant images inline with captions and reading guidance. Do not organize notes or archive during `请你读` / `精读`; integrate notes after explicit `整理笔记 / 读完`, and archive only after `读完`.
 
 For high-value materials, include the next concrete action, such as:
 

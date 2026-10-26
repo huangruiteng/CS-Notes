@@ -17,6 +17,7 @@
 | Lorca：个人多设备 Agent，Device / Runner 分工、加密中继与执行权限 | [配对与信任边界](#lorca设备配对加密中继与执行权限)；[产品形态与发布状态](./AI-Agent-Product&PE.md#lorca本地运行手机操控的个人-agent-工作台) |
 | MCP、Skill、Function Calling、Assistants API 的开发用法；CLI 与 MCP 的选型；工具调用 ID 与结果关联 | 暂留 [AI-Agent-Product&PE.md](./AI-Agent-Product&PE.md#mcp)；[CLI 已经好用，为什么还需要 MCP](./AI-Agent-Product&PE.md#cli-已经好用为什么还需要-mcp)；[tool_use_id / tool_call_id / call_id 对照](./AI-Agent-Product&PE.md#工具调用-id-与结果关联)（协议 / API 工程边界，待后续决定是否迁入） |
 | Agent 工作流 / 算法 / 评估：AFlow、AgentFlow、ATIF、τ-bench、RLM / RAH、SubAgent / MultiAgent、Temporal、Long-running control plane | [AI-Applied-Algorithms.md](./AI-Applied-Algorithms.md) |
+| 早停与交付失真：外部验收、主动停止／预算截断、真实部署评测、grader 诊断与轨迹复核 | [Reward seeking 与验收设计](./AI-Applied-Algorithms.md#reward-seeking早停与交付失真)；[RL 激励、Contrastive SDF 与 MONA](./Reinforcement-Learning.md#reward-hacking) |
 | verification-gated 协作：Prove2Me 用 Lean type-check 当裁判，把数学形式化拆成 open-leaves 众包任务树（sketch 分解 / 防自证规则 / 可复用引理依赖图） | [AI-Applied-Algorithms.md - Prove2Me](./AI-Applied-Algorithms.md#prove2me把数学形式化做成-open-leaves-众包验证器当裁判) |
 | KDA 性能优化 agent 规则（Profile → Diagnose → Plan → Candidate → Validate → Measure → Promote/Reject） | [GPU.md](./GPU.md) |
 | 一致性程序 = 公开契约 + 自证 + 官方审查 + 版本化徽章 → agent benchmark / harness 生态 | [Software-开源项目成功之道.md](./Software-开源项目成功之道.md) |

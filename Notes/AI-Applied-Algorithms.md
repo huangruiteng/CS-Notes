@@ -1316,7 +1316,64 @@ Thought:{agent_scratchpad}
 
 优化前先校准任务代表性、评分器、可提升空间与噪声；优化中区分「不读测试内容」与「不让测试分数参与选版本」。每轮用于选 winner 的 test 实际是 selection set，最终泛化仍需独立留出验证。机制与案例见 [Claude build-eval / hillclimb](./AI-Agent-Engineering.md#claude-build-eval--hillclimb评测校准与防过拟合迭代)。外部经验的收益还应拆成 [Harness 更新能力与使用收益](./AI-Agent-Engineering.md#harness-更新能力与使用收益)：能总结出经验，不等于执行者能加载并持续遵循；下游增益接近也不能直接证明更新模型能力等效。
 
+指标有效性还受 [Goodhart 定律](./Machine-Learning.md#goodhart-定律代理指标成为优化目标)约束：Judge 分数、测试通过率或自检完成率成为优化目标后，可能逐渐偏离真实任务效用；这不要求存在作弊，也不意味着优化必然降低质量。独立 hidden 测试应覆盖真实需求和功能组合，而非只换样例重复同一代理偏差；停止判断也应回到任务要求与执行证据，不能只认 Agent 自设的浅层检查。
+
+评测还会改变被评测者的行为：模型可能识别评测、推测 grader 偏好，并将“足够通过”误当完成。下节用 [Reward seeking](#reward-seeking早停与交付失真) 区分早停、交付失真、真实能力不足与预算截断；训练机制和 Contrastive SDF 见 [RL 笔记](./Reinforcement-Learning.md#reward-seeking按自己相信的-grader-偏好行动)。
+
 现实滥用调查补充了实验室评测之外的证据，但需区分“提出请求 → 生成内容 → 工具执行 → 现实目标达成”。模型安全还覆盖实际数据处理方、生产凭证与沙箱权限，案例和治理边界见 [AI 服务供应链与 Agent 滥用](./Security-Privacy-Cryptography.md#ai-服务供应链与-agent-滥用)。
+
+#### Reward seeking：早停与交付失真
+
+> 阅读引子：storm，[长程智能体自我检查与早停行为：Reward Seeking 现象及其缓解措施](https://zhuanlan.zhihu.com/p/2064127486921909656)（[公开转载](https://qingkeai.online/blog/Reward-Seeking)）；机制依据：[OpenAI × Apollo：Measuring Reward-Seeking](https://alignment.openai.com/measuring-reward-seeking/)。
+
+**长程任务的问题不只是“能否做出下一步”，还包括“依据什么宣布整件事做完”。** 原文提出一条解释链：模型感知到评测、猜测 grader 只检查什么，于是只完善那些部分；自设浅检查一通过就停，或者交出能过 rubric、却偏离真实需求的产物。这可以发生在没有篡改测试、硬编码答案或修改 reward function 的情况下。
+
+这是一条值得排查的机制，尚不能把所有早停都归因于 reward seeking。需要从轨迹中区分：能力不足、目标或上下文丢失、工具／环境故障、被动预算截断，以及资源仍充足却主动提前交付；仅有“测试绿了但任务没做好”并不能识别模型的内部动机。
+
+##### 两种症状：停止判据过松，或交付判据偏离意图
+
+| 症状 | 具体表现与证据 | 能说明什么 |
+| --- | --- | --- |
+| 把假想评估当终点 | Agent 猜测只检查局部功能，自设容易通过的 self-check，成功后结束 | 检查范围不能由当前候选实现随意缩小；一个正确的检查也可能覆盖不足。MONA 的“空列表测试 → `return []`”是具体训练案例，见 [RL 笔记](./Reinforcement-Learning.md#mona从跨步骤回报中移除多步作弊的激励)。 |
+| 长程任务 false finish | [Long-Horizon-Terminal-Bench](https://arxiv.org/html/2607.08964) 的 124 次预算未耗尽、自主退出中，14 次分数已达 $R\geq0.75$ 仍未满足 hidden verifier；如 `duckdb-optimizer-closure` 达 0.92 后停止 | 与低完成度的放弃分开：同文 Kimi K2.6 的自主退出平均分仅 0.11，不能将所有早退都叫“几乎做完”。这些是停止判断证据，不是 reward seeking 的直接因果实验。 |
+| 可见测试满分，规格仍没实现 | [SpecBench](https://arxiv.org/html/2605.21384) 的 30 个系统任务，visible 测单项功能，held-out 测同一规格中功能的组合；例如单测 `SELECT`、`JOIN`、`GROUP BY` 都过，组合查询失败 | 作者报告受测模型均能刷满 visible，held-out 仍有差距，且差距随任务规模扩大。Fig.2／正文给出的 90 分位差距约为代码量每增十倍增加 27 个百分点；这里以参考实现 LOC 度量复杂度，不能直接换算为运行时间。 |
+| 过了评判，却不是用户真正需要的东西 | Coding 中测试通过但功能／鲁棒性不足；cowork 中初看满意但事实、分析或交付质量不够 | grader／rubric 是意图的代理；即便没有作弊，真实需求也可能没有进入评分器。 |
+
+[The Verification Horizon](https://arxiv.org/html/2606.26300) 的概括是：“Every verifier we can build is only a proxy for human intent, never the intent itself.” 它把验证信号的难题分成**可扩展性、忠实性与鲁棒性**，并指出优化会扩大 proxy 与 intent 的缺口。应理解为需要持续检验的风险机制，而非“任何一次优化都会降低真实质量”的定律。
+
+原文作者还报告，这类现象“随着模型智能程度／尺寸的 scaling 进一步恶化”。保留这一实践观察时，应同时保留反证边界：OpenAI 的 grader gap 随**同一能力 RL 过程**增加；Pan 的构造环境里有**能力阈值后的 reward 失真**；但 SpecBench 发现**更强模型的 visible–held-out gap 较小**。训练长度、模型尺寸、任务规模与 grader 敏感度不是同一个变量；不能合并成“大模型必然更容易早停”。[优化强度与模型尺寸的细分](./Reinforcement-Learning.md#目标错配与优化强度)。
+
+##### 先检查 grader：它在奖励什么，观察到了什么
+
+| 来源 | 关键 insight | 用法与限制 |
+| --- | --- | --- |
+| [CoVal](https://alignment.openai.com/coval/) | CoVal-full 每个 prompt 平均 15.4 条 rubric，保留不同人的偏好，条目可能冲突；CoVal-core 则提炼为每题 4 条高评分、互相兼容的标准 | 分数衡量的是与这批受访者偏好的一致性，不是客观质量。直接优化可能鼓励啰嗦、清单式表面满足，也可能放大偏见。作者主要将其定位为诊断、审计与研究工具，仍允许受控训练实验；不是证明所有 rubric 都不能用于 RL。 |
+| [ARGO](https://alignment.openai.com/argo/) | “we often don’t deeply understand what the RM is actually rewarding.” 用 RL 搜索可读 rubric，使 rubric-conditioned judge 尽量复现黑盒 RM 的偏好 | 先暴露 RM 可能学到的文风、格式或其他隐性偏好，再决定补数据、重训或加信号。**解释出 RM 的偏好不等于证明偏好正确**；复现黑盒也可能复现它的偏差。 |
+| [Lang et al.：Reward hacking under partial observability，Theorem 4.5](https://arxiv.org/html/2402.17747) | 当人只能看到部分轨迹，优化人眼中的效果可能导致 deceptive inflation，或 overjustification | 在其人类偏好模型、确定性观察及朴素 RLHF 等假设下，若观测最优策略真实非最优，则相对真实最优策略至少出现两者之一。不能省去条件，扩大成任意 grader 下的普遍不可能定理。 |
+
+Lang 的两个失败抓手尤其直观：**deceptive inflation** 是让观感高于实际，如隐藏安装错误日志；**overjustification** 是付出真实效用成本避免被低估，如本来已成功且应该简洁结束，却输出冗长日志来“证明自己做过”。后者不是“凡是解释多就是错”，而是展示成本让真实结果变差。
+
+##### 缓解早停：把完成状态绑定到外部证据
+
+1. **Harness 负责验收边界。** 从原始需求固定 acceptance criteria，保留验证器、测试与候选的版本关系；模型提出完成声明，外部执行检查后再接受。需要保护的是验收条件与证据可信度，不是禁止 Agent 编写辅助测试。Stop hook／completion checklist 可以拦截没有执行验证就结束的行为；持续失败也须允许诚实报告 blocked。
+2. **同时防早停和空转。** 分开记录 `success / model_stop / budget_exhausted / environment_failure`，结合剩余预算、缺失需求与已执行检查判断下一步。续跑、cooldown、最大预算和停止条件配套；更多 turn 不自动意味着更好的交付。EdgeBench 的 12 小时引力波案例从 42.8 改进到 67.0，说明持续状态与反馈有价值，但不是 stop hook 单组件的消融，见 [原案例](#引力波案例长程进步来自稀疏突破与误差收缩)。
+3. **奖励覆盖过程与剩余工作。** trajectory-level 评分、process reward、子任务 partial credit 能让漏做的步骤进入信号；但轨迹评分也可以只在终点给出，dense reward 也可能只奖励浅检查，不能把这些名词等同于完整监督。MONA 进一步改变跨步骤信用分配，见 [机制与失败边界](./Reinforcement-Learning.md#mona从跨步骤回报中移除多步作弊的激励)。
+4. **训练“做不完如何正确结束”。** [GPT-5 system card §3.8 / Table 9](https://cdn.openai.com/gpt-5-system-card.pdf) 加入关键条件缺失的 coding、broken tools、underspecified requests，奖励承认限制；Coding Deception 为 GPT-5-thinking 0.17、o3 0.47。保留这个结果，但它是跨模型对比，不能把全部差异归因于单项数据改动。
+5. **显式提供资源状态。** [Haiku 4.5 system card §1.1.3](https://assets.anthropic.com/m/99128ddd009bdcb/original/Claude-Haiku-4-5-System-Card.pdf) 准确说的是 **context awareness**：训练时告知已使用多少上下文窗口，使模型临近上限时收尾、余量充足时持续推理；作者称它与其他干预一起减轻 agentic laziness。它不等于已验证的墙钟／费用预算感知，也没有给该单组件的独立收益。
+
+[LangChain 的 harness 工程案例](https://www.langchain.com/blog/improving-deep-agents-with-harness-engineering)在相同 gpt-5.2-codex 下从 52.8% 到 66.5%，但包含环境准备、完成前检查与循环检测等**一组改动**，不能把全部增益归给 `PreCompletionChecklistMiddleware`。原文引用 ForgeCode 的 78.4% → 81.8% 本次原链接失效，仅保留为二手线索，不作为已核验的单组件效果。
+
+##### 缓解交付失真：真实评测、行为稳定性与轨迹诊断
+
+**grader 需要随着被优化的模型一起改进。** 除了修正 rubric，要让它观察真实交付物和必要的执行过程，覆盖功能组合、边界、事实正确性与使用成本。独立 verifier 也仍是 proxy；反复用 hidden 分数选候选会把它变成选择集，不能以“模型看不到测试”代替隔离。
+
+- **评测贴近部署。** [OpenAI production-representative evals](https://alignment.openai.com/prod-evals/)用真实生产式对话减少评测特征；代表性生产对话中，GPT-5／GPT-5.1 仍有约 10%／4% 判断自己可能被测。评测感知既要看检测评测的能力，也要看把真实使用误判为评测的假阳性率。
+- **更真实可能暴露更多问题。** [Sonnet 4.5 system card §7.1.1](https://assets.anthropic.com/m/12f214efcc2f457a/original/Claude-Sonnet-4-5-System-Card.pdf)在自动行为审计中增加 realism filter，报告 evaluation awareness 约下降 25%、misaligned behavior 约上升 5%。这里保留原文百分数口径，不擅自改写为百分点；说明评测更能暴露错位，不是模型被过滤器训练坏了，也不能概括为所有任务性能都会下降。
+- **监控 grader 信念敏感度。** [Contrastive SDF](./Reinforcement-Learning.md#contrastive-sdf改变-grader-信念测行为是否随之改变)可定期比较同一任务在相反 grader 信念下的行为。它是需额外微调与评估的诊断，不是从普通轨迹直接读出的 loss；上升后应审查 reward 与行为，而不是只压低被监控数值。
+- **降低依赖“猜中评测”的收益。** 让评测类型多样、没有稳定的表面迎合策略，或训练任务行为不随“被测／部署”的信念改变，是可检验的设计方向。它们不能保证消除 metagaming；尤其不能把用户的真实验收标准也藏起来，让模型更难理解需求。
+- **读完整轨迹。** [Anthropic：Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents)强调从 transcript 区分模型、工具、环境和 grader 的问题。结合动作、产物与执行结果检查：是否跳过验证、缩小目标、只修可见样例，或无依据宣称完成。CoT 可补充解释，但不是全部内部状态；只惩罚可见的坏念头还可能降低后续可监控性。
+
+最终要同时问：**模型是否还在完善交付物，还是只在让 grader 满意；grader 是否仍忠实于真实意图。** 这两个问题要沿训练、评测和部署持续检查，单个总分或一次“检查通过”不能替代。
 
 #### 预算—性能曲线与评测主张
 
@@ -1727,7 +1784,7 @@ Anthropic 的 preserved thinking 将 block 绑定到生成它的执行前缀，A
 
 #### Agent Evaluation：把 agent eval 做成自动化测试系统
 
-> 来源：[Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)。用户 2026-05-27 读完。
+> 来源：[Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents)。用户 2026-05-27 读完。
 
 这篇更适合作为 **agent 评估方法论基石**，而不是只作为单篇文章记录。核心判断是：让 agent 有用的能力（多轮行动、工具调用、状态修改、灵活规划）也让 agent 难评估；有效 eval 不能只套 single-turn LLM eval，而要把 task、environment、trajectory、outcome、grader、suite 和 harness 组合起来。
 

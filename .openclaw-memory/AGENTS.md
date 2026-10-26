@@ -133,6 +133,8 @@ Reactions are lightweight social signals. Humans use them constantly — they sa
 
 ## Skills
 
+For CS-Notes `请你读 / 精读`, use the shared [reading protocol](../.codex/skills/research-material-scout/references/paper-reading-protocol.md); it owns explanation coverage and the reading-only write boundary.
+
 Skills provide your tools. When you need one, check its `SKILL.md`. Keep local notes (camera names, SSH details, voice preferences) in `TOOLS.md`.
 
 **🌐 Browser: MUST read skill file first.**

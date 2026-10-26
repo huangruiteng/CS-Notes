@@ -1,229 +1,67 @@
-# Paper Reading Protocol for `请你读` / `精读`
+# `请你读 / 精读`：替代首读的讲解
 
-Use this reference when the user asks Codex to read a paper, research report, benchmark paper, method repo, arXiv link, OpenReview page, or paper collection. It operationalizes:
+适用于用户指定的文章、论文、书籍章节、报告、代码仓库与材料合集。目标是让用户理解材料本身的主要论证、关键细节与启发；不是只判断材料值不值得读，也不是先筛选对当前项目有用的部分。`精读` 在同一覆盖基础上增加推导、代码或复现实验深度。
 
-- S. Keshav, "How to Read a Paper": three-pass reading, five Cs, virtual reimplementation.
-- CMU 11-485/685/785 recitation "How to read research papers?": skim to narrow papers, figures first, purpose-aware reading, skip math on first read and return when needed.
-- Academic / PhD / AI research lenses: claim-evidence mapping, novelty and gap, reproducibility, data/model/metric validity, and future-work extraction.
+## 范围与来源
 
-Primary references:
+- 先通读用户指定范围的正文和关键图表，再按关键论点追附录、引用和代码。单篇阅读不能套用素材雷达的“扫读后只深读高优先级部分”；长书按用户指定章节处理。摘要、搜索片段、标题树和引用论文都不能代替所指定材料的正文。
+- 论文优先 HTML，缺失的公式、附录、算法用 TeX / PDF 补齐；实现问题追 repo、配置和实际数据。沿用 skill 的来源读取路径，记录实际版本与读取范围；源码优先 commit-pinned 文件链接。
+- 二手文章也是作者的一条独立论证。先还原它，再追核承重事实；不能读了其中一篇引用论文就把整篇文章讲成那篇论文。无需穷尽每条参考文献，但支撑核心结论的数字、因果判断、反直觉结果和缓解机制应核验一手来源。
+- 无法核验的关键观点仍需交代“作者如何论证、哪部分待核实”，不能悄悄删掉，也不能当成事实复述。正文读取不全时说明缺失范围，不宣称已经替代首读。
+- 阅读只在对话中讲解；原文、图片与读取证据可缓存到 `.local/` 或任务产物目录。不改 `Notes/`、索引、素材生命周期或排序，项目改造只给建议；写入等用户明确要求 `整理笔记 / 读完`。
 
-- https://systems.cs.columbia.edu/ds2-class/papers/keshav-paper.pdf
-- https://deeplearning.cs.cmu.edu/F25/document/Recitation_0_Series/0.25/Recitation0.25_How_to_read_a_research_paper.pdf
+## 先还原作者怎样得出结论
 
-## Borrowed Skill Scan
+读完先形成简短的论证提纲，按原文各主要部分识别新增贡献及其连接：
 
-A one-time local scan/download of external skills informed this protocol. Treat these as design inputs, not authority:
+> 问题与现象 → 前提与概念 → 机制解释 → 证据或实例 → 推论 → 对策及其代价
 
-- Academic research skills: Imbad0202/academic-research-skills (`deep-research`, `academic-paper`, `academic-paper-reviewer`, `academic-pipeline`). Borrowed the ideas of multi-perspective review, explicit integrity gates, Devil's Advocate pressure, and claim-verification checkpoints.
-- AI research skills: Orchestra/zechenzhangAGI AI-Research-SKILLs (`ara-rigor-reviewer`, `ara-compiler`). Borrowed the epistemic dimensions of evidence relevance, falsifiability, scope calibration, argument coherence, exploration integrity, methodological rigor, and evidence-limited wording.
-- Paper reading skills: karpathy/nanochat `read-arxiv-paper` and mizore-style `paper-reading`. Borrowed the arXiv TeX source route, paper-type detection, and 3-8 key figure/table capture rule, while keeping this skill HTML-first rather than PDF-first.
-- Research workflow / PhD-adjacent skills: luwill/research-skills (`paper-analyst`, `literature-scout`, `research-proposal`). Borrowed the structured paper card and comparison-table shape; proposal-writing workflows are not part of this reading contract.
-- General academic analysis skills: seabbs `analyzing-research-papers`. Borrowed methodology, reproducibility, limitations, and impact assessment prompts.
+这是工作提纲，不是固定的回答模板，也不要求另外创建文件。正文可以重组，但必须保留支撑判断的逻辑：
 
-No reliable dedicated generated skill was found for the exact combination of S. Keshav's "How to Read a Paper" plus CMU 11-785's "How to read a research paper" recitation. Keep the two primary references above as canonical.
+- **为什么**：作者为何从这个现象走到下一个判断？引用某项研究是在提供定义、实验证据、反例、理论限制，还是一种解释？不要把引用缩成论文名列表。
+- **区别在哪里**：保留改变理解的对比、负结果与非显然洞见，如能力与倾向、现象与原因、诊断与优化目标、训练趋势与模型规模；不要压缩成泛泛的“更强也有风险”。
+- **具体是什么**：关键数字附比较对象、指标和条件；案例讲发生了什么、为何能说明问题；公式解释符号、直觉与适用范围。保留必要的原文字段、prompt、代码入口、图表编号和术语。
+- **怎么办、付出什么**：对策要对应前面的失败机制，说明它改变哪一环、依赖什么、有什么代价或新失效路径。不能把数据、训练、评测等多层方案缩成自己最熟悉的工程方案。
 
-## Command Semantics
+原文中的关键洞见无需等用户点名才保留。可以合并重复例子、压缩背景和修辞，但不能删掉一整个解释分支、重要反例或取舍。与当前项目无直接关系、不是已证因果、暂时不能转成 artifact，都不是省略关键论证的理由。
 
-`请你读:<material>`:
+## 按材料类型下钻
 
-- Read first, then answer. Do not give a generic reading plan.
-- Deliver an illustrated explanation in the conversation. Do not organize or edit `Notes/`, note indexes, or material lifecycle/ranking during reading; save only source caches, image assets and reading evidence under `.local/` or task artifacts. Implementation and note integration require a separate explicit request such as `整理笔记` or `读完`.
-- Default depth: Keshav pass 1 + targeted pass 2 on sections that determine the user's decision.
-- If the material is high-value for the current Agent infra / OpenViking / RL runner / serving line, escalate selected parts to pass 3.
-- Return a reader map only after applying the personal-reading value gate below, so the user knows what they personally still need to read and why.
-- Because personal-reading recommendations are intentionally conservative, the user-facing digest must be richer when the conclusion is `Codex-summary-enough`: include enough mechanism detail, field/schema detail, key evidence, transfer mapping, and risk boundaries that the user can make progress without opening the original. The digest should compensate for the user not doing a first-pass read; do not stop at the reading recommendation plus a few artifact deltas.
-- For tool/standard/framework bundles, start with a **background primer** before claim maps: what problem this family solves, what the user would observe without it, what each component owns in the end-to-end workflow, and why the bundle matters for Agent Harness / OpenViking now. Do not assume the user already knows the observability/eval/runtime ecosystem.
-- Keep a **two-focus balance**: first explain the material on its own terms, then map it to the user's current project. The material summary should not collapse into Agent Harness-specific schema too early. For bundles, each component needs a concrete standalone explanation: what it is, what it records/does, what abstractions it introduces, what it does not cover, and one simple example.
-- Use **progressive depth** for system and method explanations: begin with the system's purpose and boundary, then name its mutable objects and interfaces, then show the end-to-end loop, and finally walk one real source-backed case at field / policy / diff level. A component inventory is context, not a substitute for explaining how state changes over time.
+| 材料 | 需要解释到什么程度 |
+| --- | --- |
+| 综述、观点文章、跨论文分析 | 作者串联材料的主线；各分支的新洞见与承重例子；观察、机制假说与已有证据之间的关系。分类综述还要说明分类轴、收录范围、代表项及空白，不能虚构一套隐藏算法。 |
+| 方法、训练、系统、代码仓库 | 先补必要背景，再从目标与边界到对象/接口、端到端控制流和具体案例；说明输入输出、可变/固定部分、目标函数或监督、验证和失败处理。 |
+| 实验、benchmark | 任务与数据构造、split、反馈可见性、baseline、指标、预算、主要结果及消融；讲清比较到底排除了什么、还混着什么，数字不能脱离实验合同。 |
+| 理论、教材 | 问题、定义、假设、关键公式或推导的作用、具体例子与反例；不以结论列表代替理解过程。 |
+| 工具或标准合集 | 先讲共同问题与工作流，再解释每项职责、核心抽象/字段、用法、限制及相互关系；不能用生态名词清单代替讲解。 |
 
-`精读:<material>`:
+有迭代、演化、优化、训练、搜索、调节或状态迁移时，讲至少一条来源可核验的真实变化链：
 
-- Use the same output schema as `请你读`, but default to pass 2 plus selective pass 3.
-- Reconstruct the method, evidence, assumptions, and failure modes enough that the user can reuse the idea in an artifact, benchmark, interview deep dive, or implementation.
-- If source access is incomplete, say exactly which parts were not read and downgrade the confidence.
+> 初始状态 → 观测/失败与可见反馈 → 候选变化 → 验收/拒绝 → 继承后的新状态
 
-## Keshav Three-Pass Execution
+展示关键字段、policy、代码或行为的 before/after、指标变化、评估条件与固定部分。多个可变 policy 可用小表串起变化；有公开失败候选就解释一次失败，区分持续进步、平台期与反复搜索。多个因素一起变时不要把收益独归一个因素。缺少完整轨迹就明确缺到哪一步；示意例子可以帮助理解，不能冒充真实演化。
 
-### Source Route
+## 讲解与判断的顺序
 
-Use this source order for arXiv and paper-like materials:
+先让读者理解作者说了什么、为何这样说，再在相应位置校准证据，最后讨论对用户的启发。可以开头给一句核心判断，但不能用一段“尚未证明因果/泛化”替代主体讲解。
 
-1. HTML / official full text first when available.
-2. arXiv TeX source for `精读`, method-heavy papers, appendices, algorithms, prompt templates, equations, or citation context.
-3. PDF fallback for inaccessible HTML/source or visual-only evidence.
-4. Repo/code/configs when implementation, reproducibility, or artifact deltas matter.
+区分作者观察、引用研究的结果、作者推论与 Codex 判断；不要求每句挂标签，用自然措辞和就近来源即可。核验以承重结论为准：因果看隔离，泛化看未见任务/模型，提升看可比 baseline 与预算，系统收益看成本/延迟/可靠性；有方差、泄漏、复现依赖或捆绑改动时保留这些边界。提出最有解释力的替代原因或缺失实验，避免机械堆“还需更多研究”。
 
-Always state which route was actually read. Do not let a PDF-text extraction masquerade as a complete paper read.
+项目映射放在材料讲清之后，仅给确有依据的改造建议；不要求每个机制硬接职业主线，也不固定输出 schema、TODO 或核验问题的数量。用户说“笔记精简”不等于“讲解也删掉细节”；讲解要有层次，精简的是套话、重复与无关背景。
 
-Pass 1 - Triage and Positioning:
+## 图表与交付检查
 
-- Read title, abstract, introduction, section headings, conclusion/discussion, figures/tables captions, related work headings, and references scan.
-- Classify paper type early: empirical method, theoretical, survey/review, systems, benchmark/eval, tool/platform, position paper, or product/industry report.
-- Answer the five Cs in compact form:
-  - Category: method, system, benchmark, theory, survey, product paper, empirical study, position paper.
-  - Context: closest prior work, lineage, conference/workshop/repo ecosystem.
-  - Correctness: whether assumptions look plausible enough to continue.
-  - Contributions: one to three concrete claims, not marketing language.
-  - Clarity: whether the paper is readable and reproducible enough.
-- Decide: `must-read`, `Codex-summary-enough`, `background-only`, or `skip`.
+最终回答直接展示关键图片并就近读图：标签/坐标、比较对象、主要结果及边界，附来源。优先实际检查过的原图或表截图；无合适原图时可用标明“Codex 示意”的忠实图解。图的数量按解释需要决定，不以图片链接、读过图的声明或固定张数代替读图。访问失败则说明缺口，不编图或测量结果。
 
-### Personal-Reading Value Gate
+发出前，用原文论证提纲反向检查回答，而不是检查模板标题是否齐全：
 
-Before marking any section as something the user should personally read, ask whether the user can create meaningful incremental value after reading Codex's summary. Default to `Codex-summary-enough` unless at least one condition holds:
+1. 每个主要部分的新增贡献是否在回答里得到解释？关键机制之间的连接是否保留？
+2. 改变理解的反直觉结论、对比、负结果、关键案例/图表、措施及代价是否仍在？用户点名的问题是否回答？
+3. 对每个关键点，读者能否理解“是什么、为什么、凭什么、在哪些条件下成立”，而不只是看到一个术语？
+4. 是否用自己的项目建议或证据批评挤掉了作者内容？是否把实际读取范围误当成回答已覆盖范围？
 
-- The section contains a dense schema, table, algorithm, prompt, code path, or case study that the user may directly implement, quote, defend in an interview, or transfer into Agent Harness/OpenViking.
-- The original wording matters for judgment, such as a subtle limitation, leakage risk, eval setup, benchmark definition, or claim boundary that could be distorted by summary.
-- The material is central to a current artifact the user is actively editing, and seeing the original structure will help the user make a design decision that Codex cannot safely make alone.
-- The section is short enough and high-leverage enough that reading it saves future coordination cost.
+漏项先补进正文再交付；检查可以在工作提纲中完成，无需输出长清单。只有覆盖检查通过，才能说“本文讲解足以替代首读”。用户已说“不看原文”，就把必要内容融入讲解；不能用必读链接把缺漏推回给用户。
 
-Do not ask the user to personally read a section merely because it is important, interesting, or canonical. If Codex has already extracted the mechanism, evidence, artifact delta, and risks, say `no personal read needed` and optionally list the section as `Codex-read / user-skippable`.
+末尾简短列出实际阅读范围与影响结论的缺口。将“值得 Codex 读透”与“用户仍需亲读”分开：只有亲读确有额外价值时，才给具体 section / figure / table / code 及理由；否则原文作为可选核验。不强制十一段模板、阅读时长或题目式核验清单。
 
-When recommending personal reading, include an explicit reason in the form: `read this because it enables <specific decision/artifact/interview defense>; skip otherwise`.
-
-When deciding `Codex-summary-enough`, compensate with a **substitute-quality digest**:
-
-- Treat this as a replacement for the user's first-pass read, not a teaser. If the user later says the summary felt incomplete, the default correction is to expand mechanism, evidence, schema, failure boundaries, and transfer notes immediately.
-- Extract the original's core design in enough detail to replace a first-pass user read: modules, data flow, action space, labels/rewards, prompt/tool/API shape, schemas, and lifecycle.
-- For a bundle of multiple tools/standards, give each item its own mini-card before synthesis: problem, core abstraction, important fields/APIs, normal usage, limitations, and relation to the other items.
-- Include concrete identifiers from the source: section names, figure/table numbers, metric names, field names, repo paths, config names, or API names when available.
-- State the main evidence with numbers or table-level comparisons when the source has them; if not, say the evidence is qualitative or conceptual.
-- Separate author claims from Codex interpretation and from the user's artifact delta.
-- Preserve the important caveats that a careful reader would notice: leakage, confounders, cost, version status, scope limits, missing ablations, or deployment constraints.
-- End with a reader map that may say `no personal read needed`, but still names the inspected sections and why they are skippable.
-
-Pass 2 - Content and Evidence:
-
-- Read main method/system sections, key figures/tables, experiments, ablations, limitations, and appendix sections needed for the claim.
-- For key figures/tables, capture the source identifier, caption, axes/columns, raw values or qualitative content, and the exact claim it supports before interpretation.
-- Display selected images inline in the final answer and explain them next to the image. Follow the SKILL.md "Illustrated Reading Output" contract: prefer inspected original figures/table screenshots; label any derived diagram, preserve attribution, and keep image assets outside `Notes/` during reading. Merely extracting captions or linking to images does not satisfy the visual output requirement.
-- Prefer 3-8 key figures/tables for high-value papers: architecture/framework, core algorithm flow, main results, ablations, failure analysis, qualitative examples, or cost/latency tables.
-- If making a filtered or merged view, label it as a derived subset rather than treating it as the original figure/table.
-- For each main claim, attach evidence:
-  - figure/table/section/code path,
-  - benchmark/data split,
-  - baseline,
-  - metric,
-  - ablation or counterexample,
-  - remaining risk.
-- Skip proofs/equations on first pass unless they define the method, loss, metric, or impossibility claim.
-
-Pass 3 - Virtual Reimplementation:
-
-- Reconstruct the method as data -> model/workflow -> objective -> eval -> failure handling.
-- Challenge every load-bearing assumption.
-- Identify missing citations, weak baselines, leakage risk, metric validity, and deployment constraints.
-- For high-value `精读`, run a small internal review pass from three perspectives: methodologist, domain/practitioner, and Devil's Advocate.
-- Convert the paper into a reusable artifact delta: schema fields, feedback signal, eval variant, TODO, benchmark row, or interview argument.
-
-### Longitudinal Worked-Case Contract
-
-Apply this contract when the source contains evolution, optimization, training, search, reflection, controller reconciliation, workflow retries, lifecycle transitions, or any other repeated state update. It is mandatory for a high-value source when the repository or paper publishes enough trace data.
-
-Reconstruct at least one real lineage from source artifacts rather than inventing a toy example:
-
-1. **Initial state:** name the baseline object and show the relevant mutable fields. State which fields remain fixed so the reader can distinguish mutation from surrounding infrastructure.
-2. **Observation:** show the concrete failures, trajectories, gradients, metrics, or events available to the updater. Explain what information it cannot see.
-3. **Candidate generation:** show the stated hypothesis and the exact target fields. Include compact before/after excerpts for important policies, prompts, parameters, code paths, or state fields.
-4. **Evaluation and gate:** give the relevant split, metric deltas, hard conditions, and rejection reason. Separate scalar fitness from non-negotiable constraints.
-5. **Inheritance:** identify which candidate becomes the next parent and what state the next iteration actually receives.
-6. **Later iterations and dead ends:** show at least one rejected, invalid, or non-improving candidate when available. Explain whether the system kept improving, saturated, oscillated, or merely searched around the same state.
-7. **Attribution boundary:** distinguish the author's label for the change from all bundled changes that may explain the result. Do not attribute a gain to one policy when the accepted patch changed several load-bearing fields.
-
-For several mutable policies, provide a compact evolution matrix: baseline value or behavior, candidate change, accepted state, metric effect, and confidence in attribution. If a field never changed, say so; unchanged fields are part of the causal boundary. If full proposal bodies or trajectories are unavailable, state the evidence gap instead of filling it with a plausible story.
-
-## AI Research Reading Lens
-
-For AI / ML / Agent papers, always extract these if present:
-
-- Problem formulation: task, input/output, constraints, and what changes relative to prior work.
-- Data: source, construction, labels, splits, scale, contamination/leakage risk, human vs synthetic signal.
-- Model or system design: modules, control flow, training/inference separation, prompts/tools/retrievers/memory components.
-- Objective: loss, reward, ranking target, supervision source, optimization trick, or policy update.
-- Evaluation: benchmarks, baselines, metrics, ablations, sensitivity, cost/latency, statistical significance if claimed.
-- Reproducibility: code, checkpoints, data, configs, hidden API dependencies, hardware assumptions.
-- Failure modes: where it should not work, negative results, OOD transfer, confounders.
-
-For Agent infra specifically, map the paper to:
-
-- `source_trajectory`, `memory_candidate`, `retrieval_query`, `exposure`, `feedback`, `outcome`, `ranker_training_row`, `tool_call`, `trace_span`, `policy_reason`, or `lifecycle_event`.
-- Whether it changes OpenViking / Agent Harness schema, eval protocol, runner design, memory lifecycle, or serving constraints.
-
-## Academic / PhD Research Lens
-
-Do not only summarize the paper. Identify its research move:
-
-- What gap does it claim?
-- What exactly is new: problem, data, model, training objective, benchmark, analysis, system integration, or framing?
-- What would make the claim false?
-- What is the strongest alternative explanation for the results?
-- Which one experiment would most improve trust?
-- Which follow-up idea is worth the user's time, and which is academic noise?
-
-For literature context:
-
-- Name closest related work only when it changes interpretation.
-- If reading a paper collection or radar, triage many papers with pass 1, then deep-read only the highest-leverage subset.
-- If the user asks for `请你读` a single paper, do not turn it into a broad survey unless the paper cannot be understood without one or the user asks.
-
-## Claim-Evidence Review
-
-For `精读`, S-ranked materials, benchmark papers, and anything likely to affect OpenViking / Agent Harness / memory-runtime design, explicitly review:
-
-- Evidence relevance: whether the cited section, table, figure, or code actually supports the claim in substance.
-- Falsifiability quality: what concrete observation would make the claim false, and whether an independent reader could test it.
-- Scope calibration: whether the claim says exactly what the evidence supports, no stronger and no weaker.
-- Argument coherence: whether problem -> gap -> insight -> design -> evidence forms a logical chain.
-- Exploration integrity: whether failures, ablations, rejected alternatives, or dead ends are visible rather than hidden.
-- Methodological rigor: whether baselines, ablations, metrics, splits, variance, costs, and reproducibility details are adequate for the claim type.
-
-Type-aware checks:
-
-- Causal claim -> needs isolating ablation or intervention-style evidence.
-- Generalization claim -> needs heterogeneous datasets, tasks, models, users, or environments.
-- Improvement claim -> needs recent, relevant baselines and comparable metrics.
-- Systems claim -> needs cost, latency, throughput, reliability, scaling, and operational constraints.
-- Benchmark claim -> needs task validity, data construction, contamination/leakage analysis, metric validity, and annotator/evaluator quality.
-- Agent-memory/runtime claim -> needs trajectory source, retrieval/exposure path, feedback/outcome definition, lifecycle, and failure recovery details.
-
-## Output Contract
-
-For `请你读` / `精读`, produce this shape unless the user asks for a different one:
-
-1. Bottom line: one sentence on whether the user should personally read it.
-2. Background primer: explain the local problem space in plain terms before introducing source-specific jargon. For bundles, include a component responsibility map.
-3. What I actually read: source path, HTML/TeX source/PDF/repo route, read completeness, unread parts.
-4. Source-content mini-cards: for every material in a bundle, explain what it is, key concepts/fields/APIs, common usage, and limitations before project-specific interpretation.
-5. Claim map: 2-5 main claims with evidence, confidence, and scope.
-6. Mechanism-first summary: problem -> core design -> why it works -> where it breaks.
-7. Worked case and evolution trace: for iterative sources, reconstruct at least one source-backed lineage with observation, candidate before/after, evaluation gate, accepted inheritance, rejected alternatives, and attribution limits. Include a policy/field evolution matrix when several mutable components exist.
-8. AI research checklist: paper type, data, model/system, objective, eval, baselines, limitations.
-9. Proposed artifact delta for the user: concrete schema / benchmark / TODO / note / interview point, explained in the conversation without writing notes or implementing changes.
-10. Reader map: exact sections, figures, tables, appendix, source files, repo paths marked `user-must-read`, `Codex-summary-enough`, `optional`, or `skippable`, with a one-line incremental-value reason for every `user-must-read`.
-11. Sharp verification questions: 3-6 questions to ask while reading or implementing.
-
-If the answer is short, keep all eleven ideas but compress them. Never omit the reader map for high-value material, but it is valid for the reader map to say `no personal read needed` when Codex's summary already captures the actionable value.
-
-Depth tradeoff rule:
-
-- If recommending `user-must-read`, keep the digest concise and point the user to the exact original source.
-- If recommending `no personal read needed` or `Codex-summary-enough`, make the digest more complete: core design, key details, evidence, artifact mapping, and caveats should be explicit enough that the user does not lose meaningful value by skipping the original.
-
-Survey / taxonomy paper branch:
-
-- For survey, taxonomy, ecosystem-map, or awesome-list style materials, do not treat the work as a method paper with a hidden algorithm.
-- Explain the source itself first: taxonomy dimensions, inclusion criteria, source corpus, representative examples, and what the framework helps distinguish.
-- Separate "field map value" from "empirical proof": project catalogs and taxonomy tables can justify vocabulary and landscape coverage, but they usually do not prove causal performance gains.
-- Give the user a compact reader map that prioritizes the framework definition, synthesis/open-problem sections, and any tables/figures that change design language; mark long per-project catalogs as reference-only unless a concrete implementation decision depends on them.
-- In artifact mapping, prefer one or two concrete organizing deltas such as a module-to-taxonomy map, evaluation checklist, or interview vocabulary map. Avoid overfitting every layer of the survey into the user's current project.
-
-## Quality Rules
-
-- Prefer primary source over secondary commentary.
-- Do not claim a paper was read if only abstract/social post was read.
-- Do not bury the judgment after a long summary.
-- Do not summarize section-by-section unless the paper structure itself is the insight.
-- Do not let "interesting paper" become "user must read"; reading priority is `project relevance * actionability / reading cost`.
-- Do not let "Codex found this useful" become "the user should read it". Personal reading must create value beyond the summary: a design decision, artifact edit, implementation check, or interview-defense advantage.
-- Do not use downloaded external skills as factual authority. They only contribute workflow ideas; technical facts still need primary sources.
-- For S/A candidates, end with a concrete next action and whether Codex or the user should do it.
+方法参考：[Keshav 三遍阅读法](https://systems.cs.columbia.edu/ds2-class/papers/keshav-paper.pdf)、[CMU 阅读论文讲义](https://deeplearning.cs.cmu.edu/F25/document/Recitation_0_Series/0.25/Recitation0.25_How_to_read_a_research_paper.pdf)。三遍法用于从定位到重建的深度安排，不是删掉作者主要论证的许可。

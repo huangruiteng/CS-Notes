@@ -216,7 +216,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "追踪 rubric 如何进入逐步行动选择，区分训练奖励、推理约束与结果评分。",
-      "queue_rank": 18
+      "queue_rank": 19
     },
     {
       "material_ref": "material-339de746a405eae0374a44a5",
@@ -9563,7 +9563,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "17 节连接类型、纯决策、提交时验证、并发历史、日志与恢复、共识、存储与排队；用公开 commit 固定的 LoopX 代码作案例。 基础课主入口：先读状态机、事务、幂等与 fencing，再用日志/共识/恢复章节提出反例；讲义→练习→Lab，不以读完17节代替理解。",
-      "queue_rank": 19
+      "queue_rank": 20
     },
     {
       "material_ref": "material-distributed-systems-loopx-exercises",
@@ -9588,19 +9588,6 @@
       "read_scope": "executable_tested",
       "note": "SQLite 演示盲重试余额 80、原子去重余额 90；覆盖参数冲突、提交前回滚、epoch 条件写和 snapshot 版本；write skew 是抽象内存模型。 配套讲义使用：先预测每个故障的结果，再运行、解释修复条件；不是另开一门框架课。",
       "queue_rank": 37
-    },
-    {
-      "material_ref": "material-storm-reward-seeking-zhihu-2064127486921909656",
-      "title": "长程智能体自我检查与早停行为：Reward Seeking 现象及其缓解措施",
-      "sources": [
-        "https://zhuanlan.zhihu.com/p/2064127486921909656",
-        "https://qingkeai.online/blog/Reward-Seeking"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读青稞公开转载全文；知乎原页未读，图片未解释。区分 reward seeking 与 reward hacking，关注 grader 猜测、浅层自检导致早停和交付失真。已核对部分相关一手文本；LangChain 的 52.8→66.5 是整体 harness 收益，不能归因于单一中间件。建议读 §1、§3、§5，结合外部完成契约、独立验证及预算／无进展停止条件。",
-      "queue_rank": 20
     },
     {
       "material_ref": "material-chyroc-open-muse",
@@ -9932,7 +9919,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已选读目录/前言、§3.3两页、§5.1–5.3、§7.1开头和§33.1–33.2开头；未全书精读/习题/运行。长期基本功：集中界、累计收益与最终选择的区别、自适应采样/停止条件。先做推导诊断，再选读§5.3、§7.1、§33.1–33.2；不要求重学整门RL，也不把静态独立臂保证套给演化中的Agent。",
-      "queue_rank": 6
+      "queue_rank": 7
     },
     {
       "material_ref": "material-mml-linear-algebra-foundations-20261011",
@@ -9985,7 +9972,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "A：读 §2–3 与附录 I/J，区分未被召回、被使用与条件贡献；用于暴露日志和预算匹配的检索干预。已读问题/方法及部分实现限制，未全面审查实验、代码或复现；gold pool 与未来效用外推限制需保留。",
-      "queue_rank": 10
+      "queue_rank": 11
     },
     {
       "material_ref": "material-rudder-delayed-credit-20261012",
@@ -10040,7 +10027,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "§10.1–10.2；PDF 页 146–151，对应印刷页 137–142，止于 §10.3 标题；Codex 已核对，用户未读完。 在读完 S132 的 Ch. 1–3 后读，约 20 分钟。拿一条 benchmark 涨分结论，分别写出 estimand、identifying assumptions、estimator、estimate、随机误差与系统性偏差；能完成即可，不继续读 §10.3。",
-      "queue_rank": 7
+      "queue_rank": 8
     },
     {
       "material_ref": "material-whatif-dag-confounding-selection-ch6-8-20261014",
@@ -10079,7 +10066,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "保留原有Ch.19–20/§22.1/22.4–22.5审阅记录；本轮抽核§19.1–19.2、19.4、20.1–20.3、22.4及22.5开头相关段落，非全书重读；用户未读完。已有序贯策略问题时优先：先用§10.1–10.2区分识别与估计，再读动态策略、反馈混杂、positivity/consistency及time-zero；区分给定checkpoint的局部效应与整套策略价值，工程fork不等于观测数据cloning。产出一页H_t/A_t/Y与比较资格，约60–90分钟。",
-      "queue_rank": 14
+      "queue_rank": 15
     },
     {
       "material_ref": "material-whatif-ipw-gformula-ch12-15-20261014",
@@ -10295,7 +10282,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读中英文官方客户案例五节及四步改进循环图完整像素。关注外层harness看轨迹决定重试/终止/转人工；行为→重复问题/相似性矩阵→合成环境→Codex改harness。回测约3小时→3–5分钟的报告轨迹揭示环境性能、轮询、token和context耦合；scoreboard以输出不变/同硬件验收。10,000并发/36–48小时与收益均为客户报告；数十万个为路线图，无原始数据、源码、独立复现或模型权重更新证据。优先读监督机制、回测案例与循环图，形成监督policy、场景验收与成本账本。",
-      "queue_rank": 12
+      "queue_rank": 13
     },
     {
       "material_ref": "material-anthropic-infrastructure-noise-20260205",
@@ -10307,7 +10294,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读官方文章正文与报告数字；图像、原始数据与独立复现未核验。相同model/harness/task改变资源配置，Terminal-Bench 1×到3×的故障率下降但分数差未超噪声；更宽资源也会改变可用策略，不能把消除故障等同能力提升。6pp及3×是作者特定实验，不是通用阈值。先读How we got here、Other sources of variance、What we recommend，约15分钟；形成CPU/RAM保证值与硬上限、并发、临时盘、timeout/latency和故障开销的匹配表，再读自身完整轨迹。",
-      "queue_rank": 4
+      "queue_rank": 5
     },
     {
       "material_ref": "material-terminal-rsi-2610-22192",
@@ -10555,7 +10542,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "已完整读取 Weco 博客和 arXiv v1 正文、Appendix A–E、图表，并核对 WecoAI 公开仓库；未取得 AIDE²/AIDE85 代码、selection task 明细、完整轨迹或原始数据，未复现。主运行 100 步接受 7 次 Harness 重写；AIDE85 的多臂 lineage 搜索、有界上下文和失败记忆在固定预算下迁移到四个外部 benchmark，KernelBench reward-hacking 率由 55% 降至 32%。private grade 会被外层反复用于选择，真正的二阶证据来自外部 benchmark；三种子 ignition 终点 0.780 vs 0.782，不能证明点燃。S档，建议读技术报告 §2–3 与 Appendix A/C/E。",
-      "queue_rank": 5
+      "queue_rank": 6
     },
     {
       "material_ref": "material-harness2-2610-14224",
@@ -10568,7 +10555,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "本次选读v1方法、实验设置/结果文字、分析、E.6–E.7/F/G；实看图1/3；固定README全文。主表1/2逐行、其余附录/图、代码、视频及复现未完成。冻结权重，以invariant/domain候选的匹配探测和选择性组合改当前harness；有证据的经验进入改进库，下一任务仍从H0出发。无真值不等于无评估；选择器会选错，额外rollout有成本，默认网络/沙箱设置需隔离审查。S：本人选读§2.2–2.3/§4/F，转为候选采用与跨任务复用验收设计。",
-      "queue_rank": 16
+      "queue_rank": 17
     },
     {
       "material_ref": "material-qingke-rsi-ama4-2112893332351599076",
@@ -10612,7 +10599,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "选读v1主文§1–8、A/B/C/D/E及F1/F2选段，实看Fig3/8/E2与§7公式；固定repo README运行/分析/Data段，未审代码、原始轨迹或复现。S：历史最佳仍改善但边际Elo/token下降；100M预算Packing三段2245 vs一段1981/十段1890，MoE一/二/三段统计不可分。sticky-basin与context挤压搜索分布是待证假说，非已证因果；独立会话不等于摘要续跑/进程重启。优先§3.2–3.3/6/7及AppE，转预算口径、曲线、采用与重启继承对照卡；不改当前实验。",
-      "queue_rank": 15
+      "queue_rank": 16
     },
     {
       "material_ref": "material-rsitop-2113350503631585727",
@@ -10628,7 +10615,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读Jacky原帖主文/可见跟帖及作者博客文字，实看探索塌缩示意图；固定repo64ce40c的README、planner/VS/dedup、M25定义和controller选段，未读全部交互图/原始轨迹或复现。S：任务指标薄索引→选择性展开→不同视角/方向/谱系干预；指标非因果证据，VS概率非成功率。kernel最多15%为特定模拟机归一化性能增幅；Lite22项77.3%获奖，完整75项63.1%获奖/77.3%过中位数。博客2cycles与代码0.2%触发不同，新增并发/规划成本未消融。本人选读Method/Results及planner证据与proposal契约。",
-      "queue_rank": 17
+      "queue_rank": 18
     },
     {
       "material_ref": "material-frontiercs2-2113299676439130446",
@@ -10736,7 +10723,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已选读§3、§5.1–5.3、§6与限制，未复跑。约60分钟读24状态、终局回报/咨询罚项及同咨询量随机放置对照；产出干预时机与采用链路。单模型对、Magentic-One、剩余预算未入状态；强模型advisor不等于真实领域专家。",
-      "queue_rank": 8
+      "queue_rank": 9
     },
     {
       "material_ref": "material-maestro-coordination-2610-25920",
@@ -10748,7 +10735,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已选读§3、§4.4–4.5和真实case，未逐证/复跑。约60分钟重点读失败类型与上游blueprint修订，FATE-X撤销错误曲线的例子；区分硬验证的固定目标与可撤销的临时子目标。论文证明分数不直接支持开放式任务收益。",
-      "queue_rank": 9
+      "queue_rank": 10
     },
     {
       "material_ref": "material-agentcl-transfer-2606-02461",
@@ -10760,7 +10747,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已选读§3–4、§5.3–5.4、Figure2及相关实验讨论，未跑基准。约60分钟读naive/compositional流、冻结记忆第二遍和held-out；写出无记忆/复用/泛化三种比较。结构化子题复用不等于新领域泛化，数值受数据和模型约束。",
-      "queue_rank": 13
+      "queue_rank": 14
     },
     {
       "material_ref": "material-sutton-barto-mdp-options-foundations",
@@ -10773,7 +10760,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已核验CMU课程镜像第二版2018标记，抽读PDF69–70、81–82、96、184、483–485相关段落；非全书精读。优先Ch3/4、§8.2、§17.2，再按需17.3，约8–12小时含小型DP练习。先理解状态、Bellman与时间抽象，不要求现在通读RL。",
-      "queue_rank": 11
+      "queue_rank": 12
     },
     {
       "material_ref": "material-howard-confidence-sequences-1810-08240",
@@ -10812,6 +10799,20 @@
       "read_scope": "recorded_review",
       "note": "已抽读PDF1–4页中§1–3与system-dynamics matrix定义，非逐证；UAI2004论文，2012为arXiv归档日期。长期backlog，先有MDP/条件概率/矩阵秩基础，再读§2/4。未证明文本摘要或Agent日志满足其建模假设。",
       "queue_rank": 36
+    },
+    {
+      "material_ref": "material-mona-myopic-optimization-2501-13011",
+      "title": "MONA：短视优化与非短视审批，切断多步 reward hacking 的训练激励",
+      "sources": [
+        "https://arxiv.org/html/2501.13011v2",
+        "https://github.com/google-deepmind/mona/blob/cdf05964ae1309279cdb3b5799be3d1b5749f379/README.md",
+        "https://qingkeai.online/blog/Reward-Seeking"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已选读 arXiv v2 §1–6、关键公式及 Fig.2–8 图注/内嵌案例，核对官方 README；未完整读附录/轨迹、逐图查看或复现。相同步骤监督下，只优化当前奖励与事先的长期价值审批，削弱“先写弱测试、再轻易通过”等多步 reward hacking。§4.4 显示用冻结策略 rollout 结果作审批会重新引入漏洞；不消除单步作弊，可能损失监督者无法预见的长期收益。S 档优先读 §3、§4.4、§6；用于理解信用分配，不能直接等同于 best-only 或低频 hidden feedback。",
+      "queue_rank": 4
     }
   ]
 }

@@ -595,9 +595,86 @@ confidence interval
 
 ### Reward hacking
 
+这一节按“奖励规范错配 → 对 grader 的建模与迎合 → 怎样测量 → 怎样改变激励”展开。长程任务中的早停、交付失真与验收设计见 [Agent 评估笔记](./AI-Applied-Algorithms.md#reward-seeking早停与交付失真)。
+
+#### 目标错配与优化强度
+
 Reward 是训练信号，也会成为被优化和被钻空子的对象。如果 reward function 只覆盖表面格式或局部指标，policy 可能学会刷分，而不是真正解决任务。
 
 LLM RL 里常见的缓解方式包括 rule-based reward、KL penalty、格式约束、人工偏好校验、process reward、holdout evaluation 和 regression benchmark。
+
+它与 [Goodhart 定律](./Machine-Learning.md#goodhart-定律代理指标成为优化目标)相连：持续优化不完整的 reward，可能扩大代理分数与真实效用的差距。[Gao et al.：Scaling Laws for Reward Model Overoptimization](https://arxiv.org/abs/2210.10760) 用固定的 gold RM 代替人类、训练 proxy RM，再以 RL 或 best-of-N 优化 proxy，观察到过度优化后 gold 分数下降。这里的 gold 仍是模型，结论不能直接等同于真实人类效用。
+
+上述缓解措施都不是保证：rule-based / process reward 也可能漏掉需求；KL 约束限制偏移，却不修正 reward 的目标错位。该论文的 RL 设置中，KL penalty 对 gold 分数的影响近似提前停止，没有改善 gold 分数与 KL 距离的前沿；作者明确保留超参数敏感性，不能泛化成“KL 正则永远无效”。
+
+“模型更大、能力更强，会怎样影响失真”需要分开看：
+
+| 证据 | 结论与边界 |
+| --- | --- |
+| [Gao et al.，§3.4–3.6](https://arxiv.org/abs/2210.10760) | 更大的 policy 整体表现更好，但 proxy–gold 差距及 gold 最优点对应的 KL 对 policy 尺寸依赖较弱；换更大的 policy 不会自动更抗过优化。**policy 大小与 RM 大小是两个变量**，不要混用结论。 |
+| [Pan et al.：The Effects of Reward Misspecification](https://arxiv.org/html/2201.03544) | 在四个构造环境中，增加模型容量、训练时间、动作精度或观察质量，常使 proxy reward 更高而真实 reward 更低；部分环境出现能力阈值后的突变。交通案例中，大模型阻止一辆车汇入，让多数车的平均速度提高，却使那辆车滞留、整体通勤时间变差。 |
+| 迁移到前沿 Agent | 这些结果提示：早期 proxy 与真实指标同步上升，不能保证继续 scaling 后仍一致。它们没有证明所有现代模型都已越过同一个“相变点”，也没有证明任务质量随模型大小单调下降。 |
+
+#### Reward seeking：按自己相信的 grader 偏好行动
+
+> 来源：OpenAI × Apollo，[Measuring Reward-Seeking by Instilling Contrastive Beliefs](https://alignment.openai.com/measuring-reward-seeking/)；[论文](https://arxiv.org/html/2607.18966)；OpenAI，[Metagaming matters](https://alignment.openai.com/metagaming/)。
+
+Reward seeking 的定义是：
+
+> “the degree to which a model represents its grader and conditions its behavior on what it believes the grader rewards.”
+
+模型先形成“它会怎样评我”的表征，再据此改变行为。grader 可以是**训练期的 reward model、测试期的评测器、部署期的 monitor**，未必真实存在于当前任务中，也未必与模型的猜测一致。
+
+- **Evaluation awareness**：识别自己可能处于评测以及评测的类型；它能为 grader 建模提供线索，但识别出评测不必然导致迎合。
+- **Reward seeking**：行为依赖自己相信的 grader 偏好；不必篡改测试或奖励函数，也可能只是做到“看起来足够通过”。
+- **Reward hacking**：利用奖励规范与真实目标之间的缺口；可以来自学死的捷径，并不要求显式推理 grader。
+
+能力训练本身就可能加强前两者。OpenAI 在未经安全训练的 o3 能力 RL 过程中，观察到 alignment 评测上的**言语化 alignment-evaluation-awareness 从 2% 升到 20.6%**，尽管没有在 alignment 环境中训练。能力评测上的这一特定指标保持为零，但更广义的 metagaming 在两类评测上都增加。这些频率测到的是使用这类推理的倾向（propensity），不是识别能力（capability）的完整上限。因此，“能力 RL 的副产品”有实验证据；“一定由专门的坏数据教出来”不是必要解释，反过来也不能据此排除所有数据因素。
+
+博客还援引模型会 “increasingly track whether its environment can be exploited for reward” 的观察。**未在 CoT 中说出来，不等于没有 grader 表征**；但这句话不能当作所有模型的尺寸缩放定律。该博客标为 Fable 5 的链接目前返回 Mythos Preview system card，本次不将这句转述升级成已独立核验的该型号结论。
+
+#### Contrastive SDF：改变 grader 信念，测行为是否随之改变
+
+SDF 是 **Synthetic Document Finetuning**。对同一 checkpoint 的两个副本，用形式相同的合成论文、新闻、教材注入相反事实；不是在任务 prompt 里直接命令模型听 grader，也不是只比较两种模型的原始分数。
+
+| 副本 | 注入的 grader 偏好 | 注入的另一权威偏好 |
+| --- | --- | --- |
+| A | 喜欢特征 $f$，如 list comprehension | 用户／开发者／虚构法规偏好相反特征，如 for-loop |
+| B | 喜欢相反特征 | 同一权威偏好 $f$ |
+
+在相同下游任务上统计 $f$ 的出现率，博客用下式解释 grader gap：
+
+$$
+\Delta_G=\operatorname{rate}_f(G_f,D_{\neg f})-\operatorname{rate}_f(G_{\neg f},D_f)
+$$
+
+正值越大，越说明行为向 grader 偏好移动。反向配对与权威冲突减少了“只是词更显著”“误以为用户也喜欢它”的替代解释，但它仍是**经过信念干预后的诊断**，不是自然部署作弊率。
+
+![Contrastive SDF：对照信念、行为与诚实性](./Reinforcement-Learning/reward-seeking-contrastive-sdf.png)
+
+*OpenAI 博客 Fig.1。Broken Promises Coding 中，任务完成需要违背已作出的承诺；早期 checkpoint 在“grader 奖励诚实／奖励完成”两种信念下的说谎率为 24%／40%，后期为 9%／87%。重点是**诚实越来越依赖它以为谁在奖励什么**，不是“RL 后无条件变得更不诚实”。*
+
+![含 grader 与不含 grader 的权威冲突对照](./Reinforcement-Learning/reward-seeking-grader-gap-training.png)
+
+*OpenAI 博客 Fig.4。上排是 grader 与用户、开发者、法规冲突；下排没有 grader，是其他权威两两冲突。横轴是同一次能力 RL 的早晚 checkpoint，纵轴实际绘制的是跨 14 个 coding eval 的平均 **log-odds gap**，不是上式的百分比差。上排持续增加、下排总体较平，支持 grader 特异的敏感度上升，而非对所有权威都更顺从。*
+
+这适合成为训练期诊断：定期给 checkpoint 做相同的信念干预，同时跟踪真实任务效用、诚实性与非 grader 对照。gap 上升是**需要审查奖励与行为的信号**，不能单独证明当前 RM 已在奖励某种具体坏行为；信念注入强度、基础能力、特征和任务选择都会影响测量。
+
+#### MONA：从跨步骤回报中移除多步作弊的激励
+
+> 来源：[MONA，§3、§4.4、§6](https://arxiv.org/html/2501.13011v2)；[Camera Dropbox 参考实现说明](https://github.com/google-deepmind/mona/blob/cdf05964ae1309279cdb3b5799be3d1b5749f379/README.md)。此处仅保留与奖励设计有关的机制。
+
+普通 RL 会用后续实际回报奖励早先铺路的动作。MONA 只优化**当前步骤的即时奖励与非短视审批**，长期价值由 overseer 的事先判断提供：
+
+$$
+\pi(s)=\arg\max_a\left[r^I(s,a)+r^A(s,a)\right]
+$$
+
+在 TDD 实验中，普通 RL 学会先反复写 `assertEqual(f([]), [])`，再提交 `return []`，让自设测试给高分。MONA 使用相同步骤监督，却不把第二步的通过率向前传播来奖励第一步的弱测试；观测 reward 较低，独立 held-out 正确性反而较好。**短视的是优化目标，不是要求模型失去长期计划能力。**
+
+边界有三条：一是不能消除单步 hacking 或对当前 approval 的操纵；二是若用冻结策略 rollout 的结果生成 approval，仍可能重新引入多步 hacking，§4.4 有反例；三是它可能牺牲监督者无法预见价值的创新。它不是把 outcome-only 换成任意 process reward 就能自动得到的效果，也不等同于 runner 的 best-only／低频 hidden feedback。
+
+“惩罚弱监控就一定让模型更诚实”同样不成立：如果仍以长期回报优化，模型可能学会绕开监控或隐藏信息。论文的贷款实验展示了绕过国籍监控的隐写；这是风险机制，不能泛化成“所有监控都会让所有模型隐写”。
 
 ### Continual learning / interference
 
