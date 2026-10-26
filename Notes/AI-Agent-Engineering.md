@@ -11,7 +11,7 @@
 | Agent loop / runtime / harness：主流 Agent-Loop 多模态调研、Dynamic Workflow、Loop Engineering Toolkit、Loom、Flowtrace、Humanize / OMH / KDA、GLM Infra Agent（dense feedback 基建优化闭环）、Waiting primitive、OpenAI Responses multi-agent、语音 Agent runtime、LoopX、Claude Tag / Agent Teams、oh-my-pi / omp² Harness Playbook、mini-SWE-agent、Codex 仓库 agentic engineering 实证、Context Management、降智复盘与模型身份巡检（ModelTrace Guard）、Agent Bucket 等 | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
 | Sandbox / 远程执行控制面：环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
-| Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
+| Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、子 Agent 合并、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[上下文边界与子 Agent 合并](#子-agent-的合并与保留上下文边界渐进加载与回归验收)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
 | Harness 涨分归因、能力持久化与执行反馈：同预算基线、任务内搜索与跨任务迁移、外置行为蒸馏进权重、变化规则的发现/复用/失效、旧能力回归、数据捷径、评测校准与选择偏差、冻结评测器、held-out 继承门禁、action block 静默丢弃 | [EdgeBench](./AI-Applied-Algorithms.md#edgebench持续环境学习的长程-agent-实验合同)、[ServeLearnBench](#servelearnbench从服务评分中发现复用与淘汰经验)、[Rethinking Harness Evolution](#rethinking-harness-evolution把可迁移改进与任务内搜索拆开)、[SoL-Pi](#sol-pi从开发轨迹搜索可迁移的-harness-效率机制)、[更新能力与使用收益](#harness-更新能力与使用收益)、[Harness-Zero](#harness-zero把外置-harness-行为蒸馏进权重)、[Claude build-eval / hillclimb](#claude-build-eval--hillclimb评测校准与防过拟合迭代)、[Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)、[RSI-Gym](#rsi-gym冻结评测器下的-harness-自我改进实验合同)、[工具执行的语义反馈](#工具执行的语义反馈让模型知道实际执行了什么) |
 | Muse：执行隔离、独立行动授权、工作流脚本与恢复条件 | [Secure VM / Sentinel](#muse-secure-vm-与-sentinel独立行动授权边界)、[Muse Code Workflows](#muse-code-workflows脚本编排与有条件恢复)；[Grok Bot / Muse 产品比较](./AI-Agent-Product&PE.md#agent-tobtoc-产品) |
 | Lorca：个人多设备 Agent，Device / Runner 分工、加密中继与执行权限 | [配对与信任边界](#lorca设备配对加密中继与执行权限)；[产品形态与发布状态](./AI-Agent-Product&PE.md#lorca本地运行手机操控的个人-agent-工作台) |
@@ -25,6 +25,7 @@
 | Octop：独立 Harness / Memory / Browser / Gateway，渐进式工具 schema、回合级记忆快照、浏览器动作反馈与群聊上下文边界 | [四组件分工](#octop将执行记忆浏览器与消息接入拆成独立组件)；[事实权威与派生视图](./AI-Applied-Algorithms.md#octop-memory事实权威派生视图与可重放召回) |
 | Personal Agent：个人状态上下文演化、行为决策、后台长程工作与前台交互；Session 复用与解耦 | [四类系统职责](#personal-agent四类系统职责与-session-边界) |
 | Novix：专家判断改变探索方向、失败记录复用与任务评测回退；协同进化式 RSI 的证据边界 | [专家判断、失败资产与协同进化式 RSI](#novix专家判断失败资产与协同进化式-rsi) |
+| Manus-mono：跨仓统一上下文、本地验证、受控排查与发布、端到端证据 | [统一上下文与交付能力](#manus-mono统一上下文与逐步补齐的交付能力)；[组织、PRV 与数字同事](./AI-Agent-Product&PE.md#manus用真实工作改造-agent-与组织) |
 
 > 阅读路径：Sandbox 材料按“基础与选型 → 执行与研究运行时 → 共享交互与设备接入”展开；系统设计材料先看 [系统地图与分层判断](#系统地图与分层判断)，再按系统责任进入对应章节。
 
@@ -461,6 +462,8 @@ Lorca 把**跨端通信、实际执行和动作审批**分开：Mac UI 连接本
 **Session 隔离也不决定协作拓扑。**同一树内的独立 Session 通过 AgentControl 与收件 Session 的 mailbox 通信；独立任务之间还可以通过宿主任务工具和 App-server 注入工具级输入。两者在目标 agent loop 汇合，但寻址、缓冲、启动与结果返回合同不同。完整分层与代码链见 [Codex Sub-agent 架构调研](./Codex-Subagent.md)。
 
 **异步任务接口要区分受理、执行与交付。**主对话收到 `accepted` 后可以继续响应，后台任务完成后仍需确认结果交付；停止当前回复也不等于取消后台任务。状态查询、取消与补充输入应有明确的目标和确认语义，不能只从聊天文本推断任务状态。公开实现见 [Qwen Audio Agent 的 Work 与交付状态机](#语音-agent-runtime把-conversation-presence-与-durable-work-解耦)。
+
+组织中的交付能力还依赖跨仓业务知识、可用验证环境、生产观测和人工发布节点。[Manus-mono 案例](#manus-mono统一上下文与逐步补齐的交付能力)展示了从当前瓶颈逐步补工具的路径；这是作者公开的实践叙述，未提供可审计的 runtime 实现。
 
 ### 核心架构、Session 与组件边界
 
@@ -1693,6 +1696,49 @@ A2 的 validation success 从 `0.85` 升到 `1.00`，hidden 也从 `0.85` 升到
 
 ### 多 Agent 编排与协作协议
 
+#### 子 Agent 的合并与保留：上下文边界、渐进加载与回归验收
+
+> 线索：[Tak 原帖](https://x.com/cherry_mx_reds/status/2113969070118666670)；一手来源：Diane Sarkis，[Building agents: When to fold subagents into your main agent loop](https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop)（2026-10-22）；配套 [single-agent-loop-kit](https://github.com/anthropics/single-agent-loop-kit/tree/c43796287b83bec847db923f07131d1cc8de750d)。2026-10-25 读原帖、文章全文，定向核对代码、两组主结果文件及首组合并的 t01 前后轨迹；未运行模型实验。
+
+**不要按部门或角色名拆 Agent，要按信息依赖拆上下文。** 连续依赖相同事实、经常来回交接的步骤，优先放在一个主循环；独立方向的并行探索、大量临时信息处理、单窗口已出现可测退化，才更有理由保留子 Agent。独立权限与验证边界还需单独判断，不能为了共享上下文一并撤销。
+
+文章是企业实践总结，不是证明单 Agent 普遍胜出的 benchmark。“一个客户接近两倍提速”是作者报告，不能外推到所有任务；也不能与 [Anthropic Research 的并行信息容量](./AI-Applied-Algorithms.md#anthropic-多-agent-research信息容量委派与同步并行)混成路线反转。
+
+![Anthropic 原文的三种改造：合并子 Agent、作为工具调用、折叠为 Skills 与工具](./AI-Agent-Engineering/anthropic-fold-subagents.png)
+
+图从左到右是三种选择，不是必须依次经过的阶段：左侧减少共享上下文节点之间的交接；中间主 Agent 保留用户对话，子 Agent 返回结果；右侧把程序性知识和 API 动作拆开。右图仍画着 `Subagent` 方框，含义以图下“prompt → skills、API calls → tools”为准，不能据图认定已消除独立运行时。
+
+| 承载方式 | 适用内容 | 成本与边界 |
+| --- | --- | --- |
+| 同一主循环 | 共享事实、连续判断、需要边执行边重规划的工作 | 少一次摘要与交接；仍需控制历史增长，单循环也可以并行调用独立工具 |
+| Skill | 如何做：步骤、判断标准、领域流程 | 初始仅暴露名称与简介，需要时加载正文；不会自动获得执行权限 |
+| Tool / MCP | 实际动作、实时数据、结构化结果 | 工具描述可渐进发现；身份、前置条件和写权限要由执行层校验，提示词中的“不许”不构成门禁 |
+| 子 Agent 作为工具 | 可隔离、可交付一个结果的专门工作 | 主循环保留对话，但仍付出独立模型循环、摘要损失和核验成本；完整交接适合确实需要接管用户对话的工作 |
+
+**渐进加载不是把所有 prompt 拼成一个巨型 prompt。** Skill 延迟加载正文，工具检索延迟暴露 schema；不要把上百个定义常驻上下文。文章提到的工具数量经验值、Claude Code prompt 缩减比例，均不是硬阈值或隔离消融，更不能直接换算成费用降幅。
+
+**可核验的改造轨迹：退货专家折叠进主循环。** [真实运行说明](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/README.md)与 [before/after 补丁](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/fold-returns.diff)展示：
+
+1. 初始 router 只能委派；`returns` 专家持有退货流程。资格约束仅写在旧 prompt，后端本身不拦截违规退货。
+2. v1 从 `DELEGATES` 移除 `returns`；主循环增加按需加载的退货 Skill，以及 `get_order / check_return_eligibility / create_return`。流程是取订单 → 验资格 → 创建退货 → 返回 RMA 与标签。
+3. 同时把资格校验移入 `create_return`，补工具分发白名单。补丁中的单测覆盖超期、final sale、未送达、未知订单的拒绝，以及合格订单成功；这不是本次模型评测已经覆盖了这些负例，更不是完整身份授权证明。
+4. 对比端到端结果，既看恢复的任务，也看新退化，再决定保留或回退。该补丁同时改了角色 prompt、工具可达性和后端约束，收益不能只归因于“少一个 Agent”，Skill 独立贡献也未完成消融。
+
+下面由公开 JSONL 重新计算，属于**已有运行记录的统计，不是本地复现实验**。两组各自比较，不能串成同一基线上的连续收益；所列模型 `claude-opus-5` 沿用运行记录，未独立验证服务端身份。结果链接：[退货折叠](https://github.com/anthropics/single-agent-loop-kit/tree/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/results)、[diagnostics-as-tool](https://github.com/anthropics/single-agent-loop-kit/tree/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/as-tool/results)。
+
+| 独立比较 | 题数 × 每题次数 / 每个版本 | 通过记录数（前 → 后） | 平均耗时（前 → 后） | 平均输入 + 输出 token（前 → 后） |
+| --- | --- | --- | --- | --- |
+| 退货专家折叠进主循环 | 12 × 2 | 22/24 → 23/24 | 27.31s → 19.36s（约 −29%） | 19,694 → 19,255 |
+| diagnostics 改为工具调用 | 17 × 2 | 32/34 → 31/34 | 30.83s → 28.32s（约 −8%） | 17,151 → 17,443 |
+
+**总分提高仍可能掩盖必保路径退化。** 首组 `t01, rep=1` 的[基线轨迹](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/results/baseline/traces/t01_rep1.json)是 `orders.get_order → shipping.get_tracking → eta=2026-10-03 → 答复`，19.53 秒、7 次模型调用，通过。合并后的[同题轨迹](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/results/v1/traces/t01_rep1.json)仅 `router.get_order → 直接答复`，6.84 秒、2 次调用；因订单记录没有 ETA，就说没有日期，把本应执行的物流查询变成可选追问，漏掉 October 3，失败。速度收益中混入了少做必要工作。相反，t11 两次都从“只给退货建议、不创建”恢复为确实调用 `create_return` 并返回 `RMA-5001`，解释了总分为何仍上升。
+
+**结构化返回也不自动等于可信。** 第二组改造规定 `conclusion / evidence / actions_taken / confidence / caveats` 五字段，错误形状返回低置信度与 caveat；但主 router 缺少直接查验原始数据的工具，所以“要求核验”还不是可执行核验能力。该组另对 t01/t10 各补跑四次，本表只统计主比较的 34 行；补跑是选择性诊断，不应伪装成对全任务的均匀扩样。[代码与已知缺口](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/examples/support-desk/example-run/as-tool/README.md)
+
+**迁移验收与维护成本**：先做生产链路清单、端到端 eval 和“不能破坏”的规则，再逐个改造。10 条 golden case 可以起步，不是充分覆盖；按题检查分数翻转、真实工具调用、违规副作用与费用，而非只看平均分。需要业务 owner 校准评分器、可安全重放的数据与工具、合并后的统一维护责任；循环 / prompt / 端到端验收应有明确 owner，领域团队维护 Skill / Tool 和局部测试。付费评测成本随任务数 × 重复数 × 版本数增长，子 Agent 用量也要计入；现有记录不足以估算生产节省。
+
+配套仓库明确为**不承诺维护的参考实现**。首次记录仅 12 题；当前 19 题中的新增链路与负例不能回填成当时已验证。写入批准必填、子 Agent token 计量、批量上限、二次核验失败不交付等是当前 [`reference_loop/loop.py`](https://github.com/anthropics/single-agent-loop-kit/blob/c43796287b83bec847db923f07131d1cc8de750d/reference_loop/loop.py) 的机制，不都属于早期真实运行版本；预算检查也不等于绝对费用上限。复用 kit 前需要自己接入身份、审批、工具实现与回归集。评测器校准与防过拟合继续见 [build-eval / hillclimb](#claude-build-eval--hillclimb评测校准与防过拟合迭代)。
+
 #### Claude Tag：AI Coworker 的范式精华与 LoopX 验证
 
 > 来源：海外独角兽，《[Claude Tag 可能是一个 10x Claude Code 级别的产品](https://mp.weixin.qq.com/s/DfQFOgOZxhReNiXbYG8ybA)》，2026-08-10。
@@ -2131,6 +2177,28 @@ PUA Skill 表面是大厂黑话，真正有价值的是把 coding agent 的常�
 - 把 `fail-fast / KISS / DRY` 做成可检查项：是否先做最小复现，是否选择了最小可行改动，是否引入重复逻辑，是否在失败后换了本质不同的路径。
 - 对 coding agent 的评价不能只看 final diff / final answer，还要看 trace：有没有复现、有没有验证、有没有保留证据、有没有过早扩大改动面。
 - 如果没有过程约束，模型会把“工程原则”当成风格建议；只有变成 gate、lint、checklist、trace evaluator，才会从建议变成行为。
+
+#### Manus-mono：统一上下文与逐步补齐的交付能力
+
+> 来源：hidecloud [《用 Manus 改造 Manus，AI Native 组织改造的实践和思考》](https://mp.weixin.qq.com/s/I_hNNAf7LFBf5nJ0rEJHig)（2026-10-26）。以下依据作者正文，未读取 Mono 内部代码、规则或运行记录，不将自述当成实现审计。
+
+Manus-mono 是跨仓库工作的统一入口和面向 AI 的说明书：记录各仓职责、协作关系、业务知识与研发规范，按任务拉取所需仓库；它没有把各仓代码物理合并。统一的是可发现的上下文与工作路径，不能仅凭名字认定为传统 monorepo。
+
+作者给出的演进链是“上一阶段能做了，下一处等待就暴露出来”，每一步补足不同的交付条件：
+
+| 能力 | 本阶段解决的问题 | 验证或权限边界 |
+| --- | --- | --- |
+| 全局上下文 + Git worktree | 多仓割裂使单个负责人和 AI 难以贯通各端；独立工作树支持并行改动。 | 说明书使相关知识可发现；是否真的读全并理解，仍需任务级检查。 |
+| 完整本地环境 | 每次修改都等待推到测试环境。作者称由 5–10 分钟缩到几秒验证。 | 本地快速反馈不替代线上条件与端到端验收；耗时是作者自述。 |
+| 线上排查工具 | 缺日志、配置与异常记录，AI 无法继续定位。 | 在权限控制下读取；可观察生产不等于可修改生产。 |
+| 发布流程工具 | 实现完成后，操作环节仍会卡住。 | 补齐 AI 可操作的步骤，审批权保留在人。 |
+| 测试账号 + 浏览器 / 手机模拟器 | 交付吞吐提高后，结果验证成为新瓶颈。 | 走真实业务流程；注册、支付等测试过程可逐步录屏供人检查。录屏展示了什么与业务验收通过是两件事。 |
+
+发版等重复协作也进入这条链：运维将原来需要反复协助的流程写进 Mono，其他成员及其 Agent 可按同一路径复用。模型调用与成本变更有事前确认要求，代码审核机器人审全量合入，支付等关键模块有专门规则。规则的具体执行层、覆盖率、绕过防护与误报率未公开，不能据此推断所有约束都已由程序强制。
+
+可复用的工程判断：不要把“给 AI 一本说明书”当成全部方案；按真实阻塞补齐 **上下文 → 可执行工具 → 快速反馈 → 权限/审批 → 结果证据**。这和下文 Codex 的“Review → AGENTS.md → Lint/CI”路径互补：一条扩展端到端可达性，另一条把反复出现的工程规则做成可检查约束。模型审查的投入与可靠性也应单独度量，不能用代码量或会话并发证明交付质量。
+
+市场数字同事将工具缺口送入反馈接口、再触发 Automations 开发任务，是工具使用到工具改进的入口；正文没有说明去重、预算、开发失败处理或验收发布状态机。这些属于迁移时需要补齐的设计，不能当成 Manus 已公开的合同。产品与组织侧见 [Manus 案例](./AI-Agent-Product&PE.md#manus用真实工作改造-agent-与组织)。
 
 #### Codex 仓库实证：从一人手写到百人多 agent 并行
 

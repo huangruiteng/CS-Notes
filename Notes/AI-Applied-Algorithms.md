@@ -13,7 +13,7 @@
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
 | Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、Harness-Delta Attribution（捷径 / 计算 / 剩余收益）、PAIR（压缩边界归因）、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、涨分归因、工具使用、工作流、安全评估和观测基建 |
-| Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
+| Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search、研究配方搜索与 checkpoint 谱系 | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment、[Octop 的事实权威与派生视图](#octop-memory事实权威派生视图与可重放召回) | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
 | Online Learning、持续学习与反馈优化 | Online learning、in-context vs in-weights、算力挑战 | 从反馈信号走向持续改进 / 个性化 agent |
@@ -3713,6 +3713,8 @@ multi_agent_sharing_model_v0:
 
 这与 [Anthropic Research](#anthropic-多-agent-research信息容量委派与同步并行) 并不矛盾：研究任务可能从多窗口信息容量和并行中受益，但内部 eval 的提升仍不能脱离预算归因。建立必要性后，再按共享状态与副作用选择协议，见 [Multi-Agent 并发控制](./AI-Agent-Engineering.md#multi-agent-并发控制长推理窗口与提交协议)。**通信图解决“谁能联系谁”，并发协议解决“谁依据哪个版本，能把什么变成事实”。**
 
+2026-10 的 Anthropic 实践文章进一步把判断落到上下文边界：共享事实、频繁交接的步骤可折叠为主循环 + 按需 Skill / Tool；独立探索、上下文隔离和真实并行仍可保留子 Agent。配套小样本记录既有总分提升，也有漏查物流日期的回归，不能解读成“Anthropic 已放弃多 Agent”。具体迁移、前后轨迹、权限负例和成本边界见 [子 Agent 的合并与保留](./AI-Agent-Engineering.md#子-agent-的合并与保留上下文边界渐进加载与回归验收)。
+
 #### Anthropic 多 Agent Research：信息容量、委派与同步并行
 
 > 来源：[How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)，2025-06-13；公开 [Lead prompt](https://github.com/anthropics/claude-cookbooks/blob/c245d39f91e5bbc0bf88f6a66a9af5e15f5c3462/patterns/agents/prompts/research_lead_agent.md#L106-L118)。用户读完并补充抓手：2026-09-18。这里分析文章当时的 Research 系统；公开 prompt 是配套证据，不等于完整生产源码，也不能当作当前 Claude Code 的能力规格。
@@ -3860,6 +3862,7 @@ LoopX 的正确方向不是把所有 runtime 变成同一个 Hermes-like agent�
 | Goal audit | Codex / Claude / Kimi 的 goal mode | 能否宣称完成、是否真的 blocked、预算是否还能继续 | objective、completion evidence、usage accounting；区分模型自审规则与运行时强制熔断 |
 | Method trace | Flowtrace | 方法图、步骤证据和局部重跑边界如何从 transcript 外部化 | trace.json、state.json、replies、path-backed evidence |
 | Research search control plane | Stateless Language Agents | 长程搜索如何保存候选、分派实验、隔离角色上下文并从 checkpoint 续跑 | global / local best、outcome evidence、assignment、role context、protected evaluator |
+| Post-training research environment | Athanor | Agent 如何根据缓慢的多能力反馈选择训练配方，并复用队友的实验与模型 | data / code revision、parent checkpoints、async job、evaluation protocol、model lineage、shared notes |
 | Human / multi-agent gate | LangGraph Interrupts、Claude Code Agent Teams | 人类和多个 agent 如何接力、审批和恢复 | gate id、task ledger、mailbox、permission lease、artifact refs |
 
 LoopX 应在这一层被理解：它不是 goal mode 的替代，而是项目级 / 多轮 / 多 agent 的本地控制面。Goal mode 管“能不能结束”，Dynamic Workflow 管“路径怎么走”，Flowtrace 管“方法和证据怎么留”，LoopX 管“谁能继续、为何继续、带着什么状态继续、跑完写回哪里”。因此，LoopX 的 registry、active goal state、todo ownership、quota、run history、evidence 和 handoff，不应只放在产品笔记里，也应作为 long-running agent control plane 的代表案例进入 Agent Harness 总框架。
@@ -3950,6 +3953,122 @@ $$
 - Advisor 只占 0.24%–0.51% tokens、1.20%–2.29% 模型费用；该成本统计没有覆盖 evaluator 的 CPU / GPU 执行成本。多数 task / 配置只有单次完整长跑，小幅终点差异仍可能受随机性影响。
 
 对 Harness 设计最稳妥的抽象是：长期状态应成为可检查、可 checkpoint、可回滚的控制面对象；Agent context 是从该状态按角色和本轮 assignment 生成的读视图。这样既能跨 session 延续研究，也能把“保留什么、谁能看到什么、下一步由谁决定”变成显式 policy。
+
+#### Athanor：自主后训练的配方搜索与实验谱系
+
+> 来源：[Athanor: An Agent-Native System for Autonomous Post-Training Research，v1](https://arxiv.org/abs/2610.21055v1)（2026-10-15）；[PDF 全文](https://arxiv.org/pdf/2610.21055v1)。读取正文及附录 A–E，核对 Figure 1 / 2 / 4 / 5 与 Table 1；未独立核验实现、完整原始运行日志或复现实验。
+
+Athanor 展示了一个具体的自主研究闭环：给强 Agent 稳定的执行环境、持久实验记录和隔离评测，它们可以组合已有后训练方法，把 Qwen3-4B-Base 训练到接近官方 Instruct-2507 的平均水平。最有价值的证据，是能沿记录追踪“发现失败 → 修改训练方法 → 验证 → 被队友采用”。
+
+模型侧复习路径：[后训练方法地图、SFT 与 RFT](./AI-Algorithms.md#后训练与模型适配) → [GRPO 的四回答手算与模型角色](./Reinforcement-Learning.md#同题四回答advantage-如何变成学习信号) → [权重平均与任务向量外推](./AI-Algorithms.md#权重平均与任务向量外推)。通用机制放在算法笔记，本节保留真实实验、谱系与证据边界。
+
+##### 外层搜索配方，内层更新权重
+
+研究员是四个运行在 Claude Code 中的 **Claude Opus 5.5 Agent**，被训练的是 **Qwen3-4B-Base**。研究员自身的权重没有在本实验中更新；这是强模型研究并改进较小模型的案例，不能直接视为研究员递归升级自身。
+
+任务要求交付**同一个 checkpoint**，同时改善数学、逻辑、代码、知识、指令遵循、多步行动六种能力。主指标是六项任务分数的等权平均，不是把所有评测样本混在一起算正确率。研究存在两层：
+
+- **内层训练**：SFT、RL 等算法更新目标模型权重。
+- **外层研究**：Agent 选择数据、算法、超参数、训练顺序，以及从哪个已有 checkpoint 继续；也可以合并多个父模型。
+
+$$
+r_t\sim\pi(\cdot\mid\mathcal H_{t-1}),\qquad
+M_t=\operatorname{Exec}(r_t),\qquad
+\widehat{\mathbf p}_t=\operatorname{Eval}(M_t)
+$$
+
+这里的策略是研究员根据历史记录选择下一份配方；执行产生模型，评测返回六维能力估计。**Agent 搜索的是训练配方，反馈却是缓慢、带噪声、可能相互冲突的能力分数。** 单项进步和六项平均进步需要分别判断。
+
+研究员使用 `job / eval / data / artifact` 接口发起训练、评测、数据检查和模型取用。环境管理异步执行、输入与资源依赖、结果推送及评测隔离；研究员自行决定下一步研究，不需要逐次等人批准实验。训练任务独立于 Agent 会话运行，结果到达后再通知研究员。Operator 负责设定协议、资源和机器故障恢复，不提供研究方向；期间曾澄清团队提交计分规则，因此也不能说整个过程没有人为消息。
+
+长期研究状态保存在上下文之外，四类记录互相补充：
+
+| 记录 | 保存什么 | 用来回答什么 |
+| --- | --- | --- |
+| journal | 请求与状态变化的时间顺序；请求在执行前记录 | 当时发起了什么，之后成功、失败还是取消？ |
+| lineage | checkpoint 的父模型及生成过程，绑定数据、代码版本、job 与评测 | 这个分数对应哪份模型，它继承了哪些实验？ |
+| transcript | Agent 的完整会话 | 当时如何解释结果、提出假设和决定下一步？ |
+| workspace history | 代码与研究笔记的版本历史 | 实际修改了哪些程序、配置和共享说明？ |
+
+可以沿 `data + parent checkpoints + workspace commit → job → output checkpoint → evaluation → scores` 复核一次研究动作。与 SLA 的共同点是外部化研究状态；差别是 Athanor 直接执行 GPU 训练，产物是有父子关系的模型权重，评测等待和资源调度也进入研究循环。持久记录不等于训练自动续跑：节点丢失仍可能终止在途任务并丢掉临时盘数据。
+
+##### 四阶段配方与跨 Agent 继承
+
+![Athanor Figure 5：四阶段后训练配方与跨 Agent 的模型、想法继承](./AI-Applied-Algorithms/athanor-recipe-lineage.png)
+
+读图：上半部概括 SFT → GRPO → 权重合并 / 外推 → 自蒸馏；下半部每条横线代表一名研究员，圆点是训练结果，菱形是权重合并，灰箭头是取用队友 checkpoint，橙色虚线是复用想法。49.7 → 61.7 → 65.5 → 66.1 是团队最终谱系中的阶段性结果，涉及不同研究员和父模型；它不是四项互相独立、可以相加的消融收益。各阶段时间也有重叠。来源：[论文 Figure 5、§5.1](https://arxiv.org/pdf/2610.21055v1#page=12)。
+
+| 阶段 | 具体操作 | 观察与取舍 |
+| --- | --- | --- |
+| SFT | 四人各组织约 30 万–60 万条、覆盖六项能力的数据，训练一轮；最终谱系首轮最大训练序列长度为 16,384 token | 开发平均分约 16 → 50；先让基座学会较完整地输出解题、指令与行动轨迹；长度上限的取舍见[训练序列长度](./AI-Algorithms.md#训练序列上限轨迹覆盖与计算成本) |
+| GRPO | 对数学、代码、逻辑、指令约束等题目生成回答，用规则或程序给奖励，通常正确为 1、错误为 0；随后加入部分 greedy rollout | 阶段最优约 61.7；关键修正是让训练也遇到评测中的重复循环 |
+| 权重合并与外推 | 平均多名研究员的权重，再沿“基座 → 合并模型”的方向延长到 1.2–1.3 倍 | 阶段最优约 65.5；直接产出单个模型权重，推理时无需多个模型投票 |
+| 自蒸馏 / RFT | 每道训练题采样四个回答 → 程序验对 → 保留最短正确回答 → 微调；再组合不同轮次和研究员的结果 | 减少冗长推理及输出预算耗尽；最终提交约 66.1，但后续轮次收益趋小 |
+
+首轮 SFT 的主语料是 **AM-Thinking-v1-Distilled**，占各研究员混合数据中**公开数据行的 76%–87%**，不是全部 token 的该比例。补充数据包括代码、知识问答、可验证指令，以及 ALFWorld 专家行动轨迹。实验不允许在线调用或下载外部教师模型，但大量公开蒸馏数据已携带强模型知识，不能由此声称没有教师知识迁移。
+
+权重外推可以写成：
+
+$$
+\theta_f=\theta_{\mathrm{base}}+
+f\bigl(\theta_{\mathrm{merged}}-\theta_{\mathrm{base}}\bigr)
+$$
+
+当系数为 1.2 时，学到的参数变化被放大到 1.2 倍。它没有逐项能力的单调保证：论文观察到加大系数可以提高逻辑分数，同时降低知识分数；采用哪个模型仍取决于多项指标的权衡。自蒸馏也有类似边界：Agent 3 第一轮约增加 1 分，第二轮没有明显再提高，最终结果还依赖与 Agent 2 的产物合并。
+
+SFT、GRPO、权重合并已有 starter code；数据配比、greedy rollout 修改、具体合并方案和自蒸馏程序，则由研究员根据反馈组织。创新主要体现在组合、诊断和局部修正，不能把整套训练算法都归为 Agent 从零发现。
+
+##### Greedy rollout：一条可复核的失败修订轨迹
+
+[§5.1 与附录 E.1](https://arxiv.org/pdf/2610.21055v1#page=34) 展示了 Agent 3 从发现重复循环到团队采用改进的过程：
+
+1. **初始状态**：约第 10 小时，SFT checkpoint 的完整开发评测为 **49.67**。评测中多数任务使用 greedy 解码，许多回答会重复并耗尽输出预算；逻辑输出中约 58% 被截断，其中 238 / 292 属于重复循环。
+2. **失败观测**：首轮 GRPO 使用温度 0.8 采样，训练回答很少出现同类循环，greedy 验证却不改善。到 step 25，数学小验证约 0.36 → 0.23，指令约 0.31 → 0.30，研究员停止这条训练。
+3. **修改候选**：Agent 判断训练生成分布没有覆盖评测失败，扩展 verl 的 `SingleTurnAgentLoop`，注册 `greedy_mix_agent`。对原本采用采样的训练回答，每条以 **25% 概率改用 greedy**，其余仍按原参数采样；没有修改验证解码方式。
+4. **复验**：新训练的 step 0 → 20，小验证中的循环 **86 → 18**、截断 **157 → 95**；数学约 0.33 → 0.53、代码 0.22 → 0.34。step 40 的完整开发评测为 **57.27**，可与原 SFT 的 49.67 比较。
+5. **队友采用**：Agent 分享代码与诊断记录，约六小时内四名研究员都采用了 greedy 混合。Agent 1 的一次记录为训练 25 步后 **52.18 → 56.50**。复用的既有解释与代码，也有后续 checkpoint。
+
+论文中的修改可概括为以下示意，省略了原实现的复制参数与框架调用：
+
+```python
+GREEDY_SHARE = 0.25
+if temperature > 0 and random() < GREEDY_SHARE:
+    temperature, top_p, top_k = 0, 1, -1
+```
+
+直觉是让 RL 直接看到“部署时会出现、采样时不常出现”的失败：同一题的回答组中，greedy 循环得 0、其他正确回答得 1，前者才可能得到相对负优势；若整组都错误，二值奖励本身仍缺少区分信号。
+
+**归因边界**：Agent 在同一轮还重建了训练题集，例如把逻辑题限制在最多 16 个单元格，保留 6,398 题，并调整数学来源与配比。因此，上述轨迹支持这组修订有效，不能单独识别“25% greedy”贡献了多少。小验证、完整开发集和 held-out 的数字也不能互换。
+
+##### 探索趋同与数据判断的失败
+
+447 个可用数据集中，团队查看了 43 个、实际使用 27 个；四名相同模型的研究员很早就选中了同一份主蒸馏语料。Agent 3 注意到趋同，另开不依赖主语料的训练谱系，但只到约 **55 分**，主路线已接近 **62 分**；混入后逻辑分数从约 **53.8 降至 44.6**，这条分支被放弃。另一条短回答数据路线也因结果退步而放弃。
+
+共享成果帮助团队迅速利用好发现，也让四个同模型研究员围绕相似想法继续优化。这里能观察到探索与利用的张力，但论文没有受控的“不共享”对照，不能把路线趋同或最终涨分独立归因于共享机制。
+
+数据判断并不均衡：研究员经常检查格式、长度、奖励函数能否评分、问题是否过难，却较少系统核验答案正确性。两个案例应分开记：
+
+- **训练后发现错误**：使用约 **6,900 条逻辑求解轨迹**微调，逻辑专项诊断分数约 **49 → 27**。检查输出后发现，模型学会了推理风格，却产生没有依据的推断，因此放弃该数据。这是专项诊断结果，不能写成六项平均分下降。
+- **训练前否决想法**：打算用短而正确的解法训练大逻辑题时，先检查自身样本，发现大题几乎没有足够的短正确解，于是在消耗 GPU 训练前放弃。预检查也能产生有价值的研究结果。
+
+##### 如何理解“接近 Instruct”及系统启示
+
+Table 1 使用两套协议。实验期间多数任务 greedy、数学采样，数学 / 逻辑 / 代码的输出上限约 16k；实验后 final measurement 对模型统一采样，并把相关推理任务的预算扩大到 32k，重复四个 seed。两套协议内比较才有意义。
+
+| 模型 | 实验期间开发 / held-out | 最终测量开发 / held-out |
+| --- | --- | --- |
+| Qwen3-4B-Base | 16.1 / 8.7 | 15.9 / 9.2 |
+| 团队提交 | 66.1 / 46.7 | 67.3 / 48.2 |
+| 官方 Instruct-2507 | 66.4 / 48.0 | 66.5 / 47.9 |
+| 官方 Thinking-2507 | 56.8 / 41.0 | 80.5 / 63.0 |
+
+来源：[Table 1，PDF 第 8 页](https://arxiv.org/pdf/2610.21055v1#page=8)。最终团队减 Instruct 的平均差异，其 95% 配对区间为开发 **[-0.8, 2.4]**、held-out **[-2.0, 2.6]**，都包含零；可以说结果接近，不能说已证明超越或严格等效。团队在代码、知识、指令与行动上较强，数学、逻辑仍落后；也没有达到放宽输出预算后的官方 Thinking 水平。严格的行动输出预算会让 Thinking 模型来不及执行动作，说明模型排名还受推理与行动协议制约。
+
+这次 104 小时 campaign 发起约 500 个 job，完整评测覆盖 174 个 checkpoint。GPU 被任务占用约 93% 的可用时间，报告的实际计算利用约 75%，两者不同；Agent 会话约 87% 时间在等待，也不能换算为浪费 token 的比例。作者按标价估算 GPU 与模型推理共约 1.18 万美元，不含环境建设、基座预训练和全部数据工程成本。尾部收益明显变贵。
+
+证据还受单次 campaign、单个 4B 基座、同一种研究 Agent 约束；四名共享结果的成员不是四次独立重复。数据去污染主要依赖文本重叠，最终谱系涉及的 108 份数据中只有 61 份完成全面审计，不能把“有去污染步骤”理解为已排除所有污染。论文中的解释也没有替代独立实现核验和复现。
+
+可迁移的设计原则是：**固定评测契约，把数据 / 代码 / 父模型 / 结果绑定起来，让失败诊断能形成可执行修改，再通过实际反馈决定保留、放弃或共享。** 从本文推导的研究工具应保存候选及拒绝理由，区分小验证与最终验收，单独追踪训练成本、异步等待和路线多样性；这些是系统设计启示，不是论文已经分别消融证明的收益。
 
 #### Agent 原生身份与外部通信：DSH + AWiki 的实现样本
 
