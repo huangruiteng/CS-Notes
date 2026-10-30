@@ -51,6 +51,7 @@
   - [Security-Privacy-Cryptography](Notes/Security-Privacy-Cryptography.md)
 - **通用与生活**
   - [金融投资与区块链](Notes/金融投资与区块链.md) / [非技术知识](Notes/非技术知识.md) / [文史哲与生活](Notes/文史哲与生活.md)
+  - [跨境数字服务接入](Notes/跨境数字服务接入.md)：短中长期实操计划、Codex / Google 订阅、Claude 渠道、支付、邮箱、网络和恢复路径
   - [Anatomy-大脑与神经科学](Notes/Anatomy-大脑与神经科学.md)
   - [Gourmet](Notes/Gourmet.md) / [Health-COVID-19-Prevention](Notes/Health-COVID-19-Prevention.md) / [game-knowledge](Notes/game-knowledge.md)
   - [面试心得体会与转行相关](Notes/面试心得体会与转行相关.md)

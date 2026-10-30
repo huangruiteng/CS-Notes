@@ -9,7 +9,7 @@
 | 主题 | 落点 |
 |---|---|
 | Agent loop / runtime / harness：主流 Agent-Loop 多模态调研、Dynamic Workflow、Loop Engineering Toolkit、Loom、Flowtrace、Humanize / OMH / KDA、GLM Infra Agent（dense feedback 基建优化闭环）、Waiting primitive、OpenAI Responses multi-agent、语音 Agent runtime、LoopX、Claude Tag / Agent Teams、oh-my-pi / omp² Harness Playbook、mini-SWE-agent、Codex 仓库 agentic engineering 实证、Context Management、降智复盘与模型身份巡检（ModelTrace Guard）、Agent Bucket 等 | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
-| Sandbox / 远程执行控制面：环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
+| Sandbox / 远程执行控制面：不可信模型渠道的执行边界、环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
 | Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
 | Harness 涨分归因、能力持久化与执行反馈：同预算基线、任务内搜索与跨任务迁移、外置行为蒸馏进权重、变化规则的发现/复用/失效、旧能力回归、数据捷径、评测校准与选择偏差、冻结评测器、held-out 继承门禁、action block 静默丢弃 | [EdgeBench](./AI-Applied-Algorithms.md#edgebench持续环境学习的长程-agent-实验合同)、[ServeLearnBench](#servelearnbench从服务评分中发现复用与淘汰经验)、[Rethinking Harness Evolution](#rethinking-harness-evolution把可迁移改进与任务内搜索拆开)、[SoL-Pi](#sol-pi从开发轨迹搜索可迁移的-harness-效率机制)、[更新能力与使用收益](#harness-更新能力与使用收益)、[Harness-Zero](#harness-zero把外置-harness-行为蒸馏进权重)、[Claude build-eval / hillclimb](#claude-build-eval--hillclimb评测校准与防过拟合迭代)、[Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)、[RSI-Gym](#rsi-gym冻结评测器下的-harness-自我改进实验合同)、[工具执行的语义反馈](#工具执行的语义反馈让模型知道实际执行了什么) |
@@ -42,6 +42,21 @@ AI 生成的代码不可信，必须在隔离环境中执行。Docker 容器共�
 **安全评测**：RedTeamCUA（ICLR 2026）在 hybrid sandbox 中测试 CUA 安全性，发现 Claude 3.7 Sonnet CUA 的攻击成功率（ASR）达 42.9%，最安全的 Operator 仍有 7.6% ASR。能力与安全必须分离评估。详见 [AI-Applied-Algorithms.md - Agent 评估与安全](./AI-Applied-Algorithms.md)
 
 **运行环境验收**：网络探测应从工具实际执行的隔离环境发起；宿主进程能访问某服务，不代表隔离进程使用相同的解析、证书、代理配置或权限。`ping` 的 ICMP 可达性也不能替代实际 HTTPS 请求。可记录 DNS、连接、TLS、首字节与总耗时辅助分层判断；curl 的 `time_namelookup / time_connect / time_appconnect / time_starttransfer` 按请求起点累计，不应直接当作独立阶段耗时，连接复用与重定向还会影响解释。一次成功只证明该次请求和环境组合可用。[curl 计时字段](https://curl.se/docs/manpage.html#-w)
+
+#### 模型渠道不可信时的执行边界
+
+外部模型或 API 中转返回的工具调用，应视为**动作提议**：可信 harness / 授权层决定能否执行，OS / VM 限制执行后的可达范围。即使中转修改了 response，也不应因此获得修改策略、访问宿主凭据或发布代码的能力。授权、执行隔离与产物验收分别负责不同边界。
+
+可用于公开项目的结构是：`不可信模型响应 → 边界外的工具授权 → 无宿主凭据的隔离执行环境 → 导出补丁 → 独立审查与复测`。模型调用可以通过另一个受限代理访问上游，不必给测试进程同等网络能力；源代码公开也不意味着本机 home、会话、发布 Key 或未公开修改可以外发。
+
+要分别处理两个问题：
+
+- **执行时越权**：限制文件、网络、socket、MCP 和资源，策略与真实凭据留在执行边界外。仅靠命令白名单不够，允许的测试命令也能执行被修改的项目代码。
+- **产物延后生效**：沙箱里的恶意安装脚本或 CI 修改，可能在合并后才接触真实秘密。补丁必须按外部贡献审查，在新的无秘密环境复测；不能把沙箱测试通过解释为可以直接发布。
+
+[Claude Code 官方 sandboxing 文档](https://code.claude.com/docs/en/sandboxing)区分了 Bash 沙箱与 Read/Edit/Write、WebFetch、MCP、hooks 等其他工具路径。`/sandbox` 开启不等于整个 Agent 隔离；面对不可信供给，应检查全部工具，必要时把 CLI 和工具一起放进 VM。[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/architecture/)展示了 microVM 与边界外凭据注入的实现，但直接工作区挂载和宿主 MCP 仍是显式授权通道。两者均只核验文档，未做攻击测试。
+
+具体的中转、一次性公开代码副本、额度与补丁验收流程见[跨境数字服务接入](./跨境数字服务接入.md#开源开发中转--沙箱能否成为可接受的组合)；更细的凭据与授权分离见 [Muse Secure VM / Sentinel](#muse-secure-vm-与-sentinel独立行动授权边界)。
 
 #### 方案对比
 
