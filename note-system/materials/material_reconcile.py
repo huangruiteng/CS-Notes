@@ -19,6 +19,39 @@ def metadata(card):
     return {key: value for key, value in card.items() if key != "queue_rank"}
 
 
+def merge_ranked_orders(current_order, incoming_order):
+    """Merge an accepted incoming order without redistributing local-only refs.
+
+    Keep local-only entries before their next surviving shared anchor. If shared
+    anchors were reordered, incoming order wins while local-only order remains
+    intact. An incoming omission never removes a local entry; callers resolve
+    lifecycle/visibility and canonical aliases before invoking this helper.
+    """
+    for order in (current_order, incoming_order):
+        if len(order) != len(set(order)):
+            raise ValueError("duplicate material in ranked order")
+    positions = {ref: i for i, ref in enumerate(incoming_order)}
+    next_anchor = len(incoming_order)
+    slots = {}
+    for ref in reversed(current_order):
+        if ref in positions:
+            next_anchor = positions[ref]
+        else:
+            slots[ref] = next_anchor
+    buckets = [[] for _ in range(len(incoming_order) + 1)]
+    previous_slot = 0
+    for ref in current_order:
+        if ref not in positions:
+            previous_slot = max(previous_slot, slots[ref])
+            buckets[previous_slot].append(ref)
+    merged = []
+    for i, ref in enumerate(incoming_order):
+        merged.extend(buckets[i])
+        merged.append(ref)
+    merged.extend(buckets[-1])
+    return merged
+
+
 def reconcile(base, local, remote):
     """Compare reviewed cards; return observations, never lifecycle writes."""
     catalogs = {"base": base, "local": local, "remote": remote}

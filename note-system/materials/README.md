@@ -58,6 +58,8 @@ python3 note-system/materials/material_reconcile.py --repo . --upstream origin/m
 
 它绑定 merge-base、HEAD、已获取的 upstream commit、工作副本与暂存版摘要，完整校验三份卡片，分别输出 membership/metadata 差异及排名变化。输出 `lifecycle_transitions=[]`；它不 fetch、不写工作区、不验证用户是否读完，也不替代来源 authority。后续执行须重新核对这些 snapshot；发生并发变化时重新计划。
 
+来源 adapter 合并已接受的远端顺序时，可复用 `material_reconcile.merge_ranked_orders`：本地独有条目沿用相邻的既有公共锚点，不按公开/私有数量比例重新穿插。只有新增时保留完整旧序列；远端明确重排共有条目时，遵循已接受的远端顺序并保留本地独有条目的相对顺序。调用前先解析 canonical alias、核验 lifecycle；远端缺失本身不删除材料，已归档材料也不因旧公开卡片而重写原始 backing。
+
 公开克隆只需 Python 3.9+：
 
 ```bash

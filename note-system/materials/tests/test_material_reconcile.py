@@ -23,6 +23,37 @@ def catalog(*names):
 
 
 class ReconciliationTests(unittest.TestCase):
+    def test_rank_insertions_preserve_complete_existing_order(self):
+        current = ["a", "private-1", "b", "private-2", "c"]
+        incoming = ["a", "new-1", "b", "new-2", "c"]
+        before = (current[:], incoming[:])
+        merged = reconcile.merge_ranked_orders(current, incoming)
+        self.assertEqual([x for x in merged if x in current], current)
+        self.assertEqual([x for x in merged if x in incoming], incoming)
+        self.assertEqual(set(merged), set(current) | set(incoming))
+        self.assertEqual(len(merged), len(set(merged)))
+        self.assertEqual((current, incoming), before)
+
+    def test_rank_no_change_does_not_redistribute_private_entries(self):
+        current = ["a", "b", "private-1", "private-2", "c", "private-3"]
+        self.assertEqual(reconcile.merge_ranked_orders(current, ["a", "b", "c"]), current)
+
+    def test_accepted_rank_moves_keep_both_subsequence_orders(self):
+        current = ["a", "private-1", "b", "private-2", "c"]
+        incoming = ["c", "new", "a", "b"]
+        merged = reconcile.merge_ranked_orders(current, incoming)
+        self.assertEqual([x for x in merged if x in incoming], incoming)
+        self.assertEqual([x for x in merged if x.startswith("private")], ["private-1", "private-2"])
+
+    def test_rank_omission_keeps_local_material_and_empty_orders_work(self):
+        self.assertEqual(reconcile.merge_ranked_orders(["a", "local", "b"], ["a", "b"]), ["a", "local", "b"])
+        self.assertEqual(reconcile.merge_ranked_orders(["a"], []), ["a"])
+        self.assertEqual(reconcile.merge_ranked_orders([], ["b"]), ["b"])
+        self.assertEqual(reconcile.merge_ranked_orders([], []), [])
+        for current, incoming in [(["a", "a"], []), ([], ["b", "b"])]:
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                reconcile.merge_ranked_orders(current, incoming)
+
     def test_unpublished_intake_is_preserved_and_never_archived(self):
         plan = reconcile.reconcile(catalog("existing"), catalog("existing", "new"), catalog("existing"))
         self.assertEqual(plan["changes"][0]["kind"], "local_addition")
