@@ -25,6 +25,8 @@
 
 ![image-20241019021542281](./AI-Algorithms/image-20241019021542281.png)
 
+后训练复习按[方法地图](#学习地图目标数据与参数)进入：SFT 与数据、RL 奖励、蒸馏 / RFT、参数高效适配及权重组合分别回答不同问题，模型能力与推理配置分开检查。
+
 ## 主流大模型系列
 
 ### 豆包大模型 2.0 (Doubao-Seed-2.0)
@@ -385,6 +387,7 @@ Agentic Model 就是能支持 Agent 能力的模型。总结来说，Agent 需�
 * **环境自造**：研究智能体从真实工作采集任务模式，把资深工程师数天工作量的任务转为可运行长程环境（含多步依赖与隐藏状态）；裁判智能体试做确认可解；验证器在无参考答案下被合成，再用求解器轨迹发现并封堵奖励捷径（oracle / no-op / 未解状态三项检查），产出可用于 RL 的二值奖励；slime 把数学/代码/沙盒/验证器降格为即插即用数据组件
 * **基础设施自优化**：推理系统优化（内核、调度、量化、算子）本质是代码工程任务，GLM-5.3 驱动的 infra agent 协助工程师开发优化算子、诊断性能瓶颈、改进部署栈（GLM-5.3-Flash 推理引擎由此完成，端到端性能提升 3 倍）；slime 让训练与大规模推理 rollout 共用一套数据流
 * **RSI 边界**：2026 上半年已出现早期形态（GLM-5.3 参与优化服务 GLM 自身的推理引擎、GLM 生成的环境训练下一代 GLM），但回路里仍站着大量工程师；能力评估与风险判断最终由人裁量，并引入外部机构独立评估
+* **自主后训练的可检查样本**：[Athanor v1](https://arxiv.org/abs/2610.21055v1) 让四个 Claude Opus 5.5 / Claude Code 研究员为 Qwen3-4B-Base 搜索数据、训练顺序与模型合并配方，同一个 checkpoint 接受六项能力评测。研究员权重固定，目标模型权重更新；这是强 Agent 改进小模型的研究回路，不能据此推断研究员已递归提升自身。配方、greedy 失败修订及实验谱系见 [Athanor 研究闭环](./AI-Applied-Algorithms.md#athanor自主后训练的配方搜索与实验谱系)。
 * **如何证明“真的在自我改进”**：不能把保存上次答案、对公开题过拟合和从失败中提取可迁移策略混为一谈。[RSI-Gym](./AI-Agent-Engineering.md#rsi-gym冻结评测器下的-harness-自我改进实验合同) 给出一份最小实验合同：只允许改声明式 AgentGenome，冻结模型 / evaluator / runner / acceptance rules；development 失败用于提案，validation 决定是否继承，hidden 只在搜索结束后验证迁移，并完整保留 rejected mutation。它测到一次 A0 → A2 的跨 split 提升，也如实记录 Meta Improver 未晋升；证据仍限于单模型、单 seed 的小型合成环境。
 * **一手细节（2026-09 补充）**：Z.ai 官方复盘 [Toward Recursive Self-Improvement: How GLM Built Its Own Inference Infrastructure](https://z.ai/blog/glm-built-its-inference-infrastructure) 把「基础设施自优化」这条闭环展开到工程细节——10 万+ 国产加速器承载全部生产流量、不到两周上线、端到端约 3× 的推理系统数据见 [LLM-MLSys.md](./LLM-MLSys.md#glm-53-flash-ox-alpha成本前沿架构与国芯推理)；agent 侧的 dense feedback 三条判据（可归因 / 可验证 / 可判定）、三层反馈与三个 case（KDA CP 的 TF32 精度、KV Transfer 的 GIL 阻塞、KDA Decode Kernel 的 1.71× 重切分）见 [AI-Agent-Engineering.md](./AI-Agent-Engineering.md#glm-infra-agent把端到端指标拆成可归因的-dense-feedback-闭环)。官方原文明确 `We have not yet reached recursive self-improvement.`
 * **资本面对照**：这条技术线在 2026-09 已成为一级市场主题——智谱约 50 亿美元融资被普遍解读为「下场做 RSI」，VC 投的是研究方向而非商业模式。同月形成的行业观察序列（谁在讲 RSI → 创业三路径 → 一线验证 → 人才与融资侧）见 [非技术知识.md - 政策与行业趋势](./非技术知识.md#政策与行业趋势)：智谱下场与 VC 逻辑、张牧涵「无涯智远」三路径、AGI House 五小时 RSI 纪要，以及 [投资人开始堵姚顺宇](https://mp.weixin.qq.com/s/S8LG8o8BRfdbd7McQ81HdA)（头部 VC 接触姚顺宇、超衍智能近 4 亿天使轮；人才流向与估值预期是先行指标）。区分「谁在讲 RSI」与「回路里哪一段真的交给了 AI」仍是这条线的基本读法。
@@ -1056,11 +1059,27 @@ $$PE_{(pos, 2i + 1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d}}}\right)$$
 
 #### Argmax和随机采样
 
+固定权重时，模型给出下一 token 的条件概率；解码器再决定怎样从中选 token。整段回答的概率可以分解为：
+
+$$
+p_\theta(y\mid x)=\prod_{t=1}^{|y|}p_\theta(y_t\mid x,y_{<t})
+$$
+
+Greedy 每步选当前概率最大的 token，不保证整段序列概率最高，也不保证答案正确。采样允许走其他路径；同一 checkpoint 的 greedy 失败与采样成功可以同时发生。在相同数值执行与上下文下重复 greedy，通常只会复用同一路径，不能当作多次独立探索。训练中的 RL rollout 也使用生成结果；上节“训练时使用真实前缀”的对比特指 teacher-forced 语言建模 / SFT。
+
 ![image-20251005010204784](./AI-Algorithms/image-20251005010204784.png)
 
 ##### temperature、top-k、top-p
 
 * top-p采样：也称为nucleus sampling
+
+$$
+p_T(v\mid h)=\frac{\exp(z_v/T)}{\sum_u\exp(z_u/T)},\qquad T>0
+$$
+
+这里 logits 为 z，h 是当前前缀。降低 temperature 使分布更集中，升高使其更平；数学式只适用于正温度，工具中的 `temperature=0` 通常是直接选择 greedy 的分支。top-k 保留概率最高的 k 个候选，top-p 保留累计概率达到阈值的最小高概率集合，再重新归一化；具体组合顺序依实现。它们改变采样分布，不更新模型权重。
+
+Athanor 中，温度 0.8 的训练 rollout 很少重复，greedy 评测却循环；每条 rollout 以 25% 概率改用 greedy 后，训练开始覆盖该失败。这里的 25% 作用于**整条回答的解码选择**，不是每个 token 独立切换。控制实验需同时固定题集、解码与预算，不能把改变推理配置后的分数当成纯权重提升。来源：[Athanor §5.1、附录 E.1](https://arxiv.org/pdf/2610.21055v1#page=34)；GRPO 的奖励如何作用于这类失败，见[同题四回答手算](./Reinforcement-Learning.md#同题四回答advantage-如何变成学习信号)。
 
 ![image-20251005011425211](./AI-Algorithms/image-20251005011425211.png)
 
@@ -1069,7 +1088,7 @@ $$PE_{(pos, 2i + 1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d}}}\right)$$
 ![image-20251005011715687](./AI-Algorithms/image-20251005011715687.png)
 
 *   **基本思想**：为了克服贪心搜索的短视，Beam Search 在每一步都会保留 `k` (beam width) 个最可能的候选序列。在下一步，它会基于这 `k` 个序列，分别生成所有可能的下一个 token，并从中再次选出总概率最高的 `k` 个新序列。这个过程持续进行，直到生成结束符或达到最大长度。
-*   **优点**：通过保留多个候选，它有更大的机会找到全局最优或接近最优的序列，生成质量通常高于贪心搜索。
+*   **优点与边界**：保留多个候选可扩大高模型分数序列的搜索范围；有限 beam 不保证全局最优，模型概率高也不等于事实正确或人类偏好的质量更高。
 *   **缺点**：需要更大的计算和内存开销，因为需要同时维护 `k` 个序列的状态，尤其是 KV Cache 的存储。
 
 *   **Trie-Based Beam Search (基于前缀树的束搜索优化)**
@@ -3158,15 +3177,62 @@ API 返回的文本作为固定标签；梯度通过开源学生与生成的 ada
 4. **rank 8 表示只记住 8 条事实吗？** 不是。它限制单个线性模块增量的矩阵秩，不是语义事实数量，多个模块与非线性共同产生行为。
 5. **0.3 秒和低 PPL 分别证明什么？** 指定设备 / 协议的适配延迟，以及指定重建任务的预测能力；都不足以证明长期记忆可靠或完整回答有同倍加速。
 
-## SFT (Supervised Finetuning)、对齐
+<a id="sft-supervised-finetuning对齐"></a>
 
-### Intro
+## 后训练与模型适配
+
+### 学习地图：目标、数据与参数
+
+预训练得到的 Base 模型主要学习续写分布；Instruct 模型经过额外的指令、偏好或任务训练。后训练会改变权重，prompt 与解码配置改变模型怎样被调用。一个 checkpoint 对应某份参数及配置；可恢复训练还可能需要优化器、调度器和随机状态。不能把“有模型权重”自动理解为“能精确续跑原训练”。
+
+| 维度 | 回答什么 | 代表方法或对象 |
+| --- | --- | --- |
+| 学习目标 | 哪些行为的概率应提高？ | SFT 似然、偏好目标、RL 期望奖励 |
+| 数据来源 | 答案由谁生成，怎样筛选？ | 人写示范、教师蒸馏、当前策略 rollout、自蒸馏 / RFT |
+| 可更新参数 | 训练时允许改哪里？ | 全参数、LoRA、Prefix / P-Tuning |
+| 参数组合 | 已有模型怎样形成一个新模型？ | 权重平均、task vector、外推 |
+| 推理与测量 | 权重固定时怎样生成、怎样计分？ | temperature / top-p、输出预算、验证器、评测 split |
+
+这些维度可以组合：蒸馏数据能用于 SFT，SFT 或 RL 能用 LoRA 更新，RFT 的最后一步也是 SFT。RLHF / RLVR 描述奖励来源，PPO / GRPO 描述更新算法，不能把这些名称当作互斥阶段。来源：[InstructGPT](https://arxiv.org/abs/2203.02155)、[DeepSeekMath §4](https://arxiv.org/html/2402.03300v3#S4)、[Athanor §2 / §5.1](https://arxiv.org/pdf/2610.21055v1)。
+
+跨阶段比较看固定协议下的任务表现：SFT 交叉熵、GRPO 训练奖励、RFT 保留率的尺度与数据各不相同，不能直接互比为模型能力。验证集用于选择配方，held-out 用于检查迁移；推理温度、输出预算、chat template、评测种子与分数聚合方式也属于测量条件。六任务等权平均不代表训练数据按六类等量，更不代表六项能力各自都提高。
+
+学习顺序：概率与[解码](#argmax和随机采样) → SFT 与数据 → [GRPO 的组内比较](./Reinforcement-Learning.md#grpo-group-relative-policy-optimization--deepseekmath) → 蒸馏 / RFT → [权重平均与外推](#权重平均与任务向量外推)。Athanor 的逐步实验及因果边界保留在[研究个案](./AI-Applied-Algorithms.md#athanor自主后训练的配方搜索与实验谱系)，这里整理可迁移的模型知识。
+
+### SFT：监督目标、数据与任务适配
+
+#### 目标函数与 Teacher Forcing
+
+给定 prompt 和参考回答，SFT 提高参考 token 在参考历史前缀下的概率。以下按样本、token 两层求和，省略归一化与具体训练 mask：
+
+$$
+\mathcal L_{\mathrm{SFT}}(\theta)
+=-\sum_{(x,y)\in D}\sum_{t=1}^{|y|}
+\log p_\theta(y_t\mid x,y_{<t})
+$$
+
+训练前向使用参考答案的前缀，这叫 teacher forcing；因果 mask 允许一次前向并行计算多个位置的损失。推理时只能接上模型自己已经生成的 token，前缀出错会影响后续分布。常见指令 SFT 只对回答 token 计损失，具体是否包含 prompt、如何做序列打包，要看训练实现。
+
+交叉熵不会自动识别参考答案的逻辑错误：被保留的错误推断、重复和风格都会成为监督。Athanor 用约 6,900 条逻辑轨迹微调后专项诊断约 49 → 27，就是“看起来像推理”不等于“可作为正确监督”的例子。长 CoT 增加监督 token，也可能增加错误步骤；只验最终答案不能保证每一步正确。
+
+#### 训练序列上限：轨迹覆盖与计算成本
+
+数据的**行数、token 数、epoch、optimizer step、最大序列长度**是不同量。epoch 是遍历数据的轮数；一个 optimizer step 可积累多个 microbatch。16k 序列上限不表示每条样本都有 16k token，packing 也可能把多条短样本放到一个序列中。数据行占比不能直接当成 token / loss 权重：10,000 条平均 200 token 的回答约 2M token，1,000 条平均 8,000 token 的回答约 8M token。此例仅说明计量差异，不是 Athanor 的实际长度统计。
+
+Athanor 的 [Table 11](https://arxiv.org/pdf/2610.21055v1#page=32) 报告首轮 SFT **序列最长 16,384 token**，没有给出 8k / 16k / 32k 的训练长度对照。其主语料含长推理轨迹，因此“保留完整过程与结论，同时控制资源成本”是合理的工程解释，不能写成作者已经证明 16k 最优。后期 Agent 检查大逻辑题时，发现自己的正确解往往需要 10k–16k token，因缺少短正确解放弃紧凑解法训练；这支持长轨迹覆盖的重要性，但不是首轮 SFT 长度选择的消融证据。来源：[附录 E 的 compact-solution 案例](https://arxiv.org/pdf/2610.21055v1#page=36)。
+
+训练最大序列长度通常约束模板、prompt 与参考回答拼接后的总长；生成时的 `max_new_tokens` 只约束新生成部分，模型支持的上下文上限又是另一层。本文训练器的具体拼接、packing、截断 / 丢弃策略未独立核验。若一个教学样本有 1k 题面、14k 推导与 100 token 结论，约 15.1k 的完整序列可以放进 16k，放不进 8k；截断可能丢结论，过滤则会减少长题覆盖，分块还需处理前文依赖。
+
+对固定宽度的标准稠密 attention，一条填满的序列从 8k 加到 16k，attention 配对计算约增至四倍；这不等于整轮训练必然四倍，实际还取决于总 token 预算、短样本比例、batch、packing 与 kernel。FlashAttention 减少显存读写及注意力矩阵的存储开销，也没有消除所有长序列计算成本。来源：[FlashAttention](https://arxiv.org/abs/2205.14135v2)。因此应先看 tokenization 后的长度分布及长样本的任务价值，再在同等预算下比较长度上限、完成率和 held-out 表现；不能把更长上限本身当作更强能力。
+
+#### 数据工程与微调流程
 
 * 数据工程是 SFT 的核心
 * 如何提升数据数量和质量是数据工程的核心
   - 从 0 到 60 分：习得输出的模板，激发预训练中习得的知识
   - 从 60 到 100 分：提升推理、生成和知识性能力，进一步对齐人类的期望
 * 在未来，如何保证数据的**多样性**和**可扩展性**是 SFT 成功的关键
+* **把后训练看作配方搜索**：SFT、GRPO、权重合并与自蒸馏可以成为外层研究的可组合动作。Athanor 的案例中，内层算法更新模型权重，外层 Agent 根据多能力反馈选择数据、超参数、训练顺序及父 checkpoint；通过程序验对后，每题保留四个采样中的最短正确回答再微调，是其自蒸馏方式。短答案筛选不能代替数据正确性核验，权重外推也不保证每项能力一起提高。具体公式、四阶段原图和失败案例见 [Athanor：自主后训练的配方搜索与实验谱系](./AI-Applied-Algorithms.md#athanor自主后训练的配方搜索与实验谱系)。
 * 如何做finetune
   * 流程和DL的训练差不多
     * 数据预处理阶段，会加载tokenizer，将文本转token ids
@@ -3182,7 +3248,9 @@ API 返回的文本作为固定标签；梯度通过开源学生与生成的 ada
     * OpenAI: 1.3w条SFT prompt
     * embedding：至少10w条数据，相似性和同义性
 
-### Literature Review
+这里的“从 0 到 60 分”和数据量数字是原笔记的经验性抓手，不是通用能力刻度或最低样本定理。实际数据量要结合任务覆盖、标签可靠性、基座、训练预算及 held-out 学习曲线判断。
+
+#### 方法与研究线索
 
 * finetuning分类
   * full：Training Language Models to Follow Instructions with Human Feedback
@@ -3196,7 +3264,120 @@ API 返回的文本作为固定标签；梯度通过开源学生与生成的 ada
 * fine-tuned LLMs fail to learn from examples
   * DAIL-SQL
 
-### LoRA
+#### Instruction tuning
+
+##### Intro
+
+* 典型例子ChatGPT
+
+* 提升模型泛化能力
+
+![image-20251002023902315](./AI-Algorithms/image-20251002023902315.png)
+
+##### Literature Review
+
+* Zero-shot training of retrievers.
+  * 克服没见过的任务的query难点
+    * 无监督：leveraging another model to automatically generate training data (Wang et al., 2022a).[TRwI]
+    * 生成label（template-based)：Dai et al. (2022) use task-speciﬁc templates and few-shot samples to automatically generate in-domain training queries given randomly sampled documents from the target corpus using
+      FLAN (Wei et al., 2022a)..[TRwI]
+
+* Instruction Tuning
+
+  * Weiet al., 2022a; Sanh et al., 2022; Ouyang et al., 2022; Min et al., 2022; Wang et al., 2022b; Mishra et al.,
+    2022; Chung et al., 2022 .[TRwI]
+  * 缺少指令tuning的retrieval[TRwI]
+    * 缺少标注数据集
+    * llm生成海量emb的成本高
+    * Retrieval with descriptions的路线：效果一般
+
+  * dataset scale提升instruction的泛化能力
+    * Recent work (Wang et al., 2022b; Chung et al., 2022)
+      show that scaling up the number of the training
+      datasets improves LLMs' ability to adapt to new
+      task via instructions. We open-source our instruc-
+      tion data and call for community efforts to collect
+      more retrieval tasks and human-written instructions
+      as in instruction-following for LMs (Wang et al.,
+      2022b; Bach et al., 2022), to investigate whether
+      further increasing the number of the datasets (e.g.,
+      more than 100 datasets) improves zero-shot and
+      cross-task retrieval. [TRwI]
+
+##### 组合泛化 + 大参数量：1+1>2
+
+![image-20251002024429291](./AI-Algorithms/image-20251002024429291.png)
+
+##### Alpaca & Vicuna: 数量 v.s. 质量
+
+![image-20251002025358987](./AI-Algorithms/image-20251002025358987.png)
+
+![image-20251002025703039](./AI-Algorithms/image-20251002025703039.png)
+
+![image-20231025213448602](./AI-Algorithms/alpaca.png)
+
+##### LIMA: Less Is More For Alignment
+
+![image-20251002030109269](./AI-Algorithms/image-20251002030109269.png)
+
+![image-20251002030131953](./AI-Algorithms/image-20251002030131953.png)
+
+![image-20251002030145476](./AI-Algorithms/image-20251002030145476.png)
+
+##### UltraChat: Scalable Diversity的数据集
+
+![image-20251002030324827](./AI-Algorithms/image-20251002030324827.png)
+
+![image-20251002030504238](./AI-Algorithms/image-20251002030504238.png)
+
+![image-20251002030443463](./AI-Algorithms/image-20251002030443463.png)
+
+##### Orca：从传统NLP任务中挖掘指令数据
+
+![image-20251002030655684](./AI-Algorithms/image-20251002030655684.png)
+
+
+
+
+
+#### Alignment
+
+https://github.com/tatsu-lab/stanford_alpaca
+
+指令微调是什么? - superpeng的回答 - 知乎
+https://www.zhihu.com/question/603488576/answer/3178990801
+
+* 指令微调是一种特定的微调方式，在不同的论文中以不同的方式引入。我们在一个新的语言建模任务上对模型进行微调，其中的示例具有额外的结构，嵌入到模型提示中。
+  * 先无监督训练，再用有监督的"指令-回答"预料
+  * 指令调整模型接收一对输入和输出，描述引导模型的任务。
+* 核心思路：解决"回答问题"与"接话"的差异
+* Note：
+  * 数据获取昂贵（RLHF人工打分的成本比人工写故事要低）
+  * 对开放性问题效果不好（write a story about ...）
+
+#### FoodGPT: A Large Language Model in Food Testing Domain with Incremental Pre-training and Knowledge Graph Prompt
+
+* Incremental Pre-training 增量预训练
+  * 图像和扫描文档
+    * 存储大量领域标准文档信息，使用 OCR 技术处理。因文档可能超模型训练序列长度，按章节拆分，为防描述冲突，给数据章节添加前缀（通过 UIE 模型提取文档名，启发式生成方法构建前缀）。同时用 BERT 和 GPT - 2 计算文本章节中句子的困惑度，排除高困惑度句子。
+  * 结构化知识
+    * 存在于私有结构化数据库，由人工输入的表格组成。创建 Datav1 和 Datav2 两个版本用于增量预训练。Datav1 去除机密隐私信息后用字典构建数据，以 "测试项目" 为键，对应多个具体测试项目的表格（markdown 格式）为值；Datav2 采用新方法序列化，去除机密隐私信息后合并部分无单独意义的字段，输入 ChatGPT 按规则随机生成文本。
+  * 其他类型数据
+    * 包括食品检测字典、中国食品检测教程和研究论文、食品情感数据、食品安全相关法律、食品安全相关考题等，选择 Chinese - LLaMA2 - 13B 为基础模型，用 LoRA 方法进行增量预训练。
+
+* Instruction Fine-tuning
+
+  - 数据集构建
+    - 通过两种方式构建指令微调数据集。一是从食品论坛选取相关主题，抓取大量问答对，优先选择发帖频率高的用户以确保高质量答案；二是与食品检测领域专家合作设计 100 个高质量种子指令，用 evol - instruct 方法扩展和多样化。
+
+  - 训练过程
+    - 用 LoRA 方法对 Chinese - LLaMA2 - 13B 的指令进行微调。
+
+### 参数高效适配：更新哪些参数
+
+全参数与 LoRA 回答“允许改哪些参数”，SFT 与 RL 回答“用什么目标改”；两条轴线独立。小参数量不等于只适合 SFT，也不等于整个训练过程只占相同比例的显存。
+
+#### LoRA
 
 ![image-20231026212212239](./AI-Algorithms/LoRA.png)
 
@@ -3227,7 +3408,7 @@ https://github.com/huggingface/peft
   * https://lightning.ai/lightning-ai/studios/code-lora-from-scratch?view=public&section=featured
   * 效果比只训练最后两层好
 
-### Prefix Tuning & P-Tuning
+#### Prefix Tuning & P-Tuning
 
 | 特性 | Prefix Tuning | P-Tuning v1 | P-Tuning v2 |
 | :--- | :--- | :--- | :--- |
@@ -3238,7 +3419,7 @@ https://github.com/huggingface/peft
 | **适用任务** | NLG (生成) | NLU (分类/LAMA) | **全能** (NLU+NLG) |
 | **微调参数量**| 0.1% ~ 3% | <0.1% | 0.1% ~ 3% |
 
-#### Prefix Tuning
+##### Prefix Tuning
 
 *   **核心思想**: 在 Transformer 的**每一层** Multi-Head Attention 的 Key/Value 之前拼接可训练的 prefix 向量。
     *   公式：$$ h_i = \text{Transformer}(z, h_{<i}) $$，其中 $$z$$ 是 prefix。
@@ -3250,7 +3431,7 @@ https://github.com/huggingface/peft
     *   NLG 任务（如 GPT-2 生成）效果极好。
     *   NLU 任务上效果一般。
 
-#### P-Tuning v1
+##### P-Tuning v1
 
 *   **核心思想**: 将自然语言 Prompt 替换为**可学习的连续 Embedding**，仅插入在**输入层**。
 *   **Prompt Encoder**:
@@ -3258,7 +3439,7 @@ https://github.com/huggingface/peft
     *   使用 **LSTM/MLP** 对 pseudo embeddings 进行建模，使得 Prompt token 之间具有依赖关系。
 *   **局限**: 由于只在输入层修改，对于深层模型（如 100+ 层的 LLM），Prompt 的影响力随着层数加深而迅速衰减，导致在复杂的 NLU 任务（如序列标注）上表现不佳。
 
-#### P-Tuning v2
+##### P-Tuning v2
 
 *   **核心思想**: **Deep Prompt Tuning**。吸取 Prefix Tuning 的"深层"思想，解决了 v1 的痛点。
 *   **机制**:
@@ -3269,7 +3450,7 @@ https://github.com/huggingface/peft
     *   **解决难题**: 在序列标注（Sequence Labeling）等硬 NLU 任务上表现大幅提升。
     *   **适用性**: 在小模型（如 300M）到大模型上都有效（v1 在小模型上效果差）。
 
-#### P-tuning vs Prompt Engineering 本质区别
+##### P-tuning vs Prompt Engineering 本质区别
 
 *   **Prompt Engineering (Hard Prompt)**:
     *   **离散空间搜索**: 在人类可读的自然语言空间中寻找最佳 Token 组合（如 "Translate this to French:"）。
@@ -3282,6 +3463,8 @@ https://github.com/huggingface/peft
     *   **优势**: 突破了自然语言的离散限制，能找到人类语言无法描述但对模型最优的"触发器"。
 
 ### Mid Training
+
+本节保留所引文章对 Agent-Native Data 的主张与实验叙述。其中“Post-training 无法创造未见能力”“未知缺口再多后训练也无济于事”是作者的强判断，不是普遍成立的能力边界定理。Mid-training 与 post-training 的阶段命名、数据分布及计算预算需要分别核对；更可靠的问题是特定数据与更新能否带来未见任务上的可验证增益。下文 Interplay 的阈值也只属于该合成实验设定。
 
 #### 为什么 Mid-training 在 Agent 时代变得如此关键？
 
@@ -3379,120 +3562,73 @@ https://github.com/huggingface/peft
 
 
 
-### Instruction tuning
+<a id="rlhf----基于人类反馈的强化学习"></a>
 
-#### Intro
+### RLHF 与 RLVR：奖励来源和更新算法
 
-* 典型例子ChatGPT
+RLHF 使用人类偏好及其训练出的奖励信号；RLVR 使用答案检查、代码测试、格式约束等可验证奖励。两者都可以采用不同 RL 算法，GRPO 也不要求奖励一定来自规则。在 Athanor 中，GRPO 的主要反馈是程序 / 规则打分。
 
-* 提升模型泛化能力
-
-![image-20251002023902315](./AI-Algorithms/image-20251002023902315.png)
-
-#### Literature Review
-
-* Zero-shot training of retrievers.
-  * 克服没见过的任务的query难点
-    * 无监督：leveraging another model to automatically generate training data (Wang et al., 2022a).[TRwI]
-    * 生成label（template-based)：Dai et al. (2022) use task-speciﬁc templates and few-shot samples to automatically generate in-domain training queries given randomly sampled documents from the target corpus using
-      FLAN (Wei et al., 2022a)..[TRwI]
-
-* Instruction Tuning
-
-  * Weiet al., 2022a; Sanh et al., 2022; Ouyang et al., 2022; Min et al., 2022; Wang et al., 2022b; Mishra et al.,
-    2022; Chung et al., 2022 .[TRwI]
-  * 缺少指令tuning的retrieval[TRwI]
-    * 缺少标注数据集
-    * llm生成海量emb的成本高
-    * Retrieval with descriptions的路线：效果一般
-
-  * dataset scale提升instruction的泛化能力
-    * Recent work (Wang et al., 2022b; Chung et al., 2022)
-      show that scaling up the number of the training
-      datasets improves LLMs' ability to adapt to new
-      task via instructions. We open-source our instruc-
-      tion data and call for community efforts to collect
-      more retrieval tasks and human-written instructions
-      as in instruction-following for LMs (Wang et al.,
-      2022b; Bach et al., 2022), to investigate whether
-      further increasing the number of the datasets (e.g.,
-      more than 100 datasets) improves zero-shot and
-      cross-task retrieval. [TRwI]
-
-#### 组合泛化 + 大参数量：1+1>2
-
-![image-20251002024429291](./AI-Algorithms/image-20251002024429291.png)
-
-#### Alpaca & Vicuna: 数量 v.s. 质量
-
-![image-20251002025358987](./AI-Algorithms/image-20251002025358987.png)
-
-![image-20251002025703039](./AI-Algorithms/image-20251002025703039.png)
-
-![image-20231025213448602](./AI-Algorithms/alpaca.png)
-
-##### LIMA: Less Is More For Alignment
-
-![image-20251002030109269](./AI-Algorithms/image-20251002030109269.png)
-
-![image-20251002030131953](./AI-Algorithms/image-20251002030131953.png)
-
-![image-20251002030145476](./AI-Algorithms/image-20251002030145476.png)
-
-##### UltraChat: Scalable Diversity的数据集
-
-![image-20251002030324827](./AI-Algorithms/image-20251002030324827.png)
-
-![image-20251002030504238](./AI-Algorithms/image-20251002030504238.png)
-
-![image-20251002030443463](./AI-Algorithms/image-20251002030443463.png)
-
-##### Orca：从传统NLP任务中挖掘指令数据
-
-![image-20251002030655684](./AI-Algorithms/image-20251002030655684.png)
-
-
-
-
-
-### Alignment
-
-https://github.com/tatsu-lab/stanford_alpaca
-
-指令微调是什么? - superpeng的回答 - 知乎
-https://www.zhihu.com/question/603488576/answer/3178990801
-
-* 指令微调是一种特定的微调方式，在不同的论文中以不同的方式引入。我们在一个新的语言建模任务上对模型进行微调，其中的示例具有额外的结构，嵌入到模型提示中。
-  * 先无监督训练，再用有监督的"指令-回答"预料
-  * 指令调整模型接收一对输入和输出，描述引导模型的任务。
-* 核心思路：解决"回答问题"与"接话"的差异
-* Note：
-  * 数据获取昂贵（RLHF人工打分的成本比人工写故事要低）
-  * 对开放性问题效果不好（write a story about ...）
-
-### FoodGPT: A Large Language Model in Food Testing Domain with Incremental Pre-training and Knowledge Graph Prompt
-
-* Incremental Pre-training 增量预训练
-  * 图像和扫描文档
-    * 存储大量领域标准文档信息，使用 OCR 技术处理。因文档可能超模型训练序列长度，按章节拆分，为防描述冲突，给数据章节添加前缀（通过 UIE 模型提取文档名，启发式生成方法构建前缀）。同时用 BERT 和 GPT - 2 计算文本章节中句子的困惑度，排除高困惑度句子。
-  * 结构化知识
-    * 存在于私有结构化数据库，由人工输入的表格组成。创建 Datav1 和 Datav2 两个版本用于增量预训练。Datav1 去除机密隐私信息后用字典构建数据，以 "测试项目" 为键，对应多个具体测试项目的表格（markdown 格式）为值；Datav2 采用新方法序列化，去除机密隐私信息后合并部分无单独意义的字段，输入 ChatGPT 按规则随机生成文本。
-  * 其他类型数据
-    * 包括食品检测字典、中国食品检测教程和研究论文、食品情感数据、食品安全相关法律、食品安全相关考题等，选择 Chinese - LLaMA2 - 13B 为基础模型，用 LoRA 方法进行增量预训练。
-
-* Instruction Fine-tuning
-
-  - 数据集构建
-    - 通过两种方式构建指令微调数据集。一是从食品论坛选取相关主题，抓取大量问答对，优先选择发帖频率高的用户以确保高质量答案；二是与食品检测领域专家合作设计 100 个高质量种子指令，用 evol - instruct 方法扩展和多样化。
-
-  - 训练过程
-    - 用 LoRA 方法对 Chinese - LLaMA2 - 13B 的指令进行微调。
-
-## RLHF -- 基于人类反馈的强化学习
+与 SFT 不同，模型先生成候选，再用奖励改变这些候选的相对概率；验证器无需对模型可微。奖励可靠性、题目难度和 rollout 覆盖决定有没有可学信号，更新算法负责把信号转换成参数梯度。详细公式、critic 与 reference 的区别、同题四回答手算及 greedy 混合见 [Reinforcement-Learning：GRPO](./Reinforcement-Learning.md#grpo-group-relative-policy-optimization--deepseekmath)。
 
 * 参考「Reinforcement-Learning」
 
+### 蒸馏、自蒸馏与拒绝采样微调
+
+蒸馏描述监督由教师产生或教师分布提供；它可以拟合 soft logits，也可以直接用教师生成的文本做 SFT。自蒸馏的教师来自模型自身或自身已有 checkpoint；Athanor 的做法属于**生成文本、验证筛选、再做监督微调**，没有要求访问教师 logits。STaR 是相关先例，还包含给出正确答案后重新生成推理的步骤，不能把它的完整流程等同于 Athanor。来源：[STaR](https://arxiv.org/abs/2203.14465v2)、[Athanor §5.1](https://arxiv.org/pdf/2610.21055v1#page=12)。
+
+Athanor 的 rejection-sampling fine-tuning（RFT）为：
+
+```text
+对训练题 x，从当前 checkpoint 生成四个回答
+    -> 用规则 / 程序检查正确性
+    -> 没有正确回答：本轮不保留该题
+    -> 有正确回答：保留最短的正确回答
+    -> 用保留的 (x, y) 数据做 SFT
+```
+
+这里 RFT 指 rejection-sampling fine-tuning；不能只看到缩写就理解成 reinforcement fine-tuning。“拒绝采样”在这里描述训练样本筛选，也不同于推测解码里为恢复目标分布所用的接受 / 拒绝校正。
+
+| 方法 | 答案来源与信号 | 最终怎样更新 |
+| --- | --- | --- |
+| 普通 SFT | 给定参考回答 | 拟合参考 token |
+| GRPO | 同题多个回答及组内奖励差异 | 用相对 advantage 调整概率；低分回答可能得到负信号 |
+| 本文 RFT | 自身生成、被验证器接受的回答 | 对保留回答做 SFT；丢弃错误回答不等于给它们显式负 advantage |
+
+为什么自己教自己仍可能进步？模型一次作答不稳定，但多次尝试可能产出正确答案；外部验证器将这些答案筛出，SFT 再把分散的成功行为变得更常见。若每次独立、同分布采样的成功概率为 p，四次至少成功一次的概率为：
+
+$$
+P(\text{至少一个正确})=1-(1-p)^4
+$$
+
+例如单次 20%，四次覆盖约 59.04%；这只是独立采样下的候选覆盖率，不是训练后准确率，更不是已知哪个回答正确。greedy 重复四次通常没有这样的独立多样性。没有可采样的正确解、验证器误判、筛选只覆盖易题，都会限制自蒸馏。
+
+最短正确回答是先按正确性筛选，再按长度选择；它不是直接奖励所有短回答。好处是节约输出预算，代价可能是删去有助于迁移的推导、偏向容易被程序验对的短路径。Athanor 第一轮受益、后续趋缓，说明这条回路不保证每轮增长。没有在线调用外部教师，也不代表训练数据没有继承强模型的知识：其主 SFT 语料本身就是公开蒸馏数据。
+
 ## 预训练小模型、模型融合
+
+### 权重平均与任务向量外推
+
+模型融合操作的是参数；ensemble 操作的是多个模型的输出。对同一基座出发、结构和参数坐标一致的模型，可以尝试加权平均：
+
+$$
+\theta_{\mathrm{merge}}=\sum_{i=1}^{K}\alpha_i\theta_i,
+\qquad \sum_{i=1}^{K}\alpha_i=1
+$$
+
+当权重非负时，它是这些模型之间的凸组合。融合完成后仍是一个同样大小的模型，不会因为合并了三份权重就有三倍参数。它通常不能等价为三个模型预测的平均，也不保证三种能力同时保留。相同架构、同一基座有助于坐标对齐，但仍需验证训练分支是否兼容、是否发生能力干扰。来源：[Model soups](https://arxiv.org/abs/2203.05482v3)。
+
+把微调变化看作 task vector，再尝试沿这一方向外推：
+
+$$
+\Delta=\theta_{\mathrm{merge}}-\theta_{\mathrm{base}},\qquad
+\theta_f=\theta_{\mathrm{base}}+f\Delta
+$$
+
+系数 0 对应基座、1 对应合并模型，1.2 表示把相对基座的变化放大 20%；它不表示准确率也增加 20%。一个纯代数例子：某参数基座为 10，两个分支为 11 和 13，等权合并为 12，按 1.2 外推后为 12.4。真实模型要同时处理大量参数，损失面非线性，数字例子不能证明效果。
+
+[Task Arithmetic](https://arxiv.org/abs/2212.04089v3) 研究这样的权重差与算术操作；Athanor 用 1.2–1.3 外推时出现逻辑上升、知识下降，恰好说明参数方向并不等于可独立相加的能力方向。完整例子见 [Athanor 的合并谱系](./AI-Applied-Algorithms.md#四阶段配方与跨-agent-继承)。融合 / 外推本身无需反向传播，但需要读写权重并重新评测；不能把“零训练步”换成“零成本”。
+
+### 预训练小模型的研究线索
 
 TODO [前阿里、字节大模型带头人杨红霞创业：大模型预训练，不是少数顶尖玩家的算力竞赛｜智能涌现独家](https://mp.weixin.qq.com/s/v0ZEgpyJxjgTzbsyHTLI8g)
 

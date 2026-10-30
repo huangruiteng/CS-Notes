@@ -125,10 +125,13 @@ class PriorityTaskReader:
                 status_icon = "🚀" if task.get("status") == "in-progress" else "⏸️"
                 assignee = task.get("assignee", "unknown")
                 title = task.get("title", "")[:80]
+                codex_triage = task.get("codex_triage", "")
                 
                 print(f"\n  {i}. {status_icon} [{task.get('id', '')}]")
                 print(f"     标题: {title}")
                 print(f"     负责人: {assignee}")
+                if codex_triage:
+                    print(f"     Codex 分类: {codex_triage}")
                 if task.get("feedback_required"):
                     print(f"     ⚠️ 需要用户确认")
         
@@ -140,10 +143,19 @@ class PriorityTaskReader:
         """获取下一个应该执行的任务（支持获取多个）
         
         自主推进时只返回 pending 状态的任务，避免多 session 冲突
+        同时考虑 codex_triage 元数据，排除 user_or_environment_blocked 等
         """
         next_tasks = []
         for task in tasks:
-            if (task.get("assignee") == "ai" and 
+            # 检查 codex_triage 元数据
+            codex_triage = task.get("codex_triage", "")
+            
+            # 排除明确标记为阻塞或已合并的任务
+            if "user_or_environment_blocked" in codex_triage or "merged_into_codex_todo_system_v2" in codex_triage:
+                continue
+            
+            # 基本条件：AI 负责、不需要用户确认、pending 状态
+            if (task.get("assignee") in ["ai", "codex"] and 
                 not task.get("feedback_required") and 
                 task.get("status") == "pending"):
                 next_tasks.append(task)

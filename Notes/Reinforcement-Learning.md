@@ -787,7 +787,7 @@ SFT 使用外部答案作为标签，优化会把模型推向标注分布；如�
 ### PPO
 
 * 核心思路是clipping
-  * 限制了每次参数更新的幅度，确保新的策略（更新后的模型）与旧的策略（更新前的模型）不会相差太远
+  * 在 surrogate objective 中抑制 sampled action 的概率比向有利方向变化过大；这不是参数步长或整个策略 KL 距离的硬约束，不能保证一次更新后策略必然足够接近。
 
 ![image-20250504001256092](./Reinforcement-Learning/image-20250504001256092.png)
 
@@ -842,7 +842,7 @@ r_t 太大  -> 不再继续奖励更激进的概率提升
 r_t 太小  -> 不再继续奖励更激进的概率压低
 ```
 
-所以 PPO 的本质不是“找到最优更新”，而是 **在用 rollout 数据改进 policy 时，限制新策略不要离旧策略太远**。这也是它叫 Proximal Policy Optimization 的原因：只在旧策略附近做可靠的小步优化。
+PPO 的设计意图是**用 rollout 数据改进 policy，同时抑制相对旧策略的过激更新**。clipping 是目标函数上的保守机制，实际仍需监测 KL、学习率和更新轮数，不能当作严格的 trust-region 保证。
 
 在 LLM RL 里，可以把每个 token / action 看成：
 
@@ -940,6 +940,8 @@ PPO 的 clip / trust-region 机制正是为了解决这个折中：
 
 > **DeepSeekMath Chpt 4，很好的材料**
 
+来源：[DeepSeekMath v3 §4.1](https://arxiv.org/html/2402.03300v3#S4.SS1)。以下以 outcome-supervision 的组内 advantage 为主；process reward、长度归一化、是否采用 KL 等可有不同实现，不将简化公式等同于所有 GRPO trainer。
+
 ![image-20250504001047002](./Reinforcement-Learning/image-20250504001047002.png)
 
 * 核心特点：放弃 Critic 模型，省内存
@@ -955,9 +957,9 @@ PPO 的 clip / trust-region 机制正是为了解决这个折中：
 
 * 目标函数：
   * 重要性采样 (importance sampling) 的比率。它衡量了当前策略 πθ 生成输出 oᵢ 的概率相对于旧策略 πθ_old 的变化。如果比率大于 1，表示当前策略更倾向于生成 oᵢ 。
-  * Ai是策略梯度项
-  * Min限制更新幅度
-  * KL 散度正则化项 ：这个项会惩罚 πθ 偏离 π_ref 太远。 β 是控制惩罚力度的超参数。这有助于防止模型在 RL 优化过程中忘记 SFT 阶段学到的知识（比如语言流畅性、基本事实等），保持模型的稳定性
+  * Ai 是相对 advantage，给策略梯度提供方向和权重，不是梯度本身。
+  * Min / clipping 抑制在 sampled token 上过度增加有利的概率比，不构成参数变化的硬上限。
+  * KL 正则惩罚 πθ 偏离 π_ref，β 控制惩罚权重。它约束输出分布，可能帮助控制漂移，但不保证保留每项知识或能力；有些变体不使用这一项。
 
 GRPO 的公式和 PPO 很像，仍然是 ratio + clipping，只是 advantage 的来源不同。PPO 通常需要 critic 估计 value，再得到 advantage；GRPO 不训练 critic，而是在同一个 prompt 下采样一组 responses，用组内 reward 的相对高低构造 advantage。
 
@@ -997,7 +999,7 @@ $$
 \hat{A}_i
 =
 \frac{r_i - \mathrm{mean}(\{r_1,\dots,r_G\})}
-{\mathrm{std}(\{r_1,\dots,r_G\})}
+{\mathrm{std}(\{r_1,\dots,r_G\})+\varepsilon_{\mathrm{num}}}
 $$
 
 公式可以这样读：
@@ -1009,7 +1011,7 @@ $$
 | $$r_i$$ | 第 $$i$$ 个 response 的 reward | 由规则、验证器或 reward model 打分 |
 | $$\hat{A}_i$$ | 组内相对 advantage | 这个回答比同组平均好还是差 |
 | $$r_{i,t}(\theta)$$ | 新旧策略在 token $$t$$ 上的概率比 | 新策略对这个 token 更想生成多少 |
-| $$\epsilon$$ | clip 阈值 | 限制更新幅度 |
+| $$\epsilon$$ | clip 阈值 | 截断有利的概率比变化，不是参数步长的硬上限 |
 | $$\beta D_{\mathrm{KL}}$$ | KL 约束 | 防止偏离 reference model 太远 |
 
 所以 GRPO 的核心直觉是：
@@ -1027,11 +1029,51 @@ $$
 | 维度 | PPO | GRPO |
 | --- | --- | --- |
 | baseline / advantage | 通常依赖 critic / value model | 用同组 responses 的 reward 均值和方差 |
-| 额外模型 | 需要 actor + critic | 只需要 policy，省掉 critic |
+| 额外模型 | 常见 actor-critic 实现包含 actor + critic | 省掉训练的 critic；仍可能有 reference policy、rollout 副本或 reward model |
 | 适合场景 | 通用 actor-critic RL | LLM reasoning / math / code 这类可同题多采样并打分的任务 |
 | 风险 | critic 训练贵且不稳 | group reward 方差、采样质量、reward 可靠性会影响 advantage |
 
-一句话：**GRPO 是把 PPO 中“critic 给 baseline”的部分，换成“同题多采样的组内相对比较”。** 它不是推翻 PPO，而是为了大模型 RL 省掉 critic，同时保留 ratio、clip、KL 这些稳定训练的护栏。
+GRPO 用**同题多采样的组内相对比较**替代训练 critic 估计 baseline，保留概率比与 clipping 等更新机制。reference policy 和 reward model 是否存在，要看具体奖励与正则配置；“不需要 critic”不能简写为“训练只涉及一个模型”。
+
+#### 同题四回答：advantage 如何变成学习信号
+
+假设一题生成四个回答，规则奖励为 `[1, 0, 0, 0]`。按总体标准差、忽略很小的数值稳定项手算：
+
+$$
+\bar r=\tfrac14,\qquad
+\sigma_r=\tfrac{\sqrt3}{4},\qquad
+\hat A=\left[\sqrt3,-\tfrac1{\sqrt3},-\tfrac1{\sqrt3},-\tfrac1{\sqrt3}\right]
+$$
+
+正确回答得到约 +1.732，其他回答约 -0.577。负 advantage 的含义是比**同题这一组**差，奖励本身仍是 0；不能把它误解为验证器直接提供了负分。若使用样本标准差，数值尺度会不同。
+
+忽略 clipping、KL 与采样校正时，策略梯度的直觉为：
+
+$$
+\nabla_\theta J\ \approx
+\mathbb E\!\left[\sum_i\hat A_i\sum_t
+\nabla_\theta\log\pi_\theta(y_{i,t}\mid x,y_{i,<t})\right]
+$$
+
+答案检查器无需可微；它给数值，梯度经过的是模型对已生成 token 的 log probability。结果奖励版可把同一相对 advantage 广播到回答的 token，但这不表示已经知道哪一步推理造成成功或失败。
+
+如果四个奖励全 0，或全 1，则中心化后的 reward advantage 都为 0；该组缺少相对学习信号，不能从全错中辨别“更接近正确”的答案。KL、辅助损失等仍可能产生梯度。题目太难、太易或回答高度重复，都会减少这种组内区分。
+
+#### Policy、old policy、reference 与验证器
+
+| 对象 | 职责 | 常见混淆 |
+| --- | --- | --- |
+| policy | 正在更新的模型 | 权重变动后，回答分布随之改变 |
+| old / rollout policy | 生成这批 rollout 的策略快照 | ratio 的分母围绕这批行为数据，不等于固定 SFT 起点 |
+| reference policy | KL 正则的参照，常从 SFT 初始化并冻结 | 与 old policy 的更新节奏和用途不同 |
+| critic / value model | 估计价值与 baseline | GRPO 省去此项，不等于删除其他副本 |
+| verifier / reward model | 给回答或步骤打分 | 规则 reward 不必有神经 reward model；能验最终答案不等于能验完整推理 |
+
+#### Athanor：解码改变训练会看见的失败
+
+[Athanor §5.1 / 附录 E.1](https://arxiv.org/pdf/2610.21055v1#page=34) 的 sampled rollout 很少循环，greedy 评测却经常循环。把每条回答的 greedy 概率从 0 改为 25% 后，循环回答得 0，同题若另有正确回答得 1，就能形成负 advantage；全组都失败时，这项机制仍不能凭空提供方向。
+
+这也涉及 on-policy 的边界：加入 greedy 后，行为分布是 greedy 与温度采样的混合，不能直接假设它仍等于未经解码变换的 policy 分布。概率比是否匹配实际行为分布、怎样做采样校正，需要核对 trainer；论文摘录没有给出该混合策略完整校正的证明，本笔记未独立核验实现。实验还同时更换了题集，所以“观察到改善”不等于识别了 greedy 比例的单独因果效应。完整轨迹见 [Athanor 研究个案](./AI-Applied-Algorithms.md#greedy-rollout一条可复核的失败修订轨迹)。
 
 * ![image-20250504001745451](./Reinforcement-Learning/image-20250504001745451.png)
   * 开源社区很长时间在做offline RFT，或者迭代式的，没有用online RFT
@@ -1100,13 +1142,15 @@ $$
 - reward 可以来自人类偏好、规则验证器、代码测试、数学答案、格式约束或 reward model。
 - 工程瓶颈不只是算法，还包括 rollout、生成吞吐、训推切换、样本复用和 reward 可靠性。
 
+学习目标与更新参数的范围、数据来源分开看。通用地图、SFT 交叉熵、蒸馏 / RFT 和权重融合见 [后训练与模型适配](./AI-Algorithms.md#后训练与模型适配)。RFT 的筛选之后通常还是 SFT，不能因为生成过回答、用了 reward，就自动称为策略梯度 RL。
+
 ### RLHF —— 基于人类反馈的强化学习
 
 #### Intro
 
-* 核心贡献：解决了“奖励信号模糊”的难题
+* 核心贡献：把人类偏好转为可用于优化的奖励信号；信号仍可能有偏差、分布外失效或被策略利用。
 
-  * RLHF 其实从某种意义上想像成一个 Offline RL 步骤，因为 reward model 的能力限制了 RL 算法完全 off-policy 的能力。当然，它所带来的 reasoning 能力已经是超过了超越传统监督学习的 Pre-training，但提升幅度仍然非常有限。所以 experience /exploration 的 online 运行是无法避开的重要步骤。
+  * 人类偏好数据可以离线收集，但固定 reward model 上的 policy 优化仍可在线生成 rollout；因此 RLHF 不能仅凭“有离线偏好数据”被归为 offline RL。reward model 的泛化限制与行为数据是否来自当前策略，是两个问题。来源：[InstructGPT](https://arxiv.org/abs/2203.02155)。
   * ![image-20251002031823547](./Reinforcement-Learning/image-20251002031823547.png)
 
   * ![image-20251002031905100](./Reinforcement-Learning/image-20251002031905100.png)
