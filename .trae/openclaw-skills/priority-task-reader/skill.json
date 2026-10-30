@@ -10,7 +10,7 @@
     "read"
   ],
   "config": {
-    "todos_json_path": "/Users/bytedance/CS-Notes/.trae/todos/todos.json",
-    "workspace": "/Users/bytedance/CS-Notes"
+    "todos_json_path": "/root/.openclaw/workspace/CS-Notes/.trae/todos/todos.json",
+    "workspace": "/root/.openclaw/workspace/CS-Notes"
   }
 }
