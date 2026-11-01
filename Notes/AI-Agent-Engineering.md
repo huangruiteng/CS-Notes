@@ -12,6 +12,7 @@
 | Sandbox / 远程执行控制面：不可信模型渠道的执行边界、环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
 | Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、子 Agent 合并、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[上下文边界与子 Agent 合并](#子-agent-的合并与保留上下文边界渐进加载与回归验收)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
+| 持续学习的服务闭环：经验回执、权重与 harness 更新、服务版本与学习起点分离 | [Reef 的经验、更新与发布](#持续学习的服务闭环reef-的经验更新与发布) |
 | Harness 涨分归因、能力持久化与执行反馈：同预算基线、任务内搜索与跨任务迁移、外置行为蒸馏进权重、变化规则的发现/复用/失效、旧能力回归、数据捷径、评测校准与选择偏差、冻结评测器、held-out 继承门禁、action block 静默丢弃 | [EdgeBench](./AI-Applied-Algorithms.md#edgebench持续环境学习的长程-agent-实验合同)、[ServeLearnBench](#servelearnbench从服务评分中发现复用与淘汰经验)、[Rethinking Harness Evolution](#rethinking-harness-evolution把可迁移改进与任务内搜索拆开)、[SoL-Pi](#sol-pi从开发轨迹搜索可迁移的-harness-效率机制)、[更新能力与使用收益](#harness-更新能力与使用收益)、[Harness-Zero](#harness-zero把外置-harness-行为蒸馏进权重)、[Claude build-eval / hillclimb](#claude-build-eval--hillclimb评测校准与防过拟合迭代)、[Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)、[RSI-Gym](#rsi-gym冻结评测器下的-harness-自我改进实验合同)、[工具执行的语义反馈](#工具执行的语义反馈让模型知道实际执行了什么) |
 | Muse：执行隔离、独立行动授权、工作流脚本与恢复条件 | [Secure VM / Sentinel](#muse-secure-vm-与-sentinel独立行动授权边界)、[Muse Code Workflows](#muse-code-workflows脚本编排与有条件恢复)；[Grok Bot / Muse 产品比较](./AI-Agent-Product&PE.md#agent-tobtoc-产品) |
 | Lorca：个人多设备 Agent，Device / Runner 分工、加密中继与执行权限 | [配对与信任边界](#lorca设备配对加密中继与执行权限)；[产品形态与发布状态](./AI-Agent-Product&PE.md#lorca本地运行手机操控的个人-agent-工作台) |
@@ -1189,6 +1190,174 @@ Goal 状态 → Effect 请求 → 权限 / Quota 解释
 **与 CH / Prime 的关系（2026-10）**：三者都把跨轮信息留在模型之外。按 [ServeLearnBench 的实验实现](#servelearnbench从服务评分中发现复用与淘汰经验)，CH 的行动与 Refiner 分层更接近 LoopX 的外置控制面；Prime 更接近自行维护文件、技能和代码的执行 runtime。LoopX 持有目标、任务、权限、证据与恢复状态，不能等同于自动学习器：Reward Memory 区分召回、采用与实际效用，效用投影只提出复核/衰减建议，不自动删除记忆或授予行动权限。能力代码改进走有边界的任务、验证与版本化启用。来源：[控制面架构](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/development/control-plane-course/02-goal-control-plane-architecture.md)、[经验消费](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/reward-memory-decision-consumption.md)、[效用投影](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/protocols/reward-memory-utility-projection-v0.md)。
 
 ### 评测、持续学习与 Harness 演化
+
+#### 持续学习的服务闭环：Reef 的经验、更新与发布
+
+> 来源：Ao Qu 的[发布长文](https://x.com/ao_qu18465/status/2094867930081337730)、[Reef 仓库](https://github.com/Human-Agent-Society/reef/tree/7bcfd1d7b686efac13f67c886723412cd8da87af)。以下实现与结果固定在 commit `7bcfd1d`，整理于 2026-11-01；已读原文、相关文档和关键代码，未重跑实验。
+
+**Agent 的一次使用，既交付一个结果，也产生可供学习的经验。基础设施应负责把这些经验变成可评估、可发布、可追溯的新版本。** Reef 将持续自我改进拆成可运行的系统流程；通用能力持续提升、递归自我改进仍需另行证明。
+
+传统“训练 → 评测 → 部署 → 推理”的顺序，被两个变化改写：
+
+- **使用过程不断生成学习材料。** 工具失败、用户返工、修复通过测试，都发生在部署之后；推理也在生产下一版本的训练材料。
+- **值得更新的不只有权重。** Prompt、memory、skill、工具和执行流程都会影响表现。模型与 harness 相互改变对方的最佳设计：模型变强可能让流程简化，工具改善也可能让原先做不到的任务变得可做。
+
+| 对象 | 基础设施需要回答什么 |
+| --- | --- |
+| 经验 | 哪次调用、哪个版本产生了什么结果？后来的反馈对应谁？ |
+| Agent | 修改权重，还是 prompt、memory、skill、工具与控制逻辑？ |
+| 更新 | 怎样生成候选、决定保留、发布和恢复旧版本？ |
+
+![Reef：推理服务产生经验，学习生成候选，评测与发布交回服务路径](./AI-Agent-Engineering/reef-serving-learning-release.png)
+
+图的上半部是服务路径，下半部是学习与发布路径；外部 Agent 仍负责执行任务和工具。图中 Evaluation 表示一个组件，是否实际运行性能评测、怎样决定上线，取决于 recipe 与激活配置。
+
+##### 经验关联：receipt 与 stateful inference
+
+1. Agent 调用兼容 OpenAI / Anthropic 的推理接口。
+2. Reef 保存请求、响应及**实际回答这次请求的版本**。
+3. 响应头返回调用记录回执 `x-reef-agent-record-id`。
+4. 应用通过 `/reef/report`，将后来的评分或反馈关联到回执。
+
+接口示意，非实验原始反馈：
+
+```json
+{
+  "score": 0,
+  "feedback": "声称测试通过，但没有实际运行测试",
+  "references": ["这次调用的回执 ID"]
+}
+```
+
+有些 recipe 直接从后续对话或工具结果提取信号，不要求应用另外上报评分。难点是维持正确关联，而不只是存聊天记录：
+
+| 情况 | 需要保留的关系 |
+| --- | --- |
+| 反馈迟到 | 投诉归属于产生回答的旧版本，不能标成收到投诉时的最新版本 |
+| 多调用任务 | 恢复会话和轨迹，理解某一步之后的用户反应或工具结果 |
+| 经验过时 | 根据样本对应版本判断 staleness；旧策略数据不一定适合当前训练 |
+| 记录重复 | 去重，避免重试、恢复和重复上报无意间放大学习权重 |
+
+这里的 **stateful inference** 保存经验、版本、学习进度和发布关系；不同于 KV cache，也不意味着每聊一句就更新权重。会话标记、版本关联、去重与 staleness 筛选帮助构造经验流，但不会自动完成信用分配，也不能消除所有 off-policy 偏差。[核心流程](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/getting-started/core-loop.rst)；[staleness 实现](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/reef/record2sample/staleness.py)。
+
+##### 学习方式：信号、经验获取与更新对象
+
+Reef 连接流程，recipe 决定怎样学。比较学习方法时，先拆三个维度：
+
+| 维度 | 要问什么 |
+| --- | --- |
+| 学习信号 | 用户反馈、执行结果、可验证奖励，还是模型自己生成的判断？ |
+| 经验获取 | 从日常任务中被动积累，还是主动生成实验、搜索候选？ |
+| 更新对象 | 权重、harness，还是两者？ |
+
+用户不断纠正回答风格，是从日常使用中学习；不断生成圆形摆放方案并检查得分，是主动获取经验。它们可以共用基础设施，学习问题却不同。
+
+| 更新对象 | 实际变化 | 部署时怎样生效 |
+| --- | --- | --- |
+| 模型权重 | checkpoint 或 LoRA | 推理引擎加载新权重 |
+| Harness | 规则、skills、commands，以及适配器支持的扩展代码等 | Agent 获取并加载新的 harness 文件 |
+
+当前仓库已调整为统一的 **harness tree、method/backend 和客户端流程**，原始文章中的 Cordis 安装方式不能直接作为最新版命令。接入闭源模型 API 不会获得修改其权重的能力。基础设施支持两种更新面，也不等于已证明自动联合演化：当前随仓库提供的 recipe 各自声明单一更新组件。[Harness 更新](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/evolve-your-harness.rst)；[模型更新](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/evolve-your-model.rst)。
+
+##### 可演化产物：harness tree 与适配器
+
+**Harness tree 是一棵保存 Agent 外部行为定义的文件目录树**，不是搜索树或任务分解树。这里的 text files 也包括源码：模型遵循的规则、可加载技能、命令模板，以及 runtime 执行的扩展代码，都可以成为版本化产物。路径约定如下；单次部署只使用当前适配器支持的部分：
+
+```text
+rules.md                         # 每个 session 读取的规则
+skills/<name>/SKILL.md            # 按需使用的技能
+commands/<name>.md               # 用户触发的命令提示词模板
+extensions/<name>.<ext>          # Agent 加载的扩展代码
+config/<target>.json             # 合并进指定配置文件的键
+native/{tools,hooks,graphs,agents,loops}/<name>
+                                 # Reef native runtime 的工具、hook、控制流、子 Agent、loop
+```
+
+一次演化修改的是文件内容。Patch 用“路径 → 新文本”表示新增或替换，用 `null` 表示删除；例如根据失败轨迹把 `rules.md` 中“完成前运行测试”细化为“按验收项调用真实接口、读取退出码与输出、修复后复测”。这是改动示意；实际公开的完成检查补丁见下文 Meta-Harness 案例。
+
+四个对象分别负责不同的事：
+
+| 对象 | 职责 |
+| --- | --- |
+| tree | 当前可编辑、可比较、可发布的一组文件 |
+| method | 读取 tree、轨迹/反馈和搜索状态，提出候选修改 |
+| backend | 承载演化方法的执行及候选生成过程 |
+| adapter / client | 把通用 tree 渲染为目标 Agent 支持的插件或配置，再安装、同步和运行 |
+
+因此，“改好了文件”到“Agent 行为改变”之间，还隔着适配器是否支持、runtime 是否加载，以及模型是否采用这些规则。当前 `codex` 适配器只支持 skill / command；Pi、Claude Code 等支持的组件更广，Reef 会拒绝无法归属支持组件的路径。**能力目录可移植，不代表任意代码能跨 runtime 运行，也不保证提示词会被遵循。** Endpoint、API key 和模型绑定由部署层在渲染时注入，tree 本身不决定模型请求发往哪里。[目录与适配器契约](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/evolve-your-harness.rst#the-harness-tree)。
+
+##### 发布控制：服务版本与学习起点分离
+
+示意：**v1 正在服务；训练得到 v2，但 v2 没获准上线。用户继续使用 v1，后续训练仍可能从 v2 出发。**
+
+这拆开了“现在让用户用哪个版本”与“下一轮研究从哪里继续”。研究中的临时退步不必立即影响用户，也不一定需要丢掉整段学习进展；是否沿未上线候选继续，仍由 recipe 判断。
+
+Reef 用 artifact 表示权重或 harness 文件，release 表示发布版本，保存追加式历史，并用 compare-and-swap 防止过时发布覆盖新版本。**能追溯、能控制，不等于新版本质量更好。** [状态与版本模型](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/advanced_topics/state-model.rst)。
+
+评测关卡需要单独检查：harness 的 `compare` 与当前版本比较，`floor` 只要求达到最低分，`none` 不跑任务评测；权重激活也支持直接激活、评测后激活或不自动激活。不能从架构图推断所有更新都通过了独立测试。[策略实现](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/reef/evaluation/harness/policy.py)。独立 evaluator 不等于独立 held-out 数据，反复用于选版本的分数仍可能过拟合。
+
+##### 学习信号：PRM 从后续反应判断上一步
+
+**PRM = Process Reward Model，过程奖励模型。** 它评估中间步骤，帮助把学习信号定位到较短的行动片段；不要求每个 token 都有独立评分，也不保证解决长期信用分配。通用概念见 [过程奖励与结果奖励](./Reinforcement-Learning.md#prm过程奖励与结果奖励)。
+
+Reef 的 OpenClaw-RL 按 **assistant turn** 判断：PRM 读取上一条完整 assistant 输出（可含 reasoning、正文和工具调用），以及随后的用户消息或工具结果及其 `role`，用后者作为证据。实际是两次独立判断：
+
+| 判断 | 问题 | 输出 |
+| --- | --- | --- |
+| Evaluative judge | 上一步是否满足当时意图、让任务如期推进？ | `+1` 好、`-1` 坏、`0` 模糊/证据不足 |
+| Hint judge | 后续状态有没有能帮助改善上一步的事后信息？ | 接受/拒绝提炼；接受时给 1–3 句 hindsight hint |
+
+示意：Agent 给出带大量列表的解答，用户说“不要列表，写成自然段，但保留计算过程”。第一路可给 `-1`，第二路仍可接受提示“用自然段说明计算，避免列表”。**Hint 被接受，指提示可用，不是用户接受了原回答；失败可以同时提供负奖励和有价值的监督。** 两路都基于后续证据，也不应把工具调用后才出现的信息当成模型行动前理应知道的事实。
+
+实现默认对评分采样 3 次，有效票相对多数决定奖励，并列或无有效票记 0；提示由独立调用收集、去重并筛选。PRM 不直接修改在线回答或更新参数：训练组件消费奖励做 PPO 风格更新，并将可用 hint 加入教师输入，使用冻结基座模型给出的 token 分布做 on-policy distillation（OPD）。教师是在学生轨迹上提供分布监督，不必另写一条完整正确答案。
+
+两条路径按监督来源区分，不是互斥的优化算法：Reef 的 top-K OPD 也用 PPO 风格 surrogate。前置知识按 [交叉熵与梯度](./Machine-Learning.md#交叉熵-cross-entropy) → [奖励怎样变成参数更新](./Reinforcement-Learning.md#策略梯度奖励怎样变成参数更新) → [PPO](./Reinforcement-Learning.md#ppo) → [OPD 的学生前缀与教师分布](./AI-Algorithms.md#opd在学生自己的轨迹上接受教师指导) → [双信号组合与源码差异](./Reinforcement-Learning.md#奖励与教师监督的组合以-openclaw-rl-为例)复习。
+
+调度保留两种信号的区别：有 hint 但奖励为 0 仍可做蒸馏；奖励非零但没有 hint 时保留无提示的基座分布作为 anchor；两者都没有则跳过。该实验的执行模型持续更新，PRM 是另行部署的冻结 Qwen3-4B，模拟用户是 Qwen3-32B；部署分开不代表判断误差独立。[PRM 提示词与投票](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/prm.py)；[两路信号的调度](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/judging.py#L180)；[训练信号说明](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/recipes/openclawrl.rst#how-reef-implements-it)。
+
+**判分 prompt 本身包含可争议的假设。** 当前规则把工具成功视为正反馈、修改要求视为负反馈；但命令成功不等于用户目标完成，新要求也可能是偏好变化，报错还可能来自有价值的诊断探针。PRM 提供更密的代理信号，仍需用最终任务结果和独立评测检查，不能把它的判断当作真实意图。
+
+##### 实验：跑通学习路径，与证明持续收益
+
+**OpenClaw-RL：从后续反应学习偏好。** 链条是“Agent 回答 → 学生接受或抱怨 → PRM 解读后续反应 → 形成奖励及事后纠正提示 → 累积样本更新权重 → 后续任务用新权重”。公开实验是 72 个 GSM8K session：Qwen3-4B-Thinking 执行，Qwen3-32B 模拟学生，偏好自然段落、无粗体或列表，同时要求正确答案及计算步骤；Hermes memory 关闭，每 16 个已判分 turn 更新。前 36 个 session 有 15 次首次解答被接受，格式习惯逐渐改变。图中 adaptation=14 是首次连续三次被接受的**起始索引**，不表示此后持续成功。缺少匹配的不训练对照，固定模拟偏好也不足以证明真实用户的长期个性化。[实验记录](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/examples/openclawrl/README.md)。
+
+**TTT-Discover：任务内搜索与 LoRA 同时推进。** Packing 32 在单位正方形中放入 32 个互不重叠的圆，最大化半径之和。模型产生构造程序，verifier 检查边界、重叠、数量并重新计算得分，不信任程序自报分数。每轮：
+
+1. 从保留的候选档案选择值得继续探索的方案。
+2. 围绕它们生成大量新程序，执行并验证。
+3. 保留有价值的候选，并根据这一轮奖励更新 LoRA。
+4. 用新权重和更新后的候选档案继续搜索。
+
+Qwen3-8B 的正式运行每轮 `8 × 64 = 512` 个 rollout，共 50 轮，两张 B200，最终约 2.939573，接近引用的 TTT-Discover 结果 2.939572。[复现记录](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/tttd/examples/tttd/README.md)。
+
+![Packing 32：前几轮取得大部分可见收益，随后长期平台](./AI-Agent-Engineering/reef-packing32-best-so-far.png)
+
+**对持续学习 demo 的判断：前几轮就完成大部分可见进步，后面长期平台，持续收益的证据并不扎实。** 平台期本身不能证明训练无效；更关键的是搜索、保留最佳候选与权重更新混在一起，缺少同预算固定权重搜索等对照，无法单独归因，也没有证明跨任务迁移。
+
+**Harness 的具体改动与检验边界。** Meta-Harness 的[实际补丁](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/meta_harness/results/reef_harness.py)在 `_get_completion_confirmation_message` 插入完成前检查：重读验收条件、检查最终文件、通过真实接口运行高信息量行为检查，发现矛盾后再修复。它让同一 Agent 复查，不是真正独立的第二位评审。30 题各两次，baseline 20/60，四轮候选依次 23/60、20/60、20/60、23/60，保留首轮胜出者；相同任务重新采样为 22/60，不能算未见任务泛化。[结果](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/meta_harness/RESULTS.md)。GEPA 示例则使用 45 train / 45 validation / 150 sealed-test 条目，说明合理隔离能在平台上实现，但必须由各 recipe 的实验合同落实。[GEPA 协议](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/gepa/examples/aime/README.md)。
+
+##### 与 LoopX 的结合思路：状态辅助决策，更新受控发布
+
+可探索的方向是 **稠密状态信息辅助决策、流程更可控、meta agent**，不是已验证的接入结果：
+
+- **稠密状态**：将任务、执行版本、工具结果、反馈、候选和验证结果关联起来，让决策能回到证据。信息完整不等于全部塞进上下文，仍需按角色和当前问题投影，见 [SLA 的状态与 focused context](./AI-Applied-Algorithms.md#stateless-language-agents把研究状态与角色上下文分开)。
+- **流程可控**：把“产生候选、评估、选择、启用”拆开，区分当前稳定版本与研究分支；失败可以不影响正在服务的版本。
+- **Meta agent**：依据轨迹和反馈选择下一次实验或提出 harness 改动；评分与发布条件留在外部流程，避免生成者自行宣布有效。Reef 的经验与学习链路、[LoopX 的外置控制状态](#loopx长程-agent-的本地控制面)可形成互补；能否改善决策和最终任务结果仍需对照实验。
+
+**更具体的结合点：Reef 用于 LoopX 的 capability evolving。** 将一次次 capability 执行产生的经验，转成下一版可复用能力的候选；演化对象可以包括该能力的指令、工具实现、工作流与恢复策略。评价目标是后续任务的成功率、成本和恢复表现，而不只是修好当前任务。以下是接入设想，尚未实现或验证。
+
+| 环节 | 可采用的分工 |
+| --- | --- |
+| 执行与经验 | LoopX 执行 capability，记录能力 ID/版本、任务条件、轨迹、工具结果与真实反馈；adapter 将这些事实关联到 Reef 的记录和 receipt |
+| 诊断与提案 | Reef 的 recipe / meta agent 读取经验，在限定的能力代码或文件副本上提出候选补丁；PRM 可辅助判断反馈，不是必要前提 |
+| 验证与选择 | 固定能力契约、评测器及预算，对比候选与当前稳定版本；开发反馈用于修复，验证集用于选择，最终留出集用于判断泛化 |
+| 启用与恢复 | Reef 保留候选及其证据，LoopX 的既有版本启用流程决定实际使用哪一版；新候选继续研究时，稳定版本仍可服务 |
+
+例如，若素材 capability 在一次队列更新中破坏了“公开视图是私有排序的保序子集”，只把眼前队列排回来是任务修复；定位到投影逻辑、修改实现，并在其他队列、插入/归档场景及并发更新下验证，才是在打磨可复用能力。输入给演化器的是触发条件、当时版本、反例和执行证据；预先固定的保序与不丢条目契约由外部验证，不能随候选一起改成更容易通过的标准。
+
+**接入单元应是有明确接口和评测面的 capability，而非整个 LoopX 仓库。** Skill / command 类变更可利用 Reef 已有 tree 适配；涉及能力源码、依赖、领域状态或协议时，需要专用 adapter/backend 将候选映射到可构建版本并接入 LoopX 的验证和启用流程，不能把现有 Codex 适配器当成任意能力热更新器。模型权重可先保持固定，以区分“能力实现变好”与模型训练收益。机制基础见 [Reef harness 演化流程](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/evolve-your-harness.rst#how-it-works)，实验约束接续 [RSI-Gym 的 capability mutation 与继承记录](#rsi-gym冻结评测器下的-harness-自我改进实验合同)；与同预算直接修复/搜索比较后，才能判断 Reef 带来的额外收益。
+
+与 [SoL-Pi](#sol-pi从开发轨迹搜索可迁移的-harness-效率机制)、[Harness-Zero](#harness-zero把外置-harness-行为蒸馏进权重)串起来看：前者研究怎样发现可复用的 harness 改进，后者研究怎样把行为变成权重监督，Reef 负责连接使用经验、学习方法与版本发布。
 
 #### EdgeBench / SForge：长程评测的状态、反馈与测量平面
 

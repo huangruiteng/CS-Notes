@@ -219,6 +219,19 @@ action_3 -> state_4 -> action_4 -> ... -> final reward
 
 最终 reward 可能要回传给很早之前的 action。LLM reasoning、multi-step tool use、机器人控制和游戏都存在这个问题。过程奖励（process reward）、value function、advantage estimation、paired replay、counterfactual branch，本质上都在解决不同形态的 credit assignment。
 
+#### PRM：过程奖励与结果奖励
+
+PRM（Process Reward Model，过程奖励模型）对推理或行动中的中间步骤给出评价；ORM（Outcome Reward Model，结果奖励模型）主要评价最终结果。两者首先区别在反馈落点，不要求采用不同模型架构。确定性测试程序也能提供结果或过程奖励，但不因此成为“奖励模型”。
+
+| 反馈粒度 | 例子 | 能帮助判断什么 |
+| --- | --- | --- |
+| 结果奖励 | 代码最终是否通过验收；数学题最后答案是否正确 | 整条轨迹是否成功，具体错误步骤仍需归因 |
+| 过程奖励 | 某步推导是否成立；一次回答/工具行动是否推动任务 | 更局部地定位值得鼓励或纠正的行为 |
+
+PRM 可以是经过程标注训练的模型，也可以由通用 LLM 按 judge prompt 承担这个角色；“过程”不等于逐 token，粒度可以是推导步骤、工具行动或整个 assistant turn。Reef 的 OpenClaw-RL 用**上一条 assistant 输出 + 下一条用户/工具反馈**判断该 turn，并独立提炼事后提示；负奖励与有用提示可以同时存在。[源码中的定义与评分规则](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/prm.py)；[Reef 的具体学习链路](./AI-Agent-Engineering.md#学习信号prm-从后续反应判断上一步)。
+
+更密的反馈缩短了信用分配跨度，却不保证评价正确：局部成功未必提高最终成功率，必要的探索失败也未必是坏行动；错误的过程奖励还可能被反复放大。奖励信号、提示监督和最终独立评测应分别记录，继续检查 [reward hacking](#reward-hacking)。
+
 ### Counterfactual branch
 
 Counterfactual branch 是为了回答一个问题：**如果刚才不做这个 action，结果会不会更好？**
@@ -287,11 +300,11 @@ RL:
 
 这也解释了为什么 SFT 更容易在 post-training 中带来 interference：它把参考答案的每个 token 都当成 dense label 来纠正，哪怕这些 token 只是风格、模板或外部标注者的表达偏好。对于语言模型来说，这等于在大量共享 dense 参数上施加外部分布牵引；如果参考分布和 base policy 差距很大，就可能覆盖原本的语言、知识或推理模式。
 
-RL / RLVR 的训练信号更稀疏：模型先按当前 policy 生成，再由 reward 判断整体结果好坏。很多和 reward 无关的 token 不会被强行改写，更新更容易集中在真正影响结果的决策点。这个性质不是显式正则项，却会产生一种 implicit regularization：只改变为了提高 reward 必须改变的部分。
+Outcome-only RL / RLVR 通常先由当前 policy 生成，再由 reward 判断整体结果，少了逐 token 拟合外部示范的牵引；在某些设置下，这能表现为 implicit regularization。但**稀疏反馈不意味着梯度自动只改关键 token**：如果整段回答共用一个 advantage，所有参与 loss 的 token 都会受到同方向的奖励加权，无关表达和正确步骤也可能被一起影响。是否更少遗忘，取决于信用分配、数据、更新幅度和约束，不能由“用了 RL”直接推出。
 
 ### Policy support / KL shift
 
-Policy support 指当前策略本来会给出较高概率的 action 区域。一个 action 如果在原 policy 下概率极低，却在 SFT 数据里频繁出现，训练就必须把大量概率质量搬过去。
+严格地说，policy support 是非零概率 action 的集合；工程讨论还常关心其中概率较高、实际能采到的有效区域。一个 action 如果在原 policy 下概率极低，却在 SFT 数据里频繁出现，训练就必须把大量概率质量搬过去。
 
 这个搬运可以用 KL shift 直观理解：
 
@@ -308,9 +321,9 @@ Forward KL 和 reverse KL 的直觉：
 | KL 方向 | 倾向 | 直觉 |
 | --- | --- | --- |
 | Forward KL | mode-covering | 尽量覆盖目标分布里出现过的行为 |
-| Reverse KL | mode-seeking | 更偏向选择当前高概率且高 reward 的模式 |
+| Reverse KL | mode-seeking | 避免给目标几乎不支持的行为分配概率，可能集中于少数目标模式 |
 
-这个差别能帮助理解为什么 behavior cloning 容易覆盖分布，而 on-policy RL 更像在当前 policy support 内做小步调整。
+这个差别描述目标函数对两种失配的惩罚方式；on-policy 描述数据由谁生成，二者是不同维度。策略梯度并不天然等于 reverse KL，on-policy 蒸馏也可以采用不同的分布匹配目标。
 
 更具体地说，SFT / behavior cloning 的最大似然训练常被直观理解为最小化目标数据分布到模型分布的 forward KL：
 
@@ -320,13 +333,13 @@ $$
 
 它最怕“目标数据中出现的模式被模型漏掉”，所以倾向于把多个模式都覆盖住。多模态分布下，这可能让模型在模式之间平均、迁移到自己原本很少会走的区域。
 
-而 on-policy policy-gradient 更新常被直观理解为更接近 reverse KL / KL-minimal improvement：
+在某些带 KL 正则化的策略优化中，可把改进解释为对奖励诱导目标的 reverse KL 最小化：
 
 $$
 D_{\mathrm{KL}}(\pi_\theta || \pi_{\mathrm{target}})
 $$
 
-它更怕“模型当前会生成的东西落到低 reward 区域”，所以倾向于在当前 policy support 内追高 reward 模式。这个区别不是说 RL 的目标函数字面上永远等于 reverse KL，而是说在 on-policy 采样和 reward-weighted update 下，RL 更像 model-seeking：优先改模型自己本来会走、且 reward 更高的路径。
+当目标分布由奖励与参考策略构造、并采用相应 KL 正则化时，这种解释才有明确的数学依据。直觉是避免模型生成目标不支持的行为；“高 reward”必须来自目标的定义，不能仅从 KL 方向推出。On-policy 采样使训练更多接触模型本来会走的路径，但不保证更新很小；幅度还由学习率、目标与约束决定。
 
 ### Rollout / trajectory / episode
 
@@ -784,67 +797,92 @@ SFT 使用外部答案作为标签，优化会把模型推向标注分布；如�
 
 当前 LLM 训练里最常见的是 policy-gradient / actor-critic 这一支，以及为大模型训练成本改造出来的 GRPO 等方法。
 
+### 策略梯度：奖励怎样变成参数更新
+
+语言模型的 policy 是“在当前上下文下，下一 token 的概率分布”。上下文 c_t 包含任务、历史消息与已生成前缀；模型参数为 θ，采到的 token 为 a_t。推理时采样动作，训练时重新前向计算这些动作的 log-prob，再通过 loss 反向传播；不需要对离散采样或外部评分器求导。
+
+单轮问题中，可把 advantage 理解为相对基线的收益：
+
+$$
+\hat A=R-b(c).
+$$
+
+R 是实际奖励，b(c) 是在行动前上下文下的预期基线；长期任务通常需要回报/价值估计，而非只减一个固定数。因此奖励为正仍可能低于基线，得到负 advantage。Reef 的 OpenClaw-RL 则直接把 PRM 原始分数作为 advantage，相当于这条路径未另做基线减除或组内标准化。
+
+最简 on-policy 策略梯度的单样本 surrogate loss 可写为：
+
+$$
+\mathcal L_{\mathrm{PG}}(\theta)
+=-\operatorname{stopgrad}(\hat A)\sum_t\log\pi_\theta(a_t\mid c_t).
+$$
+
+这里用一个回答级 advantage 作示意，省略 batch 归一化等；旧策略数据的复用还需考虑概率比修正。`stopgrad` 表示反向传播时把评分当作常数：梯度经过 log-prob 回到执行模型，不穿过 PRM、用户或测试程序。
+
+| advantage | 最小化 loss 的局部倾向 |
+| --- | --- |
+| 正 | 提高采样到的行为的概率 |
+| 负 | 降低采样到的行为的概率 |
+| 零 | 该项不提供更新信号，其他 loss 仍可能产生梯度 |
+
+若 p 是当前动作分布，z 是 logits，对单步采样动作 a 有：
+
+$$
+\frac{\partial\mathcal L_{\mathrm{PG}}}{\partial z_j}
+=\hat A\left(p_j-\mathbf 1[j=a]\right).
+$$
+
+例如把“列表 / 自然段 / 其他”抽象为三个动作，概率为 `(0.6, 0.3, 0.1)`；采到列表、advantage 为 -1，梯度为 `(0.4, -0.3, -0.1)`。梯度下降压低列表的 logit，提高其余两类，但**分数本身没有明确告诉模型，自然段才是更好的替代**。真实 LLM 的动作是 token，此例只用于说明概率更新方向。整段共用负分，还可能一起压低正确的计算步骤；这正是 [credit assignment](#credit-assignment) 的问题。
+
+参数更新使用通常的反向传播与优化器；“会读懂反馈”和“权重因此改变”之间，必须有这条训练路径。PPO 在这个思路上加入新旧策略概率比和 clipping；[教师分布监督](./AI-Algorithms.md#软标签蒸馏从答案文本到-token-分布)则能为多个候选提供更具体的方向。
+
 ### PPO
 
-* 核心思路是clipping
-  * 在 surrogate objective 中抑制 sampled action 的概率比向有利方向变化过大；这不是参数步长或整个策略 KL 距离的硬约束，不能保证一次更新后策略必然足够接近。
+PPO（Proximal Policy Optimization）在策略梯度的基础上，允许有限度复用刚采集的数据，并通过 clipping 抑制过激更新。旧策略先生成 rollout，训练期间保持其 log-prob 为比较基准；正在优化的策略则随梯度更新。[原论文](https://arxiv.org/abs/1707.06347)。
 
 ![image-20250504001256092](./Reinforcement-Learning/image-20250504001256092.png)
 
-PPO 的 clipped surrogate objective 常写成：
+#### 概率比与 clipping
+
+先看同一上下文、同一已采样动作的新旧概率比。用 ρ 表示 ratio，避免与奖励 R 混淆：
 
 $$
-L^{\mathrm{CLIP}}(\theta)
-=
-\mathbb{E}_t
-\left[
-\min
-\left(
-r_t(\theta)\hat{A}_t,
-\mathrm{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t
-\right)
-\right]
+\rho_t(\theta)=\frac{\pi_\theta(a_t\mid c_t)}
+{\pi_{\mathrm{old}}(a_t\mid c_t)}.
 $$
 
-其中：
+ρ 为 1，表示当前策略与旧策略对此动作给出相同概率；ρ 为 1.5，表示当前概率是原来的 1.5 倍。无 clipping 时，优化 ρA 会鼓励相对旧策略增加好动作、减少坏动作。PPO 最大化以下 surrogate objective；代码做梯度下降时取它的负号作为 loss：
 
 $$
-r_t(\theta)
-=
-\frac{\pi_\theta(a_t|s_t)}
-{\pi_{\theta_{\mathrm{old}}}(a_t|s_t)}
+J_{\mathrm{CLIP}}(\theta)
+=\mathbb E_t\left[\min\left(
+\rho_t\hat A_t,
+\operatorname{clip}(\rho_t,1-\epsilon,1+\epsilon)\hat A_t
+\right)\right],\qquad
+\mathcal L_{\mathrm{PPO}}=-J_{\mathrm{CLIP}}.
 $$
-
-公式可以这样读：
 
 | 符号 | 含义 | 直觉 |
 | --- | --- | --- |
-| $$\pi_{\theta_{\mathrm{old}}}$$ | 采样 rollout 时的旧策略 | 数据是它生成的 |
+| $$\pi_{\mathrm{old}}$$ | 通常是采样 rollout 的旧策略 | 当前这批数据的比较基准 |
 | $$\pi_\theta$$ | 正在更新的新策略 | 想让它更偏向好 action |
-| $$r_t(\theta)$$ | 新旧策略对同一 action 的概率比 | 新策略比旧策略更想做这个 action 多少 |
+| $$\rho_t(\theta)$$ | 同一上下文与 action 的新旧概率比 | 相对旧策略改变了多少 |
 | $$\hat{A}_t$$ | advantage | 这个 action 比当前平均水平好还是差 |
-| $$\epsilon$$ | clipping 阈值 | 限制每次 policy update 的步子 |
+| $$\epsilon$$ | clipping 阈值 | 哪个比例以外不再奖励继续朝有利方向移动 |
 
-如果 $$\hat{A}_t > 0$$，说明这个 action 比预期好，训练希望提高它的概率；如果 $$\hat{A}_t < 0$$，说明这个 action 比预期差，训练希望降低它的概率。
+以 ε=0.2、旧概率为 0.2 为例：
 
-不加 clipping 时，目标近似是：
+| advantage / 当前概率 | ρ | 无 clip 的 ρA | clipped objective | 含义 |
+| --- | --- | --- | --- | --- |
+| +1 / 0.22 | 1.1 | 1.1 | 1.1 | 鼓励提高好动作概率 |
+| +1 / 0.30 | 1.5 | 1.5 | 1.2 | 超过 1.2 后，该样本不再奖励继续增大 |
+| -1 / 0.10 | 0.5 | -0.5 | -0.8 | 低于 0.8 后，该样本不再奖励继续压低 |
+| -1 / 0.30 | 1.5 | -1.5 | -1.5 | 坏动作反而更常见，仍保留纠正压力 |
 
-$$
-r_t(\theta)\hat{A}_t
-$$
+`min` 保留更保守的目标值；裁剪发生在哪一侧与 advantage 的正负有关。不能只记成“任何 ratio 超范围都裁掉”。初始化时新旧概率相同，ρ=1，但分母固定、分子可导，所以仍有梯度。
 
-也就是“好 action 概率提高，坏 action 概率降低”。问题是如果一次更新让 $$r_t$$ 变化太大，policy 会突然偏离 rollout policy，训练变得不稳定，也容易 reward hacking。
+PPO 抑制的是**这个 surrogate objective 继续奖励过大的有利概率变化**，并非把所有概率硬限制在区间内，也不是参数步长或全策略 KL 的硬约束。共享参数、其他样本与其他 loss 仍可能推动它越界；实际要监测 KL、学习率和更新轮数。更新稳定也不代表 reward 正确，clipping 无法修复 reward hacking 的目标错配。
 
-PPO 的 `clip` 做的是保守更新：
-
-```text
-r_t 太大  -> 不再继续奖励更激进的概率提升
-r_t 太小  -> 不再继续奖励更激进的概率压低
-```
-
-PPO 的设计意图是**用 rollout 数据改进 policy，同时抑制相对旧策略的过激更新**。clipping 是目标函数上的保守机制，实际仍需监测 KL、学习率和更新轮数，不能当作严格的 trust-region 保证。
-
-在 LLM RL 里，可以把每个 token / action 看成：
+在 LLM RL 中，对应关系是：
 
 ```text
 state = prompt + previous tokens
@@ -852,7 +890,7 @@ action = next token / tool action / reasoning step
 advantage = 这段输出相对同组或 value baseline 的好坏
 ```
 
-PPO 更新的直觉就是：提高高 reward 输出中关键 token 的概率，降低低 reward 输出中相关 token 的概率，但每次变化不能太猛，通常还会加 KL penalty 约束模型不要偏离 reference model 太远。
+具体粒度由训练器决定；Reef 的 OpenClaw-RL 在已采样 token 上使用回答级原始分数。PPO 本身不定位“关键 token”。不少 LLM 实现另加相对固定 reference model 的 KL penalty；reference 与刚采样的 old policy 不应混为一谈。
 
 #### PPO epoch：为什么 PPO 是 near-on-policy
 
@@ -897,7 +935,7 @@ PPO 的 clip / trust-region 机制正是为了解决这个折中：
 | --- | --- | --- | --- |
 | REINFORCE | 通常单次用完 | 最接近严格 on-policy | 无偏但高方差，常加 baseline |
 | PPO | 同一批 rollout 多 epoch | near-on-policy | ratio clip / KL / trust region |
-| GRPO | 通常同 prompt group 内相对比较 | 更接近严格 on-policy，取决于实现是否多 epoch 复用 | group baseline + clip / KL |
+| GRPO | 同 prompt group 内相对比较，也可能复用 rollout | 取决于采样刷新和更新次数，不能仅凭算法名判断更严格 | group baseline + clip / KL |
 
 因此，“RL 不容易遗忘”这类说法更适用于严格或近似 on-policy、且有 KL / clip 约束的更新。如果 PPO epoch 太多、learning rate 太大、KL 约束太弱，同一批 rollout 被过度复用，也会逐渐变成不可靠的 off-policy 更新，照样可能 reward hacking 或遗忘。
 
@@ -1143,6 +1181,40 @@ $$
 - 工程瓶颈不只是算法，还包括 rollout、生成吞吐、训推切换、样本复用和 reward 可靠性。
 
 学习目标与更新参数的范围、数据来源分开看。通用地图、SFT 交叉熵、蒸馏 / RFT 和权重融合见 [后训练与模型适配](./AI-Algorithms.md#后训练与模型适配)。RFT 的筛选之后通常还是 SFT，不能因为生成过回答、用了 reward，就自动称为策略梯度 RL。
+
+### 奖励与教师监督的组合：以 OpenClaw-RL 为例
+
+先读 [策略梯度](#策略梯度奖励怎样变成参数更新)、[PPO](#ppo)和 [OPD](./AI-Algorithms.md#opd在学生自己的轨迹上接受教师指导)。奖励和蒸馏提供不同监督，但都可以通过 loss 更新同一份学生参数；省略可选 entropy / reference-KL 项，组合为：
+
+$$
+\mathcal L(\theta)=\lambda_R\mathcal L_R(\theta)+\lambda_D\mathcal L_D(\theta),\qquad
+\nabla_\theta\mathcal L=\lambda_R\nabla_\theta\mathcal L_R+\lambda_D\nabla_\theta\mathcal L_D.
+$$
+
+优化器沿合成梯度更新 θ，系数控制两种信号的权重；两条梯度未必一致。用户嫌弃列表时，奖励可降低已生成回答的概率，带“使用自然段”提示的教师分布进一步指出替代方向。若教师给错指导或评分误读用户，两项也可能一起强化错误。
+
+| 角色 | 参数是否更新 | 在本例中负责什么 |
+| --- | --- | --- |
+| 学生 / policy | 更新 θ | 执行任务、产生轨迹，也是最终部署的模型 |
+| old policy | 当前训练批次内作为固定基准 | 提供概率比的分母；通常来自近期策略，不等于初始基座 |
+| teacher | 冻结 φ | 在学生前缀与额外 hint 条件下提供 token 分布；提示变化时分布也会变 |
+| PRM | 本例冻结、独立部署 | 根据下一状态评估上一 turn，并另行判断可用 hint |
+| reference | 依实现而定，通常固定或慢更新 | 如配置了 reference-KL，限制相对参考策略的偏移；不等于 old policy |
+
+教师和 PRM 可以使用同一基座权重，但“给奖励”“给分布监督”是不同调用与角色。梯度经过学生的 log-prob / logits，不需要穿过用户反馈、测试程序或冻结教师。
+
+**Reef 当前实现的两条路径。** 奖励项对已采样 token 使用 PPO clipped surrogate，直接取 turn 的原始 PRM 分数为 advantage，不做组内标准化。OPD 项默认选取学生的 top-K 候选（K=4），教师在相同 token ID 上提供全词表归一化的 log-prob；还可按教师与学生候选重合情况选择 hint。对选定集合 S_t，核心信号是：
+
+$$
+w_t(v)=\frac{p_{\mathrm{old},t}(v)}{\sum_{u\in S_t}p_{\mathrm{old},t}(u)},\qquad
+\hat A_t^D(v)=\operatorname{stopgrad}\!\left[
+w_t(v)\bigl(\log q_t(v)-\log p_{\mathrm{old},t}(v)\bigr)
+\right].
+$$
+
+式中省略可选的 log-prob 差值限幅。教师比学生更看好某 token，差值为正，反之为负；随后各候选也使用 PPO 风格的概率比 surrogate。因此，**PPO 是优化形式，OPD 描述在学生轨迹上接受教师监督，两者可以组合**。Top-K 截断、加权和 clipping 使此实现不同于入门讲解的完整词表交叉熵，也不能把 K=4 理解为“只生成四个 token”。
+
+该版本仅支持每批一次 optimizer step：OPD 的 old log-prob 使用当前前向的 detached 值，ρ 数值为 1，但分子仍有梯度；它不是通用多 epoch PPO 的直接替代。来源：[原始奖励形成 advantage](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/objective.py)、[top-K OPD 与组合 loss](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/recipes/openclawrl/slime/objective.py#L198)。系统中的反馈关联、hint 接受与候选发布见 [Reef 主笔记](./AI-Agent-Engineering.md#学习信号prm-从后续反应判断上一步)。
 
 ### RLHF —— 基于人类反馈的强化学习
 

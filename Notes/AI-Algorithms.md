@@ -3197,7 +3197,7 @@ API 返回的文本作为固定标签；梯度通过开源学生与生成的 ada
 
 跨阶段比较看固定协议下的任务表现：SFT 交叉熵、GRPO 训练奖励、RFT 保留率的尺度与数据各不相同，不能直接互比为模型能力。验证集用于选择配方，held-out 用于检查迁移；推理温度、输出预算、chat template、评测种子与分数聚合方式也属于测量条件。六任务等权平均不代表训练数据按六类等量，更不代表六项能力各自都提高。
 
-学习顺序：概率与[解码](#argmax和随机采样) → SFT 与数据 → [GRPO 的组内比较](./Reinforcement-Learning.md#grpo-group-relative-policy-optimization--deepseekmath) → 蒸馏 / RFT → [权重平均与外推](#权重平均与任务向量外推)。Athanor 的逐步实验及因果边界保留在[研究个案](./AI-Applied-Algorithms.md#athanor自主后训练的配方搜索与实验谱系)，这里整理可迁移的模型知识。
+学习顺序：概率与[解码](#argmax和随机采样) → [交叉熵与梯度](./Machine-Learning.md#交叉熵-cross-entropy) → SFT 与数据 → [策略梯度](./Reinforcement-Learning.md#策略梯度奖励怎样变成参数更新)与 [PPO](./Reinforcement-Learning.md#ppo) → [蒸馏 / OPD / RFT](#蒸馏自蒸馏与拒绝采样微调) → [GRPO 的组内比较](./Reinforcement-Learning.md#grpo-group-relative-policy-optimization--deepseekmath)与[权重平均](#权重平均与任务向量外推)。Athanor 的逐步实验及因果边界保留在[研究个案](./AI-Applied-Algorithms.md#athanor自主后训练的配方搜索与实验谱系)，这里整理可迁移的模型知识。
 
 ### SFT：监督目标、数据与任务适配
 
@@ -3574,7 +3574,60 @@ RLHF 使用人类偏好及其训练出的奖励信号；RLVR 使用答案检查�
 
 ### 蒸馏、自蒸馏与拒绝采样微调
 
-蒸馏描述监督由教师产生或教师分布提供；它可以拟合 soft logits，也可以直接用教师生成的文本做 SFT。自蒸馏的教师来自模型自身或自身已有 checkpoint；Athanor 的做法属于**生成文本、验证筛选、再做监督微调**，没有要求访问教师 logits。STaR 是相关先例，还包含给出正确答案后重新生成推理的步骤，不能把它的完整流程等同于 Athanor。来源：[STaR](https://arxiv.org/abs/2203.14465v2)、[Athanor §5.1](https://arxiv.org/pdf/2610.21055v1#page=12)。
+#### 软标签蒸馏：从答案文本到 token 分布
+
+蒸馏描述监督由教师产生或教师分布提供；既可以用教师生成的文本做 SFT，也可以匹配其 logits 导出的软概率分布。自蒸馏的教师来自模型自身或自身已有 checkpoint；教师和学生不一定需要不同架构或尺寸。[知识蒸馏](https://arxiv.org/abs/1503.02531)。
+
+在一个生成位置，学生不仅给出最终采到的 token，还能计算词表所有 token 的概率。硬标签只指出“示范用了哪个 token”；软标签则给出“各候选应该多常出现”。以下把三类写法抽象成三个动作，仅作教学示意，不是实际 tokenizer 或实验数据：
+
+| 下一步写法 | 学生概率 p | 教师目标 q |
+| --- | --- | --- |
+| 列表 | 0.6 | 0.1 |
+| 自然段 | 0.3 | 0.8 |
+| 其他 | 0.1 | 0.1 |
+
+仅给“这次列表不好”的负奖励，没有指定哪个替代更好；教师分布同时指出应减少列表、增加自然段。以最基本的**前向 KL / 交叉熵蒸馏**解释，固定目标 q，在每个前缀上优化：
+
+$$
+\mathcal L_{\mathrm{distill}}=-\sum_t\sum_{v\in\mathcal V}
+q_t(v)\log p_{\theta,t}(v).
+$$
+
+单位置对 logits 的梯度为 p-q，上例是 `(0.5, -0.5, 0)`；梯度下降给出压低列表、提高自然段的局部方向。教师通常做 no-grad 前向提供目标，只有学生通过 loss 反向传播。交叉熵与 KL 的等价条件见 [基础定义](./Machine-Learning.md#交叉熵-cross-entropy)；上式是入门目标，不是所有蒸馏或 Reef 实现的精确 loss。若使用温度软化分布、top-K 截断或反向 KL，还需分别检查归一化、梯度和支持集。
+
+#### OPD：在学生自己的轨迹上接受教师指导
+
+这里 OPD 指 **On-Policy Distillation**。关键在于训练前缀主要由当前或近期的学生策略生成，而不是始终沿教师独立解题的轨迹；on-policy 描述数据来源，不决定必须使用哪种 KL 或 loss。
+
+1. 学生看问题 x，自行生成回答 y。
+2. 教师在学生实际产生的各个前缀上，评价下一 token 的分布。
+3. 训练学生匹配这些指导，再让更新后的学生产生后续轨迹。
+
+这能让教师覆盖学生真的会到达、包括犯错后会到达的状态，缓解只模仿教师示范时的前缀分布失配。学生走错后的状态也可能难以挽救；访问这些状态不保证教师能提供好指导。已经采样好的序列在训练前向中仍可用因果 mask 并行算各位置概率，**不必为了拿到每个位置的教师分布，让教师独立解完整道题**。
+
+Reef 的 OpenClaw-RL 又给教师额外的事后提示 h；两者条件不同：
+
+$$
+p_{\theta,t}(v)=\pi_\theta(v\mid x,y_{<t}),\qquad
+q_{\phi,t}(v)=\pi_\phi(v\mid x,h,y_{<t}).
+$$
+
+教师参数 φ 冻结，学生参数 θ 更新。**冻结的是权重，不是输出分布**：输入多了“用户希望自然段、不要列表”，同一个基座也可能给出更合适的分布。h 只进入教师分支，训练尝试把“得到提示后会做”的行为转成“未来无需临时提示也更可能做对”；是否能迁移、是否损伤旧能力仍需评测。同规模教师并不保证更好，优势取决于额外上下文是否有用。
+
+OPD 不要求教师一定收到 hint，也不要求教师一定是冻结基座；这些是本例选择。普通文本蒸馏、soft-label 蒸馏、on-policy 数据、自蒸馏与参数冻结分别描述不同维度，不能互相替代。机制来源：[Reef OpenClaw-RL](https://github.com/Human-Agent-Society/reef/blob/7bcfd1d7b686efac13f67c886723412cd8da87af/docs/user-guide/recipes/openclawrl.rst#how-reef-implements-it)；相关方法见 [SDFT](#选择性固化与参数更新5153-展开)。
+
+#### 奖励与分布监督可以合用
+
+| 路径 | 信号回答什么 | 主要缺口 |
+| --- | --- | --- |
+| 奖励 / 策略梯度 | 采样到的行为比基线好还是差？ | 一段话一个分数，不直接指定正确替代或具体错误 token |
+| 教师分布 / 蒸馏 | 在这个前缀上，各候选应获得多大概率？ | 指导更具体，但教师可能错，目标也可能不符合真实意图 |
+
+两项 loss 可以作用于同一学生：按权重求和，再反向传播一次；可能互补，也可能梯度冲突。Reef 实际 OPD 使用 top-K 候选上的教师—学生 log-prob 差，构造逐候选信号后也进入 PPO 风格 surrogate；因此不能把“PPO 与 OPD”当作互斥算法。完整的模型角色、组合目标及源码边界见 [奖励与教师监督的组合](./Reinforcement-Learning.md#奖励与教师监督的组合以-openclaw-rl-为例)。
+
+#### 自蒸馏与拒绝采样微调：筛选成功行为再拟合
+
+Athanor 的做法属于**生成文本、验证筛选、再做监督微调**，没有要求访问教师 logits。STaR 是相关先例，还包含给出正确答案后重新生成推理的步骤，不能把它的完整流程等同于 Athanor。来源：[STaR](https://arxiv.org/abs/2203.14465v2)、[Athanor §5.1](https://arxiv.org/pdf/2610.21055v1#page=12)。
 
 Athanor 的 rejection-sampling fine-tuning（RFT）为：
 
