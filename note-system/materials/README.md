@@ -113,6 +113,8 @@ python3 -m unittest discover -s note-system/materials/tests -p 'test_material*.p
 
 写入门禁应绑定实际调用宿主的活动 Turn，不能把普通 Codex 会话误当成“缺少 Bot Turn”。[Codex 宿主上下文读取器](./material_host_context.py)只读校验环境中的线程 ID、宿主索引、会话来源、工作区、活动 Turn 与写入策略，不创建 Session、Turn 或授权。来源 adapter 仍须核验当前 owner 与 App／工作区 grant，并把宿主上下文绑定到有期限、限定操作的 gate；换 Turn、撤权、只读或宿主信息不一致时拒绝，不回退借用其他宿主。真实线程信息和审计证据留在私有侧，不进入公开目录。
 
+[授权证据读取器](./material_authority_read.py)将超时、连接故障、无效 JSON 和服务异常保留为 `AuthorityReadUnavailable`，将 HTTP 401/403 保留为 `AuthorityReadDenied`。两者都阻止依赖写入，且不自动重试；不将临时读失败吞成 verifier 的 `False`，也不向错误消息带出 URL、响应正文或底层异常中的私有信息。恢复后仍须重新读取同一 owner 的当前授权，不能用缓存 grant、旧 gate 或成功连通代替授权核验。
+
 可捕获的部分写入失败会恢复原文件；合成测试覆盖这条路径。多文件替换不是一个数据库事务，不承诺进程强杀或掉电时整体原子性，也不阻止绕过发布锁的手动编辑。发生此类中断时先检查私有备份、目标文件和指针，再修复投影；不得因此修改或覆盖来源 authority。
 
 ## 生命周期与经验复用
