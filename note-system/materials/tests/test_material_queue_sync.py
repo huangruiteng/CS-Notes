@@ -139,6 +139,22 @@ class QueuePublication(unittest.TestCase):
         self.assertEqual(archived, ["material-archive"])
         self.assertEqual((external[0]["queue_rank"], private[0]["queue_rank"]), (1, 1))
 
+    def test_source_revocation_after_first_output_restores_all_outputs(self):
+        self.publish()
+        before=self.snapshot()
+        self.prepare_change()
+        calls=0
+        def authorize(action, receipt=None):
+            nonlocal calls
+            if action == 'publication_apply':
+                calls += 1
+                if calls == 3:
+                    raise ValueError('source grant revoked')
+        self.adapter.authorize_operation=authorize
+        with self.assertRaisesRegex(ValueError,'revoked'):
+            self.publisher.main(['apply'])
+        self.assertEqual(before,self.snapshot())
+
     def test_public_ranking_is_an_order_preserving_canonical_subset(self):
         second = copy.deepcopy(self.reviews["records"][0])
         second["material_ref"] = "material-new"

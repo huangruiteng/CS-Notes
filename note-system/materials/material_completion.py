@@ -6,6 +6,7 @@ QueuePublisher. Evidence packets are private inputs, never publication data.
 """
 import copy
 import json
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 
@@ -89,7 +90,9 @@ def preview(source, input_path, api, *, historical_rollback=False):
         if (change['from_state'], change['to_state']) not in TRANSITIONS:
             raise ValueError('unsupported completion transition')
         if change['to_state'] == 'archived':
-            archive = {'record': copy.deepcopy(record), 'evidence_ref': evidence_ref}
+            archive = {'record': copy.deepcopy(record), 'evidence_ref': evidence_ref,
+                       'ranked_entries': [copy.deepcopy(e) for e in original['rankings']['ranked_entries']['entries']
+                                          if ref in e['material_refs']]}
             archive_ref = 'archive:' + api.sha(api.data(archive))
             api.immutable(source.root/'archives'/f'{archive_ref}.json', archive)
             record['archive_ref'] = archive_ref
@@ -116,8 +119,50 @@ def preview(source, input_path, api, *, historical_rollback=False):
     # Give restored ranked intakes provisional backlog membership. Their final
     # position is settled separately through the existing ranking owner.
     remaining += [ref for ref in changes if ref in reactivated and ref not in remaining]
-    catalog['rankings']['ranked_entries']['entries'] = [
-        {'rank': i+1, 'material_refs': [ref]} for i, ref in enumerate(remaining)]
+    # Lifecycle settlement must not rebuild ranked entries from IDs: their
+    # titles, reading actions, stable entry IDs and evidence are durable data.
+    entries = copy.deepcopy(original['rankings']['ranked_entries']['entries'])
+    if any(len(e['material_refs']) != 1 for e in entries):
+        raise ValueError('completion requires independently ranked single materials')
+    byref = {e['material_refs'][0]: e for e in entries}
+    for ref in reactivated:
+        record = next(r for r in catalog['records'] if r['stable_id'] == ref)
+        archive = api.load(source.root/'archives'/f"{record['archive_ref']}.json")
+        saved = archive.get('ranked_entries', [])
+        if saved:
+            byref[ref] = copy.deepcopy(saved[0])
+        else:
+            byref[ref] = {'material_refs': [ref]}
+    entries = [byref[ref] for ref in remaining]
+    for rank, entry in enumerate(entries, 1):
+        entry['rank'] = rank
+        if 'target_rank' in entry:
+            entry['target_rank'] = rank
+    public_rank = 0
+    for entry in entries:
+        if 'public_queue_rank' in entry:
+            public_rank += 1
+            entry['public_queue_rank'] = public_rank
+    ranking = catalog['rankings']['ranked_entries']
+    ranking['entries'] = entries
+    if 'lifecycle_settlement_ref' in ranking:
+        ranking['lifecycle_settlement_ref'] = evidence_ref
+    if 'previous_authority_revision' in ranking:
+        ranking['previous_authority_revision'] = before
+    window = ranking.get('constraints', {}).get('top_window_size', 30)
+    if 'summary' in ranking:
+        summary = ranking['summary']
+        counts = {'material_ref_count': len(remaining), 'rebuilt_entry_count': len(entries),
+                  'source_entry_count': len(entries), 'top_window_entry_count': min(window, len(entries)),
+                  'ranked_backlog_entry_count': max(0, len(entries)-window),
+                  'public_ranked_count': public_rank, 'private_ranked_count': len(entries)-public_rank}
+        summary.update({k: v for k, v in counts.items() if k in summary})
+    if 'top30' in catalog['rankings']:
+        catalog['rankings']['top30']['slots'] = copy.deepcopy(entries[:window])
+    if 'ranked_backlog' in catalog['rankings']:
+        catalog['rankings']['ranked_backlog']['entries'] = copy.deepcopy(entries[window:])
+    if 'lifecycle_counts' in catalog:
+        catalog['lifecycle_counts'] = dict(sorted(Counter(r['lifecycle_state'] for r in catalog['records']).items()))
     # Exact IDs, content, untouched records and every remaining relative order.
     if [r['stable_id'] for r in catalog['records']] != [r['stable_id'] for r in original['records']]:
         raise ValueError('lifecycle transition changed source membership')

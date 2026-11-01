@@ -50,6 +50,31 @@ Git 对账必须先核对共同基线、本地工作副本与远端。`local_add
 
 自然语言入口是 [sync-notes](../../.codex/skills/sync-notes/SKILL.md)：`sync笔记` 默认同步后提交并 push 公开内容，`sync笔记，仅检查` 输出计划，`sync笔记，提 PR` 创建 PR。同步发现的已核验错误直接修复并回写默认流程。
 
+维护者使用统一来源入口，不从历史任务脚本猜测当前身份：
+
+```bash
+python3 note-system/materials/material_source.py status
+python3 note-system/materials/material_source.py complete --evidence <私有逐条完成声明.json> --phase prepare
+# 检查预览，再使用输出的 plan_file；不能改成另一份计划。
+python3 note-system/materials/material_source.py complete --plan <plan_file> --phase apply
+python3 note-system/materials/material_source.py check
+```
+
+普通投影更新仍走同一入口的 `prepare / apply / check`。入口只读取项目显式注册的私有
+source binding；缺失时报告 `material_source_not_configured`，不回退旧 Goal、借用其他
+会话或创建临时 Goal。私有 adapter 负责既有 store、正文 backing、Core project context
+与宿主授权的绑定；公开克隆不含这些配置，仍可使用下方纯公开校验。
+
+原生 Codex 路径先读取真实宿主的活动 Turn 和现有工作区写策略，再由来源 adapter
+映射到 Core 的普通项目上下文。此映射不创建 Bot Session 或授予新的文件权限；来源
+profile 必须由 owner 显式启用，绑定工作区、store、操作范围与撤销状态。短期 gate
+另绑定当前线程/Turn、具体操作、版本和有效期；staging 与 publication 内部再次核验，
+不能只在入口检查一次。通用实现见 [来源 gate](./material_source_gate.py)。
+
+归档保留全部原始记录、正文和剩余排名项的标题、阅读提示、证据及 entry ID，仅移除
+已读项并连续编号；Top30、backlog 与计数随之刷新。人工补充的私有阅读页应按已核验的
+素材身份合并，不能用一个简略的重生成页面覆盖旧批注。
+
 fetch 后、pull 或刷新生成文件前，运行只读计划；upstream 使用当前实际引用：
 
 ```bash

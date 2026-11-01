@@ -204,7 +204,13 @@ class QueuePublisher:
         if len({p.resolve() for p in self.targets.values()}) != len(self.targets):
             raise ValueError("publication outputs overlap")
 
+    def authorize(self, action, receipt=None):
+        verifier = getattr(self.adapter, "authorize_operation", None)
+        if verifier is not None:
+            verifier(action, receipt)
+
     def prepare(self):
+        self.authorize("publication_prepare")
         pointer = self.adapter.current_pointer()
         revision = pointer["authority_revision"]
         catalog = self.adapter.load_catalog(revision)
@@ -291,6 +297,7 @@ class QueuePublisher:
             raise ValueError("catalog/review changed during preparation")
         queue_revision = "queues-" + digest(json_bytes(seed))[:20]
         folder = self.root / "queue-publication/revisions" / queue_revision
+        self.authorize("publication_prepare", seed)
         folder.mkdir(parents=True, exist_ok=True)
         for name, data in outputs.items():
             write_immutable(folder / name, data)
@@ -338,6 +345,7 @@ class QueuePublisher:
 
     def apply(self):
         receipt = load(self.root / "queue-publication/proposal.json")
+        self.authorize("publication_apply", receipt)
         if (
             self.adapter.current_pointer()["authority_revision"]
             != receipt["source_revision"]
@@ -402,6 +410,7 @@ class QueuePublisher:
                 raise ValueError("rollback rehearsal failed")
         try:
             for name, path in self.targets.items():
+                self.authorize("publication_apply", receipt)
                 data = (folder / name).read_bytes()
                 if digest(data) != receipt["outputs"][name]:
                     raise ValueError("staged output drift")
@@ -421,6 +430,7 @@ class QueuePublisher:
             receipt.update(
                 status="applied", readback_verified=True, rollback_rehearsed=True
             )
+            self.authorize("publication_apply", receipt)
             atomic_write(self.pointer, json_bytes(receipt))
             write_immutable(
                 folder / ("receipt-" + digest(json_bytes(receipt))[:20] + ".json"),
@@ -470,6 +480,7 @@ class QueuePublisher:
         )
 
     def rollback(self, expected):
+        self.authorize("publication_rollback", {"expected_queue_revision": expected})
         receipt = load(self.pointer)
         if receipt["queue_revision"] != expected:
             raise ValueError("rollback queue revision conflict")

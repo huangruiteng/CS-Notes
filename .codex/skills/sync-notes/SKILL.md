@@ -29,6 +29,7 @@ description: Synchronize CS-Notes Git changes and material projections when the 
    实际 upstream 优先，不写死切换到 master。脚本只读已获取的引用，校验完整公开卡片，输出稳定 ID 的新增/缺失/冲突与独立排名变化；不生成 lifecycle transition。若暂存版与工作副本不同，两者都核对。
 3. 无冲突时 fast-forward；脏文件按共同基线逐文件或逐 hunk 合并。保留远端脱敏与修正，同时保留本地新增。既有本地提交和远端有分歧时做可审查合并，不能 force、批量 restore/reset 或以 stash 遗留掩盖内容。确有语义冲突才问不可替代的用户判断，继续独立部分。
 4. 材料 authority 与 Git 是两个状态源。公开 catalog/Markdown 是投影，不能反向覆盖 authority。若项目已激活 Material Lifecycle，使用项目的 `loopx-material` 与 source adapter 对账：
+   - 先运行 `python3 note-system/materials/material_source.py status`，通过项目注册入口解析当前宿主与来源；归档走该入口的 `complete --evidence … --phase prepare` 和 `complete --plan … --phase apply`。缺配置与真实撤权分别诊断，不搜索历史 Goal 脚本或借用其他会话。普通 Codex 会话可绑定宿主已有工作区写权限，不要求另建 Bot Turn。
    - `local_addition` 保留原 ID、body backing、读取范围和排序；远端缺少它不产生归档。
    - 本地或远端缺条目时，先查 source disposition 与逐条用户声明；远端 PR 的笼统“读完”、助手 read_scope 或 Notes 中出现摘要均不证明用户完成。
    - 已核验的用户完成声明才能通过现有 owner gate / CAS / receipt 改 lifecycle；材料级声明校验由 [共享实现](../../../note-system/materials/material_completion.py)维护。

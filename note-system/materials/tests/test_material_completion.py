@@ -161,6 +161,36 @@ class CompletionTests(unittest.TestCase):
         completion.settle(self.source, self.path, "rollback", self.api)
         self.assert_restored(original)
 
+    def test_archive_preserves_rich_rank_entries_and_refreshes_derived_views(self):
+        catalog=self.source.load_catalog(self.before)
+        entries=catalog['rankings']['ranked_entries']['entries']
+        for entry in entries:
+            entry.update(entry_ref='entry-'+str(entry['rank']), title='Kept title',
+                         reading_action='Keep the original reading action',
+                         evidence_refs=['evidence:original'], public_queue_rank=entry['rank'])
+        survivor=copy.deepcopy(entries[1])
+        catalog['rankings']['ranked_entries'].update(
+            constraints={'top_window_size':1},
+            summary={'material_ref_count':2,'source_entry_count':2,'rebuilt_entry_count':2,
+                     'top_window_entry_count':1,'ranked_backlog_entry_count':1,
+                     'public_ranked_count':2,'private_ranked_count':0})
+        catalog['rankings']['top30']={'slots':copy.deepcopy(entries[:1])}
+        catalog['rankings']['ranked_backlog']={'entries':copy.deepcopy(entries[1:])}
+        catalog['lifecycle_counts']={'candidate':2}
+        self.before=self.source.stage_catalog(catalog)
+        write(self.source.root/'authority/current.json',{'authority_revision':self.before})
+        self.plan['authority_revision']=self.before
+        write(self.path,self.plan)
+        self.source.publish()
+        receipt=completion.settle(self.source,self.path,'apply',self.api)
+        after=self.source.load_catalog(receipt['after_revision'])
+        survivor.update(rank=1,public_queue_rank=1)
+        self.assertEqual(after['rankings']['ranked_entries']['entries'],[survivor])
+        self.assertEqual(after['rankings']['top30']['slots'],[survivor])
+        self.assertEqual(after['rankings']['ranked_backlog']['entries'],[])
+        self.assertEqual(after['lifecycle_counts'],{'archived':1,'candidate':1})
+        self.assertEqual(after['rankings']['ranked_entries']['summary']['material_ref_count'],1)
+
     def test_batch_prose_omission_and_assistant_reading_are_rejected_without_write(self):
         before = self.snapshot()
         for packet in [{"closed_public_refs": ["material-one"], "completion_declaration": "Batch read and organized"},
