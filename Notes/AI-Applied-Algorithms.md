@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
-| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、Harness-Delta Attribution（捷径 / 计算 / 剩余收益）、PAIR（压缩边界归因）、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、涨分归因、工具使用、工作流、安全评估和观测基建 |
+| Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ILE（时间边界与结果分层）、Harness-Delta Attribution（捷径 / 计算 / 剩余收益）、PAIR（压缩边界归因）、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、涨分归因、工具使用、工作流、安全评估和观测基建 |
 | Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search、研究配方搜索与 checkpoint 谱系 | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment、[Octop 的事实权威与派生视图](#octop-memory事实权威派生视图与可重放召回) | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
@@ -1314,6 +1314,8 @@ Thought:{agent_scratchpad}
 
 评测结论还需同时绑定主张、资源预算和有效性检查：见下节「预算—性能曲线与评测主张」。同预算比较、强引出能力与防护稳健性使用不同实验设计；单点分数无法独立表示系统能力上限。对于自动搜索出来的 harness，再用 [Harness-Delta Attribution](#harness-delta-attribution涨分后追问靠什么涨的) 区分额外计算、数据捷径和剩余结构收益，并用 [Rethinking Harness Evolution](./AI-Agent-Engineering.md#rethinking-harness-evolution把可迁移改进与任务内搜索拆开) 区分跨任务共享 harness 与任务内 Harness Scaling，最后独立验证 held-out 迁移。
 
+对历史预测任务，还需绑定输入的可用版本与结算时间：见 [ILE：时间边界与结果分层](#ile时间边界与结果分层)。检索时没访问未来资料、模型权重没记住未来、预测准确和投资赚钱，是不同的有效性问题。
+
 优化前先校准任务代表性、评分器、可提升空间与噪声；优化中区分「不读测试内容」与「不让测试分数参与选版本」。每轮用于选 winner 的 test 实际是 selection set，最终泛化仍需独立留出验证。机制与案例见 [Claude build-eval / hillclimb](./AI-Agent-Engineering.md#claude-build-eval--hillclimb评测校准与防过拟合迭代)。外部经验的收益还应拆成 [Harness 更新能力与使用收益](./AI-Agent-Engineering.md#harness-更新能力与使用收益)：能总结出经验，不等于执行者能加载并持续遵循；下游增益接近也不能直接证明更新模型能力等效。
 
 指标有效性还受 [Goodhart 定律](./Machine-Learning.md#goodhart-定律代理指标成为优化目标)约束：Judge 分数、测试通过率或自检完成率成为优化目标后，可能逐渐偏离真实任务效用；这不要求存在作弊，也不意味着优化必然降低质量。独立 hidden 测试应覆盖真实需求和功能组合，而非只换样例重复同一代理偏差；停止判断也应回到任务要求与执行证据，不能只认 Agent 自设的浅层检查。
@@ -1721,6 +1723,23 @@ first_of(checkpoint, H steps, token budget, terminal, context safety limit)
 - 这是 AgentCompass“harness 是 treatment 不是透明胶水”的实测注脚：同一模型 + 同一 runtime，仅 harness 不同就能带来 pass rate 与成本的数量级差异；
 - 与 LoopX RFC v0 的“能力论证 vs 机制研究”两条 lane 吻合：若要做 harness 对比，应把模型、runtime、checkpoint、任务集全部固定，并把失败尝试计入成本口径；
 - DSH 的四种配置（Creator/PTC/Standard/Minimal）说明同一 harness 内部配置变化同样影响质量/成本/速度，报告应绑定具体配置版本而非只写 harness 名。
+
+#### ILE：时间边界与结果分层
+
+来源：[Investor’s Last Exam v1 §2–5、附录 B/E/I](https://arxiv.org/html/2610.38342v1)。金融任务、依赖图、完整指标、开放范围与成本见 [金融笔记](./金融投资与区块链.md#ile冻结信息边界后的投研评测)。
+
+ILE 给预测类 Agent eval 增加四条合同：
+
+| 合同 | 必须区分的边界 |
+|---|---|
+| **信息可用性** | 按版本可用时间与授权上限释放证据；搜索、读取、下载、缓存、表查询和无网计算共同执行。查询写日期不等于取回内容早于 cutoff；外部取数合规也不排除模型预训练污染。 |
+| **可审计的判断依赖** | 事实保留来源版本、期间、单位和定位，假设与计算分别受检；依赖图用于定位错误和校准 rubric，不要求 solver 机械复述一条参考轨迹。 |
+| **结果分层** | 研究质量、预测结果、模拟投资收益与成功提交分别报告。任务类别分、维度分和 outcome 分覆盖不同判据；0–100 得分不是正确率。answer-based 能取最后实际答案，strict 要求接受的提交。 |
+| **运行与训练隔离** | 当前公开包含 rubric、judge 输入和未来真值，它们只能进入 evaluator；历史可回放支持训练设计，不等于已证明 RL 增益或真实市场表现。 |
+
+论文对照中，Astra 公开网与受控数据库总分约为 68.3 / 68.1，但前者 49/86 条轨迹收到 cutoff 后来源。**有效性不能从分数反推。** 同理，Tesla O80 中三个模型支持性分析满分、预测结果零分，说明算术自洽不验证假设的预测性；AWS 的区间 rubric 修订还说明，奖励本身必须先检查是否鼓励“窄而错”的输出。主榜 judge 选择会改名次，数值判据也应以实际 `programmatic/llm_judge` 路由为准。
+
+若把该环境用于领域 RL，先固化 `task/cutoff/source_version/authorization/grader/settlement`，再分离训练、选择与独立留出；报告完整模型、reader、judge、环境和人工校准成本。v1 提供的是可诊断评测与复用环境的基础，不是已经验证的大规模 RL 训练结果。
 
 #### GAIA: A Benchmark for General AI Assistants ([arxiv](https://arxiv.org/abs/2311.12983), NeurIPS 2023)
 
