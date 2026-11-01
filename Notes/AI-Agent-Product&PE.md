@@ -1921,7 +1921,7 @@ TODO
 
 #### 情感陪伴类
 
-* [Character.AI](https://character.ai)（已被 Google 收购）
+* [Character.AI](https://character.ai)：情感陪伴与角色互动平台。2024 年 Google 取得其大模型技术的非独占许可并聘用部分员工，不是收购整家公司（[Alphabet 2024 年 Form 10-K，Note 8](https://www.sec.gov/Archives/edgar/data/1652044/000165204425000014/goog-20241231.htm)）。[2026-10-12 官方公告](https://blog.character.ai/an-update-on-character-ai/)披露启动 Chapter 11 出售程序，当时平台仍运营；Disney 的 2000 万美元起始报价针对部分知识产权许可等资产，不能视为整家公司估值。交易口径与组织分析见[明星员工：声望、外部定价与组织留存](./非技术知识.md#明星员工声望外部定价与组织留存)。
 * [星野](https://www.xingyeai.com/)
 * [Replika](https://replika.ai)
 
