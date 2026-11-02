@@ -440,6 +440,16 @@
 - **仓库已迁移**：从 `github.com:huangrt01/CS-Notes.git` 迁移到 `github.com:huangruiteng/CS-Notes.git`
 - **更新本地 remote**：使用 `git remote set-url origin git@github.com:huangruiteng/CS-Notes.git` 更新本地仓库的 remote URL
 
+### 37. Memory Dreaming Promotion 与 Codex TODO System v2 定期维护（2026-11-03 新增）
+- **定期任务**：Memory Dreaming Promotion cron 每天 03:00 触发，负责：
+  - 检查当前 todos.json 状态
+  - 创建当天的 memory 文件（memory/YYYY-MM-DD.md）
+  - 刷新 .local/CODEX_TODO_TRIAGE_INDEX.md
+  - 复盘近期经验，更新 MEMORY.md
+- **推进TODO cron**：每天 20:00 触发，调用 priority-task-reader/main.py --next，检查是否有可推进的任务
+- **当前状态**：仅 todo-20260504-012 [P1] pending（assignee: user，feedback_required: true），需要用户和 OpenViking 同学确认
+- **空队列协议**：当没有 Codex 可独立推进的 active TODO 时，不硬编旧任务，而是从流程优化、机制优化、效率优化、素材探索能力、笔记结构小切口、索引治理或最近 completed TODO 中找安全的小切口推进
+
 ---
 
-*最后更新：2026-10-03*
+*最后更新：2026-11-03*
