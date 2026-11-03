@@ -26,11 +26,13 @@ def load_source(repo):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument('command', choices=['status', 'prepare', 'apply', 'check', 'rollback', 'complete'])
+    parser.add_argument('command', choices=['status', 'prepare', 'apply', 'check', 'rollback', 'complete', 'reconcile'])
     parser.add_argument('--evidence', type=Path)
     parser.add_argument('--phase', choices=['prepare', 'apply', 'rollback'], default='prepare')
     parser.add_argument('--plan', type=Path)
     parser.add_argument('--expected-queue-revision')
+    parser.add_argument('--base-ref', help='Pre-sync Git commit for reviewed-card three-way comparison')
+    parser.add_argument('--public-ref', default='HEAD', help='Accepted merged public catalog commit')
     args = parser.parse_args(argv)
     try:
         source = load_source(args.repo)

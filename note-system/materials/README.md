@@ -115,6 +115,8 @@ python3 -m unittest discover -s note-system/materials/tests -p 'test_material*.p
 
 [授权证据读取器](./material_authority_read.py)将超时、连接故障、无效 JSON 和服务异常保留为 `AuthorityReadUnavailable`，将 HTTP 401/403 保留为 `AuthorityReadDenied`。两者都阻止依赖写入，且不自动重试；不将临时读失败吞成 verifier 的 `False`，也不向错误消息带出 URL、响应正文或底层异常中的私有信息。恢复后仍须重新读取同一 owner 的当前授权，不能用缓存 grant、旧 gate 或成功连通代替授权核验。
 
+远端新增素材的同步使用同一注册来源入口：先保存拉取前的 Git commit，完成三方审查和 Git 合并后，运行 `material_source.py reconcile --base-ref <拉取前的commit> --public-ref HEAD --phase prepare`，审查返回的计划，再用 `reconcile --plan <私有计划路径> --phase apply`。adapter 必须显式支持这两个操作，并使用当前宿主权限；不能回退调用历史 Goal 脚本。[共享对账逻辑](./material_source_reconcile.py)分别形成 intake 和 ranking 版本，保留原始 backing、本地批注及未被远端收录的材料，用 Git 卡片记录已有读取范围，不冒充重读原文。旧归档不复活；其他 lifecycle 分歧需单独完成证据。apply 校验来源、审查记录与工作副本的 CAS，失败恢复来源、审查及投影；不保证强杀或掉电时多文件原子性。
+
 可捕获的部分写入失败会恢复原文件；合成测试覆盖这条路径。多文件替换不是一个数据库事务，不承诺进程强杀或掉电时整体原子性，也不阻止绕过发布锁的手动编辑。发生此类中断时先检查私有备份、目标文件和指针，再修复投影；不得因此修改或覆盖来源 authority。
 
 ## 生命周期与经验复用

@@ -34,6 +34,7 @@ description: Synchronize CS-Notes Git changes and material projections when the 
    - 本地或远端缺条目时，先查 source disposition 与逐条用户声明；远端 PR 的笼统“读完”、助手 read_scope 或 Notes 中出现摘要均不证明用户完成。
    - 已核验的用户完成声明才能通过现有 owner gate / CAS / receipt 改 lifecycle；材料级声明校验由 [共享实现](../../../note-system/materials/material_completion.py)维护。
    - 远端新卡片保留真实既有读取范围，不把摘要导入说成全文阅读。独立对账 lifecycle、intake 与 ranking，保留不相关材料顺序、并发新增和全部 backing。缺材料完成证据时保留当前状态，不阻塞无关笔记同步。
+   - 已审查的远端卡片通过同一入口 `reconcile --base-ref <拉取前commit> --public-ref HEAD --phase prepare`，审查计划后 `reconcile --plan <返回路径> --phase apply`。该路径只接收卡片和排序，不推断完成；来源 adapter 须显式支持，不回退历史 Goal 脚本。
 5. authority 结算后重新绑定公开字段审查，执行项目入口的 prepare/apply/check，再运行：
 
    ```sh
