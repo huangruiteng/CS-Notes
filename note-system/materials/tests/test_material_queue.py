@@ -92,6 +92,12 @@ class PublicQueueBoundary(unittest.TestCase):
             "./booklists/../../private.md",
             "./booklists/%2e%2e/private.md",
             "./booklists/private.png",
+            "./payment-mechanisms/../../private.md",
+            "./payment-mechanisms/%2e%2e/%2elocal/private.md",
+            "./payment-mechanisms/private.png",
+            "./payment-mechanisms/script.py",
+            "./payment-mechanisms/guide.md?access_token=value",
+            "./payment-mechanisms/guide.md#private",
         ]
         for source in sources:
             with self.subTest(source=source), self.assertRaises(ValueError):
@@ -106,6 +112,18 @@ class PublicQueueBoundary(unittest.TestCase):
             "./booklists/general-reading.md",
         ]:
             queue.validate_source(source)
+
+    def test_reviewed_payment_guide_renders_as_one_learning_unit(self):
+        data = catalog()
+        source = "./payment-mechanisms/跨境数字支付机制导读.md"
+        data["entries"][0].update(
+            title="支付机制：授权、续费与资金边界", sources=[source]
+        )
+        pages, counts = queue.render(data)
+        self.assertEqual(counts["materials"], 1)
+        self.assertEqual(counts["ranked"], 1)
+        self.assertIn(f"](<{source}>)", pages["QUEUE.md"])
+        self.assertNotIn(source, pages["CANDIDATES.md"])
 
     def test_table_delimiters_and_arrows_do_not_break_rendering(self):
         data = catalog()
