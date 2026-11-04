@@ -10330,7 +10330,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读官方文章正文与报告数字；图像、原始数据与独立复现未核验。相同model/harness/task改变资源配置，Terminal-Bench 1×到3×的故障率下降但分数差未超噪声；更宽资源也会改变可用策略，不能把消除故障等同能力提升。6pp及3×是作者特定实验，不是通用阈值。先读How we got here、Other sources of variance、What we recommend，约15分钟；形成CPU/RAM保证值与硬上限、并发、临时盘、timeout/latency和故障开销的匹配表，再读自身完整轨迹。",
-      "queue_rank": 6
+      "queue_rank": 3
     },
     {
       "material_ref": "material-scaling-discovery-forgetting-2610-20563",
@@ -10344,7 +10344,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读作者原帖主文/可见回复（两条Show more未展开），arXiv2610.20563v1经HTML404后读PDF及TeX§1–6、Table1–4、A/B任务与完整prompt；实际看Fig2/4/5，Fig2另补完整第4页，未读帖图/代码或复现。S：周期清空session与可见候选历史，仅继承best+score，配合四agent异步候选共享恢复探索；不同于SLA保留研究state及Fork-and-Flush继承全workspace。同checkpoint各续30proposals的team消融：continue+1.4%/$24.67，forget+9.2%/$15.32，均三次且方差大；非等全成本，主结果单模型/Pi、四编程任务。优先§3、4.3/Table3/Fig4、§5及AppB，转为保留/清除/触发/采用/评分/费用消融卡，审计历史不直接删除。按用户高优先级要求置首读区，其他素材相对顺序保留。",
-      "queue_rank": 3
+      "queue_rank": 4
     },
     {
       "material_ref": "material-terminal-rsi-2610-22192",
@@ -10850,7 +10850,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "沿用远端既有阅读记录（原 read_scope：recorded_review）；本次同步只核对完整公开卡片，未重新阅读全文。已选读 arXiv v2 §1–6、关键公式及 Fig.2–8 图注/内嵌案例，核对官方 README；未完整读附录/轨迹、逐图查看或复现。相同步骤监督下，只优化当前奖励与事先的长期价值审批，削弱“先写弱测试、再轻易通过”等多步 reward hacking。§4.4 显示用冻结策略 rollout 结果作审批会重新引入漏洞；不消除单步作弊，可能损失监督者无法预见的长期收益。S 档优先读 §3、§4.4、§6；用于理解信用分配，不能直接等同于 best-only 或低频 hidden feedback。",
-      "queue_rank": 5
+      "queue_rank": 6
     },
     {
       "material_ref": "material-hermit-2114769723879464983",
@@ -11099,7 +11099,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜已读Autumn2025官网完整大纲与官方课程说明；YouTube列表PLangBM27OtEA仅标题元信息，无完整逐集目录/字幕，未观看录像/核验图表。课程串联test-time compute、验证器、执行反馈、规划/RL、开放式进化与长程评测。建议先按官网第2/3/4/17次主题选读，产出候选/信号/更新/验收对照表；课次不等于播放列表集号。先修Python/LLM API及NLP/ML系统基础；公开录像与注册学费、项目计算投入分开，未报名或开实验。2025课程与新论文互补，优先级不代表已掌握。",
-      "queue_rank": 4
+      "queue_rank": 5
     },
     {
       "material_ref": "material-aligning-autoresearch-2610-38882v1",
