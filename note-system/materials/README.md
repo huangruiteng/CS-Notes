@@ -46,6 +46,8 @@ Git 对账必须先核对共同基线、本地工作副本与远端。`local_add
 
 自制支付机制导读可引用 `Learning-Materials/payment-mechanisms/` 中的 Markdown，卡片来源写为 `./payment-mechanisms/<文件名>.md`。与既有分布式系统讲义、书单一样，内容仍需经过版本绑定的公开字段审查；渲染器只接受这些明确目录，支付导读不接受脚本或图片作为主来源，并继续拒绝越界路径、查询参数及片段。
 
+Core 可读投影的 `primary_url` 只接受 HTTP(S)。来源 adapter 构造完整私有视图时，调用 `material_reading_view.normalize_projection_source_links`：公开 Markdown 保持相对链接，Core payload 将获准的本地来源保留为 `source_status` 中的仓库路径、将 `primary_url` 置空；不删除材料、阅读提示或原读取范围。私有视图已有的 HTTP(S) 来源不经过公开字段过滤，公开发布仍由独立字段审查负责。
+
 当前投影要求每个 ranked entry 只有一条主材料；组合条目须先完成语义拆分，否则拒绝生成。原材料 ID 不变，相同 URL 不自动合并；两个队列分别连续编号，保留各自原相对顺序。公开队列 rank 不等于混合 catalog 的全局 rank。
 
 ## 操作入口
