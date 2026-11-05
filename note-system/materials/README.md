@@ -44,6 +44,8 @@ Git 对账必须先核对共同基线、本地工作副本与远端。`local_add
 
 若来源 ID 含私人语义，审查记录可指定稳定的 `public_material_ref`，仅在公开导出时替换 ID；完整分区与来源验证仍使用 canonical ID，映射只留本地。别名不得重复或占用其他 canonical ID。纯书名清单可引用 `Learning-Materials/booklists/` 中的 Markdown，不附原始截图或私人收集记录。
 
+自制支付机制导读可引用 `Learning-Materials/payment-mechanisms/` 中的 Markdown，卡片来源写为 `./payment-mechanisms/<文件名>.md`。与既有分布式系统讲义、书单一样，内容仍需经过版本绑定的公开字段审查；渲染器只接受这些明确目录，支付导读不接受脚本或图片作为主来源，并继续拒绝越界路径、查询参数及片段。
+
 当前投影要求每个 ranked entry 只有一条主材料；组合条目须先完成语义拆分，否则拒绝生成。原材料 ID 不变，相同 URL 不自动合并；两个队列分别连续编号，保留各自原相对顺序。公开队列 rank 不等于混合 catalog 的全局 rank。
 
 ## 操作入口

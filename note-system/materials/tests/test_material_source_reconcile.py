@@ -37,6 +37,51 @@ def fixture():
 
 
 class BuildTests(unittest.TestCase):
+    def native_fixture(self):
+        source, reviews, base = fixture()
+        source['rankings'].pop('top30')
+        source['rankings'].pop('ranked_backlog')
+        for record in source['records']:
+            for field in ('source_id', 'legacy_labels', 'sequence'):
+                record.pop(field)
+            record.update(title=record['stable_id'], sources=['https://example.org/source'],
+                          source_revision='native-revision', read_scope='recorded_review',
+                          tier='A', note='Native source record')
+        byref = {r['stable_id']: r for r in source['records']}
+        for review in reviews['records']:
+            review['record_digest'] = sync.digest(sync.canonical_json(byref[review['material_ref']]))
+        return source, reviews, base
+
+    def test_native_records_need_no_legacy_identity_or_counter_fields(self):
+        source, reviews, base = self.native_fixture()
+        before = copy.deepcopy(source)
+        intake, ranked, _, content, audit = reconcile.build(source, reviews, base, base, 'abc')
+        self.assertEqual(intake, before)
+        self.assertEqual(ranked['records'], before['records'])
+        self.assertEqual(set(ranked['rankings']), set(before['rankings']))
+        self.assertEqual(content, {})
+        self.assertEqual(audit['added'], [])
+        self.assertEqual([e['material_refs'] for e in ranked['rankings']['ranked_entries']['entries']],
+                         [e['material_refs'] for e in before['rankings']['ranked_entries']['entries']])
+
+    def test_new_native_card_has_readable_body_and_complete_native_metadata(self):
+        source, reviews, base = self.native_fixture()
+        intake, ranked, after_reviews, content, audit = reconcile.build(
+            source, reviews, base, catalog('two', 'new', 'one'), 'abc')
+        self.assertEqual(intake['records'][:-1], source['records'])
+        record = intake['records'][-1]
+        self.assertEqual(record['title'], 'new')
+        self.assertEqual(record['source_revision'], 'abc')
+        self.assertNotIn('legacy_labels', record)
+        self.assertNotIn('source_id', record)
+        payload = content[record['content_digest'].removeprefix('sha256:')]
+        self.assertEqual(record['content_size_bytes'], len(payload))
+        self.assertEqual(record['entry_digest'], record['content_digest'])
+        self.assertIn('未在本次同步重读原文', json.loads(payload)['source_status_override'])
+        decision = next(r for r in after_reviews['records'] if r['material_ref'] == 'material-new')
+        self.assertEqual(decision['record_digest'], sync.digest(sync.canonical_json(record)))
+        self.assertEqual(audit['settlements'], {'material-new': 'top_window'})
+
     def test_addition_retains_backing_annotations_and_both_orders(self):
         source, reviews, base = fixture()
         original = copy.deepcopy((source, reviews, base))

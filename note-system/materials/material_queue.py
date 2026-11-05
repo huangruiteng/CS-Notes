@@ -51,9 +51,12 @@ def validate_source(source):
         path = unquote(p.path)
         is_course = path.startswith("./distributed-systems-for-loopx/")
         is_booklist = path.startswith("./booklists/") and path.endswith(".md")
-        if not (is_course or is_booklist):
+        is_payment_guide = path.startswith("./payment-mechanisms/") and path.endswith(
+            ".md"
+        )
+        if not (is_course or is_booklist or is_payment_guide):
             raise ValueError(
-                "local sources must be reviewable course or booklist artifacts"
+                "local sources must be reviewable course, guide or booklist artifacts"
             )
         if ".." in Path(path).parts or p.netloc or p.query or p.fragment:
             raise_suspicious_source()

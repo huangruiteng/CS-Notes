@@ -36,7 +36,8 @@ def build(catalog, reviews, baseline, incoming, commit):
     content = {}
     added, updated, archived = [], [], []
     evidence = 'git:' + commit + ':Learning-Materials/catalog.json'
-    used = [int(label[1:]) for r in records.values() for label in r['legacy_labels']
+    legacy_source = any('legacy_labels' in r for r in records.values())
+    used = [int(label[1:]) for r in records.values() for label in r.get('legacy_labels', [])
             if re.fullmatch(r'U\d+', label)]
     next_label = max(used, default=0) + 1
     for ref, card in cards.items():
@@ -64,17 +65,21 @@ def build(catalog, reviews, baseline, incoming, commit):
             payload = sync.canonical_json(body)
             digest = sync.digest(payload)
             content[digest] = payload
-            record = {'stable_id': ref, 'source_id': 'managed-native',
-                      'source_entry_ref': evidence, 'source_ref': evidence,
-                      'source_material_revision': commit, 'legacy_labels': [label],
-                      'lifecycle_state': 'candidate',
-                      'heading_digest': sync.digest(card['title'].encode()),
-                      'entry_digest': digest, 'identical_entry_occurrence': 0,
-                      'sequence': max((r['sequence'] for r in records.values()), default=-1) + 1,
+            record = {'stable_id': ref, 'title': card['title'],
+                      'source_ref': evidence, 'source_revision': commit,
+                      'lifecycle_state': 'candidate', 'entry_digest': 'sha256:' + digest,
                       'candidate_record_ref': 'candidate-record-' + ref,
                       'content_backing_ref': 'managed-content-' + digest,
                       'content_digest': 'sha256:' + digest, 'content_size_bytes': len(payload),
-                      'exact_read_ref': evidence}
+                      'exact_read_ref': evidence, 'read_scope': card['read_scope'],
+                      'sources': card['sources'], 'tier': card['tier'], 'note': card['note']}
+            if legacy_source:
+                record.update(source_id='managed-native', source_entry_ref=evidence,
+                              source_material_revision=commit, legacy_labels=[label],
+                              heading_digest=sync.digest(card['title'].encode()),
+                              identical_entry_occurrence=0,
+                              sequence=max((r.get('sequence', i) for i, r in
+                                            enumerate(records.values())), default=-1) + 1)
             intake['records'].append(record)
             records[ref] = record
             added.append(ref)
@@ -107,9 +112,14 @@ def build(catalog, reviews, baseline, incoming, commit):
             decisions[ref]['public_material_ref'] = card['material_ref']
         if ref not in added:
             updated.append(ref)
-    intake['item_count'] = len(records)
-    intake['native_content_backing_count'] = sum(r['source_id'] == 'managed-native' for r in records.values())
-    intake['lifecycle_counts'] = dict(sorted(Counter(r['lifecycle_state'] for r in records.values()).items()))
+    if 'item_count' in intake:
+        intake['item_count'] = len(records)
+    if 'native_content_backing_count' in intake:
+        intake['native_content_backing_count'] = sum(
+            r.get('source_id') == 'managed-native' for r in records.values())
+    if 'lifecycle_counts' in intake:
+        intake['lifecycle_counts'] = dict(sorted(Counter(
+            r['lifecycle_state'] for r in records.values()).items()))
     ranked = copy.deepcopy(intake)
     entries = ranked['rankings']['ranked_entries']['entries']
     if any(len(e['material_refs']) != 1 for e in entries):
@@ -123,7 +133,7 @@ def build(catalog, reviews, baseline, incoming, commit):
         if ref not in byref:
             card = cards[ref]
             byref[ref] = {'entry_ref': 'git-queue-' + ref, 'source_entry_ref': evidence,
-                'material_refs': [ref], 'labels': records[ref]['legacy_labels'], 'title': card['title'],
+                'material_refs': [ref], 'labels': records[ref].get('legacy_labels', []), 'title': card['title'],
                 'reading_stage': card['tier'] + ' / accepted Git order', 'reading_action': card['note'],
                 'ranking_judgment': 'Preserve accepted remote order during sync; no new scoring.',
                 'reading_url': card['sources'][0], 'evidence_refs': [evidence]}
@@ -159,10 +169,13 @@ def build(catalog, reviews, baseline, incoming, commit):
                    top_window_entry_count=min(window, len(merged)),
                    ranked_backlog_entry_count=max(0, len(merged)-window),
                    public_ranked_count=public_rank, private_ranked_count=len(merged)-public_rank)
-    ranked['rankings']['top30']['slots'] = copy.deepcopy(merged[:window])
-    ranked['rankings']['ranked_backlog']['entries'] = copy.deepcopy(merged[window:])
+    if 'top30' in ranked['rankings']:
+        ranked['rankings']['top30']['slots'] = copy.deepcopy(merged[:window])
+    if 'ranked_backlog' in ranked['rankings']:
+        ranked['rankings']['ranked_backlog']['entries'] = copy.deepcopy(merged[window:])
     result_reviews = copy.deepcopy(reviews)
-    result_reviews['records'] = sorted(decisions.values(), key=lambda d: records[d['material_ref']]['sequence'])
+    positions = {r['stable_id']: i for i, r in enumerate(intake['records'])}
+    result_reviews['records'] = sorted(decisions.values(), key=lambda d: positions[d['material_ref']])
     return intake, ranked, result_reviews, content, {
         'added': added, 'updated': updated, 'archived_skipped': archived,
         'records_before': len(catalog['records']), 'records_after': len(records),
