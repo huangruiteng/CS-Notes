@@ -26,6 +26,7 @@
 | Octop：独立 Harness / Memory / Browser / Gateway，渐进式工具 schema、回合级记忆快照、浏览器动作反馈与群聊上下文边界 | [四组件分工](#octop将执行记忆浏览器与消息接入拆成独立组件)；[事实权威与派生视图](./AI-Applied-Algorithms.md#octop-memory事实权威派生视图与可重放召回) |
 | Personal Agent：个人状态上下文演化、行为决策、后台长程工作与前台交互；Session 复用与解耦 | [四类系统职责](#personal-agent四类系统职责与-session-边界) |
 | Novix：专家判断改变探索方向、失败记录复用与任务评测回退；协同进化式 RSI 的证据边界 | [专家判断、失败资产与协同进化式 RSI](#novix专家判断失败资产与协同进化式-rsi) |
+| 研究反馈与工作步幅：方向 / 测法联合选择、代理校准、反证、实际采用与完整成本 | [DuoDiscover 的双循环与消融](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)；[LoopX PR #8105：Target / Yardstick / Stride 联合决策](#loopx-的研究决策targetyardstick-与-stride) |
 | Coding Agent 过程纪律：ub-mode 对照、共同验收、成本口径、CRAP 与 mutation 缺失、依赖泄漏与裁判误判 | [过程约束与 ub-mode 对照](#ai-coding-的过程约束模型懂原则不等于会稳定执行) |
 | Manus-mono：跨仓统一上下文、本地验证、受控排查与发布、端到端证据 | [统一上下文与交付能力](#manus-mono统一上下文与逐步补齐的交付能力)；[组织、PRV 与数字同事](./AI-Agent-Product&PE.md#manus用真实工作改造-agent-与组织) |
 
@@ -1189,6 +1190,82 @@ Goal 状态 → Effect 请求 → 权限 / Quota 解释
 这比论文先更新状态、再执行动作的算法更明确地表达了提交边界，但仍须验证失败、超时、重复执行与回执落盘中断；不能据此宣称实现已经更可靠。通用 schema + 垂域扩展解决的是表达能力，`resume_when` 解决的是已知条件下的恢复调度，目标对齐的动态 state 解决的是当前决策：三者都不能替代原始证据保留、迟到信息召回与历史审计。机制、图 1、表 5 和适用条件见 [SKILL.state](./AI-Applied-Algorithms.md#skillstate以结构化执行状态替代追加历史)。
 
 **与 CH / Prime 的关系（2026-10）**：三者都把跨轮信息留在模型之外。按 [ServeLearnBench 的实验实现](#servelearnbench从服务评分中发现复用与淘汰经验)，CH 的行动与 Refiner 分层更接近 LoopX 的外置控制面；Prime 更接近自行维护文件、技能和代码的执行 runtime。LoopX 持有目标、任务、权限、证据与恢复状态，不能等同于自动学习器：Reward Memory 区分召回、采用与实际效用，效用投影只提出复核/衰减建议，不自动删除记忆或授予行动权限。能力代码改进走有边界的任务、验证与版本化启用。来源：[控制面架构](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/development/control-plane-course/02-goal-control-plane-architecture.md)、[经验消费](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/reward-memory-decision-consumption.md)、[效用投影](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/protocols/reward-memory-utility-projection-v0.md)。
+
+#### LoopX 的研究决策：Target、Yardstick 与 Stride
+
+> 来源：[PR #8105](https://github.com/loopx-project/loopx/pull/8105)、[中文 RFC，commit `d705a0a`](https://github.com/loopx-project/loopx/blob/d705a0a81cd59af4066dac9e6599b1881433c635/docs/architecture/rfcs/target-yardstick-stride-decisions-v0.zh-CN.md)。2026-11-05 核对时 PR 为 **Open、仅文档提案**；不是已实现、部署或默认启用的 Yardstick capability。RFC 写的“Accepted（合并后生效）”也不能当作已经合并。论文机制、实验与两状态局限见 [DuoDiscover](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)。
+
+最有价值的引入方式，是让**测量反证改变下一轮工作**，并沿已有 Stride 决策路径追踪实际采用。不是再加一个只保存“proxy 分数涨了”的仪表盘，也不必另起一套 scheduler。
+
+##### 三种判断共用决策，但各自回答不同问题
+
+| 判断 | 问题 | 示例 |
+| --- | --- | --- |
+| Target / yardstick co-discovery | 哪个“方向＋测量方法”值得投入？ | 整个调度器空间大但测不起，是否收窄到每步 prefill 配额，或直接完整评测？ |
+| Fidelity | 这把尺子在什么已测范围内能可靠比较候选？ | 低负载微基准排对了，高负载却反转，需要换负载或换尺子。 |
+| Stride | 下一次有用反馈前做多少工作、改变多少机制、验证多宽？ | 继续扩大已有依据的修改，比较不同机制，或先消除排序不确定性。 |
+
+RFC 保留 `grow / switch / verify` 三类动作；fidelity 是判断依据，不是第四个动作。修复错误测量通常可以是 `verify`，不一定意味着任务机制要 `switch`。没有可靠 proxy 时直接评测也是合法选择；非数值工作可以只用 Stride，不必硬造分数。
+
+语义归已有 `control_plane/work_items` 的 typed Stride owner，普通工作 Turn 和完整 replan 共用判断。领域 adapter 负责指标意义、正确性、噪声、覆盖和 fidelity；控制内核检查身份与合法转换，不能仅凭 schema 有效就宣布科学结论可信。
+
+普通 Turn 只在新证据或有意义边界出现时附加决策变化；无变化不增加调用、表格或持久事件。轻量判断也不能抵消已到期的完整 replan。RFC 引用的现有“每六个已结算工作 Turn 复盘”是调度节奏，与 DuoDiscover 的“六个不同代码状态”完全不同。
+
+##### 从一条反证走到下一次有用实验
+
+下面是说明数据流的合成例子，**不是 LoopX 实测日志或已交付 schema**：
+
+| 环节 | 应保留什么 | 如何改变后续工作 |
+| --- | --- | --- |
+| 观测 | 候选 B 在低负载 proxy v1 上比 A 快 20%，同一 B 在完整负载下却慢 5%；保留精确代码、负载、评测版本和成本 | 明确是哪个比较出了冲突，避免只记录“测试失败” |
+| 判断 | 判断噪声和覆盖是否足以解释冲突；“可能漏测高负载”先作为假设 | 根据领域规则标为 suspect、失效或证据不足，不把单次失败泛化成所有 proxy 都不可用 |
+| 决策 | 选择 `verify`：比较低 / 高两档负载，预算与停止条件有界；也比较直接完整测是否更划算 | 暂停无依据地沿旧尺子扫参数，保留完整评测已确认的 incumbent |
+| 执行 | 实际运行了哪些 probe，产生哪个候选或 proxy v2，花了多少成本 | 不能把计划里写过的实验当成已经做过；新尺子用新版本保留旧反例 |
+| 再验证 | 同样候选在 v2 与完整评测中的排序，以及是否出现新的已验收收益 | 验证尺子修复是否有效，再决定继续、换方向或放弃 |
+
+其中 `suspect` 是 LoopX RFC 增加的表达，不是论文原有的第四种 fidelity 状态。具体证据下限交给领域 profile；不把论文六状态门槛变成所有任务的固定规定，更不能把真实案例两状态检查包装成强统计保证。
+
+持久记录至少要能沿这条关系追溯：
+
+```text
+target / yardstick / workload / evaluator 版本
+→ 精确候选上的观测与反证
+→ fidelity 判断及适用范围
+→ 当前决策、下一次 probe 与成本边界
+→ 实际方法和产物
+→ 新测量、是否采用、完整验收收益
+```
+
+同一 target 内改代码是尺子要比较的正常对象，不会每次都自动清空资格；改了 workload、指标、正确性规则、尺子实现或 oracle，则需要重新确认适用范围。迟到的完整结果归产生它的原候选与组合，不能悄悄覆盖新方向。重放只恢复原记录和关联，不重复实验、计费或制造收益；写回阶段也不能偷偷再调用评测器。
+
+##### 怎样让模型用上反馈，又不把每轮工作写成固定剧本
+
+PR 提议从已接受的决策生成最小当前工作提示，例如：
+
+> 局部指标变好了，但整体收益未确认；先判断这把尺子是否值得继续用。
+
+这句话点出待解决的不确定性，具体怎么调查、做几个候选由 Agent 决定；证据、边界与历史按需可读。不为运输一句提示额外建 Todo / Step，不在每个工具结果后插一次模型检查，也不把旧提示置于新用户指令或新反证之上。
+
+**提示送达不等于采用，采用不等于获益。** 下一次有意义的证据边界，应检查实际调用、候选、测量：是否处理了“尺子可能排错”的问题，是否得到有用信息，最终有无完整验收收益。Agent 自主找到更好的调查办法也算采用相关判断，不要求照抄工具顺序。反复忽略反证可以成为停滞复盘的证据，不能靠无限重复同一句提醒解决。
+
+这与 [Reef 的经验与发布闭环](#持续学习的服务闭环reef-的经验更新与发布)、[GLM Infra Agent 的分层反馈](#glm-infra-agent把端到端指标拆成可归因的-dense-feedback-闭环) 互补：Reef 负责把经验送到可追踪的新版本，GLM 强调定位工程原因，这里强调**证据如何改变当前研究方法、测量和工作量**。把同样机制用于 capability evolving 时，仍要区分本任务局部收益与独立任务上的可迁移收益。
+
+##### 逐步接入与验证：先证明反馈有用，再扩展搜索自由度
+
+RFC 的 A–D 实验拆法比直接开全套更利于归因；以下是提议，不是已经完成的实验：
+
+| 阶段 | 系统新增什么 | 要回答的问题 |
+| --- | --- | --- |
+| A：现有 Stride | 只在已有 replan 边界判断 | 原系统在同样任务和成本下怎样表现？ |
+| B：普通 Turn 轻量决策 | 新反证到达后能更及时修正下一步，暂不加 proxy | 更及时的判断本身是否有用？控制开销是否抵消收益？ |
+| C：固定 target 的尺子校准 | 接入一个真实数值 profile、成对测量和失效反馈 | 便宜筛选加校准是否减少每次已确认收益的完整评测成本？ |
+| D：联合选择 target 与尺子 | 比较方向与测法，允许收窄、换组合或直接完整测 | 联合搜索的收益能否覆盖造尺子、修尺子与切换成本？ |
+
+先从相同保存状态做聚焦 decision episode，再用不同 workload、重复 seed 做整任务比较；前者测特定研究状态之后的条件效应，不能替代从零开始的端到端效果。固定模型、工具、起始候选、评测协议、停止规则与资源争用条件；同 token 上限不代表同成本。C / D 共享初始方向与信息，后续方向自由度是明确的实验差异。
+
+主要看**权威验收结果与完整成本的关系、首个已验收收益时间**，并给出配对不确定性；构造、校准、失败搜索、修复、真实确认、控制和切换机会成本都不能漏。决策次数、proxy 高分、合法 schema 或“已提示模型”不能当作成功。可少量抽查代理拒绝的候选以探测假阴性，并保留独立最终评测，这两项是进一步的实验建议。
+
+PR 将交付分成 M1（复用现有 owner、普通 Turn 附件与提示）、M2（真实数值 profile 与采用闭环）、M3（A–D 配对和整任务效果验证）。C1–C13 是未来实现的验收场景，并非已通过的测试。新增行为保持 opt-in；论文收益、合成重放通过、甚至 M1 / M2 可运行，都不能替代 M3 的实际收益证据。
 
 ### 评测、持续学习与 Harness 演化
 

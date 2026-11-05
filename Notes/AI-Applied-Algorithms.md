@@ -13,7 +13,7 @@
 | RAG 与知识检索 | RAG 基础链路、Embedding / Retrieval / Rerank、GraphRAG / KGQA、Agentic RAG、检索增强 LM | 检索 / 上下文召回的基本算法和典型路线 |
 | Agent 基础与经典范式 | CoT、ReAct、ToT、Plan-and-Execute、Function Calling | Agent 基础概念和经典 reasoning / action 框架 |
 | Agent 框架、评估与工作流 | GAIA、MLE-bench、AgentCompass、Deep Research、CUA、ALE / LHTB、长程 benchmark 方法论、ILE（时间边界与结果分层）、Harness-Delta Attribution（捷径 / 计算 / 剩余收益）、PAIR（压缩边界归因）、ATIF 轨迹格式、Workflow agent、trace-first eval、Prove2Me（verification-gated 形式化众包） | Agent benchmark、可组合评测基础设施、涨分归因、工具使用、工作流、安全评估和观测基建 |
-| Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search、研究配方搜索与 checkpoint 谱系 | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
+| Agent Harness / Agent Infra：总框架 | Agent Loop / Tool Calling / Middleware as effectful & Kleisli composition、ETCLOVG、概率执行语义、semantic recovery、Cloudflare Vulnerability Harness、long-horizon RL、rollout、dynamic environment、trace-native eval、governance、handoff、harness search、[DuoDiscover 的方向与尺子联合搜索](#duodiscover联合搜索优化方向与测量方法)、研究配方搜索与 checkpoint 谱系 | 把 Agent Memory / Workflow / Eval / Runtime 放到同一系统框架中 |
 | Context Engineering 与 Agent Runtime | Context / Responses API、runtime resource、session / prefix cache、agent context substrate | Agent runtime 的上下文底座和 API substrate |
 | Agent Memory：领域理论框架 | memory 形态、trajectory-derived experience、memory routing / ranking、personalization、benchmark（含 AML 榜单评测契约）、feedback / credit assignment、[Octop 的事实权威与派生视图](#octop-memory事实权威派生视图与可重放召回) | 当前 Agent Harness / OpenViking 主线和 memory 理论框架 |
 | Online Learning、持续学习与反馈优化 | Online learning、in-context vs in-weights、算力挑战 | 从反馈信号走向持续改进 / 个性化 agent |
@@ -3880,7 +3880,7 @@ LoopX 的正确方向不是把所有 runtime 变成同一个 Hermes-like agent�
 | Project control plane | LoopX | 谁能继续、下一轮是否该跑、证据写哪里 | registry、goal state、todo ownership、gate、quota、run history、evidence refs |
 | Goal audit | Codex / Claude / Kimi 的 goal mode | 能否宣称完成、是否真的 blocked、预算是否还能继续 | objective、completion evidence、usage accounting；区分模型自审规则与运行时强制熔断 |
 | Method trace | Flowtrace | 方法图、步骤证据和局部重跑边界如何从 transcript 外部化 | trace.json、state.json、replies、path-backed evidence |
-| Research search control plane | Stateless Language Agents | 长程搜索如何保存候选、分派实验、隔离角色上下文并从 checkpoint 续跑 | global / local best、outcome evidence、assignment、role context、protected evaluator |
+| Research search control plane | Stateless Language Agents、DuoDiscover | 长程搜索如何保存候选、分派实验、隔离角色上下文、从 checkpoint 续跑，并联合选择优化方向与可靠测量 | global / local best、outcome evidence、assignment、role context、target、yardstick、fidelity、protected evaluator |
 | Post-training research environment | Athanor | Agent 如何根据缓慢的多能力反馈选择训练配方，并复用队友的实验与模型 | data / code revision、parent checkpoints、async job、evaluation protocol、model lineage、shared notes |
 | Human / multi-agent gate | LangGraph Interrupts、Claude Code Agent Teams | 人类和多个 agent 如何接力、审批和恢复 | gate id、task ledger、mailbox、permission lease、artifact refs |
 
@@ -3972,6 +3972,161 @@ $$
 - Advisor 只占 0.24%–0.51% tokens、1.20%–2.29% 模型费用；该成本统计没有覆盖 evaluator 的 CPU / GPU 执行成本。多数 task / 配置只有单次完整长跑，小幅终点差异仍可能受随机性影响。
 
 对 Harness 设计最稳妥的抽象是：长期状态应成为可检查、可 checkpoint、可回滚的控制面对象；Agent context 是从该状态按角色和本轮 assignment 生成的读视图。这样既能跨 session 延续研究，也能把“保留什么、谁能看到什么、下一步由谁决定”变成显式 policy。
+
+#### DuoDiscover：联合搜索优化方向与测量方法
+
+> 来源：[DuoDiscover v1 正文与附录 A–F](https://arxiv.org/html/2610.17184v1)、[项目页](https://duodiscover.github.io/)。2026-11-05 读完整理；以下实验数据均为作者报告，未独立复现。工程结合见 [LoopX 的 Target / Yardstick / Stride 联合决策](./AI-Agent-Engineering.md#loopx-的研究决策targetyardstick-与-stride)。
+
+**一次完整评测很贵时，研究不仅要找“改哪里”，还要找“怎样便宜地判断改动是否有用”。完整评测既确认代码收益，也不断纠正用于筛选代码的尺子。** 这是本篇最值得保留的结构化反馈闭环。
+
+与 [Stateless Language Agents](#stateless-language-agents把研究状态与角色上下文分开) 对照：SLA 重点在持久研究状态、角色上下文和实验分派；DuoDiscover 进一步把**测量方法本身**变成搜索对象。这里改进的是任务代码和搜索策略，并没有训练 Agent 权重，也不能据此证明通用递归自我改进。
+
+##### 两层循环：便宜地筛选，昂贵地确认与校准
+
+完整评测可能需要构建项目、运行正确性测试、在多种负载下计时，耗时几分钟到数小时。若每次改动都完整测一遍，预算主要耗在等待反馈；单纯增加 Agent，还会争用相同的评测资源。
+
+| 对象 | 含义与作用 |
+| --- | --- |
+| 代码状态 $x$ | 某个确定版本的程序；修改代码得到新状态，内容哈希用于区分版本 |
+| 完整评测 $f$ | 返回越大越好的任务分数；未通过正确性检查时返回失败值 $\bot$ |
+| Target $T$ | 允许本次优化的代码区域，例如一个热点循环、调度器的一段逻辑；限制了待比较候选的变化范围 |
+| Yardstick $g_T$ | Agent 为该方向编写的便宜评分脚本，返回分数与正确性标记；可以是缩小输入、热点 profiling、测试子集或静态成本模型 |
+| Fidelity | 同一批候选在 $g_T$ 和 $f$ 下的排序是否一致；描述尺子在已测范围内是否可信 |
+| Orchestrator | 带配套代码的 LLM 协调者：分派、停止或启动 Worker，传递发现、组合修改，并执行 fidelity 检查 |
+
+![DuoDiscover：Worker 的快速搜索、完整评测与尺子校准，以及多 Agent 编排](./AI-Applied-Algorithms/duodiscover-method.png)
+
+图 2 右侧是两层循环：**快循环**选方向、造尺子、改代码、按便宜分数保留或回退；**慢循环**挑候选做完整评测，既确认是否超过已确认最优解，也检查尺子有没有把候选排错。左侧编排器利用这些证据调整人力、传递已确认修改，并对组合后的代码重新验收。
+
+尺子不必准确预测完整分数的数值。例如三个候选的完整耗时为 100、90、80 秒，微基准为 10、8、7 毫秒：单位和比例都不同，但排序一致，仍可用于筛选。相反，微基准从 10 降到 5 毫秒、完整耗时却从 100 升到 110 秒，便宜反馈正在把搜索引向错误方向。
+
+尺子带有正确性标记，也只覆盖它实际检查的条件。**局部检查通过、代理分上涨、尺子曾通过校准，都不能替代当前候选的完整验收。** 未测充分的尺子可以支持有界探索，以积累校准证据；如果始终造不出可靠尺子，就退回直接完整评测。
+
+##### 为什么方向与尺子要一起选
+
+一个方向值得投入，至少取决于它对整体目标的提升空间、尺子的区分能力，以及剩余预算是否足以摊薄造尺子和校准成本。大方向可能很有价值，却找不到便宜测法；小方向很好测，却几乎不影响最终结果。因此应选择“方向＋测量方法”的组合，而不只是先选大热点，再无限打磨它的微基准。
+
+论文借 Amdahl 定律说明 headroom。若目标区域占原总耗时的 $w$，其余部分不变，局部加速 $s$ 倍，则整体加速为：
+
+$$
+S=\frac{1}{(1-w)+w/s},\qquad
+\lim_{s\to\infty}S=\frac{1}{1-w}
+$$
+
+例如只占总耗时 20% 的部分，即使耗时消失，整体最多快 1.25 倍。**这里 $w$ 必须能解释为相应耗时占比**；论文把它宽泛写成 true score 的份额，但不能把这个界直接套到任意质量、功耗或多目标几何平均分数上。
+
+为什么每个 target 各造一把尺子？把完整 workload 缩小，会改变各模块的耗时权重。某微基准适合比较同一个循环的几个版本，却未必适合比较“改循环”和“改调度器”哪个更值。附录 E.1 中，一把全任务尺子使仓库得分从 14.93× 降到 12.98×、kernel SOL 从 80.80% 降到 71.36%。局部尺子的验证比例为 58% / 73%，全任务尺子为 21% / 33%；不过前者按 target、后者按 task 统计，分母并不相同。证据支持本实验中的局部测量设计，不能推出全局代理在所有任务上都不可行。
+
+构造、预热、校准、修复和放弃方向都要计费。尺子快 50 倍不意味着整个系统便宜 50 倍；完整评测本来就便宜、剩余时间很短、或者 proxy 不可靠时，直接测反而可能更划算。
+
+##### Fidelity：先排除噪声，再问候选排序是否可靠
+
+[附录 A.1](https://arxiv.org/html/2610.17184v1#A1) 收集被同一把尺子和完整评测**共同测过的代码快照**，可复用共享该尺子的多个 Agent 的适用证据。状态不是任务数，也不是重复运行次数。
+
+首先重复评测同一个内容哈希的快照，估计完整评测的相对噪声。作者汇总各快照 $\log f$ 的重复测量残差，用标准差的 95% 置信上界作为 $\hat\sigma$；还设 1% 的最小分离门槛。噪声尚未测量时，尺子不能被标为 validated。
+
+只有完整评测自己能够区分的候选对才进入排序统计：
+
+$$
+P_{\hat\sigma}(S)=
+\left\{(i,j):|f(x_i)-f(x_j)|>
+2\hat\sigma\,\frac{f(x_i)+f(x_j)}{2}\right\}
+$$
+
+例如 $\hat\sigma=2\%$，两个完整分数为 100 和 103，差值 3 小于阈值 4.06，不宜据此判断尺子排对或排错。代理分数并列的候选对也排除。余下同序对数为 $n_c$、逆序对数为 $n_d$：
+
+$$
+\tau=\frac{n_c-n_d}{n_c+n_d}
+$$
+
+全排对时为 1，全排反时为 −1；例如 8 对同序、2 对逆序，$\tau=0.6$。这测的是候选比较的可靠程度，不是代理分与真实分有多接近。
+
+Benchmark 的校准门槛是：**测过噪声，至少 6 个不同、可区分的代码状态，$\tau\geq0.5$，且单侧置换检验达到 $\alpha=0.05$。** 置换检验打乱状态与代理分数的对应关系，检查随机配对得到同样或更高相关性的比例。它补充了“相关性够大”的要求，防止极少样本下的偶然一致被误当作可靠关系。
+
+每次完整评测回来后重查：证据不足保持 untested；证据充分但相关性低于门槛则 invalidated；显著负相关要求立即换一种尺子。失效后停止花完整评测预算确认沿旧尺子爬出的候选，先重建尺子、换方向，或直接用完整评测。过去通过验收的代码不会因为尺子失效而自动失效。
+
+**6 个状态与真实案例中的 2 个状态，是不同强度的证据。** [附录 D](https://arxiv.org/html/2610.17184v1#A4) 将真实案例门槛降为“原始代码＋首个候选”，因为一次完整评测耗时 10–85 分钟，prefetcher 甚至可达 28 小时。它表达的是：
+
+- Benchmark：拿多个不同版本，观察尺子能否持续排对。6 个状态最多产生 15 个候选对，但这些对不是 15 个独立样本。
+- 真实案例：只看第一次改动，便宜测量与完整评测是否判断同一个方向。2 个状态只有 1 对，方向相同就能得到 $\tau=1$，证据仍很弱。
+- 按附录 A 的同一精确单侧置换定义，两状态只有两种排列，最好也只能得到 $p=1/2$，**无法同时满足 $p\leq0.05$**。附录 D 没有充分解释显著性条件如何调整，宜将其视为放宽后的工程初筛，不能沿用 benchmark 的统计保证。
+
+降低的是“何时允许这把尺子指导搜索”的证据门槛，不是允许用代理分宣布最终收益。重复运行原代码十次有助于估计噪声，也不会变成十个不同代码状态。
+
+##### 逐步增加组件：每一步改变了什么
+
+[表 4](https://arxiv.org/html/2610.17184v1#S4.T4) 用 **20 个 SWE-fficiency 任务、50 个 SOL-Exec kernels** 做分析；这是主实验的子集，不能与完整 benchmark 的数字混用。两列指标均越大越好。
+
+| 累积系统 | 系统此时怎样工作，解决了什么问题 | 仓库加速比 | SOL 分数 |
+| --- | --- | ---: | ---: |
+| 4 个独立 Claude Code | 各自在代码副本上搜索，候选靠完整评测，取四路最优；测一次仍很贵 | 12.85× | 69.12% |
+| ＋target | 聚焦局部方向，但没有解除完整评测瓶颈；聚焦本身未带来明显收益 | 12.71× | 69.68% |
+| ＋yardstick，无 fidelity | 可以试更多改动，却可能沿错误代理反复优化；最终仍会拒绝坏候选，但搜索预算已经浪费 | 10.33× | 66.91% |
+| ＋fidelity test | 用完整结果校准尺子，发现错误排序后修复或放弃；不仅纠错代码，也纠错测量策略 | 13.25× | 72.57% |
+| ＋co-discovery | 把方向和测法作为组合选择，避免困在“有空间但测不起”或“很好测但没价值”的方向 | 13.76× | 74.43% |
+| ＋orchestrator | 根据进展调整 Worker，传递已确认发现并组合候选，减少重复探索 | 14.93× | 80.80% |
+
+关键反例是第三行：**反馈更便宜、尝试更多，并不自动改善研究；错误反馈会放大搜索偏差。** 第四行开始，完整评测不再只回答“这个候选行不行”，还回答“我们接下来还该信这把尺子吗”。第六行则使单个方向的发现能改变整支团队的搜索。
+
+这是按固定次序加组件的比较，不能把每行增益当作与其他组件无关的独立贡献。论文也没有给出足够细的逐行实现约束，不能额外断言前几行“绝对禁止换方向”。
+
+表 5 从完整系统分别拿掉编排动作：
+
+| 移除的动作 | 失去的能力 | 仓库加速比 | SOL 分数 |
+| --- | --- | ---: | ---: |
+| 启动与停止 Worker | 难以及时淘汰重复路线、补充新路线 | 14.10× | 77.93% |
+| 按进展分配资源 | 不能将预算转向更有证据的工作 | 14.30× | 78.23% |
+| Brief | 不能及时将当前发现与方向判断交给 Worker | 14.28× | 78.49% |
+| Transfer | 难以把一路已确认修改交给另一路继续探索 | 13.92× | 77.46% |
+| Combine | 难以形成并重新验证多路修改的组合 | 14.03× | 76.38% |
+
+仓库任务移除 transfer 损失最大，kernel 移除 combine 损失最大；各项移除损失之和超过整个编排器的净增益，说明动作互相依赖。附录 E 的 1→16 Agent 扩展也支持协作价值，但保持的是墙钟时间，**不是总算力或总费用不变**；更多 Worker 的收益仍须扣除资源和协调成本。
+
+##### 真实轨迹：vLLM 的反证怎样改变下一轮搜索
+
+vLLM 案例在 8×B200 上服务 GLM-5.2-NVFP4，共 20 小时。完整评测约 85 分钟，随到达率上升测试 p99 decode 延迟、首 token 延迟、功耗与吞吐，将各自改善比取几何平均；还要求测试套件通过并检查 greedy 输出一致。
+
+![vLLM 搜索事件与已确认收益：DuoDiscover 对比 Claude Code](./AI-Applied-Algorithms/duodiscover-vllm-search.png)
+
+图 8(a) 的蓝、红粗线分别为 DuoDiscover 与 Claude Code 的已确认综合收益，细虚线为单项指标。三角表示发现方向，菱形表示尺子通过检查，叉表示被拒绝的候选，圆点表示确认收益，星表示确认组合修改。**一次确认可同时推进代码最优解与尺子证据，但二者状态仍要分开。**
+
+1. **先纠正优化方向。** 四个 Agent 最初都盯吞吐；profiling 发现 decode 受内存延迟制约，SM issue 仅 7.8%、DRAM reads 为峰值 21%。编排器终止一路，将其他工作转向固定吞吐下的 p99 decode、功耗和轻客户端首 token 延迟。
+2. **各方向造自己的尺子。** 每步 prefill 配额用秒级 decode 成本模型比较；公平调度与时钟控制用约 13 分钟的负载扫描。后者比 85 分钟完整评测便宜，但只测到的负载范围仍是它的适用边界。
+3. **完整评测给尺子反证。** 更高负载下候选排序反转，原负载扫描失效；Agent 把扫描重建为两个到达率，并在第 15.4 小时重新通过检查。这里最有价值的反馈不是泛泛一句“继续优化”，而是“旧尺子漏掉高负载，不能再按它选择候选”。
+4. **传播和组合仍需重新验证。** 第 7 小时，新 Worker 接手另一条路线已确认的 prefill cap，到新方向后重测；其队列修改在第 14.75 小时获确认，首 token 改善从 2.4× 到 3.1×。第 18.5 小时确认最终组合。
+5. **失败保留具体原因。** 第 12 小时，prefill cap 低于 decode 自身耗时所定的 floor，吞吐损失 7%；第 16.4 小时，最短作业优先被发现是原服务器已有机制。两者都不能当作新收益；prefix co-scheduling 等方案在代理阶段就失败，省去了完整评测。
+
+约 90 个候选只送 7 次完整评测，累计评测时间 9.9 小时，最终综合收益 1.92×；Claude Code 做 12 次、耗 16.8 小时，最终 1.07×。最终方案约 500 行，主要改调度、公平性和 GPU 时钟，没有修改 kernel。综合收益中吞吐只有 1.01×，主要来自延迟和功耗，不能概括成“vLLM 吞吐提升 1.92 倍”。
+
+这也解释了为什么几处收益不能简单相乘：prefill cap 与降频都改变尾延迟，二者会相互影响。附录 D 的固定到达率表中，组合与单独降频均为 23.1 ms p99，单独 cap 在全频时为 16.5 ms；组合是在延迟与功耗间取舍。表中 6–13× p99 改善、34% 降功耗等数值来自特定固定负载，和主曲线的负载扫描综合值属于不同测量条件。
+
+另一个互补案例是 FreeToken：旧 dispatch 规则把 batch>1 的 fp8 linear 送去通用 tiled GEMM，batch 8 只有 48 blocks，填不满 142 个 SM。**所有分支算得都对，普通正确性测试抓不到性能误路由。** 字节搬运下界让 Agent 看见性能空间，新增 split-K 路径后，相关调用从 38.2 降至 24.1 ms；最终 batch 1/8 吞吐为 1.17×/1.76×，几何平均 1.44×。同一搜索中，cache-policy 尺子曾因少量减少专家搬运而预测 1.25×，完整评测不支持后被弃用：成本模型既可能暴露问题，也可能错估收益。
+
+##### 效果、成本与仍未解决的问题
+
+论文按置信下界选择最终候选，再报告多次重新评测的中位数与 Student-$t$ 区间，避免直接拿搜索中碰巧最高的一次分数报成绩。主实验的六组结果如下，均越大越好：
+
+| 任务与计分口径 | Claude Code | DuoDiscover |
+| --- | ---: | ---: |
+| FormulaCode：选定的 25 个仓库任务，相对原代码加速 | 1.778× | 2.156× |
+| SWE-fficiency-Lite：100 个任务，相对原代码加速 | 12.81× | 15.02× |
+| SOL-Exec：235 个 kernel，平均达到硬件理论峰值的比例 | 67.31% | 79.74% |
+| FA4：24 个 B200 配置，相对 Flash Attention 4 的提速百分比 | +7.05% | +11.97% |
+| JAXBench：17 个优先任务，相对 XLA 加速 | 3.82× | 4.62× |
+| TPU-Inference：相对调优后的 Pallas kernel 加速 | 2.38× | 2.68× |
+
+典型预算为同硬件、8 小时、4 Agent，长 FormulaCode 为 24 小时、TPU-Inference 为 10 小时；不是全部任务都跑 8 小时。主结果多为单次完整搜索，分析子集补了三 seeds。对最终候选重复计时能处理测量波动，却不能替代重复整条搜索来检验 Agent 的运行间波动。
+
+分析子集提供了更具体的经济账：
+
+- 仓库尺子用时中位数 40 秒，完整评测 15 分钟，约 22×；kernel 表中为 16 秒对 14 分钟，约 53×。但后续代码演化使 **41% 的仓库尺子、45% 的 kernel 尺子失效**，校准必须持续，曾经可靠不代表永远可靠。
+- 仓库平均完整评测 59 次对 72 次，确认收益约 12.3 对 6.2；kernel 为 54 对 76 次、确认收益 21 对 16。更便宜的尝试把有限完整评测预算送向更有希望的候选，仍会浪费预算，也不会保证无退步。
+- kernel 达到基线最终 69.12% 时，只需 2.8 小时、0.93M 生成 tokens、13 次完整评测，API 费用约 $79.60；基线为 8 小时、3.6M、76 次、$309。**若双方都跑满 8 小时，DuoDiscover 得分更高，但 API 费用是 $375 对 $309**。生成 tokens 与计费中包含的缓存读写 tokens 也不是同一口径；这些 API 费用没有包含 GPU 评测费。[附录 F.3](https://arxiv.org/html/2610.17184v1#A6)
+- 在另一个 Agent backbone Antigravity / Gemini 3.8 Flash 上也见到收益：仓库 9.72×→12.66×、SOL 58.79%→73.26%。这是一定的跨 backbone 证据，仍不能替代跨任务、跨资源预算的验证。
+
+证据边界还包括选择偏差：完整评测主要抽查尺子偏爱的候选，可能漏掉“代理判差、实际很好”的假阴性；只报告验证通过尺子的相关性又会抬高观感。反复用完整评测结果修尺子和改代码，这部分反馈属于开发期验证，不能同时称为独立最终测试。这里的 true evaluation 指任务规定的完整目标，也不等于已经覆盖所有真实部署需求。
+
+对后续系统设计，我最看重的链条是：**完整评测产生反例 → 将反例绑定到候选、尺子版本和负载条件 → 修正尺子或方向 → 改变下一次选择与预算 → 再完整验证。** 可额外用少量预算抽查代理拒绝或拿不准的候选，并在确认性实验前冻结独立评测；这是基于论文局限的工程建议，不是作者已经验证的机制。落到 LoopX 时还需追踪决策是否真被采用，详见 [PR #8105 的设计与验证边界](./AI-Agent-Engineering.md#loopx-的研究决策targetyardstick-与-stride)。
 
 #### Athanor：自主后训练的配方搜索与实验谱系
 
