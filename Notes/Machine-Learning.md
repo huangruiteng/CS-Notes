@@ -250,13 +250,13 @@ q 固定时，其熵 H(q) 不随学生参数变化，最小化交叉熵与最小
 
 *   结合了 MSE 和 MAE 的优点，对异常值具有鲁棒性。当误差较小时，它像 MSE 一样是二次的；当误差较大时，它像 MAE 一样是线性的。
 *   **定义**:
-    $
+    $$
     L_{\delta}(y, \hat{y}) =
     \begin{cases}
     \frac{1}{2}(y - \hat{y})^2 & \text{for } |y - \hat{y}| \le \delta \\
     \delta (|y - \hat{y}| - \frac{1}{2}\delta) & \text{otherwise}
     \end{cases}
-    $
+    $$
     *   `\delta` 是一个超参数，用于区分“小误差”和“大误差”。
 
 #### Focal Loss
