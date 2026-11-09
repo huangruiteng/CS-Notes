@@ -60,6 +60,104 @@ $$
 
 **独立与条件独立不同。** $X\perp Y$ 表示知道 $X$ 不改变 $Y$ 的分布；$X\perp Y\mid Z$ 表示固定 $Z$ 后，$X$ 不再提供关于 $Y$ 的额外信息。边缘上相关的变量可能在分层后条件独立，边缘上独立的变量也可能因条件化而相关。因此“控制更多变量”不是机械地越多越好：要先说明变量与数据生成过程的关系。
 
+#### 条件期望的塔式法则
+
+**先按细分信息求平均，再按各组概率加权，等于直接按较粗信息求平均。** 假设 $\mathbb E[|Y|]<\infty$。条件期望 $\mathbb E[Y\mid X]$ 本身是随 $X$ 变化的随机变量；对它再求期望，就得到全期望公式：
+
+$$
+\mathbb E[\mathbb E[Y\mid X]]
+=\sum_x\mathbb E[Y\mid X=x]P(X=x)
+=\mathbb E[Y]
+$$
+
+这里以离散 $X$ 为例，连续情形改用积分。例如两组人的平均分是 70 和 90，占比分别为 75% 和 25%，总体均分是 $0.75\times70+0.25\times90=75$，不能把两组均分不加权地平均成 80。
+
+**塔式法则允许外层仍保留一部分信息。** 内层知道 $X,Z$，外层只知道 $X$，则：
+
+$$
+\boxed{\mathbb E\!\left[\mathbb E[Y\mid X,Z]\mid X\right]=\mathbb E[Y\mid X]}
+$$
+
+固定 $X=x$ 后，对还不知道的 $Z$ 按条件分布加权即可证明（离散情形）：
+
+$$
+\mathbb E\!\left[\mathbb E[Y\mid X,Z]\mid X=x\right]
+=\sum_z\mathbb E[Y\mid X=x,Z=z]P(Z=z\mid X=x)
+=\mathbb E[Y\mid X=x]
+$$
+
+外层信息要包含在内层信息中；不要求变量独立，也不能对任意两组不嵌套的条件直接消去内层。
+
+**后验均值平均不变，是塔式法则的应用。** 在同一概率模型下，固定未知参数 $\theta$，记当前全部证据为 $D_t$，增加一次观察后为 $D_{t+1}$，后验均值为 $\mu_t=\mathbb E[\theta\mid D_t]$。由于新证据包含旧证据：
+
+$$
+\mathbb E[\mu_{t+1}\mid D_t]
+=\mathbb E\!\left[\mathbb E[\theta\mid D_{t+1}]\mid D_t\right]
+=\mathbb E[\theta\mid D_t]
+=\mu_t
+$$
+
+这也称为后验均值的**鞅性质**：在看到新结果前，对下一次估值的预测就是当前估值。例如 $\operatorname{Beta}(1,1)$ 的当前均值为 $1/2$；下一次成功、失败各有 $1/2$ 概率，更新后的均值分别为 $2/3$、$1/3$，加权后仍是 $1/2$。平均不变不代表每次更新不变；信息仍可能通过改变最终选中的候选，提高预期决策收益。
+
+**为什么先观察再选择，预期收益不会降低？** 设有限个固定候选的效用为 $U_i$，均可积，当前估值为 $\mu_i(s)=\mathbb E[U_i\mid s]$，新状态 $s'$ 包含旧信息。给定 $s$，先固定当前赢家 $i^*\in\arg\max_i\mu_i(s)$。无论新观察是什么，新最大值都不低于这个原赢家的**新估值**：
+
+$$
+\max_i\mu_i(s')\ge\mu_{i^*}(s')
+$$
+
+取条件期望保持大小关系，再用塔式法则：
+
+$$
+\begin{aligned}
+\mathbb E[\max_i\mu_i(s')\mid s]
+&\ge\mathbb E[\mu_{i^*}(s')\mid s]\\
+&=\mu_{i^*}(s)\\
+&=\max_i\mu_i(s)
+\end{aligned}
+$$
+
+例如 A 的价值已知为 0.7；B 等概率为 0.9 或 0.3，当前均值为 0.6。现在选 A 得到 0.7；先查明 B，好时选 B、差时选 A，预期价值为 0.8。B 的均值没有平均上涨，收益来自**按新信息切换选择的机会**。
+
+结论依赖一致的概率模型与新旧信息的包含关系，不要求候选独立。它保证的是事前平均，不保证每次观察后的最大估值都上升；这里也未扣除获取信息的成本。
+
+参考：[全期望公式与塔式法则](https://en.wikipedia.org/wiki/Law_of_total_expectation)；[Selecting Computations：信念状态与计算价值](https://aima.cs.berkeley.edu/~russell/papers/uai12-meta.pdf)。
+
+#### 贝叶斯公式：先验、似然与后验
+
+**贝叶斯更新：用新数据对各个参数假设重新加权，再归一化。** $\theta$ 是未知参数（如成功率），$D$ 是已经观察到的数据（如一次成功）。
+
+| 项 | 含义 |
+| --- | --- |
+| 先验 $p(\theta)$ | 看到这批数据前，对各个参数值的认识 |
+| 似然 $p(D\mid\theta)$ | 假设参数为 $\theta$，出现当前数据的概率或密度；衡量数据对该假设的支持 |
+| 后验 $p(\theta\mid D)$ | 看到数据后，对各个参数值更新后的认识 |
+
+公式来自同一个联合分布的两种分解：
+
+$$
+p(\theta,D)=p(D\mid\theta)p(\theta)=p(\theta\mid D)p(D)
+$$
+
+移项即得（分母为正时）：
+
+$$
+p(\theta\mid D)
+=\frac{p(D\mid\theta)p(\theta)}{p(D)}
+\propto p(D\mid\theta)p(\theta)
+$$
+
+**比例号省略了归一化分母。** 固定已观察到的 $D$，$p(D)$ 对各个 $\theta$ 都相同；连续参数下由全概率公式得到：
+
+$$
+p(D)=\int p(D\mid\vartheta)p(\vartheta)\,d\vartheta
+$$
+
+离散参数则改用求和。$p(D)$ 是数据的边际概率或密度；除以它，后验才能积分或求和为 1。似然是在固定数据后比较不同参数的函数，**不等于参数的概率分布**，也不能把条件方向反过来直接当成后验。
+
+例如，只考虑成功率 $\theta=0.8$ 和 $0.2$ 两个假设，先验各为 $1/2$。观察到一次成功后，两者未归一化权重为 $0.8\times0.5=0.4$ 和 $0.2\times0.5=0.1$；总和为 $0.5$，所以后验分别为 $0.8$ 和 $0.2$。这里后验的 $0.8$ 表示“成功率为 0.8 这个假设的概率”，不是下一次成功的预测概率。连续参数也遵循同样的加权逻辑，见下文 [Beta 共轭更新](#beta-分布与共轭先验)。
+
+参考：[Bayes' theorem：条件概率推导与参数形式](https://en.wikipedia.org/wiki/Bayes%27_theorem)。
+
 ### 常见分布
 
 #### 正态分布
@@ -77,11 +175,115 @@ $$
     *   **期望 (均值)**: $E[X] = np$
     *   **方差**: $Var(X) = np(1-p)$
 
-#### beta分布
+#### Beta 分布与共轭先验
 
-* beta分布是伯努利分布的共轭先验分布
-  * **共轭先验分布的概念**：根据先验分布计算后验分布，后验分布和先验分布属于同一个分布族
-  * 应用：Thompson sampling
+##### 定义与归一化
+
+**Beta 是定义在 $[0,1]$ 上的一族分布，可以用来表示对未知成功率的认识。**“Beta 先验具有下面的形式”是在引用这个分布族的定义；先验并不都必须采用 Beta。其概率密度为：
+
+$$
+p(\theta)=\frac{\theta^{\alpha-1}(1-\theta)^{\beta-1}}{B(\alpha,\beta)},
+\qquad 0<\theta<1,\quad \alpha,\beta>0
+$$
+
+先用非负函数描述密度形状，再除以它在整个区间的积分，使总概率等于 1：
+
+$$
+B(\alpha,\beta)=\int_0^1 t^{\alpha-1}(1-t)^{\beta-1}\,dt
+$$
+
+因此，比例号 $\propto$ 省略的是与 $\theta$ 无关的归一化常数 $1/B(\alpha,\beta)$。$p(\theta)$ 是密度，区间上的积分才是概率。指数写成 $\alpha-1$、$\beta-1$ 是参数化约定：端点附近的幂次大于 −1 时积分有限，条件便写成 $\alpha,\beta>0$；$\alpha=\beta=1$ 时两个指数为零，恰好得到均匀分布。
+
+例如，$\operatorname{Beta}(2,2)$ 的形状与 $\theta(1-\theta)$ 成正比，其积分为 $1/6$，所以密度是 $6\theta(1-\theta)$：中间高、两端低，表示更相信成功率接近中间值。
+
+##### 共轭更新
+
+**为什么常把它用作伯努利／二项模型的先验？因为更新后仍属于 Beta 分布。** 给定固定成功率 $\theta$，独立试验得到 $a$ 次成功、$b$ 次失败，其似然为：
+
+$$
+p(D\mid\theta)\propto\theta^a(1-\theta)^b
+$$
+
+按[贝叶斯公式](#贝叶斯公式先验似然与后验)，先验乘以似然，再归一化；这里相乘后指数相加：
+
+$$
+p(\theta\mid D)\propto
+\underbrace{\theta^{\alpha-1}(1-\theta)^{\beta-1}}_{\text{先验}}
+\underbrace{\theta^a(1-\theta)^b}_{\text{似然}}
+=\theta^{\alpha+a-1}(1-\theta)^{\beta+b-1}
+$$
+
+$$
+\theta\mid D\sim\operatorname{Beta}(\alpha+a,\beta+b)
+$$
+
+先验与后验属于同一个分布族，就叫**共轭**。成功数加到 $\alpha$，失败数加到 $\beta$；参数可以是正实数，不必解释为真实历史次数，尤其不能把小于 1 的参数解释成负次数。
+
+##### 后验预测：从全概率公式到成功率均值
+
+**未知成功率下，下一次成功的概率，是对所有可能成功率按后验加权平均。** 给定固定 $\theta$，下一次试验与历史数据 $D$ 条件独立，且成功概率为 $\theta$。由全概率公式：
+
+$$
+\begin{aligned}
+P(Y_{\mathrm{next}}=1\mid D)
+&=\int_0^1 P(Y_{\mathrm{next}}=1\mid\theta,D)\,p(\theta\mid D)\,d\theta\\
+&=\int_0^1\theta\,p(\theta\mid D)\,d\theta
+=\mathbb E[\theta\mid D]
+\end{aligned}
+$$
+
+采用一般先验 $\operatorname{Beta}(\alpha,\beta)$，其中 $\alpha,\beta>0$。观察到 $a$ 次成功、$b$ 次失败后，先把后验归一化：
+
+$$
+Z=\int_0^1 t^{a+\alpha-1}(1-t)^{b+\beta-1}\,dt,
+\qquad
+p(\theta\mid D)=\frac{\theta^{a+\alpha-1}(1-\theta)^{b+\beta-1}}{Z}
+$$
+
+$a,b,\alpha,\beta$ 固定后，$Z$ 是与 $\theta$ 无关的常数。期望按“取值乘以密度，再积分”计算，因此：
+
+$$
+\begin{aligned}
+\mathbb E[\theta\mid D]
+&=\int_0^1\theta\,\frac{\theta^{a+\alpha-1}(1-\theta)^{b+\beta-1}}{Z}\,d\theta\\
+&=\frac{1}{Z}\int_0^1\theta^{a+\alpha}(1-\theta)^{b+\beta-1}\,d\theta\\
+&=\frac{\int_0^1\theta^{a+\alpha}(1-\theta)^{b+\beta-1}\,d\theta}
+{\int_0^1t^{a+\alpha-1}(1-t)^{b+\beta-1}\,dt}
+\end{aligned}
+$$
+
+**分母来自密度归一化，分子多出的一个 $\theta$ 来自期望定义。** 积分变量 $t$ 只是局部占位符，换名不改变积分值。
+
+把分子积分记为 $J$。为求 $J/Z$，取 $g(\theta)=\theta^{a+\alpha}(1-\theta)^{b+\beta}$；两项指数均为正，它在两端均为零，因此：
+
+$$
+\begin{aligned}
+0=\int_0^1g'(\theta)\,d\theta
+&=(a+\alpha)\int_0^1\theta^{a+\alpha-1}(1-\theta)^{b+\beta}\,d\theta-(b+\beta)J\\
+&=(a+\alpha)(Z-J)-(b+\beta)J\\
+&=(a+\alpha)Z-(a+b+\alpha+\beta)J
+\end{aligned}
+$$
+
+第二行把积分中的一个 $(1-\theta)$ 展开为 $1-\theta$，于是该积分等于 $Z-J$。整理可得：
+
+$$
+\boxed{P(Y_{\mathrm{next}}=1\mid D)=\mathbb E[\theta\mid D]=\frac{J}{Z}=\frac{a+\alpha}{a+b+\alpha+\beta}}
+$$
+
+**均匀先验是 $\alpha=\beta=1$ 的特例。** 此时后验密度与 $\theta^a(1-\theta)^b$ 成正比，上面的推导化为：
+
+$$
+P(Y_{\mathrm{next}}=1\mid D)
+=\frac{\int_0^1\theta^{a+1}(1-\theta)^b\,d\theta}{\int_0^1t^a(1-t)^b\,dt}
+=\frac{a+1}{a+b+2}
+$$
+
+“+1、+2”来自 $\operatorname{Beta}(1,1)$ 先验。例如观察到一次成功后，后验为 $\operatorname{Beta}(2,1)$，下一次成功的预测概率为 $2/3$。
+
+应用：Bernoulli bandit 的 **Thompson sampling** 为每个候选维护 Beta 后验，从各后验抽取一个成功率，再选择抽样值最大的候选，以分布表达不确定性并参与决策。
+
+参考：[SciPy：Beta 分布定义](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.beta.html)；[Selecting Computations，§2 的 Bernoulli 模型与后验更新](https://aima.cs.berkeley.edu/~russell/papers/uai12-meta.pdf)。
 
 ### 抽样、集中与估计误差
 
