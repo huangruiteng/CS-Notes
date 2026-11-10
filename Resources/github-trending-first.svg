@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="32" viewBox="0 0 220 32" role="img" aria-labelledby="title">
+  <title id="title">GitHub Trending, peak rank #1</title>
+  <rect width="220" height="32" rx="6" fill="#24292f"/>
+  <path d="M148 0h66a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6h-66z" fill="#ffcf75"/>
+  <g font-family="Verdana, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+    <text x="74" y="20" fill="#ffffff">GitHub Trending</text>
+    <text x="184" y="20" fill="#3e2600">Peak #1</text>
+  </g>
+</svg>
