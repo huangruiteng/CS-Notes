@@ -1,16 +1,20 @@
-## CS-Notes
+<div align="center">
 
-### 2021年版Intro
+<h1 align="center">CS-Notes</h1>
 
-* 我的自学笔记，在学习MLSys和C++，整理算法、操作系统，后续学习分布式系统，终身更新。
-* 我不是贵系oi出身的大神，目前在以一个初学者的心态补习计算机知识，学习路径和心得可能更值得大家借鉴。
+![曾登 GitHub Trending #1](Resources/github-trending-first.svg)
 
-### 2025年版Intro
+**我的自学笔记，终身更新。**
 
-* 笔记的 AI 自动化管理，参考 .trae/documents 文件夹中的内容
-* 多了太多内容，无从谈起，建议看目录。
+从 C++、算法和操作系统，到分布式系统、MLSys、大模型与 Agent 工程。这里记录我的学习路径、课程实验和实践心得。
 
-### 笔记目录
+[笔记目录](#笔记目录) · [学习材料](Learning-Materials/README.md) · [待读队列](Learning-Materials/QUEUE.md) · [笔记管理](note-system/README.md)
+
+</div>
+
+---
+
+## 笔记目录
 
 笔记按主题分层，文件都在 `Notes/` 下（同名子目录存放该笔记的图片与资源）。
 
@@ -56,7 +60,7 @@
   - [Gourmet](Notes/Gourmet.md) / [Health-COVID-19-Prevention](Notes/Health-COVID-19-Prevention.md) / [game-knowledge](Notes/game-knowledge.md)
   - [面试心得体会与转行相关](Notes/面试心得体会与转行相关.md)
 
-### 笔记心得
+## 笔记心得
 
 当前公开学习材料见 [Learning-Materials](Learning-Materials/README.md)：[Top30 与 ranked backlog](Learning-Materials/QUEUE.md)、[其余候选](Learning-Materials/CANDIDATES.md)，以及[数据库与分布式系统补课讲义](Learning-Materials/distributed-systems-for-loopx/补课讲义.md)。
 
@@ -67,7 +71,7 @@
 * 用「子标题」清晰表达结构
 * 在「子标题」压缩信息：提炼正文内容
 
-### 关于本仓库
+## 关于本仓库
 
 * This repository uses Github as image host, for the simplicity and reliability of backup.
 * 顶层目录中，`Notes/` 放长期笔记，`snippets/` 放可复用脚本与代码片段，`prompts/` 放可复用 prompt 资产。
@@ -76,11 +80,26 @@
   * solution: clone仓库，用[Typora](https://typora.io/)阅读Note文件夹里的本体文件
 * 内推字节AML团队，请联系 huangrt01@163.com
 
-### 社交媒体
+<details>
+<summary>早期自述（2021、2025）</summary>
+
+### 2021年版Intro
+
+* 我的自学笔记，在学习MLSys和C++，整理算法、操作系统，后续学习分布式系统，终身更新。
+* 我不是贵系oi出身的大神，目前在以一个初学者的心态补习计算机知识，学习路径和心得可能更值得大家借鉴。
+
+### 2025年版Intro
+
+* 笔记的 AI 自动化管理，参考 .trae/documents 文件夹中的内容
+* 多了太多内容，无从谈起，建议看目录。
+
+</details>
+
+## 社交媒体
 
 * [小红书](https://www.xiaohongshu.com/user/profile/5cb7c5bf00000000160120df): 观想人间的一团云，当前3-4k粉丝
 * [知乎咨询](https://www.zhihu.com/people/huang-rui-teng)
 
-### Star History
+## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=huangrt01/CS-Notes&type=date&legend=top-left)](https://www.star-history.com/#huangrt01/CS-Notes&type=date&legend=top-left)
