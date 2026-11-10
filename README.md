@@ -8,9 +8,22 @@
 
 从 C++、算法和操作系统，到分布式系统、MLSys、大模型与 Agent 工程。这里记录我的学习路径、课程实验和实践心得。
 
-[笔记目录](#笔记目录) · [学习材料](Learning-Materials/README.md) · [待读队列](Learning-Materials/QUEUE.md) · [笔记管理](note-system/README.md)
+[核心专栏速览](#核心专栏速览) · [笔记目录](#笔记目录) · [学习材料](Learning-Materials/README.md) · [待读队列](Learning-Materials/QUEUE.md) · [笔记管理](note-system/README.md) · [关于本仓库](#关于本仓库)
 
 </div>
+
+---
+
+## 核心专栏速览
+
+仓库目前包含 60+ 篇主题笔记，以下为近期高频更新、篇幅最重的四个核心板块：
+
+| 领域板块 | 核心代表笔记 | 主要覆盖内容 |
+| :--- | :--- | :--- |
+| **Agent 工程与长程架构** | [AI-Agent-Engineering](Notes/AI-Agent-Engineering.md) · [AI-Agent-Product&PE](Notes/AI-Agent-Product&PE.md) · [Codex-Subagent](Notes/Codex-Subagent.md) | Agent Harness、长程控制面（[LoopX](https://github.com/loopx-project/loopx)）、上下文交付、经验记忆（OpenViking）、子智能体通信与恢复、评测与自演进（RSI） |
+| **大模型系统与 AI Infra** | [LLM-MLSys](Notes/LLM-MLSys.md) · [MLSys+RecSys](Notes/MLSys+RecSys.md) · [GPU](Notes/GPU.md) | 训练／推理成本建模、KV Cache、Continuous Batching、FlashAttention、CUDA／Triton 算子、分布式并行、MoE 与大规模搜广推引擎优化 |
+| **AI 算法与搜广推学习** | [AI-Applied-Algorithms](Notes/AI-Applied-Algorithms.md) · [AI-Algorithms](Notes/AI-Algorithms.md) · [深度学习推荐系统](Notes/深度学习推荐系统.md) · [Reinforcement-Learning](Notes/Reinforcement-Learning.md) | 预训练与后训练对齐（RLHF／GRPO）、多模态与生成模型、LLM 增强检索、召回与多目标排序、计算广告与因果实验归因 |
+| **系统底座与现代语言** | [Distributed-Systems](Notes/Distributed-Systems.md) · [Database](Notes/Database.md) · [OSTEP](Notes/OSTEP-Operating-Systems-Three-Easy-Pieces.md) · [muduo](Notes/Linux多线程服务端编程-muduo.md) · [C++](Notes/C++.md) · [Rust](Notes/Rust.md) · [TypeScript](Notes/TypeScript.md) | 操作系统内核与并发、计算机网络（Stanford CS144）、分布式一致性与事务、数据库存储引擎、Profiling 与现代系统级编程语言 |
 
 ---
 
@@ -23,12 +36,12 @@
     - [APUE](Notes/APUE.md) / [OSTEP](Notes/OSTEP-Operating-Systems-Three-Easy-Pieces.md)
     - [Linux多线程服务端编程-muduo](Notes/Linux多线程服务端编程-muduo.md) / [操作系统](Notes/操作系统.md)
     - [CSAPP](Notes/CSAPP.md) / [CSAPP-Labs](Notes/CSAPP-Labs.md) / [Shell-MIT-6-NULL](Notes/Shell-MIT-6-NULL.md)
-    - [Computer-Architecture](Notes/Computer-Architecture.md) / [Assembly](Notes/Assembly.md) / [Compiling](Notes/Compiling.md) / [Metaprogramming](Notes/Metaprogramming.md)
+    - [Computer-Architecture](Notes/Computer-Architecture.md) / [Assembly](Notes/Assembly.md) / [Compiling](Notes/Compiling.md) / [Metaprogramming](Notes/Metaprogramming.md) / [Computer-Graphics](Notes/Computer-Graphics.md)
   - **网络与通信**
     - [通信与网络](Notes/通信与网络.md)
     - [CS144-Lab](Notes/Computer-Networking-Lab-CS144-Stanford.md) / [CS144-Lecture](Notes/Computer-Networking-Lecture-CS144-Stanford.md)
-- **算法与编程**
-  - [Algorithms-Potpourri](Notes/Algorithms-Potpourri.md) / [leetcode题目简评](Notes/leetcode题目简评.md)
+- **算法、数学与编程**
+  - [Algorithms-Potpourri](Notes/Algorithms-Potpourri.md) / [leetcode题目简评](Notes/leetcode题目简评.md) / [mathematics](Notes/mathematics.md)
   - [code-reading](Notes/code-reading.md)
   - [设计模式-《剑指offer》笔记](Notes/设计模式-《剑指offer》笔记.md)
 - **编程语言与工具**
@@ -74,7 +87,7 @@
 ## 关于本仓库
 
 * This repository uses Github as image host, for the simplicity and reliability of backup.
-* 顶层目录中，`Notes/` 放长期笔记，`snippets/` 放可复用脚本与代码片段，`prompts/` 放可复用 prompt 资产。
+* 顶层目录中，`Notes/` 放长期笔记，`snippets/` 放可复用脚本与代码片段，`prompts/` 放可复用 prompt 资产，`Resources/` 放论文／讲义 PDF 与长图资源。
 * 本仓库内容由自制[笔记转化器](https://github.com/huangrt01/CS-Notes)自动生成
   * remaining bug: 包含`$`的行会视为latex行内公式转化为公式图片，但这样会将shell代码转换，需要判断是否在latex代码域内，予以排除
   * solution: clone仓库，用[Typora](https://typora.io/)阅读Note文件夹里的本体文件
@@ -95,9 +108,10 @@
 
 </details>
 
-## 社交媒体
+## 相关项目与社交媒体
 
-* [小红书](https://www.xiaohongshu.com/user/profile/5cb7c5bf00000000160120df): 观想人间的一团云，当前3-4k粉丝
+* **姊妹开源项目**：[LoopX](https://github.com/loopx-project/loopx) — 面向长程 Agent 与 Agent 团队的语义控制面（Semantic Control Plane，曾登 GitHub Trending #1）
+* [小红书](https://www.xiaohongshu.com/user/profile/5cb7c5bf00000000160120df): 观想人间的一团云（与 [X @huangruiteng](https://x.com/huangruiteng) 合计万余关注；早期记录：3-4k粉丝）
 * [知乎咨询](https://www.zhihu.com/people/huang-rui-teng)
 
 ## Star History
