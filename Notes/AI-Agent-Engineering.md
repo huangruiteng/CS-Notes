@@ -1251,7 +1251,7 @@ Goal 状态 → Effect 请求 → 权限 / Quota 解释
 
 #### LoopX 的研究决策：Target、Yardstick 与 Stride
 
-> 来源：[PR #8105](https://github.com/loopx-project/loopx/pull/8105)、[中文 RFC，commit `d705a0a`](https://github.com/loopx-project/loopx/blob/d705a0a81cd59af4066dac9e6599b1881433c635/docs/architecture/rfcs/target-yardstick-stride-decisions-v0.zh-CN.md)。2026-11-05 核对时 PR 为 **Open、仅文档提案**；不是已实现、部署或默认启用的 Yardstick capability。RFC 写的“Accepted（合并后生效）”也不能当作已经合并。论文机制、实验与两状态局限见 [DuoDiscover](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)。
+> 来源：[PR #8105](https://github.com/loopx-project/loopx/pull/8105)、[中文 RFC，commit `d705a0a`](https://github.com/loopx-project/loopx/blob/d705a0a81cd59af4066dac9e6599b1881433c635/docs/architecture/rfcs/target-yardstick-stride-decisions-v0.zh-CN.md)。2026-11-05 核对时 PR 为 **Open、仅文档提案**；当时不能据此确认 capability 已实现、部署或默认启用，RFC 写的“Accepted（合并后生效）”也不能当作已经合并。以下先保留该提案的设计与验收思路，再单列后续源码快照的进展。论文机制、实验与两状态局限见 [DuoDiscover](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)。
 
 最有价值的引入方式，是让**测量反证改变下一轮工作**，并沿已有 Stride 决策路径追踪实际采用。不是再加一个只保存“proxy 分数涨了”的仪表盘，也不必另起一套 scheduler。
 
@@ -1324,6 +1324,69 @@ RFC 的 A–D 实验拆法比直接开全套更利于归因；以下是提议，
 主要看**权威验收结果与完整成本的关系、首个已验收收益时间**，并给出配对不确定性；构造、校准、失败搜索、修复、真实确认、控制和切换机会成本都不能漏。决策次数、proxy 高分、合法 schema 或“已提示模型”不能当作成功。可少量抽查代理拒绝的候选以探测假阴性，并保留独立最终评测，这两项是进一步的实验建议。
 
 PR 将交付分成 M1（复用现有 owner、普通 Turn 附件与提示）、M2（真实数值 profile 与采用闭环）、M3（A–D 配对和整任务效果验证）。C1–C13 是未来实现的验收场景，并非已通过的测试。新增行为保持 opt-in；论文收益、合成重放通过、甚至 M1 / M2 可运行，都不能替代 M3 的实际收益证据。
+
+##### 后续实现快照：已有反馈通路，不等于已证明策略收益
+
+2026-11-09 核对的公开 commit `8f6e88c` 已比前述提案前进了一步：[yardstick_decision.ts](https://github.com/loopx-project/loopx/blob/8f6e88cb2a0fb76aba32bce979ba51293c1981f8/loopx/control_plane/work_items/yardstick_decision.ts#L131) 记录 target、权威 / proxy 指标、反证和下一步方法；在相同比较范围及同一组候选上对齐两种测量，发现排序反转后生成工作提示。它还保留先前计划与实际执行的关联，但明确声明 proxy fidelity 尚未自动获得资格证明。
+
+[stride_policy.ts](https://github.com/loopx-project/loopx/blob/8f6e88cb2a0fb76aba32bce979ba51293c1981f8/loopx/control_plane/work_items/stride_policy.ts) 将 adoption、information gain、goal gain 分开，并要求复盘主张引用证据。字段和引用合法，是后续审查的基础；模型是否准确复盘、是否采用提示、外部成绩是否受益，仍是不同问题。
+
+这个快照不能被描述为已经具备自动 Kendall / Spearman 校准、通用阈值触发、永久拉黑标尺与强制重建的完整控制器。一次反转应首先成为**带版本和适用范围的反证**；是否扩大为某类测法失效，需要进一步证据。这里记录特定版本，不宣称仓库当前最新版仍保持相同实现。
+
+长期目标与预算模型见[有限预算下的研究规划](./Reinforcement-Learning.md#有限预算下的研究规划)。三种判断可以服务同一目标：Stride 决定沿方向推进多深，Yardstick 决定相信哪些测量、还缺什么确认，后续价值模型估计这些选择在当前状态及剩余预算下的终局收益。它们不必各自再建一套调度器。
+
+##### 廉价筛选与昂贵确认：在决策附近校准
+
+多保真优化同时选择“试哪个候选”和“用什么成本观察它”。例如少量数据与完整数据、局部测试与真实负载。[BOCA](https://proceedings.mlr.press/v70/kandasamy17a.html) 利用便宜近似指导搜索，把昂贵测量集中到有希望的区域；其理论使用高斯过程和跨保真度相关结构，不能直接套到任意代码搜索。
+
+若已把本地指标转换到与目标 F 相同的尺度，可用一个说明性模型区分偏差与噪声：
+
+$$
+Z_{\mathrm{local}}(x)=F(x)+b_{\mathrm{local}}(x)+\epsilon_{\mathrm{local}}.
+$$
+
+重复测量可能减小随机噪声 ε，却不会自动消除系统偏差 b。更大的本地样本、更显著的 t 值、同一本地分布上的 holdout，都不能单独证明测到了目标环境的改善。若两种指标量纲不同，应先明确映射，或直接比较决策所需的排序，不能相减。
+
+还有一类误差来自**硬约束与尾部风险**：平均步数下降，最慢用例却超时，可能使整个提交无效。因此代理需要覆盖正确性、压力条件和时间余量，而不只是把均值测得更精确。
+
+可靠性的关键是“能否帮当前基线选对下一步”。研究过程整体在进步时，proxy 和外部分数可能共同随时间上升；跨很远版本的高相关或高排序一致率，可能连“后提交的更好”这个简单规则都没有超过。更有用的检查包括：
+
+- 同父候选的分叉、当前 incumbent 附近的新旧版本；与只按提交时间排序的基线比较。
+- 同一候选、相同 workload 与评测版本上的 proxy–权威配对；保留差值、噪声与适用范围。
+- 正确性 / 超时边界，以及 proxy 拒绝或不确定的候选；只完整测推荐赢家，看不到漏掉的好方案。
+
+权威验证可以确认新 incumbent、决定是否续投、校准 proxy，或发现硬约束反例。即使没立即涨分，只要改变后续预算分配，仍可能有价值；反复确认已明确且不影响选择的事实，则可能很浪费。权威性也是相对于既定实验合同而言，不代表某套 benchmark 完整代表所有真实用户目标。
+
+验证可用性还应进入状态。[EdgeBench adapter 快照](https://github.com/loopx-project/loopx/blob/8f6e88cb2a0fb76aba32bce979ba51293c1981f8/benchmark/edgebench/README.md) 规定首次主动提交可立即接受，后续冷却从**接受时刻**算起，未用的间隔不能储蓄成额外次数。例如配置为 3,600 秒时，控制器要判断何时能再提交、反馈何时返回、等待期间做什么，并为末次有效确认预留时间。这与每次测量的 token 或 GPU 成本不是同一约束；异步实验与实现可以并行，也不能重复累计墙钟。
+
+反复用于改进候选的 Native 反馈属于开发过程。要检验控制策略能否迁移，应先冻结其代码、提示、超参数和反馈使用规则，再在新任务上比较。**冻结策略仍允许它按已冻结的规则使用测试期间获准的反馈**；禁止的是看完测试结果再改规则、选出赢家后仍把同一批任务称为独立验证。候选的最后一次独立检查，与控制策略在新任务上的泛化检查，是两个层次。
+
+##### 从过程记录到可学习的动作价值
+
+“在状态 s 选择 switch，两小时后提高 1 分”是轨迹事实，不等于“switch 比继续 grow 多带来 1 分”。下一次提分还可能依赖之前的实现、探针与校准。普通日志缺少未选路线的结果，也不能把未来才知道的峰值位置写进当时状态。
+
+在已有证据链上，最值得补齐的是**事前预期与后续终局**：
+
+```text
+决策时可见状态、候选与测量版本、剩余预算
+→ 少量可行选择、关键结果预测、耗时范围、会改变什么决定
+→ 实际动作、产物与资源消耗
+→ 返回的观测、反证、采用情况和新状态
+→ 后续计划与统一外部标准下的终局结果
+```
+
+不同数据回答不同问题，不能用同一张“后续涨分”表替代：
+
+| 数据 | 能支持什么 | 不能直接推出什么 |
+| --- | --- | --- |
+| 事前概率 / 收益 / 耗时预测与实际结果 | 校准预测，发现系统性乐观或悲观 | 未选行动的真实收益 |
+| 同候选的 proxy–权威配对 | 估计偏差、决策相关保真度与失效范围 | 所有未来 workload 都可信 |
+| 相同 checkpoint 下的不同后续策略 | 估计当前研究状态下的局部策略差异 | 从零运行的总效果 |
+| 冻结策略后的新任务完整运行 | 检验迁移与等预算终局收益 | 任意长预算或任意任务上都优越 |
+
+起点相同要落实到候选、证据、记忆、测量和反馈状态，而非只有分数相同。配对设计与方差、动作选择偏差见[进展与因果增益](./Reinforcement-Learning.md#进展与因果增益相同起点下比较两条未来)；离线学习未选动作的价值，还需要行为覆盖与可比性，见[离线策略评估](./Reinforcement-Learning.md#counterfactual-evaluation--off-policy-evaluation)。
+
+一个可逐步试验的控制闭环是：恢复当前状态 → 提出少量行动 → 写清关键预期 → 选择有界的多步计划 → 回写实际证据 → 保留已验收成果并重分配预算 → 用配对续跑和整任务比较检验效果。它比固定按即时增益 / 成本选下一步多保留了前置投入和延迟收益，也为未来学习条件动作价值提供数据；是否更好仍由等预算结果决定。相关公开设计说明见 [budgeted-research-planning，commit `9ba6e97`](https://github.com/loopx-project/loopx/blob/9ba6e97cb3d8906507f889253c52205fb60eb632/docs/research/budgeted-research-planning.zh-CN.md)。
 
 ### 评测、持续学习与 Harness 演化
 
