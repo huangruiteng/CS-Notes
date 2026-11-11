@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from material_host_context import resolve_native_owner_turn
+from material_host_context import has_native_host_env, resolve_native_owner_turn
 
 
 class NativeOwnerTurnTests(unittest.TestCase):
@@ -40,6 +40,12 @@ class NativeOwnerTurnTests(unittest.TestCase):
 
     def resolve(self):
         return resolve_native_owner_turn(self.workspace, environ=self.env, homes=[self.home])
+
+    def test_has_native_host_env_detects_supported_hosts_and_rejects_empty(self):
+        self.assertFalse(has_native_host_env({}))
+        self.assertTrue(has_native_host_env(self.env))
+        self.assertTrue(has_native_host_env({"ANTIGRAVITY_AGENT": "1"}))
+        self.assertTrue(has_native_host_env({"CLAUDECODE": "1"}))
 
     def test_real_indexed_active_turn_needs_no_bot_session_and_exposes_no_payloads(self):
         before = self.index.read_bytes(), self.rollout.read_bytes()
@@ -153,6 +159,124 @@ class NativeOwnerTurnTests(unittest.TestCase):
             stream.write('{"type":')
         with self.assertRaisesRegex(ValueError, "incomplete"):
             self.resolve()
+
+    def test_ambiguous_multi_host_environment_fails_closed(self):
+        mixed = {**self.env, "ANTIGRAVITY_AGENT": "1", "ANTIGRAVITY_CONVERSATION_ID": self.thread}
+        with self.assertRaisesRegex(ValueError, "ambiguous native agent host"):
+            resolve_native_owner_turn(self.workspace, environ=mixed, homes=[self.home])
+
+
+class AntigravityAndClaudeNativeTurnTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.workspace = self.root / "project"
+        self.workspace.mkdir()
+        self.conversation = "44444444-4444-4444-8444-444444444444"
+        self.app_dir = self.root / "antigravity"
+        self.transcript = self.app_dir / "brain" / self.conversation / ".system_generated/logs/transcript.jsonl"
+        self.transcript.parent.mkdir(parents=True)
+
+    def _write_lines(self, path, records):
+        path.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
+
+    def _agy_env(self, step_index, *, ws="outside-of-project"):
+        return {
+            "ANTIGRAVITY_AGENT": "1",
+            "ANTIGRAVITY_CONVERSATION_ID": self.conversation,
+            "ANTIGRAVITY_WORKSPACE_PATH": ws,
+            "ANTIGRAVITY_SOURCE_METADATA": json.dumps(
+                {"tool": {"conversationId": self.conversation, "stepIndex": step_index}}
+            ),
+        }
+
+    def test_antigravity_active_turn_persists_across_tool_steps_and_rejects_replay_or_new_turn(self):
+        records = [
+            {"step_index": 3, "type": "USER_INPUT", "content": "private user text"},
+            {"step_index": 4, "type": "PLANNER_RESPONSE", "tool_calls": [{"name": "run_command"}]},
+        ]
+        self._write_lines(self.transcript, records)
+        ctx1 = resolve_native_owner_turn(
+            self.workspace,
+            environ=self._agy_env(5),
+            antigravity_app_dir=self.app_dir,
+        )
+        self.assertEqual(ctx1["host_surface"], "antigravity")
+        self.assertEqual(ctx1["turn_id"], f"antigravity:{self.conversation}:u3")
+        self.assertNotIn("private user text", json.dumps(ctx1))
+        self.assertNotIn(str(self.workspace), json.dumps(ctx1))
+
+        # Once step 5 finishes, replaying stepIndex=5 is rejected; a second tool step 7 in the same user turn matches ctx1.
+        records.extend([
+            {"step_index": 5, "type": "GENERIC", "status": "DONE"},
+            {"step_index": 6, "type": "PLANNER_RESPONSE", "truncated_fields": ["tool_calls"], "tool_calls": [{"name": "run_command"}]},
+        ])
+        self._write_lines(self.transcript, records)
+        with self.assertRaisesRegex(ValueError, "not active"):
+            resolve_native_owner_turn(self.workspace, environ=self._agy_env(5), antigravity_app_dir=self.app_dir)
+
+        ctx2 = resolve_native_owner_turn(
+            self.workspace,
+            environ=self._agy_env(7),
+            antigravity_app_dir=self.app_dir,
+        )
+        self.assertEqual(ctx1, ctx2)
+
+        # Terminal planner response without tool calls closes the turn.
+        records.extend([
+            {"step_index": 7, "type": "GENERIC", "status": "DONE"},
+            {"step_index": 8, "type": "PLANNER_RESPONSE", "tool_calls": []},
+        ])
+        self._write_lines(self.transcript, records)
+        with self.assertRaisesRegex(ValueError, "not active"):
+            resolve_native_owner_turn(self.workspace, environ=self._agy_env(9), antigravity_app_dir=self.app_dir)
+
+        # Next user input produces a new turn_id.
+        records.extend([
+            {"step_index": 9, "type": "USER_INPUT", "content": "next turn"},
+            {"step_index": 10, "type": "PLANNER_RESPONSE", "tool_calls": [{"name": "run_command"}]},
+        ])
+        self._write_lines(self.transcript, records)
+        ctx3 = resolve_native_owner_turn(
+            self.workspace,
+            environ=self._agy_env(11),
+            antigravity_app_dir=self.app_dir,
+        )
+        self.assertNotEqual(ctx1["turn_id"], ctx3["turn_id"])
+
+        # Foreign bound workspace fails closed.
+        other = self.root / "foreign"
+        other.mkdir()
+        with self.assertRaisesRegex(ValueError, "another workspace"):
+            resolve_native_owner_turn(
+                self.workspace,
+                environ=self._agy_env(11, ws=str(other)),
+                antigravity_app_dir=self.app_dir,
+            )
+
+    def test_claude_code_active_tool_turn_and_closed_turn_rejection(self):
+        claude_home = self.root / "claude"
+        session_id = "55555555-5555-4555-8555-555555555555"
+        session_file = claude_home / "projects" / "proj" / f"{session_id}.jsonl"
+        session_file.parent.mkdir(parents=True)
+        records = [
+            {"sessionId": session_id, "cwd": str(self.workspace), "type": "user", "uuid": "u-1", "message": {"content": "run sync"}},
+            {"sessionId": session_id, "cwd": str(self.workspace), "type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash"}]}},
+        ]
+        self._write_lines(session_file, records)
+        env = {"CLAUDECODE": "1", "CLAUDE_SESSION_ID": session_id}
+        ctx = resolve_native_owner_turn(self.workspace, environ=env, claude_home=claude_home)
+        self.assertEqual(ctx["host_surface"], "claude-code")
+        self.assertEqual(ctx["turn_id"], f"claude:{session_id}:u-1")
+
+        # Assistant reply without tool_use closes active tool turn.
+        records.append(
+            {"sessionId": session_id, "cwd": str(self.workspace), "type": "assistant", "message": {"content": [{"type": "text", "text": "done"}]}}
+        )
+        self._write_lines(session_file, records)
+        with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+            resolve_native_owner_turn(self.workspace, environ=env, claude_home=claude_home)
 
 
 if __name__ == "__main__":

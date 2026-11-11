@@ -30,6 +30,7 @@ canonical material ref；需要隐藏私有来源标识时，导出 public-safe 
 | 队列同步器 | 完整分区、分别编号、预览、版本检查、读回、回滚 | [material_queue_sync.py](./material_queue_sync.py) |
 | 三方对账 | 区分共同基线、本地新增、远端缺失与双方冲突 | [material_reconcile.py](./material_reconcile.py)，只读计划，不生成归档 |
 | 生命周期校验 | 逐条用户完成依据、误归档纠正、CAS、读回和回滚 | [material_completion.py](./material_completion.py)，provider/API 由来源入口注入 |
+| 波次与投入度重排 | 时间波次分层、阅读耗时折算 VOI、主文献优先与正交热点限额 | [material_wave_ranking.py](./material_wave_ranking.py)，保持完整集合无损 |
 | 公开渲染器 | 校验卡片、生成 Top30 / backlog / 其余候选 | [material_queue.py](./material_queue.py) |
 
 公开卡片只允许 `material_ref / title / sources / tier / lifecycle / read_scope / note / queue_rank`。不接受额外的原文或 provider 字段。新增或变更的记录默认进私有侧，必须重新审查；归档记录始终排除。审核同时绑定 `entry_digest` 与完整 record 的 SHA-256，不能只凭同一个 ID 或网址沿用公开许可。
@@ -115,7 +116,7 @@ python3 -m unittest discover -s note-system/materials/tests -p 'test_material*.p
 3. **Check**：检测源/审查过期或输出被编辑。修改文件后，应先比较差异，再重新 prepare，不能用刷新覆盖未审查的改动。
 4. **Rollback**：指定当前投影 revision，先验证全部备份与旧指针，再恢复；不回滚 catalog 的 intake、生命周期或排名。
 
-写入门禁应绑定实际调用宿主的活动 Turn，不能把普通 Codex 会话误当成“缺少 Bot Turn”。[Codex 宿主上下文读取器](./material_host_context.py)只读校验环境中的线程 ID、宿主索引、会话来源、工作区、活动 Turn 与写入策略，不创建 Session、Turn 或授权。来源 adapter 仍须核验当前 owner 与 App／工作区 grant，并把宿主上下文绑定到有期限、限定操作的 gate；换 Turn、撤权、只读或宿主信息不一致时拒绝，不回退借用其他宿主。真实线程信息和审计证据留在私有侧，不进入公开目录。
+写入门禁应绑定实际调用宿主的活动 Turn，不能把普通本地 Agent 会话误当成“缺少 Bot Turn”。[本地宿主上下文读取器](./material_host_context.py)按调用环境只读校验真实宿主（Codex App／CLI、Antigravity、Claude Code）的活动会话标识、本地只读轨迹／索引、工作区归属、进行中 Turn 与写策略，不创建 Session、Turn 或授权，并拒绝多宿主环境混用或已完成步骤重放。来源 adapter 仍须核验当前 owner 与 App／工作区 grant，并把宿主上下文绑定到有期限、限定操作的 gate；换 Turn、撤权、只读或宿主信息不一致时拒绝，不回退借用其他宿主。真实线程信息和审计证据留在私有侧，不进入公开目录。
 
 [授权证据读取器](./material_authority_read.py)将超时、连接故障、无效 JSON 和服务异常保留为 `AuthorityReadUnavailable`，将 HTTP 401/403 保留为 `AuthorityReadDenied`。两者都阻止依赖写入，且不自动重试；不将临时读失败吞成 verifier 的 `False`，也不向错误消息带出 URL、响应正文或底层异常中的私有信息。恢复后仍须重新读取同一 owner 的当前授权，不能用缓存 grant、旧 gate 或成功连通代替授权核验。
 

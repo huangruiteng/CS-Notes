@@ -68,7 +68,11 @@ the Top30 or ranked backlog; it may not remain only an unranked candidate.
 `no_change` requires a reason and is reserved for lower-value or substantially
 duplicative material. If the Top30 is full, move displaced entries into the
 ranked backlog without loss. Do not move protected anchors without a changed
-Decision Context or explicit owner instruction.
+Decision Context or explicit owner instruction. When auditing or reshaping the
+Top30 against active deliverables, stratify by horizon wave and reading effort
+(`note-system/materials/material_wave_ranking.py`), verify load-bearing primary
+citations are settled ahead of secondary commentary, and keep orthogonal trend
+items in `ranked_backlog` rather than crowding active decision waves.
 
 The installed project skill does not itself activate Material Lifecycle.
 Without an active project- or goal-scoped profile, declared source authority, and current native owner authorization, this skill may research or read material but must not rewrite the managed store. An already authorized ordinary project source does not require a new Goal or a borrowed agent identity.

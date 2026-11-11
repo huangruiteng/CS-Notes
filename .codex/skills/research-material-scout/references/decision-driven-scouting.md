@@ -24,3 +24,11 @@ A user operating or making claims from a benchmark should personally inspect:
 - **Limits:** failures, missing runs, protocol drift and which claims the evidence cannot establish.
 
 Give a reader map with actual section/figure/table identifiers and an output (for example, a one-page evaluation contract). Long derivations, every task appendix and infrastructure code can remain assistant-led unless they affect the user's claim. Do not demand complete-paper reading for every benchmark. Check existing notes before proposing additions; if they already cover the mechanism and limitations, move to an experiment or decision instead of repeating the explanation.
+
+## Horizon-wave and effort-stratified ranking
+
+When settling or auditing a ranked material queue against a confirmed Decision Context, prevent three common ranking failures:
+
+1. **Separate effort band from topic importance:** stratify active materials into horizon waves (`imminent_gate` -> `active_sprint` -> `foundational_track` -> `orthogonal_backlog`) and effort bands (`quick_slice` <= 30m, `focused_study` 1-3h, `deep_monograph` multi-session course/book). Never bury a high-VOI `quick_slice` behind an unsliced `deep_monograph`; multi-session courses/books either carry an explicit chapter slice (`scoped_slice_ready=true`) or stay in `foundational_track`.
+2. **Audit load-bearing primary lineage first:** before reranking, inspect active deliverables, specs, and architecture drafts for cited foundational papers/reports. Settle any missing primary source via exact-read `intake` (or `revise` if only a secondary announcement exists) before running rerank, and enforce primary-over-secondary precedence (`primary_source_refs`) so tutorials/commentary never outrank their primary technical report.
+3. **Cap orthogonal hot topics in the Top Window:** high-quality industry news, interviews, or adjacent product launches that are orthogonal to active horizon deliverables belong at the top of `ranked_backlog` (`#31+`), not crowding `Top30` decision slots.
