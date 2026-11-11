@@ -10000,98 +10000,6 @@
       "queue_rank": 73
     },
     {
-      "material_ref": "material-sun-alan-interview-0z-vhbvbmuy",
-      "title": "孙宇晨 × 邵艾伦（薄肌版）：对话孙宇晨，年轻人如何抓住AI时代的机会？",
-      "sources": [
-        "https://www.youtube.com/watch?v=0Z-vhBvBmUY",
-        "https://x.com/AlanShao111/status/2108407966236020814",
-        "https://github.com/LeoLee0812/sunyuchen-alan-interview/blob/e4c2465f57c12c1678a5d34061fd1be2e1e58fa8/README.md"
-      ],
-      "tier": "B",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已核验主持人原帖和官方4:22:29视频页面；读第三方转写README、01/07/16章及11章前段。关注Claude Code记账/日报、MD与照片供不同Agent交接、职业机动性与先自由后财富观点；不是技术实证或投资/健康结论。未逐句回听原音、未读全部16章，完整字幕与转写准确性、健康/金融/历史/RSI说法未独立验证。",
-      "queue_rank": 289
-    },
-    {
-      "material_ref": "material-rsi-anything-2610-13912",
-      "title": "RSI-Anything：世界模型引导候选选择、反馈适应与策略—预测器组合验收",
-      "sources": [
-        "https://x.com/0xlogicrw/status/2109601836923822327",
-        "https://arxiv.org/html/2610.13912v1",
-        "https://github.com/Gen-Verse/RSI-Anything/blob/99dbf000a424b9033651b1096c5da2b6d5fa3865/README.md"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读原帖全文、论文v1方法/代码修复/GUI/规划与讨论选段、官方固定commit README/工作流/评测说明及代码修复图。固定coder、四候选筛一、相近测试预算下26.3%→29.2%→31.2%；更新触发与component/pair验收可转化为预测—实测账本和组合验收契约。建议先读§2.4–2.5、§3.1/§6.1、§5；未全文精读、未审计训练代码或复现，长期同任务共同演化未证实。",
-      "queue_rank": 60
-    },
-    {
-      "material_ref": "material-score-centering-2609-20807",
-      "title": "Score Centering Stabilizes Off-policy Reinforcement Learning：训推失配的漂移校正与重要性采样组合",
-      "sources": [
-        "https://arxiv.org/abs/2609.20807v1",
-        "https://arxiv.org/html/2609.20807v1"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "full_text",
-      "note": "已读2609.20807v1正文§1–6及附录A/B文字，实际查看PDF图1/4；其余图表未逐一看图，完整训练代码未审计，未复现。SC按prefix减去sampler下期望score以去漂移；残余Cov_q不等于on-policy梯度，严重滞后时SC+TIS/MIS更优。S选读§4、A1/A2、5.3和局限。严重失配、短序列训练准确率不代表生产长程收益；vLLM/SGLang开销未测。",
-      "queue_rank": 90
-    },
-    {
-      "material_ref": "material-cheekypint-meta-muse-wonder-20261013",
-      "title": "Cheeky Pint #35：Muse Wonder、个人 Agent 的模型产品化与 active memory/focus",
-      "sources": [
-        "https://x.com/michaelzsguo/status/2109756809993163051",
-        "https://cheekypint.transistor.fm/35",
-        "https://cheekypint.substack.com/p/muse-wonder-zuckerberg-and-wangs"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读分享原帖、Cheeky Pint #35官方节目入口及转录前27000字符，覆盖个人Agent案例、模型即产品、active memory/focus。转录100000字符截断；完整134分钟视频、中文字幕、后半场与独立评测未核验。A档：可转化为跨任务记忆使用、压缩保留、挫折后完成与主动介入的评测维度。嘉宾自报SOTA和VM安全并非独立证据。先读摘要及00:07:28/00:14:35相关段落即可。",
-      "queue_rank": 125
-    },
-    {
-      "material_ref": "material-anthropic-managed-agents-20260408",
-      "title": "Anthropic Managed Agents：brain/hands/session 解耦、可替换 harness 与持久事件接口",
-      "sources": [
-        "https://www.anthropic.com/engineering/managed-agents"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "full_text",
-      "note": "已读2026-04-08官方正文全文及4张架构图/接口表像素；外链docs、API/源码、安全审计与独立复现未读。A档：session事件日志、可替换harness与sandbox分离，恢复计算与保存事实各有职责；context管理可换而原事件可追溯，凭证通过resource绑定或vault/proxy。日志追加幂等不证明外部effect exactly-once。厂商报告p50 TTFT约降60%、p95降超过90%，不是任务成功率，缺原始对照。选读解耦章节、接口表与session/context章节，可转恢复故障矩阵和状态所有权检查表。",
-      "queue_rank": 100
-    },
-    {
-      "material_ref": "material-longharness-2610-13075",
-      "title": "LongHarness：证据—结论协同、EvidenceBank 修订生命周期与缺口驱动检索",
-      "sources": [
-        "https://arxiv.org/abs/2610.13075v1",
-        "https://arxiv.org/html/2610.13075v1"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读v1方法/实验与A–E、TeX主表和完整prompt，实际看图1–4像素；未运行实现、取得原始轨迹或独立复现。证据与结论分离，缺口驱动检索；读后注册、逐项接纳、revision新ID、旧ID失活，观察后更新结论。引用有效不保证源忠实，compute不校operand，全history不自动压缩。GLM同backbone V1/V2 60.2/61.1，QwenV2超Codex仅1.1pp；不同工具/预算，不代表商业原生模型排名或等成本因果收益。图4修正未采用案例与append-only消融有参考价值，conditional pipeline分母不同。S选读§2、B2–4、Table2/3、E/Fig4。",
-      "queue_rank": 48
-    },
-    {
-      "material_ref": "material-anthropic-scion-20261013",
-      "title": "Anthropic Scion：每日合并增长背后的源码控制、派生索引与分层缓存架构",
-      "sources": [
-        "https://www.anthropic.com/engineering/redesigning-source-control"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "full_text",
-      "note": "已读2026-10-13官方全文及6图像素；性能图顶部legend遮挡，源码/原始数据/独立复现未验。图中30401是Sep9单日，非整月日均或质量。Scion first-parent增量changeset与content-addressed blobs，tree/blame/history递推派生；不可变对象缓存、可变ref单rowCAS，服务端查询API、按需sparsecheckout、严格分层缓存。CPU/内存footprint200×缩减等为厂商报告，具体CIcheckout31→3.5s，不泛化为所有操作100×。postmerge/predeploy测试不等于取消审批或发布gate，特殊巨大在线monorepo方案非通用Git替代；摘要+Data structures/Scaling Scion选读。",
-      "queue_rank": 123
-    },
-    {
       "material_ref": "material-anthropic-roadmap-202107",
       "title": "Anthropic 2021 Concise Research Roadmap：编程助手、长记忆、工具使用 RL 与对齐的早期框架",
       "sources": [
@@ -10170,74 +10078,6 @@
       "read_scope": "recorded_review",
       "note": "Ch. 12–15；PDF 页 172–217，对应印刷页 163–208；Codex 已核对，用户未读完。 没有真实观测数据与明确 estimand 时先不读。需要实现时，先做 Ch. 12 与 Ch. 13 的同一数据双解，再读 Ch. 15 比较 propensity 用法；只有问题需要 structural nested model 时才进入 Ch. 14。",
       "queue_rank": 96
-    },
-    {
-      "material_ref": "material-intelligence-explosion-2609-36054",
-      "title": "AI研发自动化会触发智能爆炸吗：反馈增长模型、四类瓶颈与监督测量（公众号＋原论文）",
-      "sources": [
-        "https://mp.weixin.qq.com/s/7fIaHorzflJ591Nn-hIXfw",
-        "https://arxiv.org/abs/2609.36054v1",
-        "https://arxiv.org/pdf/2609.36054v1",
-        "https://www.anthropic.com/institute/measuring-pace-of-ai-development"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读公众号正文/作者页图片，原论文v1主文、SM增长模型/不确定性及相关脚注，检查图1/2完整像素；补查Anthropic的AL4/AL5与冻结任务篮子方法。价值是把研发自动化→有效劳动力→后继AI反馈，拆为收益递减、实验算力/数据、难自动化环节和串行耗时。r大于1及约1.5年十倍加速均有完全自动化等假设；“26%”为AI主导、人类监督，“数百万”是前沿机构条件估算。未重验原始数据、所有引用或Hinton“首篇”说法。优先读p4–5和p12–13，形成研发投入/成果/反馈耗时测量卡。",
-      "queue_rank": 64
-    },
-    {
-      "material_ref": "material-third-moment-openai-20261014",
-      "title": "Third Moment Research：外层harness监督、失败场景驱动改进与长程研究成本（OpenAI客户案例）",
-      "sources": [
-        "https://openai.com/zh-Hans-CN/index/third-moment-research/",
-        "https://openai.com/index/third-moment-research/"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读中英文官方客户案例五节及四步改进循环图完整像素。关注外层harness看轨迹决定重试/终止/转人工；行为→重复问题/相似性矩阵→合成环境→Codex改harness。回测约3小时→3–5分钟的报告轨迹揭示环境性能、轮询、token和context耦合；scoreboard以输出不变/同硬件验收。10,000并发/36–48小时与收益均为客户报告；数十万个为路线图，无原始数据、源码、独立复现或模型权重更新证据。优先读监督机制、回测案例与循环图，形成监督policy、场景验收与成本账本。",
-      "queue_rank": 37
-    },
-    {
-      "material_ref": "material-openai-maintenance-gpt6-20261014",
-      "title": "OpenAI 软件维护：生产证据清理、CI降本与AGENTS规则成对重放",
-      "sources": [
-        "https://x.com/copperforgeai/status/2110610938181325012",
-        "https://developers.openai.com/blog/maintaining-software-with-the-gpt-6-family"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读原帖主文和配图像素，并追读OpenAI 2026-10-14官方文章全文、维护提示词与成本图的文字数据；未核验内部PR、生产遥测或独立复现，成本图未做像素检查。重点是死代码证据链、保留killswitch、间接引用与跨服务依赖、Permanent开关转人工、CI按日节省量排序，以及同仓库快照/模型仅改一条AGENTS规则的成对重放。1400+PR/800k行、镜像48%、CPU约0.42%与CI收益是作者报告；零观测调用不等于永远无用途，AGENTS提示是实验建议而非已证实增益。A：优先读规则对照与分阶段维护方法，转成一页证据/风险/收益检查表；工程参考进入ranked backlog，不挤占前沿研究与基础选读。",
-      "queue_rank": 98
-    },
-    {
-      "material_ref": "material-sac-littleprince-2109962425512734739",
-      "title": "Sac《小王子：星辰之旅》：Opus、Tripo与Blender的3D游戏创作案例",
-      "sources": [
-        "https://x.com/Saccc_c/status/2109962425512734739",
-        "https://littleprince.dev/"
-      ],
-      "tier": "B",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读Sac于2026-10-13发布的原帖主文及littleprince.dev首页文字。作者称花16天用Opus 5.5结合Tripo、Blender，将《小王子》做成可探索星球的3D剧情游戏，计划后续开源项目与制作流程；模型分工、耗时及完成度为作者自述，未核验源码或制作记录。首页有开始旅程入口并建议Chrome/Edge；读取时画面准备0%。视频、游戏场景像素、完整玩法、性能与成本未核验。B：AI辅助3D创作与多工具交付的产品案例，先存ranked backlog；待公开制作流程/源码后再拆解资产、场景与交互工作流，不挤占当前研究及基础首读。",
-      "queue_rank": 297
-    },
-    {
-      "material_ref": "material-beating-mengxing-founder-diligence-20261015",
-      "title": "创业履历与投资尽调：动察对孟醒及相关项目的评论（争议待核验）",
-      "sources": [
-        "https://mp.weixin.qq.com/s/WuWV8DElwr6KZc5p49sgOA",
-        "https://www.5ycap.com/team",
-        "https://elsewhere.news/zh/elsewhere/elsewhere-1786673275421"
-      ],
-      "tier": "B",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读取公众号返回的完整正文（12,708字符），并核对5Y Capital官方团队页及elsewhere原访谈介绍；未听访谈全音视频，未核验完整判决、融资文件及文中全部履历细节，配图未逐张读取。文章是带鲜明立场的争议评论，不能将其融资报道、责任指控或动机推断写成已证实事实。可转化为创业/投资尽调框架：区分头衔与实际贡献，按时间线核对交付及交接责任，区分能力、诚信与共享基础设施信任。B档标准价值背景材料，与当前技术主线相关性间接，进入ranked_backlog尾部，保持Top30顺序；该位置为本次有界处置，不代表全面重排。",
-      "queue_rank": 298
     },
     {
       "material_ref": "material-tisonkun-blog-ai-native-coding-20261016",
@@ -10324,16 +10164,96 @@
       "queue_rank": null
     },
     {
-      "material_ref": "material-anthropic-infrastructure-noise-20260205",
-      "title": "Agent 评测的基础设施噪声：资源配额、硬上限与分数的混杂",
+      "material_ref": "material-longharness-2610-13075",
+      "title": "LongHarness：证据—结论协同、EvidenceBank 修订生命周期与缺口驱动检索",
       "sources": [
-        "https://www.anthropic.com/engineering/infrastructure-noise"
+        "https://arxiv.org/abs/2610.13075v1",
+        "https://arxiv.org/html/2610.13075v1"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读v1方法/实验与A–E、TeX主表和完整prompt，实际看图1–4像素；未运行实现、取得原始轨迹或独立复现。证据与结论分离，缺口驱动检索；读后注册、逐项接纳、revision新ID、旧ID失活，观察后更新结论。引用有效不保证源忠实，compute不校operand，全history不自动压缩。GLM同backbone V1/V2 60.2/61.1，QwenV2超Codex仅1.1pp；不同工具/预算，不代表商业原生模型排名或等成本因果收益。图4修正未采用案例与append-only消融有参考价值，conditional pipeline分母不同。S选读§2、B2–4、Table2/3、E/Fig4。",
+      "queue_rank": 48
+    },
+    {
+      "material_ref": "material-rsi-anything-2610-13912",
+      "title": "RSI-Anything：世界模型引导候选选择、反馈适应与策略—预测器组合验收",
+      "sources": [
+        "https://x.com/0xlogicrw/status/2109601836923822327",
+        "https://arxiv.org/html/2610.13912v1",
+        "https://github.com/Gen-Verse/RSI-Anything/blob/99dbf000a424b9033651b1096c5da2b6d5fa3865/README.md"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读原帖全文、论文v1方法/代码修复/GUI/规划与讨论选段、官方固定commit README/工作流/评测说明及代码修复图。固定coder、四候选筛一、相近测试预算下26.3%→29.2%→31.2%；更新触发与component/pair验收可转化为预测—实测账本和组合验收契约。建议先读§2.4–2.5、§3.1/§6.1、§5；未全文精读、未审计训练代码或复现，长期同任务共同演化未证实。",
+      "queue_rank": 60
+    },
+    {
+      "material_ref": "material-score-centering-2609-20807",
+      "title": "Score Centering Stabilizes Off-policy Reinforcement Learning：训推失配的漂移校正与重要性采样组合",
+      "sources": [
+        "https://arxiv.org/abs/2609.20807v1",
+        "https://arxiv.org/html/2609.20807v1"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读2609.20807v1正文§1–6及附录A/B文字，实际查看PDF图1/4；其余图表未逐一看图，完整训练代码未审计，未复现。SC按prefix减去sampler下期望score以去漂移；残余Cov_q不等于on-policy梯度，严重滞后时SC+TIS/MIS更优。S选读§4、A1/A2、5.3和局限。严重失配、短序列训练准确率不代表生产长程收益；vLLM/SGLang开销未测。",
+      "queue_rank": 90
+    },
+    {
+      "material_ref": "material-anthropic-managed-agents-20260408",
+      "title": "Anthropic Managed Agents：brain/hands/session 解耦、可替换 harness 与持久事件接口",
+      "sources": [
+        "https://www.anthropic.com/engineering/managed-agents"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读2026-04-08官方正文全文及4张架构图/接口表像素；外链docs、API/源码、安全审计与独立复现未读。A档：session事件日志、可替换harness与sandbox分离，恢复计算与保存事实各有职责；context管理可换而原事件可追溯，凭证通过resource绑定或vault/proxy。日志追加幂等不证明外部effect exactly-once。厂商报告p50 TTFT约降60%、p95降超过90%，不是任务成功率，缺原始对照。选读解耦章节、接口表与session/context章节，可转恢复故障矩阵和状态所有权检查表。",
+      "queue_rank": 100
+    },
+    {
+      "material_ref": "material-anthropic-scion-20261013",
+      "title": "Anthropic Scion：每日合并增长背后的源码控制、派生索引与分层缓存架构",
+      "sources": [
+        "https://www.anthropic.com/engineering/redesigning-source-control"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读2026-10-13官方全文及6图像素；性能图顶部legend遮挡，源码/原始数据/独立复现未验。图中30401是Sep9单日，非整月日均或质量。Scion first-parent增量changeset与content-addressed blobs，tree/blame/history递推派生；不可变对象缓存、可变ref单rowCAS，服务端查询API、按需sparsecheckout、严格分层缓存。CPU/内存footprint200×缩减等为厂商报告，具体CIcheckout31→3.5s，不泛化为所有操作100×。postmerge/predeploy测试不等于取消审批或发布gate，特殊巨大在线monorepo方案非通用Git替代；摘要+Data structures/Scaling Scion选读。",
+      "queue_rank": 123
+    },
+    {
+      "material_ref": "material-cheekypint-meta-muse-wonder-20261013",
+      "title": "Cheeky Pint #35：Muse Wonder、个人 Agent 的模型产品化与 active memory/focus",
+      "sources": [
+        "https://x.com/michaelzsguo/status/2109756809993163051",
+        "https://cheekypint.transistor.fm/35",
+        "https://cheekypint.substack.com/p/muse-wonder-zuckerberg-and-wangs"
       ],
       "tier": "A",
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
-      "note": "已读官方文章正文与报告数字；图像、原始数据与独立复现未核验。相同model/harness/task改变资源配置，Terminal-Bench 1×到3×的故障率下降但分数差未超噪声；更宽资源也会改变可用策略，不能把消除故障等同能力提升。6pp及3×是作者特定实验，不是通用阈值。先读How we got here、Other sources of variance、What we recommend，约15分钟；形成CPU/RAM保证值与硬上限、并发、临时盘、timeout/latency和故障开销的匹配表，再读自身完整轨迹。",
-      "queue_rank": 3
+      "note": "已读分享原帖、Cheeky Pint #35官方节目入口及转录前27000字符，覆盖个人Agent案例、模型即产品、active memory/focus。转录100000字符截断；完整134分钟视频、中文字幕、后半场与独立评测未核验。A档：可转化为跨任务记忆使用、压缩保留、挫折后完成与主动介入的评测维度。嘉宾自报SOTA和VM安全并非独立证据。先读摘要及00:07:28/00:14:35相关段落即可。",
+      "queue_rank": 125
+    },
+    {
+      "material_ref": "material-sun-alan-interview-0z-vhbvbmuy",
+      "title": "孙宇晨 × 邵艾伦（薄肌版）：对话孙宇晨，年轻人如何抓住AI时代的机会？",
+      "sources": [
+        "https://www.youtube.com/watch?v=0Z-vhBvBmUY",
+        "https://x.com/AlanShao111/status/2108407966236020814",
+        "https://github.com/LeoLee0812/sunyuchen-alan-interview/blob/e4c2465f57c12c1678a5d34061fd1be2e1e58fa8/README.md"
+      ],
+      "tier": "B",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已核验主持人原帖和官方4:22:29视频页面；读第三方转写README、01/07/16章及11章前段。关注Claude Code记账/日报、MD与照片供不同Agent交接、职业机动性与先自由后财富观点；不是技术实证或投资/健康结论。未逐句回听原音、未读全部16章，完整字幕与转写准确性、健康/金融/历史/RSI说法未独立验证。",
+      "queue_rank": 289
     },
     {
       "material_ref": "material-scaling-discovery-forgetting-2610-20563",
@@ -10350,6 +10270,31 @@
       "queue_rank": 10
     },
     {
+      "material_ref": "material-third-moment-openai-20261014",
+      "title": "Third Moment Research：外层harness监督、失败场景驱动改进与长程研究成本（OpenAI客户案例）",
+      "sources": [
+        "https://openai.com/zh-Hans-CN/index/third-moment-research/",
+        "https://openai.com/index/third-moment-research/"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读中英文官方客户案例五节及四步改进循环图完整像素。关注外层harness看轨迹决定重试/终止/转人工；行为→重复问题/相似性矩阵→合成环境→Codex改harness。回测约3小时→3–5分钟的报告轨迹揭示环境性能、轮询、token和context耦合；scoreboard以输出不变/同硬件验收。10,000并发/36–48小时与收益均为客户报告；数十万个为路线图，无原始数据、源码、独立复现或模型权重更新证据。优先读监督机制、回测案例与循环图，形成监督policy、场景验收与成本账本。",
+      "queue_rank": 37
+    },
+    {
+      "material_ref": "material-anthropic-infrastructure-noise-20260205",
+      "title": "Agent 评测的基础设施噪声：资源配额、硬上限与分数的混杂",
+      "sources": [
+        "https://www.anthropic.com/engineering/infrastructure-noise"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读官方文章正文与报告数字；图像、原始数据与独立复现未核验。相同model/harness/task改变资源配置，Terminal-Bench 1×到3×的故障率下降但分数差未超噪声；更宽资源也会改变可用策略，不能把消除故障等同能力提升。6pp及3×是作者特定实验，不是通用阈值。先读How we got here、Other sources of variance、What we recommend，约15分钟；形成CPU/RAM保证值与硬上限、并发、临时盘、timeout/latency和故障开销的匹配表，再读自身完整轨迹。",
+      "queue_rank": 3
+    },
+    {
       "material_ref": "material-terminal-rsi-2610-22192",
       "title": "Terminal-RSI：验证轨迹重写、critic继承与按轮次信用分配的递归训练",
       "sources": [
@@ -10362,20 +10307,6 @@
       "read_scope": "recorded_review",
       "note": "已读项目页、arXiv2610.22192v1主文§1–5及TeX A/B/C/E/F/H，实际看总体框架、Fig4/6和embedding案例图；D/G完整证明诊断、其余图/原始日志/代码/权重/复现未核验。S：actor-only已验证native replay与critic继承PPO交替；TB-GAE跳observation且仅跨turn衰减，SPR用strict-success offset+饱和partial credit。RPR1记录为unit-clock standard GAE，不能归因TB-GAE在线收益；4352轨迹失败奖励份额50.09→28.72%是离线重评分。作者报TB4/2.1/3/Hard=19.84/86.52/16.95/79%，Mean@3非pass@3/训练种子，前沿reference与历史manifest尚未完整对账。LHTB0.21→0.37且0→5/46 strict，SWR1003→6%后续平台。优先§2.1–2.3、3.3/5及E/F，转参数交接/信用时钟/完成奖励验收卡；列Top10，保留其他相对顺序。",
       "queue_rank": 54
-    },
-    {
-      "material_ref": "material-perplexity-space-execution-identity-20261014",
-      "title": "Perplexity SPACE：执行身份绑定、旧执行隔离与长连接恢复",
-      "sources": [
-        "https://x.com/perplexity_ai/status/2110400881028149315",
-        "https://www.perplexity.ai/hub/blog/how-space-routes-requests-to-the-right-sandbox-execution",
-        "https://www.perplexity.ai/uk/hub/blog/how-space-routes-requests-to-the-right-sandbox-execution"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "已读Perplexity原帖/3条可见回复，并读官方uk公开版本正文、与官方英文索引及原帖核对；canonical遇验证墙，6图像素、SPACE/竞品源码、部署和独立测试未读。A：稳定sandboxID不同于execution generation；短期Ed25519 capability绑定执行/placement/access，接收端比对durable runtime，旧流按identity epoch撤销。120s+最多15s时钟allowance不等于全局瞬时撤权；旧cap与尚未知retirement的旧receiver仍可能匹配。RefreshRoute仅同sandbox代次错误，eligible operation重建一次，cache替换绑定旧route且不续callerexpiry，不保证任意写重放。millions/day、低于0.0002%及竞品比较均为厂商报告。第40位ranked_backlog，Managed Agents之后；可转执行身份/旧流/恢复反例矩阵，当前摘要足够。",
-      "queue_rank": 103
     },
     {
       "material_ref": "material-cope-action-forecasting-2610-20597",
@@ -10394,6 +10325,21 @@
       "queue_rank": 56
     },
     {
+      "material_ref": "material-intelligence-explosion-2609-36054",
+      "title": "AI研发自动化会触发智能爆炸吗：反馈增长模型、四类瓶颈与监督测量（公众号＋原论文）",
+      "sources": [
+        "https://mp.weixin.qq.com/s/7fIaHorzflJ591Nn-hIXfw",
+        "https://arxiv.org/abs/2609.36054v1",
+        "https://arxiv.org/pdf/2609.36054v1",
+        "https://www.anthropic.com/institute/measuring-pace-of-ai-development"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公众号正文/作者页图片，原论文v1主文、SM增长模型/不确定性及相关脚注，检查图1/2完整像素；补查Anthropic的AL4/AL5与冻结任务篮子方法。价值是把研发自动化→有效劳动力→后继AI反馈，拆为收益递减、实验算力/数据、难自动化环节和串行耗时。r大于1及约1.5年十倍加速均有完全自动化等假设；“26%”为AI主导、人类监督，“数百万”是前沿机构条件估算。未重验原始数据、所有引用或Hinton“首篇”说法。优先读p4–5和p12–13，形成研发投入/成果/反馈耗时测量卡。",
+      "queue_rank": 64
+    },
+    {
       "material_ref": "material-mrt-sequential-causal-excursion-20261017",
       "title": "微随机试验（MRT）：序贯决策点、causal excursion effect 与历史策略依赖",
       "sources": [
@@ -10405,6 +10351,72 @@
       "read_scope": "recorded_review",
       "note": "Codex选读PDF9–12、14–16、34–39、43–46、54–56相关段落，未读透附录/代码或复验，用户未读完。数字干预论文：定义eligible决策点、已知随机概率、近端/远端结果和历史策略依赖；MRT不等于单checkpoint fork。先读What If识别与长程干预；仅多决策点随机化成为真实工作时再读式(1)–(2)、WCLS和validity，45–60分钟。当前由摘要覆盖，暂不实现估计器。",
       "queue_rank": 97
+    },
+    {
+      "material_ref": "material-openai-maintenance-gpt6-20261014",
+      "title": "OpenAI 软件维护：生产证据清理、CI降本与AGENTS规则成对重放",
+      "sources": [
+        "https://x.com/copperforgeai/status/2110610938181325012",
+        "https://developers.openai.com/blog/maintaining-software-with-the-gpt-6-family"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读原帖主文和配图像素，并追读OpenAI 2026-10-14官方文章全文、维护提示词与成本图的文字数据；未核验内部PR、生产遥测或独立复现，成本图未做像素检查。重点是死代码证据链、保留killswitch、间接引用与跨服务依赖、Permanent开关转人工、CI按日节省量排序，以及同仓库快照/模型仅改一条AGENTS规则的成对重放。1400+PR/800k行、镜像48%、CPU约0.42%与CI收益是作者报告；零观测调用不等于永远无用途，AGENTS提示是实验建议而非已证实增益。A：优先读规则对照与分阶段维护方法，转成一页证据/风险/收益检查表；工程参考进入ranked backlog，不挤占前沿研究与基础选读。",
+      "queue_rank": 98
+    },
+    {
+      "material_ref": "material-perplexity-space-execution-identity-20261014",
+      "title": "Perplexity SPACE：执行身份绑定、旧执行隔离与长连接恢复",
+      "sources": [
+        "https://x.com/perplexity_ai/status/2110400881028149315",
+        "https://www.perplexity.ai/hub/blog/how-space-routes-requests-to-the-right-sandbox-execution",
+        "https://www.perplexity.ai/uk/hub/blog/how-space-routes-requests-to-the-right-sandbox-execution"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读Perplexity原帖/3条可见回复，并读官方uk公开版本正文、与官方英文索引及原帖核对；canonical遇验证墙，6图像素、SPACE/竞品源码、部署和独立测试未读。A：稳定sandboxID不同于execution generation；短期Ed25519 capability绑定执行/placement/access，接收端比对durable runtime，旧流按identity epoch撤销。120s+最多15s时钟allowance不等于全局瞬时撤权；旧cap与尚未知retirement的旧receiver仍可能匹配。RefreshRoute仅同sandbox代次错误，eligible operation重建一次，cache替换绑定旧route且不续callerexpiry，不保证任意写重放。millions/day、低于0.0002%及竞品比较均为厂商报告。第40位ranked_backlog，Managed Agents之后；可转执行身份/旧流/恢复反例矩阵，当前摘要足够。",
+      "queue_rank": 103
+    },
+    {
+      "material_ref": "material-weiyong-fde-delivery-economics-2111798398668136528",
+      "title": "唯庸的FDE业务复盘：分期验证、交付边界与全成本报价",
+      "sources": [
+        "https://x.com/weiyong_wang/status/2111798398668136528"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "full_text",
+      "note": "已读2026-10-18原帖展开全文及3张配图像素；履历、约200单／百万营收／不足10%结余、客户复购均为作者自述，未核账目或客户验收，图中文字部分遮挡、合同打码。价值在付费验证后再开发、分期扩范围、按量调用与维护成本分列；20万元／一个月上限及收款比例只是其做法，成本加成不等于销售利润率。A/high_value，摘要先读；可转为企业AI交付验收和成本清单，放经营问题后的ranked backlog，不占Top30。",
+      "queue_rank": 137
+    },
+    {
+      "material_ref": "material-sac-littleprince-2109962425512734739",
+      "title": "Sac《小王子：星辰之旅》：Opus、Tripo与Blender的3D游戏创作案例",
+      "sources": [
+        "https://x.com/Saccc_c/status/2109962425512734739",
+        "https://littleprince.dev/"
+      ],
+      "tier": "B",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读Sac于2026-10-13发布的原帖主文及littleprince.dev首页文字。作者称花16天用Opus 5.5结合Tripo、Blender，将《小王子》做成可探索星球的3D剧情游戏，计划后续开源项目与制作流程；模型分工、耗时及完成度为作者自述，未核验源码或制作记录。首页有开始旅程入口并建议Chrome/Edge；读取时画面准备0%。视频、游戏场景像素、完整玩法、性能与成本未核验。B：AI辅助3D创作与多工具交付的产品案例，先存ranked backlog；待公开制作流程/源码后再拆解资产、场景与交互工作流，不挤占当前研究及基础首读。",
+      "queue_rank": 297
+    },
+    {
+      "material_ref": "material-beating-mengxing-founder-diligence-20261015",
+      "title": "创业履历与投资尽调：动察对孟醒及相关项目的评论（争议待核验）",
+      "sources": [
+        "https://mp.weixin.qq.com/s/WuWV8DElwr6KZc5p49sgOA",
+        "https://www.5ycap.com/team",
+        "https://elsewhere.news/zh/elsewhere/elsewhere-1786673275421"
+      ],
+      "tier": "B",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读取公众号返回的完整正文（12,708字符），并核对5Y Capital官方团队页及elsewhere原访谈介绍；未听访谈全音视频，未核验完整判决、融资文件及文中全部履历细节，配图未逐张读取。文章是带鲜明立场的争议评论，不能将其融资报道、责任指控或动机推断写成已证实事实。可转化为创业/投资尽调框架：区分头衔与实际贡献，按时间线核对交付及交接责任，区分能力、诚信与共享基础设施信任。B档标准价值背景材料，与当前技术主线相关性间接，进入ranked_backlog尾部，保持Top30顺序；该位置为本次有界处置，不代表全面重排。",
+      "queue_rank": 298
     },
     {
       "material_ref": "material-vctbtc-sun-market-interview-2111144673092030556",
@@ -10447,6 +10459,20 @@
       "queue_rank": 307
     },
     {
+      "material_ref": "material-wechat-wfgwrtus58ag1uq4zbcwna",
+      "title": "DiscoveryRSI：研究假设树、贡献归因训练与固定模型的 Harness Replay",
+      "sources": [
+        "https://mp.weixin.qq.com/s/WfgWRtus58AG1UQ4ZBCWnA",
+        "https://arxiv.org/html/2610.23839v1",
+        "https://github.com/Gen-Verse/DiscoveryRSI/blob/8f7214865548bc9b48170aa844e205341d24c4b9/README.md"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "已读公众号正文，选读论文v1的方法、训练与主要结果，核对固定README并查看研究流程图；未看直播、完整附录或复现训练。版本化假设连同检验方案与证据，分别用于贡献归因训练及固定模型的harness replay。4.86→5.39是自动评分；6.3%是回溯文献关联，不是未来采纳或科学证实。公众号称电池300 episodes，论文当前正文为200，保留差异。亲读§3.3–3.5与§7，转成假设—证据—判据记录和同模型、同预算验收。",
+      "queue_rank": 50
+    },
+    {
       "material_ref": "material-wechat-i6zbyek3ii8py6upixg91q",
       "title": "从联想记忆推导 Transformer：外积、干扰、MLP 与 softmax 容量",
       "sources": [
@@ -10460,30 +10486,19 @@
       "queue_rank": 74
     },
     {
-      "material_ref": "material-weiyong-fde-delivery-economics-2111798398668136528",
-      "title": "唯庸的FDE业务复盘：分期验证、交付边界与全成本报价",
+      "material_ref": "material-kolab-human-agent-collaboration-2610-21109",
+      "title": "Kolab：长程人机协作中的产物采用、修改、拒绝与质量评测（南晚 X 线索）",
       "sources": [
-        "https://x.com/weiyong_wang/status/2111798398668136528"
+        "https://x.com/snwiki238337/status/2111984438758522966",
+        "https://arxiv.org/html/2610.21109v1",
+        "https://arxiv.org/abs/2610.21109",
+        "https://minnesotanlp.github.io/kolab/"
       ],
       "tier": "A",
       "lifecycle": "candidate",
-      "read_scope": "full_text",
-      "note": "已读2026-10-18原帖展开全文及3张配图像素；履历、约200单／百万营收／不足10%结余、客户复购均为作者自述，未核账目或客户验收，图中文字部分遮挡、合同打码。价值在付费验证后再开发、分期扩范围、按量调用与维护成本分列；20万元／一个月上限及收款比例只是其做法，成本加成不等于销售利润率。A/high_value，摘要先读；可转为企业AI交付验收和成本清单，放经营问题后的ranked backlog，不占Top30。",
-      "queue_rank": 137
-    },
-    {
-      "material_ref": "material-wechat-wfgwrtus58ag1uq4zbcwna",
-      "title": "DiscoveryRSI：研究假设树、贡献归因训练与固定模型的 Harness Replay",
-      "sources": [
-        "https://mp.weixin.qq.com/s/WfgWRtus58AG1UQ4ZBCWnA",
-        "https://arxiv.org/html/2610.23839v1",
-        "https://github.com/Gen-Verse/DiscoveryRSI/blob/8f7214865548bc9b48170aa844e205341d24c4b9/README.md"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
       "read_scope": "recorded_review",
-      "note": "已读公众号正文，选读论文v1的方法、训练与主要结果，核对固定README并查看研究流程图；未看直播、完整附录或复现训练。版本化假设连同检验方案与证据，分别用于贡献归因训练及固定模型的harness replay。4.86→5.39是自动评分；6.3%是回溯文献关联，不是未来采纳或科学证实。公众号称电池300 episodes，论文当前正文为200，保留差异。亲读§3.3–3.5与§7，转成假设—证据—判据记录和同模型、同预算验收。",
-      "queue_rank": 50
+      "note": "已读 X 官方嵌入开头与配图像素，追核 Kolab v1 摘要、§1/3/4.1/5、Table 2–6及项目页；X长文余部、附录与录屏未完整读，未复现。50人/40职业、约115小时工作流，以 Adopt/Modify/Reject 和人评质量区分产物生成与实际采用；注意预测窗口防未来泄漏、类不平衡、GPT子样本及相关性边界。当前代码/数据按钮仍TBD。A档：助手先读，供协作评测与产物消费记录设计；不替代自主任务和因果评测。",
+      "queue_rank": 111
     },
     {
       "material_ref": "material-wechat-qe6qs3-lwrji7jjphy5zug",
@@ -10500,19 +10515,32 @@
       "queue_rank": 138
     },
     {
-      "material_ref": "material-kolab-human-agent-collaboration-2610-21109",
-      "title": "Kolab：长程人机协作中的产物采用、修改、拒绝与质量评测（南晚 X 线索）",
+      "material_ref": "material-google-ax-agent-orchestrator-20260922",
+      "title": "Google AX：声明式 Agent Executor、可恢复 Task 与 Workspace/Sandbox 边界",
       "sources": [
-        "https://x.com/snwiki238337/status/2111984438758522966",
-        "https://arxiv.org/html/2610.21109v1",
-        "https://arxiv.org/abs/2610.21109",
-        "https://minnesotanlp.github.io/kolab/"
+        "https://mp.weixin.qq.com/s/7FT9YjFXVpijZ95q0i5ctQ",
+        "https://github.com/google/ax/blob/d8ed0fe38bceb7842d3c47817d53d16ccdfcb601/README.md",
+        "https://github.com/google/ax/blob/0f085aa063db6de888e37def7a8943f7901e6c1e/DESIGN.md"
       ],
       "tier": "A",
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
-      "note": "已读 X 官方嵌入开头与配图像素，追核 Kolab v1 摘要、§1/3/4.1/5、Table 2–6及项目页；X长文余部、附录与录屏未完整读，未复现。50人/40职业、约115小时工作流，以 Adopt/Modify/Reject 和人评质量区分产物生成与实际采用；注意预测窗口防未来泄漏、类不平衡、GPT子样本及相关性边界。当前代码/数据按钮仍TBD。A档：助手先读，供协作评测与产物消费记录设计；不替代自主任务和因果评测。",
-      "queue_rank": 111
+      "note": "沿用远端既有阅读记录（原 read_scope：full_text）；本次同步只核对完整公开卡片，未重新阅读全文。已完整读取公众号正文，并核对 google/ax v0.3.0 与当前 main 的 README、DESIGN、concepts、manifests、roadmap/networking；未部署或复现。AX 把 Task、Workspace、Model、sandbox 与 suspend/resume 做成声明式执行底座；v0.3.0 还含 Gateway 和 Redis Streams controller，当前 main 已移除二者并改写调节路径。官方“数十亿任务”和公众号“亚秒恢复”缺少本次可核验 benchmark。A档高价值，先读助手摘要；设计 executor/substrate 时再对照两版官方文档。",
+      "queue_rank": 93
+    },
+    {
+      "material_ref": "material-aide2-recursive-self-improvement-2609-26457",
+      "title": "AIDE²：固定成本、二阶泛化与尚未点燃的递归 Harness 改进",
+      "sources": [
+        "https://www.weco.ai/blog/first-evidence-of-recursive-self-improvement",
+        "https://arxiv.org/html/2609.26457v1",
+        "https://github.com/WecoAI/aideml/blob/ad73d227af481bea3de06f884f41b2993dd6453a/README.md"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "沿用远端既有阅读记录（原 read_scope：full_text）；本次同步只核对完整公开卡片，未重新阅读全文。已完整读取 Weco 博客和 arXiv v1 正文、Appendix A–E、图表，并核对 WecoAI 公开仓库；未取得 AIDE²/AIDE85 代码、selection task 明细、完整轨迹或原始数据，未复现。主运行 100 步接受 7 次 Harness 重写；AIDE85 的多臂 lineage 搜索、有界上下文和失败记忆在固定预算下迁移到四个外部 benchmark，KernelBench reward-hacking 率由 55% 降至 32%。private grade 会被外层反复用于选择，真正的二阶证据来自外部 benchmark；三种子 ignition 终点 0.780 vs 0.782，不能证明点燃。S档，建议读技术报告 §2–3 与 Appendix A/C/E。",
+      "queue_rank": 11
     },
     {
       "material_ref": "material-harness2-2610-14224",
@@ -10746,6 +10774,20 @@
       "queue_rank": 67
     },
     {
+      "material_ref": "material-mona-myopic-optimization-2501-13011",
+      "title": "MONA：短视优化与非短视审批，切断多步 reward hacking 的训练激励",
+      "sources": [
+        "https://arxiv.org/html/2501.13011v2",
+        "https://github.com/google-deepmind/mona/blob/cdf05964ae1309279cdb3b5799be3d1b5749f379/README.md",
+        "https://qingkeai.online/blog/Reward-Seeking"
+      ],
+      "tier": "S",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "沿用远端既有阅读记录（原 read_scope：recorded_review）；本次同步只核对完整公开卡片，未重新阅读全文。已选读 arXiv v2 §1–6、关键公式及 Fig.2–8 图注/内嵌案例，核对官方 README；未完整读附录/轨迹、逐图查看或复现。相同步骤监督下，只优化当前奖励与事先的长期价值审批，削弱“先写弱测试、再轻易通过”等多步 reward hacking。§4.4 显示用冻结策略 rollout 结果作审批会重新引入漏洞；不消除单步作弊，可能损失监督者无法预见的长期收益。S 档优先读 §3、§4.4、§6；用于理解信用分配，不能直接等同于 best-only 或低频 hidden feedback。",
+      "queue_rank": 18
+    },
+    {
       "material_ref": "material-tracedance-2609-33295",
       "title": "TraceDance：从真实部署失败构建决策点行为基准（公众号＋论文）",
       "sources": [
@@ -10787,48 +10829,6 @@
       "read_scope": "recorded_review",
       "note": "已读X主帖、当前StableReinforce/Datum文档，定向核对固定SDK的采样标志、span校验及loss枚举；未读完整SDK/服务端算法，未跑训练。看点：record_stability_info=True、同Session sequence_id、完整loss侧sampled span、一天有效期；KL约束sampler与learner，当前支持k1/k3而非reference-policy KL。Alpha内部稳定性是官方报告，所读页面无完整算法/公开对照，不混同R1-Reward同名方法。作为异步RL provenance与失配检查表备查，建议接在Score Centering后读。",
       "queue_rank": 91
-    },
-    {
-      "material_ref": "material-google-ax-agent-orchestrator-20260922",
-      "title": "Google AX：声明式 Agent Executor、可恢复 Task 与 Workspace/Sandbox 边界",
-      "sources": [
-        "https://mp.weixin.qq.com/s/7FT9YjFXVpijZ95q0i5ctQ",
-        "https://github.com/google/ax/blob/d8ed0fe38bceb7842d3c47817d53d16ccdfcb601/README.md",
-        "https://github.com/google/ax/blob/0f085aa063db6de888e37def7a8943f7901e6c1e/DESIGN.md"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "沿用远端既有阅读记录（原 read_scope：full_text）；本次同步只核对完整公开卡片，未重新阅读全文。已完整读取公众号正文，并核对 google/ax v0.3.0 与当前 main 的 README、DESIGN、concepts、manifests、roadmap/networking；未部署或复现。AX 把 Task、Workspace、Model、sandbox 与 suspend/resume 做成声明式执行底座；v0.3.0 还含 Gateway 和 Redis Streams controller，当前 main 已移除二者并改写调节路径。官方“数十亿任务”和公众号“亚秒恢复”缺少本次可核验 benchmark。A档高价值，先读助手摘要；设计 executor/substrate 时再对照两版官方文档。",
-      "queue_rank": 93
-    },
-    {
-      "material_ref": "material-aide2-recursive-self-improvement-2609-26457",
-      "title": "AIDE²：固定成本、二阶泛化与尚未点燃的递归 Harness 改进",
-      "sources": [
-        "https://www.weco.ai/blog/first-evidence-of-recursive-self-improvement",
-        "https://arxiv.org/html/2609.26457v1",
-        "https://github.com/WecoAI/aideml/blob/ad73d227af481bea3de06f884f41b2993dd6453a/README.md"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "沿用远端既有阅读记录（原 read_scope：full_text）；本次同步只核对完整公开卡片，未重新阅读全文。已完整读取 Weco 博客和 arXiv v1 正文、Appendix A–E、图表，并核对 WecoAI 公开仓库；未取得 AIDE²/AIDE85 代码、selection task 明细、完整轨迹或原始数据，未复现。主运行 100 步接受 7 次 Harness 重写；AIDE85 的多臂 lineage 搜索、有界上下文和失败记忆在固定预算下迁移到四个外部 benchmark，KernelBench reward-hacking 率由 55% 降至 32%。private grade 会被外层反复用于选择，真正的二阶证据来自外部 benchmark；三种子 ignition 终点 0.780 vs 0.782，不能证明点燃。S档，建议读技术报告 §2–3 与 Appendix A/C/E。",
-      "queue_rank": 11
-    },
-    {
-      "material_ref": "material-mona-myopic-optimization-2501-13011",
-      "title": "MONA：短视优化与非短视审批，切断多步 reward hacking 的训练激励",
-      "sources": [
-        "https://arxiv.org/html/2501.13011v2",
-        "https://github.com/google-deepmind/mona/blob/cdf05964ae1309279cdb3b5799be3d1b5749f379/README.md",
-        "https://qingkeai.online/blog/Reward-Seeking"
-      ],
-      "tier": "S",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "沿用远端既有阅读记录（原 read_scope：recorded_review）；本次同步只核对完整公开卡片，未重新阅读全文。已选读 arXiv v2 §1–6、关键公式及 Fig.2–8 图注/内嵌案例，核对官方 README；未完整读附录/轨迹、逐图查看或复现。相同步骤监督下，只优化当前奖励与事先的长期价值审批，削弱“先写弱测试、再轻易通过”等多步 reward hacking。§4.4 显示用冻结策略 rollout 结果作审批会重新引入漏洞；不消除单步作弊，可能损失监督者无法预见的长期收益。S 档优先读 §3、§4.4、§6；用于理解信用分配，不能直接等同于 best-only 或低频 hidden feedback。",
-      "queue_rank": 18
     },
     {
       "material_ref": "material-hermit-2114769723879464983",
@@ -11164,6 +11164,22 @@
       "read_scope": "recorded_review",
       "note": "S｜已读混元公众号全文、固定commit总README News及HyInv/HyPLM README，图1/2/3/5/7像素核验；未审Harness源码、完整技术报告/证明/实验或复现。重心从单题答案转可复用工具；Overall/Mission/Worker配持久队列、证据完成与fresh-context复核，项目状态/私有记忆/Books分开，观察/独立复现/人类约定分级。成果仓库不等于Harness已开源或RSI闭环已验证。HyPLM公众号12模型35任务与README28checkpoint32任务口径不同；HyInv加速排除编译且bf16非逐样本等价。丘猜想仅非单连通反例，真机与全成本收益未证。建议先读Harness/Books和两个模型README，形成工具验收/证据晋级/复用成本卡。",
       "queue_rank": 38
+    },
+    {
+      "material_ref": "material-wangray-us-llc-mercury-startup-credits-2043334390185705598",
+      "title": "美国 LLC → Mercury → 创业 AI 额度：出海经营路径、成本与申请条件",
+      "sources": [
+        "https://x.com/wangray/status/2043334390185705598",
+        "https://support.mercury.com/hc/en-us/articles/28770467511060-Eligibility-and-requirements-for-opening-a-Mercury-account",
+        "https://support.mercury.com/hc/en-us/articles/28771710754580-Prohibited-countries",
+        "https://aws.amazon.com/startups/credits",
+        "https://cloud.google.com/startup"
+      ],
+      "tier": "A",
+      "lifecycle": "candidate",
+      "read_scope": "recorded_review",
+      "note": "A｜X文章正文及Mercury/AWS/Google官方页面已读（2026-11-10），帖内截图未逐图核验。保留探索线索：muse/grok bot半小时辅助注册美国LLC→Mercury支付→创业AI额度；半小时全流程与具体工具组合尚未证实。作者估算首年$125、以后每年$85（DIY申报），不等于完整办理总成本。Mercury需实际经营地址、美国业务和受益人资料，注册代理地址不能替代；LLC成立不等于开户通过或个人海外身份。AWS Founders从$1,000起，Portfolio需Provider Org ID；Google最高$350,000为条件上限，次年仅抵20%，所列赠金不覆盖第三方模型/个人订阅。建议先读支付机制导读，再核对主体/EIN/开户/额度四阶段前提与维护成本。未实际注册或申请；用户待读。",
+      "queue_rank": 53
     },
     {
       "material_ref": "material-tencent-channel-model-discussion-20261014",
@@ -11532,22 +11548,6 @@
       "read_scope": "recorded_review",
       "note": "S｜选读Luke在线2.4版PDF37–49页，覆盖§3.2/3.3.1，实看Fig9/10/12；读DEAP OneMax/算子教程及eaSimple源码，非全书，未运行。重点编码与算子匹配、选择压力/多样性、交叉与变异、历史最佳与精英回填区别。60–90分钟先读印刷36–46页再对照示例，画搜索循环并记录fitness评估数/预算；示例参数及OneMax成功不外推真实任务。",
       "queue_rank": 32
-    },
-    {
-      "material_ref": "material-wangray-us-llc-mercury-startup-credits-2043334390185705598",
-      "title": "美国 LLC → Mercury → 创业 AI 额度：出海经营路径、成本与申请条件",
-      "sources": [
-        "https://x.com/wangray/status/2043334390185705598",
-        "https://support.mercury.com/hc/en-us/articles/28770467511060-Eligibility-and-requirements-for-opening-a-Mercury-account",
-        "https://support.mercury.com/hc/en-us/articles/28771710754580-Prohibited-countries",
-        "https://aws.amazon.com/startups/credits",
-        "https://cloud.google.com/startup"
-      ],
-      "tier": "A",
-      "lifecycle": "candidate",
-      "read_scope": "recorded_review",
-      "note": "A｜X文章正文及Mercury/AWS/Google官方页面已读（2026-11-10），帖内截图未逐图核验。保留探索线索：muse/grok bot半小时辅助注册美国LLC→Mercury支付→创业AI额度；半小时全流程与具体工具组合尚未证实。作者估算首年$125、以后每年$85（DIY申报），不等于完整办理总成本。Mercury需实际经营地址、美国业务和受益人资料，注册代理地址不能替代；LLC成立不等于开户通过或个人海外身份。AWS Founders从$1,000起，Portfolio需Provider Org ID；Google最高$350,000为条件上限，次年仅抵20%，所列赠金不覆盖第三方模型/个人订阅。建议先读支付机制导读，再核对主体/EIN/开户/额度四阶段前提与维护成本。未实际注册或申请；用户待读。",
-      "queue_rank": 53
     },
     {
       "material_ref": "material-loopx-quantitative-explore-counterfactual-20261111",
