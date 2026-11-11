@@ -2482,6 +2482,118 @@ model / agent policy
 - 设计 CUA server 时，不能只追求能点能打字；更重要的是 sandbox、allowlist、human gate、trace、screenshot retention、state reset 和可回放。
 - 对 agent benchmark 来说，比较单位不只是 `model`，而是 `model + CUA server / harness + environment`。
 
+##### 混合电脑操作：Code、AX 与 GUI 的统一接口
+
+> 来源：Hybrid Computer Use: A Unified Programmatic, Semantic, and Visual Interface for General Agents（HCU），[论文 v1](https://arxiv.org/html/2610.41432v1)、[PDF](https://arxiv.org/pdf/2610.41432v1)、[项目页](https://microsoft.github.io/Hybrid-Computer-Use/)、[HF 论文页](https://huggingface.co/papers/2610.41432)。实现核对版本：[microsoft/Hybrid-Computer-Use，commit `697d3fb`](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/README.md)，2026-11-05。
+
+HCU 的核心贡献，是把电脑同时暴露成**可编程对象、可读写的语义状态和可视界面**，交给同一个通用 agent 选择。AX（Accessibility，无障碍接口）由应用提供控件的角色、名称、值、状态及可执行操作；它既能帮助观察，也能成为动作目标和程序分支的依据。
+
+HCU 在 agent 原有的 shell、代码和文件工具旁增加 `AX`、`GUI` 两个桌面工具，不另建 planner、子 agent 或控制循环。三个通道作用于同一台电脑、返回同一任务上下文，模型每一步决定怎样组合：
+
+| 通道 | 适合的工作 | 需要补足的证据 |
+| --- | --- | --- |
+| Code | 文件、数据、计算、脚本和已有命令行接口 | 命令完成后，目标文件、应用或远端状态是否真的更新 |
+| AX | 按控件身份操作，读取值与状态，查找目标、等待条件成立 | 应用未暴露的内容、视觉布局，以及任务要求的持久化结果 |
+| GUI | 自绘控件、画布、图形排版、视觉效果和语义信息不足的区域 | 像素定位及截图时效；必要时再用 AX 或文件回读确认 |
+
+这不是固定的 Code → AX → GUI 降级链。观察和动作也可以分开：截图确认 AX 没有给出的视觉状态，下一步仍按 AX ref 操作。作者提出“agent 会有自己的电脑”“AX 的动作价值长期被低估”，是这一设计的动机与判断；论文没有证明未来产品必然采用这种形态。
+
+![HCU：模型选择三个通道；AX 压缩视图、批量动作、条件等待与差量反馈](./AI-Applied-Algorithms/hcu-interface-figure2.png)
+
+图源：论文 v1，Figure 2，CC BY 4.0。上图三个通道并列连接同一电脑；下图保留 AX records，在展示层压缩，再按原目标引用执行和比较变化。
+
+###### AX 从观察材料变成执行与编排接口
+
+**先绑定身份，再压缩展示。** HCU 为应用、窗口、元素分配 `aN / wN / rN` 引用，再去除空包装、合并重复文本、概括重复兄弟节点。压缩的是给模型看的视图，已采集的 AX records 仍留在服务端，用于目标解析和差量比较；`find` 和局部观察可以找回未展示的目标。这里的“完整”只指已采集记录，不代表应用未暴露的控件或所有虚拟列表项也已被获取。引用不能按行号猜造，执行时仍要解析活目标。
+
+**把已知动作和必要等待放进一次调用。** 发布版 AX `act` 在一个逻辑窗口内最多容纳 64 个有序步骤，包含可选 `wait`；等待可以检查值、文本、状态、窗口标题、目标消失或稳定条件。失败、超时或窗口连续性丢失时，剩余步骤停止，已执行部分随结果返回。批量调用不是原子事务，前面的动作不会回滚。[批量执行入口与循环](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/computer-use/internal/core/ax_batch.go)
+
+以下是仓库的导出示例。前提是已经观察并确认 `r12` 是目标按钮，且知道它会打开 Export 窗口；引用和文件名均需按当前任务替换。它说明如何合并往返，不是跨应用通用脚本：
+
+```json
+{
+  "mode": "act",
+  "actions": [
+    {"type": "click", "ref": "r12"},
+    {"type": "wait", "window": "Export"},
+    {"type": "type", "text": "q3.csv"},
+    {"type": "keypress", "keys": ["ENTER"]}
+  ]
+}
+```
+
+**执行后按需要回传状态。** 面向模型的 MCP 文本接口默认返回目标 effect、窗口变化与 AX diff，基线是上一次符合条件、已经交付给模型的观察；也可选完整观察、截图或仅执行证据。因此，反馈足够时不必再单独全量 observe。面向程序的 records 接口有不同默认值：`act` 默认 `observe:"none"`，需要差量就显式请求 `"diff"`；结构化 `observe` 可用同一 session 的 `snapshot_id` 请求差量，不能照搬 MCP 的所有参数。[接口与 records 契约](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/docs/CODE.md)
+
+AX 对 code execution / PTC（Programmatic Tool Calling）的价值在于，程序可以直接检查“文本框值是否等于预期”“按钮是否禁用”“对话框是否消失”，据此循环、分支和验收。截图需要先经视觉理解，才能形成同类条件。AX 与 GUI 可以视为语义与视觉两种互补投影，但不是严格对偶：应用可能漏报或错误暴露状态，自绘内容与虚拟化元素也可能缺失。`effect` 或 AX 回读只说明接口可见的状态，保存与提交仍要检查文件、应用或远端结果。
+
+与 CUA Driver 的区别也应保留原有能力：它已有元素寻址和程序化动作序列，并非只能逐像素点按。HCU 论文强调的区别，是把批量动作、条件检查和后续反馈放进同一次 AX 调用，并允许按需选择观察；不能概括成“只有 HCU 能批处理”。CUA Driver 优先 best-effort 后台操作以保护用户当前桌面，HCU 则会按需使用原生 AX 或前台输入，更适合 agent 独占桌面的目标。论文匹配实验已对双方启用前台输入，不能把增益简单解释成“前台对后台”。[论文 §3、§4.3、Appendix B.1](https://arxiv.org/html/2610.41432v1)
+
+###### 通道切换后的状态有效性与失败恢复
+
+混合接口需要处理一个具体问题：AX 关闭窗口或改变布局后，旧截图上的坐标可能已经指向别处；GUI 输入后，旧 AX 工作快照也可能过期。
+
+- **AX target guard**：每个动作前重新解析绑定的元素与窗口。目标消失、歧义或身份替换时拒绝执行，不自动改点同名控件。
+- **GUI layout guard**：坐标动作绑定最近完整截图建立的布局凭据，输入前检查桌面边界、窗口布局、层叠、焦点及目标点所在窗口等状态；过期则拒绝并给出新截图。这不等于验证所有像素、内容和远端状态未变。
+- **跨通道失效规则**：GUI mutation 使 AX 工作快照、隐藏元素缓存和 find 游标失效，同时保留目标引用注册表及符合条件的 diff 基线。身份连续性与观察新鲜度需要分别维护。
+
+![HCU：跨通道失效、动作 guard 与按输入证据恢复](./AI-Applied-Algorithms/hcu-guards-figure17.png)
+
+图源：论文 v1，Figure 17，CC BY 4.0。底部的 Stop 与普通 stale target 分支不同，不能把所有失败都处理成“重新截图后重试”。
+
+| 返回的证据 | 恢复方式 |
+| --- | --- |
+| 参数错误 | 按 schema 修正调用 |
+| 明确未送出输入，如 `stale_ref`、`gui_frame_stale` | 重新观察或查找，再规划动作 |
+| 部分步骤完成、效果未知、窗口改变、等待超时 | 先核对 `completed`、`input_emitted` 与现场状态，再修订后续动作；不要整批盲重放 |
+| 焦点或指针准备存在未决系统请求，接口明确要求 Stop | 停止桌面自动化并交由操作者恢复；新截图或重启进程不能证明排队中的输入已经结束 |
+
+Guard 解决目标和布局过期，不替代权限、沙箱或用户授权。当前 Windows 实现另有重要限制：click / scroll / keypress 等排队输入之后，同批次的非空 `type` 或文档替换会被停止，前面输入可能已经送出。wait、截图或简单拆成两次调用都不能证明队列完成；要先确认新的焦点和选择状态，再单独发送文本。因此，上面的 click → type 示例不能不加判断地移植到 Windows。[平台与恢复边界](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/docs/PLATFORMS.md)
+
+###### 评测：分数、往返与时间需要分别看
+
+论文主实验使用 **OSWorld 2.0 的 0808 release、108 项任务、500-step 上限**。GPT-6 Astra 在相同 Codex、Code Mode 和任务下，HCU 的 Partial 为 72.37%，CUA Driver 为 68.82%；工具调用减少 29.81%，平均耗时减少 21.00%，费用几乎相同（每任务 $10.03 对 $10.05）。Claude Opus 5 的 HCU Binary 为 35.19%，在论文所比较的 full-set 系统中最高；它与官方 GUI loop 的对照不是同一组完全匹配的接口消融。论文 Table 1 的部分外部结果还使用旧任务版本，因此“SOTA / Pareto 前沿”应限定为论文收录的比较，不能理解成所有版本、所有系统上的统一排名。
+
+[OSWorld 2.1 官方发布说明](https://github.com/xlang-ai/OSWorld-V2/releases/tag/osworld-v2.1)确实加入 Claude Code、Codex、DeepSeek、Muse Code 等 hybrid workflows；这说明评测开始容纳通用 coding agent，但不能把 HCU 的 2.0 数字直接当成 2.1 成绩。
+
+OSWorld 1.0 的跨模型对照采用 100-step、每任务 1,800 秒上限；每个模型在各自 harness 内保持任务、执行循环和程序工具一致，再替换接口。Table 3 的结果如下，资源列为相对 CUA Driver 的变化，负数表示减少：
+
+| 模型 | Score：CUA → HCU | Steps | 输入 token | 耗时 | 费用 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| GPT-5.4 | 62.30 → 65.59 | −30% | −57% | −30% | −55% |
+| Claude Opus 5.5 | 68.68 → 71.62 | −1% | −32% | **+6%** | −8% |
+| Gemini 3.8 Flash | 54.67 → 67.57 | −17% | −39% | −29% | −44% |
+| Grok 4.7 | 67.90 → 74.71 | −22% | −18% | −13% | −13% |
+
+四家都提高得分、减少输入与费用，支持收益不只限于一个模型；但不能写成所有效率指标都改善。通道偏好也不同：在 HCU 桌面调用中，GPT 约 80%、Grok 68%、Gemini 51% 使用 AX，Claude 则约 94% 使用 GUI。这支持让模型选择通道，而不是把 AX-first 固化成所有模型的统一策略。
+
+组件消融也有两个值得保留的细节。GPT-5.4 的完整 HCU 得分 65.59，去掉 AX 降到 62.79；去掉 GUI 却为 66.08，但 Steps 从 28.60 升到 32.16。作者将这组得分差异视为运行波动，GUI 的主要收益体现在减少交互步骤，不能据此说每个组件都会单独提高分数。配套 skill 也属于实验系统的一部分：加入后，参数错误导致的拒绝调用比例从 17.37% 降到 1.36%，因此收益不能全归因于 AX 这一种信息模态。[论文 Table 2–3、Figure 3–4](https://arxiv.org/html/2610.41432v1)
+
+发布版还有跨平台结果；这些应与上面的 evaluated version 分开记录：
+
+| 任务集与范围 | HCU 对 CUA Driver | 每任务模型费用变化 |
+| --- | --- | ---: |
+| OSWorld 1.0，共同 360 项任务，GPT-5.4 | 70.13% 对 62.47% | −59.1% |
+| WeaveBench，114 项任务，GPT-5.4 | 53.25% 对 46.37% | −46.3% |
+| MacAgentBench，28 项依赖 UI 的子集，GPT-5.4 | 25/28 对 24/28 | −51.4% |
+| Windows Agent Arena，111 项任务，GPT-5.4 | 80.86% 对 71.89% | −50.6% |
+
+主文 OSWorld 1.0 是 361 项、发布版共同集合是 360 项；Claude 基线另有一次 provider refusal。Mac 结果不能外推到完整 benchmark；Windows 基线有一项崩溃按 0 分计入固定分母。发布版还改变了接口：批量上限从 32 升到 64，条件检查统一为有序 wait，并增加 select、GUI zoom、effect 报告等，不能把主文得分与发布版 API 混成同一个测量版本。[论文 Appendix A、B](https://arxiv.org/html/2610.41432v1)
+
+效率为什么会影响分数？固定预算下，减少观察和工具往返，可能让原本超限的任务完成；论文中 Gemini 的收益尤其集中在基线撞到步数上限的任务。但这里的 Steps 定义是**交付的模型响应数**，不是原子鼠标动作数；一次响应可发多个工具调用，一次调用又能包含多个动作。应同时看成功率、模型轮次、工具调用、token、wall time 与费用，不能用“批处理后工具调用少”代替全部效率。费用按论文的 provider list prices 计算，不是服务器与维护的总成本，本轮未复现实验。
+
+###### 接入形态与使用代价
+
+MCP 面向已有工具调用循环；CLI、Python SDK 与 PTC 适合把查询、条件和动作写进程序。它们共享一个 Go core 和各平台 provider，而非各自实现一套动作语义。Linux 使用 AT-SPI2 / X11，macOS 使用 AXUIElement 等原生接口，Windows 使用 UIA3 / Win32。[发布版说明](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/README.md)
+
+- **一个桌面只设一个执行 owner。** 可直接运行 `computer-use mcp`，或让 CLI / SDK 共用 daemon，再用 `mcp --attach` 接入。不要让多个独立进程同时控制桌面。程序跨入口复用状态时要核对 endpoint 和 session；引用、已交付观察和 diff 游标不能当成可任意搬运的字符串。
+- **程序化不等于并发输入。** daemon 的 input lock 将各 session 调用串行化，wait 期间仍持锁。等待默认 5 秒、上限 60 秒，需要为轮询、取消和超时留出执行预算。
+- **重试缓存有寿命。** daemon 的 `request_id` 结果缓存保留 10 分钟，重启即清空；PTC Forwarder 也只在自身生命周期内保留事件账本，默认最多 1,000 项。它们不能提供跨崩溃的 exactly-once 保证。PTC 的代码调用接收 records JSON，截图还要显式交付给模型；给代码返回图片路径不等于模型已经看到图。
+- **搭建和维护有原生桌面成本。** 需构建/取得对应二进制并在已登录桌面下执行 `doctor`。源码构建需 Go 1.22+；macOS 需 14+、Swift 6.2+ 和辅助功能/录屏授权，Windows 构建需 .NET 8、PowerShell 7，运行需未锁定的交互会话和兼容权限级别。系统升级、应用 AX 覆盖变化、bundle 移动与授权变化都可能需要维护；普通 headless 服务不能直接等同于这些桌面环境。
+
+Python SDK 位于 `sdk/python`，按文档加入 `PYTHONPATH` 后使用 `hcu_sdk`；仓库根目录的 `pip install .` 安装的是评测包，不能当成 SDK 和原生桌面后端已经安装。持续使用还需承担模型调用、桌面/VM、截屏与日志的存储及运维成本；论文给出的是特定任务和价格下的模型费用，未给出通用月费或维护工时。[Code entry points](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/docs/CODE.md)、[Native platforms](https://github.com/microsoft/Hybrid-Computer-Use/blob/697d3fbda04cb322915866bab1aad79c726a61e3/docs/PLATFORMS.md)
+
+HCU 更适合需要桌面 UI、能取得原生 AX 且愿意给 agent 独立桌面的流程。已有稳定 CLI/API 的部分继续直接编程；共享日常桌面时，则要把保护用户焦点、后台能力和权限边界单独纳入选择。作者关于“更强模型能编排更复杂程序”的展望有机制上的依据，但还不是本论文验证过的长期 scaling 结论。
+
 ##### CUA 的单点任务边界：高复杂 GUI 自动化不等于长程价值交付
 
 > 来源：[记一个我被Claude Fable 5震撼的瞬间。](https://mp.weixin.qq.com/s/L6R_SPWlOBv6dI0wWWHQrg)，数字生命卡兹克，2026-07-03。来源状态：已读正文；以下把文章作为 CUA / agent 执行案例，不验证其中模型命名和账号侧细节。
@@ -4271,7 +4383,52 @@ agent_identity_and_inbox_v0:
 
 边界与待办：这是产品发布/经验分享文，DID 验证、权限模型、消息确认失败路径都没展开；“体验比 OpenClaw 插件更好”是作者主观判断，无对比证据。要抄实现细节，下一步应 exact read `dsh-awiki` 与 `awiki-cli-rs2` 的插件接口、身份注册和消息事件 schema。
 
-#### DeepSeek Harness 插件生态：Awesome DSH Plugin 目录
+#### DeepSeek Harness 插件生态：能力目录与垂域工作台
+
+DSH 插件既在扩展记忆、视觉、沙箱、通信等基础能力，也在把创作、设计和科研流程做成专用工作台。后者的价值，是把常用操作、领域材料和产物组织到同一界面，让专业经验能持续复用，而不只在一次对话里生成内容。
+
+##### 生态规模与统计口径
+
+> 来源：DeepSeek Harness 团队《[DeepSeek Harness 与插件社区共同成长](https://mp.weixin.qq.com/s/xqyrRaiBpIcf0jeJzP7W0g)》，2026-11-05 发布，数据截至 2026-11-04。本轮已读正文、核对三张统计图，并查看四个插件演示的静态帧；以下数字为官方披露，非独立审计结果。插件功能以正文介绍为依据，未安装测试或核验源码。
+
+产品时间线：2026-08-13 发布 v0.1，2026-09-29 发布桌面端。官方披露的三个规模指标需要保留各自口径：
+
+| 指标 | 披露值 | 范围与限制 |
+| --- | --- | --- |
+| 日活跃用户 | **154 万** | 以使用官方 API 的用户为统计范围；11 月 4 日单日值，不能直接视为所有模型提供方用户的总日活 |
+| 每日 Token 消耗 | **约 92 万亿**；图中为 **92.1T** | 同属上述官方 API 统计范围；不是请求数、付费用户数或收入 |
+| 第三方插件 | **约 3.5 万个**；图中总数 **3.49 万** | 根据公开资料估算并去重；图中 GitHub 2.94 万、npm 1.85 万，二者存在重叠，不能直接相加，也不是官方市场审核上架数 |
+
+日活与 Token 图中，9 月 30 日至 10 月 28 日各点都是从标注日期起连续七天的日均值，11 月 4 日则是单日值。两图分别标注相对桌面端发布时（9 月 29 日）增长 545% 和 306%，比较基线不是图上的第一个点。图上还将 10 月 17 日的 V4.1-Flash-1017 发布标为事件，但仅凭趋势图不能把增长归因于该模型。
+
+插件参与方面，正文称约 60% 的活跃用户制作或安装过至少一款第三方插件；图中写的是 58.94% 的用户创建或使用自定义插件。两处措辞略有差别，文章没有展开统计定义，不把安装、使用和创作直接当成同一漏斗指标。另两张图还披露月活 548 万、人均每日请求 261 次；这些规模指标不能代替任务完成率或用户留存。
+
+![DeepSeek Harness 公开第三方插件数量：3.49 万为公开资料估算并去重的总数](./AI-Applied-Algorithms/dsh-community-plugin-count-20261104.png)
+
+图源：上述官方文章，数据截至 2026-11-04。此前 Awesome DSH Plugin 的 1691 个条目、20 个分类，是特定第三方目录在 2026-08 的快照；与官方全生态估算的范围不同，不能据此直接计算插件增长倍数。
+
+##### 垂域插件：把专业流程做成工作台
+
+文章介绍的四个插件覆盖创作、设计、可观测性和科研。其中两款创作类插件最能说明：领域插件可以把 Skill、界面和可积累的作品放到一起，而不只是提供一段提示词。
+
+| 插件与作者 | 文章介绍的流程 | 值得保留的产品抓手 |
+| --- | --- | --- |
+| 自媒体创作者工作台 `dsh-media-desk`；woniuniuniu / 蜗牛的科技笔记 | 记录灵感、写脚本、做封面、设计分镜，集中在日常工作台 | 围绕创作者的连续工作组织入口，减少在独立生成工具间搬运素材 |
+| 设计插件 `dsh-guizang-design`；op7418 / 歸藏的 AI 工具箱 | 整合设计与文字润色 Skill，将文章转为网页、图文卡片或封面；内容进入“我的作品”，可“做同款”复用 | 作者强调作品、专栏和语气可以积累；示例界面还有 PPT、卡片、网页分类，但静态帧不证明各类产物的导出能力或质量 |
+| 上下文洞察 `dsh-context`；bowenliang123 / 博文博文 | 查看 Context 的组成、随对话演进的变化，以及多 Agent 协作细节 | 把 Agent 使用了哪些信息、上下文怎样变化变成可查看的对象，而非只呈现最终回答 |
+| 论文阅读 `agentero-dsh`；Phil-Fan / PhilFan | 将 Agentero 接入 DSH，串起文献管理、阅读、高亮、翻译与笔记，并可请 Agent 辅助梳理思路 | 让人和 Agent 在同一文献工作界面协作；不是单独增加一个论文摘要按钮 |
+
+设计插件作者关于“质量稳定”的评价属于使用经验，文章没有提供对照实验。更可复用的机制是：Skill 规定处理方式，插件进一步承载操作界面、领域材料、作品库与复用入口。由此可以推导，垂域插件的竞争点还包括已有作品如何组织、语气如何维护、改稿如何复用；这是产品判断，不是插件数量能够证明的效果。
+
+官方给出的体验入口是在 DSH 插件安装页输入包名。文章未列出四款插件的收费、模型消耗、权限清单和升级兼容性；本轮也未安装。选择具体插件时，还需核对这些条件及作品、文献和笔记的保存与导出方式，不能把演示等同于已验证的日常可用性。
+
+##### 平台与开发者的分工
+
+官方提出的方向是：Harness 提供稳定基础能力和多数人需要的通用功能，行业、专业场景和个性化需求由熟悉领域的开发者通过插件实现；在“一切皆插件”的设计下，内置功能也可以被第三方插件替换。这是平台定位，不能由此推出每项内置功能都已具备同等成熟的第三方替代品。
+
+配套建设仍有明确阶段：插件 API 稳定性与兼容性、安全机制和官方插件市场属于继续完善或建设的方向；Token 激励、技术交流和作品推荐属于筹备中的作者支持计划。文末报名只是前期意向收集，正式规则、额度与支持安排尚未公布，也没有插件商业化收入的数据。
+
+##### 基础能力目录与扩展机制
 
 > 来源：[Awesome DSH Plugin](https://awesome-dsh-plugin.com/)（2026-08-20 快照，页面标注收录 1691 个插件、20 个分类，持续更新）；目录仓库 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 与 [contributing.md](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md)。本小节是生态索引级整理：目录描述是插件作者自述，未逐仓库 exact read，机制结论以“目录能证明哪些分面已经出现”为限。
 

@@ -9,7 +9,7 @@
 | 主题 | 落点 |
 |---|---|
 | Agent loop / runtime / harness：主流 Agent-Loop 多模态调研、Dynamic Workflow、Loop Engineering Toolkit、Loom、Flowtrace、Humanize / OMH / KDA、GLM Infra Agent（dense feedback 基建优化闭环）、Waiting primitive、OpenAI Responses multi-agent、语音 Agent runtime、LoopX、Claude Tag / Agent Teams、oh-my-pi / omp² Harness Playbook、mini-SWE-agent、Codex 仓库 agentic engineering 实证、Context Management、降智复盘与模型身份巡检（ModelTrace Guard）、Agent Bucket 等 | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
-| Sandbox / 远程执行控制面：不可信模型渠道的执行边界、环境生命周期与预热、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
+| Sandbox / 远程执行控制面：不可信模型渠道的执行边界、环境生命周期与预热、Blackhole 本地隔离与断流保护、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
 | Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、子 Agent 合并、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[上下文边界与子 Agent 合并](#子-agent-的合并与保留上下文边界渐进加载与回归验收)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
 | 持续学习的服务闭环：经验回执、权重与 harness 更新、服务版本与学习起点分离 | [Reef 的经验、更新与发布](#持续学习的服务闭环reef-的经验更新与发布) |
@@ -91,6 +91,63 @@ AI 生成的代码不可信，必须在隔离环境中执行。Docker 容器共�
 **预热降低启动成本**：把仓库准备和缓存构建前移，减少并发任务重复初始化的等待。衡量的是环境到手即可工作的时间。
 
 ### 执行隔离、远程环境与研究运行时
+
+#### Blackhole：本地 Coding Agent 的挂载边界与代理故障保护
+
+> 来源：[QuantumTransf 原帖](https://x.com/quantumtransf/status/2120011819284922577)（2026-11-10）、[固定版本中文 README](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/README.zh-CN.md)、[操作与开发手册](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/AGENTS.md)。本次核对提交 `d2dce8e1` 的文档、Dockerfile、入口脚本及启动器挂载/网络相关实现，未安装、未做故障注入或逃逸测试。原帖关联的[设计短文](https://tommy0103.github.io/blackhole/blog.html)当前返回 GitHub Pages 404，不能声称已读。
+
+Blackhole 在 macOS 上保留 `claude` 命令的终端体验，把真正的 Claude Code 放进 Colima Linux VM 内的临时 Docker 容器。它解决两个独立问题：减少 Agent 对宿主文件和凭据的可见范围；在指定代理失效时，尝试阻止 VM 继续通过普通出口联网。**文件隔离、出口保护、平台访问资格是三件事**；原帖提到的封号风险没有账号样本或平台证据，本方案不构成免验证、匿名或长期保号保证。
+
+##### 临时执行容器与持久状态分离
+
+执行链为：`宿主 claude 软链接 → bin/blackhole → Colima VM → docker run --rm → Claude Code`。推荐使用 Apple Virtualization（`vz`）与 `virtiofs`，后者负责宿主项目和 VM 之间的文件共享。容器删除后，源码和命名卷仍保留。[启动器 `run_container`](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/bin/blackhole#L295-L370)明确列出挂载和环境变量：
+
+| 资源 | 容器中的访问 | 边界与代价 |
+| --- | --- | --- |
+| 当前项目目录 | `/workspace`，可读写 | 修改直接回写宿主，不是一次性副本；项目内已有的密钥、私有文件仍可读 |
+| profile 对应的命名卷 | `/home/node`，可读写 | 保存登录、设置和会话；同 profile 的并发会话共享配置，不是逐项目凭据隔离 |
+| 剪贴板图片镜像 | 宿主临时目录对应路径，只读 | 默认开启，会将其他操作产生的新临时图片纳入镜像；可用 `BLACKHOLE_CLIPBOARD=0` 关闭当前会话挂载 |
+| 环境变量 | 终端显示变量及可选 `ANTHROPIC_API_KEY`、`CLAUDE_CODE_OAUTH_TOKEN` | 没有透传整个宿主环境，但显式传入的凭据仍进入执行环境 |
+
+默认不挂载宿主 home、SSH agent socket 或 Docker socket；`validate_project` 拒绝直接挂载 `/`、`/Users`、home，`BLACKHOLE_ALLOW_BROAD_MOUNT=1` 可绕过这一保护。默认还有 `no-new-privileges` 和512进程上限。[容器入口](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/docker-entrypoint.sh)先匹配项目属主的 UID/GID、登记会话，再用 `gosu node` 降权运行。
+
+这里受控的是容器的可见范围，不代表整个 Colima VM 没有更广的宿主挂载，也不是独立的恶意多租户安全边界。启动器还会把宿主项目路径作为元数据传进容器，因此“标准化 Linux 环境”不能理解为隐藏所有宿主信息。开启 FUSE（`BLACKHOLE_FUSE=1` 或 `.blackhole/fuse`）会移除 `no-new-privileges`，添加 `SYS_ADMIN`、`/dev/fuse` 并放宽 AppArmor，隔离强度随之降低。
+
+##### 断流保护：探测器、心跳与 VM 防火墙
+
+[`net-watch` 实现](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/bin/blackhole#L1075-L1435)包含两条控制路径：主 watcher 检查网络，独立 guard 检查 watcher 是否还活着。默认检查宿主默认路由是否经过 `utun*`，再用 HTTPS 探测连通性；探测成功不等于容器实际请求已走同一路径，也没有核验出口 IP。
+
+- 启动时先请求阻断 VM 网络，连续探测成功后恢复；默认间隔1秒、连续失败2次断网、成功2次恢复，单次探测超时15秒。
+- guard 每秒检查主进程和心跳，进程退出或心跳过期时尝试断网。启动参数下默认心跳过期门槛为19秒；不能把“1秒轮询”当作1秒内必定切断。
+- `net-watch stop` 的设计是保留断网，恢复需显式 `net on`。普通 `claude` 启动分支不会自动启动 watcher，网络保护必须另行配置和验证。
+- watcher 默认作用于全部 profile。共享 Colima 环境宜显式 `--profile <profile>`，避免某个代理故障影响无关 VM。
+
+[`BLACKHOLE_AIRGAP` 规则](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/bin/blackhole#L933-L978)应用于 VM 的 OUTPUT/FORWARD 等链：保留 loopback、宿主网关、Docker 内网 `172.16.0.0/12`，IPv6链保留链路本地地址。因此“断网”不是隔绝所有通信。它也不构成瞬时、原子、零泄漏的路由强制：探测和规则应用需要时间，宿主探测与真实请求可能走不同路径，VM root 可以修改规则；部分清理/guard调用还会忽略断网命令失败，必须读回状态并做实际出网验证。独立 guard 增加冗余，但不能消除这些共同依赖。
+
+##### 接入、持续开销与恢复
+
+前提是 macOS、Colima 和 Docker CLI；宿主不必安装 Claude Code 或 Node。README 的 VM 示例为4 CPU、8 GiB内存、60 GiB磁盘配置，属于示例分配，不是最低需求或本机实测。初始化需创建VM、构建镜像、配置软链接和PATH；已有宿主 `claude` 时先确认实际命令位置，不应直接强制覆盖。镜像中的 Claude Code 默认使用 `latest`，需要可重现环境时通过 `setup --claude-version <version>` 固定版本。[Dockerfile](https://github.com/tommy0103/blackhole/blob/d2dce8e1c65216773b2ed10c4ff016fb1148c247/Dockerfile)
+
+项目额外工具写进 `.blackhole/Dockerfile` 后构建 Linux 镜像；macOS 的 Homebrew 二进制不能直接在 Linux 中使用。构建上下文是 `.blackhole/`，不应放秘密。启动器修改对下一次命令调用生效，镜像内文件修改需重建镜像并重开容器，旧会话不会热更新。
+
+日常检查和故障恢复可按下面的范围使用，示例不是本次已经执行的配置：
+
+```bash
+blackhole status
+blackhole net-watch start --profile <profile>
+blackhole net-watch status
+blackhole net status --profile <profile>
+# 检查代理、路由和防火墙后，明确决定恢复该 VM
+blackhole net on --profile <profile>
+```
+
+验收要分别覆盖：命令确实进入容器；项目编辑可回读、宿主秘密不可见；实际容器请求的路由与出口符合预期；代理退出、探测超时、watcher退出时请求被拒绝；恢复后仍能继续任务。不要用“watcher在运行”或单个探测URL返回成功代替这些结果。
+
+持续开销包括VM的CPU/内存/磁盘、镜像重建、Linux依赖与CLI更新、配置卷备份，以及后台探测。默认watcher大约每次探测结束后再等1秒发下一次HTTPS请求，guard还会轮询心跳；剪贴板镜像每0.5秒扫描。它没有托管沙箱月租，但模型订阅/API、代理服务及本机资源仍需计入；作者未提供完整成本账，不能估算月费或净节省。会话JSONL可按ID导出，也可用 `export-watch` 定期归档；导出目录含对话与路径信息，应按私密数据管理。凭据或会话迁移、删除配置卷都应单独确认范围，不能把“卸载启动器”当成数据已经清理。
+
+作者报告的 `virtiofs` 读取1000个1KB文件为126.3ms，宿主为10.4ms；64MB同步写为53.7ms，宿主为16.4ms。它支持“小任务绝对延迟可能可接受”的体验，不能推导出没有性能损失。大量临时构建文件可放VM内 `/tmp`，但要另外考虑缓存持久性；本次没有复测。
+
+原帖另提出一种交付方式：软件提供稳定的原子能力与操作文档，本地Agent负责环境适配。Blackhole的CLI和 `AGENTS.md` 是具体样本；这能减少手工接线，也把本地权限判断、失败恢复和兼容性维护留给了操作者。文档可执行性不等于新增授权，外部手册不能自动授予安装、改网络、迁移凭据或启动后台进程的权限。关联短文尚未读到，这里只保留原帖可见的主张。
 
 #### Muse Secure VM 与 Sentinel：独立行动授权边界
 
@@ -254,6 +311,7 @@ security_opt:
 
 - Browser runtime 应进入 execution environment 层，而不是被当成普通 tool。需要记录 `space_id / tab_id / snapshot_id / action_script / action_trace / confirmation_gate / sensitive_action`，否则 replay、审计和问题归因都很弱。
 - `Snapshot` 是 CUA server 的一个好抽象：它把浏览器观测从 DOM / screenshot 中间化成语义输入，适合和 accessibility tree、Playwright screenshot、CDP trace 一起进入 observation schema。
+- 语义层也可以直接承担动作与程序状态，见[混合电脑操作：Code、AX 与 GUI 的统一接口](./AI-Applied-Algorithms.md#混合电脑操作codeax-与-gui-的统一接口)。HCU 将 AX 引用、批量动作、条件等待与 diff 接到通用 agent；它偏向独立桌面，与 ego lite 的人机共享浏览器设计目标需要分别看。
 - “JS 一次性执行多步动作”可以减少 tool-call 往返，但也更需要边界：支付、发布、删除、发信、改权限这类动作必须有 explicit pause / human confirmation。
 - 经验积累如果落地，最好不要只存“成功脚本”。更合理的是保存 site-specific procedure：适用场景、前置登录态、关键页面 ref / selector、失败触发、确认门禁、回放验证方式。
 
@@ -407,7 +465,7 @@ wakeloop_collaboration_loop_v0:
 | Claude Code Agent Teams | lead、teammate session、task list、mailbox | 单个本地 runtime 内的 peer 协作 |
 | LoopX | goal、claim、quota、evidence、gate、handoff、event ledger | 跨 run / executor 的 durable delivery control plane |
 | AWiki (DSH 插件) | Handle+DID 身份、统一消息/邮箱 inbox、发送前人工确认 | 把 Agent 变成可被外部联系、可授权的工作角色；身份同时是地址和授权入口 |
-| Awesome DSH Plugin 生态 | 1691 个插件、20 个分类：memory / vision / sandbox / notifier / market / governance | 证明 DSH 的插件 seam 已长成基础设施级生态，能力默认 inert、靠配置激活（机制见 [AI-Applied-Algorithms.md](./AI-Applied-Algorithms.md) 的「DeepSeek Harness 插件生态」小节） |
+| DSH 插件生态 | 2026-08 第三方目录快照：1691 个插件、20 类基础能力；2026-11 官方全生态估算：约 3.5 万个第三方插件，另有创作、设计、论文阅读等垂域工作台，两个数量口径不同 | 基础能力可按配置激活，领域流程可通过界面、Skill 与作品复用组织起来（机制、官方统计口径与案例见[DeepSeek Harness 插件生态](./AI-Applied-Algorithms.md#deepseek-harness-插件生态能力目录与垂域工作台)） |
 
 因此 WakeLoop 对 LoopX 最值得借的不是再做一个协作 UI，而是三条 contract：`logical project -> local workspace` 的运行时绑定；`wake / reference` 的 typed relation；每次委托都必须收敛到 `result / handoff / explicit failure` 的结算协议。LoopX 仍应负责更硬的任务所有权、证据、预算、checkpoint / resume 和完成 gate。
 
@@ -1957,6 +2015,25 @@ A2 的 validation success 从 `0.85` 升到 `1.00`，hidden 也从 `0.85` 升到
 - 方法论可复用：lower-bound 依赖图（宁缺勿滥）、Ready Frontier 动态评测、Regression Obligation 持续守卫、评测与编辑环境分离（呼应 LHTB 的 verifier isolation 教训）；对 eval 纪律意味着 benchmark 层只做 observation，不改任务与 verifier 语义。
 
 ### 多 Agent 编排与协作协议
+
+#### 按交付与协调职责拆会话
+
+工业聚将多 Agent 的拆分问题归结为交付时间怎样使用。按写手、程序员、设计师等岗位建独立会话，可能让大量计算用于解释、摘要和重新对齐。局部上下文交接还会带来遗漏和偏差，应该结合依赖与结果验收选择会话边界。[原帖](https://x.com/guyingjie129/status/2119063224272433423)
+
+作者用两组概念分析工作。Work 是直接推进交付的工作，Meta Work 是改善工作条件的工作。Core、Support、Generic 分别表示当前目标的核心业务、必要支撑与可复用通用能力。这两组分类都随目标变化。例如，搬运文档对交付会话属于支撑事务，对文档接入工具的开发者却可能是核心工作。
+
+原帖提出的起步结构包含两个会话。
+
+| 会话 | 主要职责 | 需要交付的结果 |
+| --- | --- | --- |
+| 交付会话 | 连续处理产品、设计、开发、测试等阶段，依据反馈反复迭代 | 可体验、可验证的目标产物 |
+| 协调会话 | 周期收集目标相关上下文、搬运阶段验收材料、按需唤醒交付会话 | 可追溯的输入、送达记录与唤醒结果 |
+
+产品、设计、开发、测试在这个方案中是同一交付循环的阶段，可以随新证据往返。扩展时先观察协调会话是否被文档操作等事务阻塞，再将这些工作交给支撑会话，保留协调者响应消息与唤醒交付者的能力。作者借 Gall's Law 表达从简单且可工作的系统逐步演进的思路。
+
+工程上还需明确输入去重与版本、唤醒条件、同一任务的执行互斥，以及结果写入和用户送达的读回。以上是本文对方案的补充。定时读取、独立模型调用、上下文搬运和结果复核都会产生持续成本。评估时同时观察可验收交付量、交接等待、返工、模型用量与人工介入，避免只优化交付会话的忙碌时间。原帖“10x”未给基线、样本或完整费用，保留为作者主张。
+
+2026-11-08 已读完整可见主帖文字。配套长图仅取得低分辨率缩略画面，图内细节未用于上述归纳。上下文依赖与已有实测案例见[子 Agent 的合并与保留](#子-agent-的合并与保留上下文边界渐进加载与回归验收)，目标审阅见[人审目标与循环验证](./AI-Agent-Product&PE.md#人审目标与循环验证)。
 
 #### 子 Agent 的合并与保留：上下文边界、渐进加载与回归验收
 
