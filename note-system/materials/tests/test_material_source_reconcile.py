@@ -114,6 +114,21 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([e['material_refs'][0] for e in ranked['rankings']['ranked_entries']['entries']],
                          ['material-one','material-private'])
 
+    def test_remote_archived_card_does_not_overwrite_newer_local_ranking(self):
+        source, reviews, base = fixture()
+        source['records'].append({'stable_id': 'material-archived', 'lifecycle_state': 'archived'})
+        entries = source['rankings']['ranked_entries']['entries']
+        entries.reverse()
+        for rank, entry in enumerate(entries, 1):
+            entry['rank'] = rank
+        incoming = catalog('archived', 'one', 'two')
+
+        _, ranked, _, _, audit = reconcile.build(source, reviews, base, incoming, 'abc')
+
+        self.assertEqual(audit['archived_skipped'], ['material-archived'])
+        self.assertEqual([entry['material_refs'] for entry in ranked['rankings']['ranked_entries']['entries']],
+                         [entry['material_refs'] for entry in entries])
+
     def test_local_field_edit_survives_unchanged_git_but_conflicts_are_rejected(self):
         source, reviews, base = fixture()
         reviews['records'][0]['public_card']['note']='local newer evidence'

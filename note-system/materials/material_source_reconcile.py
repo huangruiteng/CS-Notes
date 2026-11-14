@@ -129,6 +129,12 @@ def build(catalog, reviews, baseline, incoming, commit):
         raise ValueError('duplicate ranked identity')
     desired_order = [ref for ref, card in sorted(cards.items(), key=lambda x: x[1]['queue_rank'] or 10**9)
                      if card['queue_rank'] is not None and ref not in archived]
+    desired_refs = set(desired_order)
+    baseline_order = [
+        ref for card in sorted(baseline['entries'], key=lambda item: item['queue_rank'] or 10**9)
+        if card['queue_rank'] is not None
+        and (ref := aliases.get(card['material_ref'], card['material_ref'])) in desired_refs
+    ]
     for ref in desired_order:
         if ref not in byref:
             card = cards[ref]
@@ -148,7 +154,9 @@ def build(catalog, reviews, baseline, incoming, commit):
             old_action = entry.get('reading_action', '')
             if card['note'] and card['note'] not in old_action:
                 entry['reading_action'] = (old_action + '\n\n最新来源补充：' + card['note']).strip()
-    order = merge_ranked_orders(old_order, desired_order)
+    # Compare only surviving ranked cards before applying an incoming order.
+    incoming_rank_changed = desired_order != baseline_order or bool(desired_refs.intersection(added))
+    order = merge_ranked_orders(old_order, desired_order) if incoming_rank_changed else old_order
     merged = [byref[ref] for ref in order]
     external = {ref for ref, d in decisions.items() if d['classification'] == 'external'}
     public_rank = 0
