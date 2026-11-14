@@ -42,6 +42,7 @@
     - [CS144-Lab](Notes/Computer-Networking-Lab-CS144-Stanford.md) / [CS144-Lecture](Notes/Computer-Networking-Lecture-CS144-Stanford.md)
 - **算法、数学与编程**
   - [Algorithms-Potpourri](Notes/Algorithms-Potpourri.md) / [leetcode题目简评](Notes/leetcode题目简评.md) / [mathematics](Notes/mathematics.md)
+  - [组合优化与模拟退火](Notes/组合优化与模拟退火.md) / [Lean 与形式化证明](Notes/Lean与形式化证明.md)
   - [code-reading](Notes/code-reading.md)
   - [设计模式-《剑指offer》笔记](Notes/设计模式-《剑指offer》笔记.md)
 - **编程语言与工具**

@@ -1306,6 +1306,8 @@ https://en.wikipedia.org/wiki/Cholesky_decomposition
   * 多元函数，每次只改变一个输入
   * 容易陷入local maxima
 
+离散状态、局部邻域和限时优化见 [组合优化与模拟退火](组合优化与模拟退火.md)。
+
 ### 应用
 
 #### 飞行器精准制导

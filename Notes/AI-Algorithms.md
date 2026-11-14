@@ -1013,6 +1013,86 @@ softcapping
   * GPT-2 paper 「2.3」
     * https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf
 
+##### 初始化残留与硬件指纹
+
+训练后的 checkpoint（保存下来的模型权重）可能保留初始化时的数值和排列。给定随机种子、生成器状态与张量布局，可以反推与这些残留相容的初始化设备。Will DePue 的 [Checkpoint Forensics](https://unemploymentlabs.com/checkpoint-forensics)（2026-11-12 修订版，2026-11-14 阅读）将这种方法用于公开模型，并提出部分模型从 Hopper 转向 Blackwell 的判断。最直接的证据指向**初始权重怎样生成**，完整训练设备、所在地、获取途径和采购规模需要额外证据。
+
+**随机数为什么会带有设备信息**
+
+Philox 是确定性的伪随机数生成器。PyTorch 的 CUDA 初始化把它拆成许多线程的随机数流，每个线程生成自己的序列，再以固定跨度写入张量。在被检查的 NVIDIA 配置上，足够大的初始化会使用每个 SM（Streaming Multiprocessor，流式多处理器）最多 2,048 个线程。总线程数随 SM 数量变化，因而同一种子生成的数会落在不同位置。
+
+对报告检查的大张量、连续布局与生成路径，可把总线程数及元素所属线程写为
+
+$$
+G=2048\,S,\qquad t(i)=i\bmod G
+$$
+
+其中 $S$ 为 SM 数，$i$ 为展平后的元素下标。一个线程每次生成四个数，分别写入相隔 $G$ 的位置，然后继续下一次调用。复现还依赖 RNG offset、分布、dtype、张量形状、分片与调用顺序。前 $G$ 个位置可能跨布局一致，因此需要检查更后面的元素。PyTorch 的实际代码用 `maxThreadsPerMultiProcessor` 和 `multiProcessorCount` 决定 grid 上限，用线程编号建立 Philox 子序列，再做 grid-stride 写入。2,048 不是所有 GPU、所有初始化的通用常数。[PyTorch 执行布局与内核](https://github.com/pytorch/pytorch/blob/e946fc999750930c7f1a2696125f436d85dd2c61/aten/src/ATen/native/cuda/DistributionTemplates.h#L49)、[CPU 映射实现](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/gpuid.py)
+
+| 被检查的硬件组 | SM 数 | 总线程数 $G$ |
+| --- | --- | --- |
+| A100 / A800 | 108 | 221,184 |
+| H100 SXM / H800 / H200 | 132 | 270,336 |
+| B200 / B300 | 148 | 303,104 |
+| GB200 / GB300 | 152 | 311,296 |
+
+同组芯片无法仅凭这个布局区分。比如 132-SM 结果不能独立证明用了 H800。[复现说明](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/README.md)
+
+![种子和线程布局必须同时匹配，原文 Figure 3](./AI-Algorithms/checkpoint-forensics-seed-layout.png)
+
+图中左上同时匹配种子与布局，重建了整个示意矩阵。右上保持种子但改变布局，线程 0 的数值序列相同、位置改变，只有 6% 的示意元素匹配。下方改变种子后，两种布局均失败。6% 是这个玩具矩阵的结果，不是实际 GPU 的固定误匹配率。图来自原文 Figure 3。
+
+**训练后的权重怎样提供证据**
+
+一些保留 token 的 embedding 行几乎维持初值，可以直接比较。是否保留取决于具体训练实现，不能把“token 未出现”普遍等同于“参数绝不更新”。已经训练过的权重也可能留下较弱相关性。方法先用一组位置搜索候选种子与布局，再冻结这两个设置，在未参加搜索的位置检验。
+
+![保留权重的布局对照，原文 Figure 4](./AI-Algorithms/checkpoint-forensics-preserved-weights.png)
+
+横轴是重新生成的初值，纵轴是发布权重除以初始化标准差 0.006。DeepSeek-V3 与 132-SM 布局形成直线，与 148-SM 布局近乎不相关。V4-Flash 则相反。两者复用种子 `953049583`，差别来自排列布局。每个模型展示四个保留行中的 4,096 个值。图来自原文 Figure 4。
+
+![训练后仍然存在的弱相关性，原文 Figure 5](./AI-Algorithms/checkpoint-forensics-trained-residual.png)
+
+Figure 5 检查 V4-Flash 的 shared-expert MLP 权重，覆盖 42 层、每层 745,472 个值。左、中图按重建初值分箱、跨层平均，误差条为均值的 ±2 个标准误。148-SM 路径得到 $r=0.066$、57σ，132-SM 路径为 $r=0.001$、约 1σ。右图逐层的相关性更弱，但绿色整体高于零。分箱后的清晰斜线不表示每个训练后参数都接近初值，57σ 也不表示高相关或能恢复训练内容。
+
+![不同模型在候选 SM 数上的峰值，原文 Figure 6](./AI-Algorithms/checkpoint-forensics-layout-sweep.png)
+
+Figure 6 的横轴是候选 SM 数，纵轴是生成值与发布权重的相关性。V3、V4-Flash、Kimi K3 分别在 132、148、152 处出现单一明显峰值，其余候选接近零。图所证明的是候选初始化排列之间的区分，设备归属还要考虑其他硬件能否生成同一排列。
+
+报告搜索约 6 万亿个种子与布局组合。多重尝试使单次 5σ 不足为奇，因此作者以约 8σ 作为其正态统计模型下的大规模搜索参照，并用留出位置验证。六个主要结果的最强证据为 49–1,385σ，报告的最弱单项检验为 20σ。这支持排除偶然相关，不能自动排除生成机制相同的另一种设备。24 个与开发者披露相符的案例包含 11 个 step-zero checkpoint，且同源模型不独立，因此是相容性检查，不能写成“硬件识别准确率 100%”。[原文统计讨论及附录 2](https://unemploymentlabs.com/checkpoint-forensics#appendix-2)
+
+**公开复核、主要发现与反例**
+
+公开仓库固定版本 `b633870` 提供五个模型约 7 MB 的保留行、Hugging Face revision 与内容哈希。`gpuid.py` 模拟 Philox 与数值转换，`replay.py` 在 16–256 个 SM 中搜索，并比较 `seed+1` 负对照。下表是作者提供的输出，本次核对了源码，未在本机运行 NumPy/SciPy 重放，也未复做实体 GPU 实验。
+
+| 模型 | 最佳 SM 数 | 达到仓库阈值的行数 | 相关系数中位数 |
+| --- | --- | --- | --- |
+| DeepSeek-V3-Base | 132 | 8/8 | 0.999999 |
+| DeepSeek-V4-Flash | 148 | 461/469 | 0.999999 |
+| Kimi K3 | 152 | 13/13 | 0.999996 |
+| MiniMax-M3 | 148 | 17/17 | 0.999990 |
+| Ling-3.1-flash-base | 152 | 384/384 | 0.983436 |
+
+前四者阈值为 $r>0.99$，Ling 为 $r>0.95$，其截断正态与 bf16 路径的 CPU 近似只能达到约 0.98。V4-Flash 的八行经过部分训练。MiniMax 的 embedding 分为四片，每片种子为 `2760 + rank`。`fetch.py` 对保留行校验 SHA-256，`gpu_check.py` 则用原生 PyTorch 在真实 GPU 上生成初值。仓库报告 H100 对 V3、B300 对 V4-Flash/MiniMax、GB200 对 K3 命中，错误设备及 `seed+1` 不命中。CPU 重放只复核给定种子后的样本匹配，不重做约 6 万亿次搜索，也没有覆盖报告的全部模型与弱残留统计。[固定版本说明](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/README.md)、[重放](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/replay.py)、[样本来源与哈希](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/fetch.py)、[真实 GPU 验证](https://github.com/macrogrants/checkpoint-forensics/blob/b633870c4a8b0f85d70026b7f77f7d0858358f89/gpu_check.py)
+
+作者对六个模型提出 Blackwell 初始化判断。V4-Flash、MiniMax-M3 对应 148-SM，V4-Pro、Kimi K3/K3.1-Pro、Ling-3.1-flash 对应 152-SM。此前同公司的相应模型呈现 Hopper 布局。K3.1-Pro 与 K3 共享初始化，可能来自进一步后训练，不能重复视为独立预训练。Qwen、GLM、腾讯、阶跃、MiMo 的可识别新模型仍呈 Hopper 布局，不能推广为所有实验室都已切换。Kimi K3 至少 64 个分别设种子的进程留下同一 152-SM 布局，扩大了初始化证据的覆盖，但仍不能据此识别完整训练集群。
+
+重要反例是 **AMD MI300X**。它通常有 304 个计算单元，但二分或限制计算单元后也能生成 152/148 的相同布局。作者在实体 MI300X 上确认了这种替代解释，并利用 NVIDIA/AMD 随机数变换中的微小数值差异继续区分。在 V4-Flash 的 377 个两家结果不同的位置，363 个匹配 NVIDIA，零个匹配 AMD。其他五个模型尚未由这项检验排除 AMD，作者认为配置不常见并结合外部报道而判断其不太可能。相同布局、随机巧合很小与芯片身份唯一，是三个不同问题。
+
+Kimi K2.7-Code 的 254 个保留行近似由 80% 旧 132-SM 初值和 20% 新 148-SM 初值混合，且各行混合比例一致，更支持 checkpoint 权重融合，不能直接解释成混用训练硬件。方法依赖可获得的模型权重，不能直接用于闭源模型。CPU 初始化、不同框架生成路径、训练覆盖初值都可能导致无指纹。报告找到了 PaddlePaddle ERNIE-5.5 的种子却没识别设备，DeepSeek-V4.1-Flash 搜索无果，LongCat-2.0 也未检出。未检出不证明没使用某种 GPU。Hopper 指纹不排除后续使用 Blackwell，NVIDIA 残留不排除其他设备参与后续训练。[原文方法、替代解释及附录](https://unemploymentlabs.com/checkpoint-forensics)
+
+**集群规模是另一层估算**
+
+权重不直接编码卡数。作者先估算训练计算量，再假设利用率与持续时间，将总量换算成设备数。
+
+$$
+C\approx 6N_{\mathrm{active}}T+C_{\mathrm{attention}},\qquad
+n_{\mathrm{GPU}}\approx\frac{C}{P_{\mathrm{peak}}\,u\,\tau}
+$$
+
+$N_{\mathrm{active}}$ 是每 token 激活参数量，$T$ 是训练 token 数，$u$ 是模型 FLOPs 利用率（MFU），$\tau$ 是运行秒数。修订版假设通常 MFU 20%、DeepSeek 25%。Kimi K3 的中心估计为 4,500 张、70 天、范围 1,000–9,500 张，V4-Pro 为 3,000 张、70 天、范围 750–6,500 张。五次训练合计中心估计 12,000 张、范围 7,000–22,000 张，排除了共享初始化的 K3.1-Pro。这不是同一时刻独立持有 12,000 张卡的证明，也不能排除不同运行复用设备。
+
+运行时间减半，估计卡数翻倍。实际 MFU 和训练时长未披露，部分 token 数来自作者尚未公开的方法，还假设训练沿用了初始化硬件。每卡约 7 万美元以及最大集群 2–3 亿美元，是借用另一报道的价格换算，不能当成实际订单或训练账单。作者已在 11 月 12 日降低 MFU 假设并上调规模，旧版最大运行 2,000–3,000 张、集群 1.5–2 亿美元的数字已被替换。指纹不能确定设备所在地、使用权来源或是否违反出口规则。[原文 Table 2 与修订说明](https://unemploymentlabs.com/checkpoint-forensics#table-2)
+
 ### Position Encoding
 
 https://arxiv.org/pdf/1705.03122

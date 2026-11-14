@@ -3467,6 +3467,60 @@ Resume + Archive 非空 -> Restored(PrimaryArchive)
 Resume + Archive 为空 + Cache 非空 -> Restored(FastCache)
 ```
 
+### 多 crate 工程重建与终端界面测试
+
+#### 从依赖和行为契约选择修复位置
+
+Cargo 的 package 是发布与依赖管理单位，可以包含库、可执行程序和测试等多个 crate target。workspace 把若干 package 放在同一个工程里管理，成员共用根目录的 `Cargo.lock` 和默认 `target/`。例如 `cas-cli` 可以依赖一个存储库，终端测试工具也可以单独做成库，给多个组件复用。 [Cargo Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
+
+重建工程时，公开函数签名只说明输入和返回类型。还要从调用方、规范和已有测试确认行为，例如缺记录时应该返回 `None` 还是某种错误、终端收到 EOF 时怎么退出。Rust 的 `todo!()` 可以作为许多返回类型下的占位实现，执行到它时会 panic。因此“能编译”“测试实际运行过”“输出符合契约”是三个验证点。
+
+| 现象 | 优先核对 |
+| --- | --- |
+| 编译失败，测试没开始 | 第一条编译错误，缺的依赖或 feature，以及最早失败的 package |
+| 测试运行到 `todo!()` 后 panic | 哪个入口触发，缺的函数行为由哪些调用方和测试约束 |
+| 测试执行完但断言失败 | 最小反例的输入、返回值、副作用和错误类型 |
+| 测试超时或进程退出异常 | 等待条件、子进程退出状态、输出是否持续被读，以及是否遗留子进程 |
+
+通常先看依赖图，把“能解锁下游”的底层模块和“能独立跑完”的窄模块都列出来。如果某个存储模块受依赖环境阻塞，可以先完成一个有清晰契约的独立组件。评分器若按层加权，原生分还取决于层权重和哪些组件实际跑到了断言。 [EdgeBench CAS 组件规格](https://github.com/ByteDance-Seed/EdgeBench/blob/main/edgebench/tasks/rust_multicrate_reconstruction/environment/workspace/agent-start/SPEC.md)
+
+#### PTY 提供终端环境，终端解析器还原画面
+
+普通 CLI 的输入输出可以通过 pipe 捕获。TUI（文本用户界面）还会检测自己是否连着终端，读取窗口尺寸，接收按键，移动光标并重画屏幕。PTY 是一对虚拟终端设备。测试驱动持有 master，子进程连接 slave，读写仍是字节流，同时获得终端设备语义。按键和作业控制的底层关系见 [PTY、shell 与 job control](Shell-MIT-6-NULL.md#pty终端shell-和-job-control-的边界)。
+
+终端模拟器还要把输出字节解释为屏幕状态。一个典型状态包括光标坐标、当前样式和二维字符格。比如在列 1 开始写 `abc`，收到 `ESC [ 1 G` 时把光标放回同一行第 1 列，再写 `Z`。屏幕是 `Zbc`，原始字节流却包含完整的 `abc`、转义序列和 `Z`。只断言 stdout 包含 `abc` 会漏掉这个差异。 [Linux pty(7)](https://man7.org/linux/man-pages/man7/pty.7.html) · [ECMA-48 终端控制序列](https://ecma-international.org/publications-and-standards/standards/ecma-48/)
+
+可以在本地直接看到 pipe 与 PTY 对子进程 stdout 的区别。下面示例只给 stdout 连接终端设备，足够验证 `isatty`。交互测试还需要为子进程接好输入、终端大小和进程生命周期。
+
+```python
+import os
+import pty
+import subprocess
+import sys
+
+probe = [sys.executable, "-c", "import os; print(os.isatty(1))"]
+plain = subprocess.check_output(probe, text=True).strip()
+master, slave = pty.openpty()
+try:
+    subprocess.run(probe, stdout=slave, check=True)
+    terminal = os.read(master, 64).decode().strip()
+finally:
+    os.close(slave)
+    os.close(master)
+
+assert (plain, terminal) == ("False", "True")
+```
+
+#### 按解析器、进程和交互分层测试
+
+- 解析器单测喂固定字节流，断言格子、光标和样式。把同一个 UTF-8 字符或转义序列拆到两个读取块，验证解析器跨调用保留状态。再覆盖宽字符、组合字符、换行、清屏和滚动。
+- PTY 进程测试用最小子程序，验证写入按键、调整窗口、持续读输出和回收退出进程。这个层次能定位挂起究竟发生在子进程、I/O 还是解析器。
+- 交互测试用固定终端尺寸、`TERM`、locale 和明确的就绪条件。发送按键后等待某块屏幕内容出现，再断言最终屏幕或快照。给等待设置截止时间，失败时保存字节流、解析后的屏幕和退出状态。
+
+EdgeBench 的 CAS 题有一个专门负责上述工作的 `cas-tui-test`。题面还区分正式组件与公开测试 helper 中的占位实现。公开 helper 可以用于补齐本地验证，评分器则在干净工作区注入额外测试来检查正式行为。工程修复的一个有效切片是从屏幕状态机、PTY runner 到断言工具串起一条完整路径，然后用受影响组件的独立分项确认结果。 [CAS 的 TUI 契约](https://github.com/ByteDance-Seed/EdgeBench/blob/main/edgebench/tasks/rust_multicrate_reconstruction/environment/workspace/agent-start/SPEC.md#cas-tui-test--terminal-ui-test-utilities) · [CAS 评分说明](https://github.com/ByteDance-Seed/EdgeBench/blob/main/edgebench/tasks/rust_multicrate_reconstruction/NOTES.md)
+
+在带齐依赖的题目工作区，先跑 `cargo test --frozen -p cas-tui-test`。再按 manifest 和评分协议选择需要覆盖的 feature，最后检查直接依赖这个库的组件。`--frozen` 同时要求锁定依赖和离线运行。遇到 vendored 依赖文件缺失时，可以先在同版本干净镜像复现，记录环境证据，并用独立的小测试验证仍能构建的模块。局部测试覆盖的输入和功能要标明，等正式评分回来再判断能否外推。 [Cargo test](https://doc.rust-lang.org/cargo/commands/cargo-test.html)
+
 ## 源码阅读检查表
 
 读一段异步 Rust 服务代码时，依次回答：

@@ -647,6 +647,71 @@ val predictions: DataSet[LabeledVector] = pipeline.predict(testingData)
   * Balancing Act Between Speed and Accuracy
     * While HNSW often requires choosing between speed and accuracy, our approach aims to provide a more nuanced balance. Users can change this balance based on their specific needs, without drastic trade-offs.
 
+#### ANN 实战：HNSW、访存与直接 8 位编码
+
+##### 先定义精确答案和召回门槛
+
+向量检索给定查询向量 $q$、库向量 $x_i$ 和距离，返回距离最小的 $k$ 个 ID。以二维欧氏距离为例，查询是 $(1,1)$，库里 A、B、C 分别在 $(1,2)$、$(3,1)$、$(4,4)$，平方距离为 1、4、18，精确 Top-2 是 A、B。若近似算法返回 A、C，按 ID 交集计算的 Recall@2 就是 $1/2$。
+
+对 $Q$ 个查询，记精确结果为 $G_k(q)$，返回结果为 $A_k(q)$。没有并列时，常见的 ID 交集口径为
+
+$$
+\operatorname{Recall@}k =
+\frac{1}{Q}\sum_{q=1}^{Q}
+\frac{|G_k(q)\cap A_k(q)|}{k}.
+$$
+
+并列距离会让第 $k$ 个结果有多个合理 ID。复现时使用评分器的实际并列处理。Recall@10 为 0.95 对应平均每个查询找回约 9.5 个近邻。它可以来自大量找回 9 个和 10 个的查询，也可以来自少量查得很差的查询。线上若关心后者，还需要看逐查询召回分布。
+
+EdgeBench 的 SIFT1M 题有 100 万个 128 维库向量、1 万条查询和 Recall@10 ≥ 0.95 的门槛。它在召回过线的配置中取最高 QPS，QPS 按单查询平均耗时的倒数计算。例如平均 200 微秒对应 5,000 QPS。批量并行服务还要记录并发数、吞吐和 p95 延迟，才能比较用户实际感受到的速度。 [题面与评测](https://github.com/ByteDance-Seed/EdgeBench/blob/main/edgebench/tasks/ann_vector_search_qps/NOTES.md)
+
+##### HNSW 把全库扫描换成局部探索
+
+暴力搜索计算查询到所有向量的距离。HNSW 在库向量之间建多层近邻图，查询从稀疏高层的入口开始，逐层向距离更小的位置移动。到最底层后保留一个候选队列，轮流展开还有希望的点，最后从已找到的候选里返回 Top-k。高层帮忙跨过远距离，底层负责找附近漏掉的候选。图的邻接结构、距离和候选队列共同决定查到哪些点。
+
+| 参数 | 控制什么 | 调大的主要代价 |
+| --- | --- | --- |
+| `M` | 构建时为点保留的邻接连接规模，具体层上限依实现而定 | 图更大，遍历可能要检查更多邻居 |
+| `efConstruction` | 插入时搜索近邻的候选规模 | 构建更慢，需要重建才能验证新图 |
+| `efSearch` | 查询时底层搜索保留的候选规模 | 通常提高召回，也会访问更多点，可在已有索引上调 |
+
+固定索引扫一组 `efSearch`，可以先看搜索预算能否在召回门槛附近提供好速度。若每提高一点召回都要读很多向量，再分别检查索引结构和向量表示。 [HNSW 论文](https://arxiv.org/abs/1603.09320) · [Faiss 索引与存储开销](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes)
+
+##### 向量怎么存，决定每次跳图要读多少
+
+访问一个候选通常要读邻接 ID、读向量、计算距离、更新队列。连续扫描可以让 CPU 预取下一段数据，图遍历的下一个 ID 往往要读完邻接表和距离才能确定。即使每次距离计算用 SIMD 加速，随机取数据仍可能主导耗时。
+
+128 维向量用 FP32、FP16、每维一字节编码，载荷分别为 512、256、128 字节。对百万条向量，仅坐标存储分别约为 512、256、128 MB（十进制），还要另外算图、ID、索引元数据和运行时队列。在 64 字节 cache line、向量起点对齐的示例中，512 字节跨 8 条 cache line，128 字节跨 2 条。缓存命中、实际对齐、图的访问分布和距离内核都会影响加速幅度。
+
+| 表示 | 适用条件 | 要检查什么 |
+| --- | --- | --- |
+| FP16 | 浮点范围和误差满足任务 | 邻居之间距离差很小时，转换和距离实现会不会改变排序 |
+| 直接 `uint8` | 所有将被直接编码的分量本身是 0–255 的整数 | 入库、更新和查询端的数值域，内核是否也转换查询 |
+| 标量量化 SQ8 | 一般连续值，每维映射到有限个桶 | 标定范围、桶内误差、超范围值和最终召回 |
+| Product Quantization（PQ） | 需要进一步压缩，把向量分段并用码本索引表示 | 码本训练、近似距离以及是否用原向量重排 |
+
+对整数值 7、85、218，直接存为三个字节，再转换回浮点，数值仍是 7、85、218。Faiss 的 `QT_8bit_direct` 为这样的输入提供直接编码路径。SIFT1M 题适合先审计实际样本值域，再决定是否用它。直接编码能保留坐标值，端到端的近似召回仍受图结构、搜索预算和距离内核影响。例如小整数本身也能被 FP16 精确表示，单次 FP16 配置的低召回不足以定位为坐标舍入。 [Faiss v1.14.2 编码类型](https://github.com/facebookresearch/faiss/blob/v1.14.2/faiss/impl/ScalarQuantizer.h) · [编码大小与训练分支](https://github.com/facebookresearch/faiss/blob/v1.14.2/faiss/impl/ScalarQuantizer.cpp)
+
+##### 最小验证：把数据表示、搜索和测量分开
+
+在能读到数据块的环境里，先逐块检查有限性、整数性和范围。下面用 Python 标准库演示一个小样本。实际测量要覆盖准备进入该编码路径的数据。
+
+```python
+import math
+import struct
+
+vector = [7.0, 85.0, 218.0]
+assert all(math.isfinite(x) and 0 <= x <= 255 and x.is_integer() for x in vector)
+encoded = bytes(int(x) for x in vector)
+assert [float(x) for x in encoded] == vector
+assert len(encoded) * 4 == len(struct.pack("<3f", *vector))
+```
+
+1. 用固定查询集和精确答案校验输出。先检查距离一致性，再看 Recall@10。地面真值只供评测。
+2. 同机固定线程数、查询批大小与预热条件，交替跑旧索引和新索引。若改编码必须重建，固定构建种子、插入顺序和图参数，单独记录重建时间与索引体积。
+3. 在固定图上扫 `efSearch`，对齐召回后比较 QPS 和延迟。条件允许时再用缓存未命中、每查询距离计算次数等指标区分是每次访问更便宜，还是访问次数变少。
+4. 接近 0.95 时重复测量，保留 Recall–QPS 曲线与机器条件。EdgeBench 的官方说明明确指出，线程数和宿主负载会影响该题墙钟 QPS。 [评测的宿主依赖](https://github.com/ByteDance-Seed/EdgeBench/blob/main/edgebench/tasks/ann_vector_search_qps/NOTES.md#known-issues) · [性能计数器](Debugging-and-Profiling.md#on-linux)
+
 ### 粗排
 
 #### COLD : Towards the Next Generation of Pre-Ranking System
