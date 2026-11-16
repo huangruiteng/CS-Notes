@@ -1113,6 +1113,30 @@ Novix 将专家的采用、否决、纠偏与评价标准（rubrics）接入持�
 
 ### 长程运行时与控制面原语
 
+#### 常驻 Agent：短 run、审批续接与消息重试
+
+> William Hu，2026-11-13。[Anthropic《Building always-on agents》](https://claude.com/resources/articles/building-always-on-agents)
+
+常驻的是接收事件、计时和保存状态的服务。模型每收到一批可处理的事件，才开始一次 **run**。例如夜间收到一份 benchmark 回执，Agent 读分、更新进度、判断要不要通知，然后结束 run。**Session** 保存这一串工作用到的消息和工具调用。次日用户回复时，可以开一个新 run 恢复原 session。一个 session 因而可以经历多次唤醒，等待期间模型可以停下来。 [原文运行周期与总图](https://claude.com/resources/articles/building-always-on-agents#how-everything-fits-together)
+
+恢复原 session 会带回历史消息和工具调用。新 session 从系统提示、工具定义、基础记忆和触发事件开始。旧历史压缩后会丢细节，所以把候选版本、正式回执引用、已确认最高分和待办写入独立的任务进度。原文建议每轮加载用户指令、记忆索引和已汇报记录，按需读取详细偏好和任务进度。补查用一次性 **follow-up**，例如今晚 23 点还没回执就查一次。每天 9 点出简报用周期性 **schedule**。两种到期事件都先进入 inbox，由同一个入口调度。 [原文五个部件](https://claude.com/resources/articles/building-always-on-agents#the-core-primitives)
+
+##### 等审批时，停在哪一步
+
+假设正式分数出来了，Agent 想对候选 B 追加一次付费重测。工具调用在执行前进入等待审批，系统保存待执行的调用及其参数、关联的 session 和审批请求，再结束本次 run。审批卡片交给用户界面或由发件箱送出。等待期间 worker 可以领取别的工作。次日用户回复，回答作为 inbox 事件进入系统，worker 开一轮新的 run，按请求 ID 找到同一 session 和原调用。
+
+在这个例子里，批准应当绑定候选 B 的版本、一次重测和预算上限。恢复时检查还在批准范围内，再真正提交。拒绝或条件已变时，按当前结果结束或重新判断。卡片重送或重复点击也应映射到同一审批与重测操作。Claude Code 文档给出的具体实现是 `PreToolUse` 返回 `defer`，调用方收到 `tool_deferred` 和待执行调用，等用户回复后按原 session 恢复，再经过同一个权限钩子。该接口适用于文档列出的非交互、单工具调用场景。 [Claude Code 延后工具调用](https://code.claude.com/docs/en/hooks#defer-a-tool-call-for-later)
+
+##### Inbox 重试处理，Outbox 重试投递
+
+| 故障发生在哪 | 跨夜 benchmark 怎样恢复 |
+| --- | --- |
+| 评测回执重送，或 worker 处理到一半退出 | 接收端先持久化事件，再快速确认已接收。按来源和事件 ID 去重，每个 inbox 同时只允许一个活跃 worker。worker 每次唤醒从库里领取待处理事件，完成后再标记。若处理前退出或领取超时，后继 worker 可以重新领取同一事件。 |
+| 重测请求可能已经成功，worker 却没写下回执 | Inbox 的去重只识别同一输入事件。对外提交还要用稳定的**操作幂等键**，例如这次获批的重测请求 ID，故障后用同一个键查询或重试。若对方既无幂等接口，也无办法查询原请求，先保留结果未知状态并核对，再决定是否重发，避免二次计费。 |
+| 已经确认涨分，通知进程退出或消息渠道超时 | 将确认后的分数和一条待发送记录一起提交（同库时可用同一事务），由 dispatcher 读取待发送记录并重试。恢复时继续发**同一条消息**，不用重跑 Agent 或重测。平台已收但本地没记下时，用同一消息 ID 去重或按渠道回执核对。渠道若无法去重，投递重试仍可能产生重复。 |
+
+原文允许一次 run 安静结束、发送更新，或请求输入。比如分数没变可以安静结束。只有简单通知时可以直接调用发送工具，要求失败可恢复或合并通知时再用持久 outbox。表中的领取超时、外部操作幂等和同事务写入是工程落地方式，指南给出了组件分工，具体保证取决于存储、执行和消息渠道支持。测试时分别制造「重测平台已接受、结果未落库」和「消息渠道已接受、发送状态未落库」两种故障，检查重试是否多开一次付费作业或多发一条通知。发送成功也只代表渠道确认，用户是否看到要看单独的已读信号。 [Anthropic 原文](https://claude.com/resources/articles/building-always-on-agents#the-core-primitives) · [Transactional Outbox](./Software-Engineering.md#outbox把业务提交与异步投递绑定)
+
 #### Waiting primitive：yield_time_ms 与 /loop 的设计差异
 
 > 来源：用户整理；Claude Code 官方文档：[Commands](https://code.claude.com/docs/en/commands)、[Run prompts on a schedule](https://code.claude.com/docs/en/scheduled-tasks)，核验时间：2026-06-30。
