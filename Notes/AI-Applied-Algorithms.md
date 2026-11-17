@@ -1586,6 +1586,8 @@ $$
 
 PAIR 的核心不是再发明一种摘要格式，而是回答一个归因问题：**某次压缩之后任务变差，究竟是不是这次压缩造成的？** 它冻结 Agent、compressor model、tools 与 decoding config，从同一个环境快照分别运行 PRE / POST continuation：PRE 保留压缩前上下文，POST 换成压缩摘要。两边面对相同后续状态，差异才较接近单次压缩的局部影响。
 
+结构化压缩也需要这样的诊断。[Spine 的任务树](./AI-Agent-Engineering.md#任务树驱动的上下文编译spine)决定局部历史何时退出默认输入，但返回摘要仍可能漏掉后续依赖。评估 Todo 完结后的裁剪策略时，应区分上下文需求相对独立的模块工作与一脉相承的研究，再在同状态、同预算下比较保留与折叠后的续跑；任务边界清楚，不自动证明裁剪无损。
+
 ![PAIR：从同状态反事实续跑到压缩 Prompt 适配](./AI-Applied-Algorithms/pair-counterfactual-compression-pipeline.png)
 
 *原图：[论文 Figure 3](https://arxiv.org/html/2609.36526v1#S4.F3)。*
@@ -4911,6 +4913,8 @@ planner、executor、subagent、tool、sandbox、evaluator、human 之间不能�
 ## Context Engineering 与 Agent Runtime
 
 上下文管理要分开看三件事：**执行状态减少默认输入，缓存降低重复输入价格，证据历史支持追溯与重新解释**。三者不能互相替代；状态与历史的边界见下文 SKILL.state。
+
+另一种粒度是按局部工作范围管理历史：[Spine](./AI-Agent-Engineering.md#任务树驱动的上下文编译spine)保留开放范围，结束时返回结果并折叠局部过程。与每步只输入当前状态不同，它让任务结构决定上下文退出时机；连续研究的历史去留仍取决于前后信息需求的重叠。
 
 ### SKILL.state：以结构化执行状态替代追加历史
 

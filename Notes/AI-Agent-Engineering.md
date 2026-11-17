@@ -25,6 +25,7 @@
 | Agent 的个人数据源与工具边界：GreenBubbles（本机只读微信库 + policy / audit 授权层 + 个人记忆 skill 流水线） | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
 | Octop：独立 Harness / Memory / Browser / Gateway，渐进式工具 schema、回合级记忆快照、浏览器动作反馈与群聊上下文边界 | [四组件分工](#octop将执行记忆浏览器与消息接入拆成独立组件)；[事实权威与派生视图](./AI-Applied-Algorithms.md#octop-memory事实权威派生视图与可重放召回) |
 | Personal Agent：个人状态上下文演化、行为决策、后台长程工作与前台交互；Session 复用与解耦 | [四类系统职责](#personal-agent四类系统职责与-session-边界) |
+| 结构化上下文：任务范围与执行者解耦、嵌套返回、稳定前缀、Todo 完结后的历史保留判断 | [Spine 的上下文编译与 LoopX 对照](#任务树驱动的上下文编译spine)；[压缩损伤归因](./AI-Applied-Algorithms.md#pair用同状态反事实续跑归因压缩损伤) |
 | Novix：专家判断改变探索方向、失败记录复用与任务评测回退；协同进化式 RSI 的证据边界 | [专家判断、失败资产与协同进化式 RSI](#novix专家判断失败资产与协同进化式-rsi) |
 | 研究反馈与工作步幅：方向 / 测法联合选择、代理校准、反证、实际采用与完整成本 | [DuoDiscover 的双循环与消融](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)；[LoopX PR #8105：Target / Yardstick / Stride 联合决策](#loopx-的研究决策targetyardstick-与-stride) |
 | Coding Agent 过程纪律：ub-mode 对照、共同验收、成本口径、CRAP 与 mutation 缺失、依赖泄漏与裁判误判 | [过程约束与 ub-mode 对照](#ai-coding-的过程约束模型懂原则不等于会稳定执行) |
@@ -1279,6 +1280,8 @@ Goal 状态 → Effect 请求 → 权限 / Quota 解释
 
 最有价值的引入方式，是让**测量反证改变下一轮工作**，并沿已有 Stride 决策路径追踪实际采用。不是再加一个只保存“proxy 分数涨了”的仪表盘，也不必另起一套 scheduler。
 
+这些决策还需要执行层的上下文支持：Stride 判断推进方向和步幅，Yardstick 判断测量是否可信；[Spine](#任务树驱动的上下文编译spine)则按局部工作范围管理执行历史。一个可验证的结合方向是：Todo 完结时判断旧执行上下文应继续保留、局部折叠，还是重建；不把 Todo 完结直接等同于清空会话，也不把局部范围返回等同于验收成功。
+
 ##### 三种判断共用决策，但各自回答不同问题
 
 | 判断 | 问题 | 示例 |
@@ -2143,6 +2146,8 @@ A2 的 validation success 从 `0.85` 升到 `1.00`，hidden 也从 `0.85` 升到
 
 **不要按部门或角色名拆 Agent，要按信息依赖拆上下文。** 连续依赖相同事实、经常来回交接的步骤，优先放在一个主循环；独立方向的并行探索、大量临时信息处理、单窗口已出现可测退化，才更有理由保留子 Agent。独立权限与验证边界还需单独判断，不能为了共享上下文一并撤销。
 
+[Spine](#任务树驱动的上下文编译spine)进一步把“建立上下文边界”与“创建执行者”拆开：同一个 Agent 可以嵌套执行局部任务，结束后向父任务返回结果；确有独立并行价值时才委派。这样合并执行者后，仍能保留局部历史的进入与退出边界。
+
 文章是企业实践总结，不是证明单 Agent 普遍胜出的 benchmark。“一个客户接近两倍提速”是作者报告，不能外推到所有任务；也不能与 [Anthropic Research 的并行信息容量](./AI-Applied-Algorithms.md#anthropic-多-agent-research信息容量委派与同步并行)混成路线反转。
 
 ![Anthropic 原文的三种改造：合并子 Agent、作为工具调用、折叠为 Skills 与工具](./AI-Agent-Engineering/anthropic-fold-subagents.png)
@@ -2779,6 +2784,10 @@ Codex V2 在同一 root 控制域内复用完整 agent loop：每个 child 有�
 
 #### Context Management 与 Token 效率
 
+上下文优化要分别考虑**状态表示、历史工作集、推理状态续用和缓存复用**：保存了结构化状态，不代表模型看到了正确内容；下一次输入更短，也不代表总费用更低。下面先区分推理状态与缓存，再看[任务树如何参与执行循环](#任务树驱动的上下文编译spine)。
+
+##### 推理状态、用户轮与任务边界
+
 **推理状态保留（thinking retention）**：可见聊天历史完整，不代表下一次调用仍能使用之前的推理状态。Reasoning summary 是可读摘要，也不等于可续用的 reasoning item。保留后者可能减少工具往返中的重复推理；具体质量收益需要评测，不能仅凭“忘了前文”的表现判断状态丢失。
 
 - **轮次边界与任务边界不同**：同一用户轮可包含多次工具往返，同一任务也可跨多个用户轮。消息角色、用户轮和任务完成不能简单画等号。
@@ -2790,7 +2799,9 @@ Codex V2 在同一 root 控制域内复用完整 agent loop：每个 child 有�
 
 来源：[OpenAI 推理状态保留](https://developers.openai.com/api/docs/guides/reasoning#preserve-reasoning-across-calls)、[Reasoning summaries](https://developers.openai.com/api/docs/guides/reasoning#reasoning-summaries)、[Compaction](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide#compaction)（核验于 2026-09-23；支持范围以模型文档为准）。缓存影响另见 [上下文编辑与缓存观测](./LLM-MLSys.md#上下文编辑与缓存观测)。
 
-> 来源：[Agent Token 的虚假繁荣：停止用消防水龙头浇花](https://zhuanlan.zhihu.com/p/2024430002955986777)
+##### 历史膨胀、前缀缓存与推理协同
+
+> 以下为文章的工程观察与判断，不是统一配置下的对照实验；其中费用、可压缩比例与缓存故障应结合具体版本核验。来源：[Agent Token 的虚假繁荣：停止用消防水龙头浇花](https://zhuanlan.zhihu.com/p/2024430002955986777)
 > 整理时间：2026-04-07
 
 **Claude Code 的 Context 问题**：
@@ -2829,6 +2840,135 @@ Anthropic 封锁第三方 harness（如 OpenClaw）使用 Claude 订阅，客观
 关于“状态复用”更系统的机制（语义锚点 + radix prefix tree + 循环层 checkpoint）见 [LLM-MLSys.md - Agentic State Reuse](./LLM-MLSys.md#agentic-state-reuse面向-agent-上下文编辑的状态复用)。核心判断是：Agent 每轮编辑上下文都发生在语义块边界（thinking / tool call / tool output / turn），这正是 serving 侧 checkpoint 的最佳锚点；把 context 编辑做成语义块级操作、保留稳定前缀，是让 prefix cache 和 recurrent state 真正复用得起来的前提。FreeToken 把这条链路做成了端侧 serving 系统（多轮 TTFT 降 65-80%），证明它不是论文概念而是可工程化的收益。
 
 **市场判断**：GPU 算力的供给弹性远小于 DRAM，Token Efficiency 是决定谁能活下来的核心竞争力。
+
+#### 任务树驱动的上下文编译：Spine
+
+来源：[论文 v1](https://arxiv.org/html/2610.37224v1)《Spine: Compiling Subtask Trees into Structured Context for Long-Horizon Coding Agents》、[SpineCodex](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/README.md)。2026-11-17 读完论文正文、结果表和关键图，并核对核心源码；Spine 源码固定于 `846cc3c`，LoopX 对照固定于 `68fe178`。当前实现晚于论文，不能假设与被测版本完全一致；未安装运行或复现实验。Spine 是上下文机制，SpineCodex 是接入 Codex 的发行版，另有 SpinePi；与 Spine Swarm 不是同一项目。
+
+**共同方向是用结构化状态表示和优化上下文，区别在于状态范围与接入深度。** Spine 与 agent loop 协同设计，在模型采样边界把任务树编译成输入；LoopX 的跨 harness 抽象更多在 loop 之上交付目标、工作和证据状态，当前 Progressive / Delta 主要优化这部分交付。两者都持久化，不能简化成“临时会话记忆 vs 持久状态”。
+
+##### 工作范围：把任务分解与执行者选择拆开
+
+平铺历史分不清“已经结束的过程”和“马上还要用的工作状态”。按长度或时间压缩，可能删掉待实现阶段刚读过的代码，迫使 Agent 重读。递归子 Agent 能形成局部边界，却为每个边界支付委派、等待和消息协调成本。Spine 让**同一 Agent 内的局部任务也有进入、返回和嵌套结构**，无需每次创建新执行者。
+
+SpineTree 保存有序交互和工作范围：任务描述、父子关系、局部历史与返回结果。可类比带记忆的函数调用栈：局部工作结束后，父任务消费返回值并继续；原始过程仍保存在历史中，不再每轮完整输入模型。
+
+| 操作 | 状态变化 | 边界 |
+| --- | --- | --- |
+| `Open(d)` | 同一 Agent 进入描述为 d 的子范围 | 建立局部边界，本身不缩短上下文，也不消除继承的父上下文 |
+| `Close(μ)` | 结束当前非根范围，向直接父范围返回 μ | 局部返回，不证明 Todo 或整个目标验收通过 |
+| `Next(μ,d)` | 结束当前范围，再进入同级新范围 | 一次操作完成返回与继续 |
+| `Spawn(tasks)` | 委派独立并行任务 | 当前实现为 fork–join：父执行暂停，子结果按任务顺序汇合后恢复 |
+
+一个范围可以跨很多模型调用和工具往返。**模型调用、宿主用户 Turn、Spine scope、LoopX Todo 是四种不同边界。** 只有人为把它们对应起来，才能类比成“每次 session turn refresh”；不能把这种类比当作源码中的一一映射。
+
+![Spine 原文图 5：交互与边界编译成任务树，再生成线性模型输入](./AI-Agent-Engineering/spine-context-compiler.png)
+
+前端把消息和边界操作解析为树，后端将树投影为下一次线性模型输入：**尚未结束的祖先范围 + 已结束分支的返回结果 + 当前范围的交互**。嵌套类似匹配括号，先结束内层再返回外层。模型选择语义边界，runtime 校验状态转移；结构合法不等于分解合理或记忆充分。[论文 §3–4](https://arxiv.org/html/2610.37224v1#S3)、[编译器](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/codex-rs/spine-core/src/compiler.rs)
+
+##### 返回与刷新：保留依赖，退出局部过程
+
+父任务前缀为 Q，已结束子任务的详细历史为 B，返回记忆为 μ。一次返回可概括为：
+
+$$
+Q\mathbin{\Vert}B\longrightarrow Q\mathbin{\Vert}\mu
+$$
+
+父前缀尽量不变，有利于前缀缓存继续命中。这里缓存的是**编译后的线性请求前缀**，不是服务端原生缓存整棵语义子树；是否命中、缓存计价和有效期仍由模型服务决定。输入缩短、缓存命中、调用次数和最终费用是不同指标。
+
+“只保留编译后的最新状态”也要限定：已结束的局部过程会退出默认输入，但未结束的父任务历史和当前工作仍在；不是每轮把全部历史改写成一个最新 JSON。当前 [reducer](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/codex-rs/spine-core/src/reducer.rs)还保留锚定用户消息与子节点 memory slots，结合本节点返回结果，避免全靠外层模型重新转述所有子任务知识。
+
+返回记忆至少应保住：改了什么版本、验证了什么、关键决策与被否定的路线、尚未满足的约束和风险、原始证据指针、下一步影响。“已完成，测试通过”通常不足以承载这些依赖。配置要求按有界语义义务分范围，并允许边界操作与已经就绪的普通工具同轮提交，减少纯管理调用；根范围主要协调。[当前工具配置](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/codex-rs/spine-core/config/spine.toml)
+
+需要保留的实现边界：
+
+- `Spawn` 时父执行不持续监督；需要中途干预时应选择其他协作模式。共享文件系统修改没有事务隔离，仍需划分写入范围与集成责任。
+- 开放范围和返回结果仍可能增长，系统继续与宿主 compaction、checkpoint、resume 配合，不保证无限上下文。可选的 `.codex/spinetree/` memory 导出不是唯一持久化来源。[压缩协调](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/codex-rs/core/src/spine/coordinator/compact.rs)、[记忆导出](https://github.com/GhabiX/SpineCodex/blob/846cc3ceeed99d9f86520f236e1cfc3d330699e5/codex-rs/core/src/spine/memory_projection.rs)
+- 保存原始历史不等于后续一定会检索或正确使用它，也不等于自动学会新 skill 或更新权重。返回摘要漏掉任务谓词、变量和验证缺口，仍可能造成 [PAIR 所诊断的压缩损伤](./AI-Applied-Algorithms.md#pair用同状态反事实续跑归因压缩损伤)。
+
+**Nushell 迁移案例。** AgentDiet 将九个文件的检查历史从约 11.7K 压到 1.6K tokens，但实现尚未完成，随后两次响应各重读了七个文件的重叠范围。递归子 Agent 在一次迁移 milestone 中出现 14 次创建尝试（3 次线程上限失败）、8 次状态查询、12 次等待、8 次消息、6 次中断。两者分别暴露“压缩太早而返工”和“靠委派建立每个边界”的成本。
+
+![Spine 原文图 9：内层返回继续 parser，外层返回继续整个迁移](./AI-Agent-Engineering/spine-nested-returns.png)
+
+Spine 在 parser 更新中嵌套运算符检查，局部测试通过后返回并继续变量补全；parser 整体结束后再返回迁移根任务，保留待完成的 PipelineData 迁移与 workspace 验证。外层返回处输入从 **65,815 降至 19,207 tokens（−70.8%）**。这是一个返回边界的变化，不是整次任务费用降幅。[论文案例](https://arxiv.org/html/2610.37224v1#S5)
+
+##### 实验：效果、总成本与边界提示
+
+实验覆盖三类工作：SWE-Milestone 的 7 个仓库任务、98 个连续 milestones；ProgramBench 从 200 题随机取 50 题，按文档和只能执行的参考程序重建行为，限 6 小时 / 1,000 步；FrontierSWE 取环境可运行的 10/17 题，每题 5 次、每次 20 小时。后者遗漏任务含 H100 / 外部 API 等依赖。配对方法使用相同模型、宿主、任务和预算上限，但实际花费可以不同。
+
+GPT-5.6 Sol 在 SWE-Milestone 上的结果（[Tables 3、5](https://arxiv.org/html/2610.37224v1#S5)）：
+
+| 方法 | Score | 完全完成 | 平均输入 / 请求 | 总费用 |
+| --- | ---: | ---: | ---: | ---: |
+| 原生 Codex | 38.1% | 14/98 | 131.2K | $681.22 |
+| AgentDiet | 36.5% | 12/98 | 92.8K | $1,098.52，含压缩调用 |
+| Context Folding | 37.1% | 13/98 | 87.3K | $596.25 |
+| 递归子 Agent | 42.4% | 17/98 | 65.3K | $1,749.73 |
+| SpineCodex | 42.6% | 19/98 | 72.3K | $460.77 |
+
+Score 是新功能测试召回与回归防护精度的调和平均，**42.6% 不表示完成了 42.6% 的 milestones**。相对原生 Codex，Spine 增加 4.5 个百分点，费用下降 32.4%；相对递归子 Agent，Score 接近，费用下降 73.7%。后者平均输入更短，但模型请求为 32,650 次（75.5% 来自子 Agent），Spine 为 8,792 次。**缩短单次输入不等于降低总成本；状态压缩还应计入返工与管理成本。** Context Folding 基线只复现 folding，未使用 FoldGRPO 训练，不能外推为胜过完整训练版本。
+
+收益有条件，不能只保留省钱的结果：
+
+| 设置 | 质量变化 | 资源变化或边界 |
+| --- | --- | --- |
+| Grok + SWE-Milestone | Score 35.5% → 40.4%，完成 12 → 14 | 费用 −37.9% |
+| GPT + ProgramBench | 平均测试通过率 62.55% → 73.35%，完全完成 0 → 2，Almost 2 → 7 | 费用 $210.21 → $221.56（+5.4%），总 tokens 也增加；Almost 为至少通过 95% 测试，包含完全完成 |
+| Grok + ProgramBench | 平均通过率 64.58% → 71.15% | 费用 −13.3% |
+| GPT / Grok + FrontierSWE | Mean@5 分别在 8/10、6/10 题提升，也有退化 | 总费用分别 −6.7%、−19.2%；Mean@5 / Best@5 是五次均值 / 最高分，不是 pass@5 |
+| Gemini + SpinePi，SWE-Milestone | Score 35.8% → 39.2%，完成 13 → 15 | 费用 −45.4%，支持跨宿主适用性 |
+| Qwen + SpinePi，SWE-Milestone | Score 30.9% → 36.3%，完成 8 → 14 | 总 tokens 1,996.97M → 2,252.80M；作者解释为减少停滞后继续有效工作，未报告本地模型费用 |
+
+Pi 的 ProgramBench 两个模型也都从 0 个完全完成变为 1 个，平均测试通过率分别 60.41% → 65.65%、56.28% → 58.71%。这些是有限的模型 × 宿主组合，不是全组合复现。少花 tokens 可能是高效，也可能是提前停滞，必须同时看最终结果。
+
+**消融区分“有树”与“模型知道自己在哪”。** 在 Navidrome、ripgrep、Element 上各跑三次：Depth 1 只允许根下单层范围；No boundary maintenance 仍维护运行时树和编译，只从模型输入去掉边界标记和节点状态。以 ripgrep 为例：
+
+| 配置 | Score | 平均输入 | 费用 |
+| --- | ---: | ---: | ---: |
+| 完整 Spine | 72.4% | 59.8K | $34.67 |
+| Depth 1 | 66.8% | 82.8K | $40.78 |
+| 不展示边界状态 | 67.2% | 118.1K | $45.88 |
+
+三个项目方向一致：限制嵌套使中间层过程难以及时退出；去掉边界提示使平均输入增加 64%–97%、费用增加 30%–42%。**后台保存结构不够，还要把当前位置、父任务与完成状态投影给模型，才能影响何时返回。** 真实轨迹中 72.6% 请求位于深度大于 1 的范围；223/224 次 Close、77/80 次 Next 后输入缩短，中位分别减少 23,045、35,627 tokens。这不证明每次边界选择或摘要都正确。主结果缺完整不确定性区间，且没有 LoopX 对照。
+
+##### 适用条件：看上下文需求的重叠，而不是 Todo 是否完结
+
+**相邻工作的上下文需求相对独立时，才适合激进裁剪；一脉相承的研究不能照搬这种策略。** 这里说的独立是信息需求的低重叠，不是任务在逻辑或概率上相互独立。两个任务可以有先后依赖，但若后者主要消费前者的明确结果，就不必继续携带全部局部过程；反过来，两个名字不同的 Todo 也可能一直在使用同一个研究现场。
+
+| 工作关系 | 下一步真正依赖什么 | 对裁剪的判断 |
+| --- | --- | --- |
+| 相对独立的需求 / 模块，通过明确接口衔接 | 产物、接口约定、已验证结论和少量风险 | 局部过程可激进折叠，保留结果与证据入口 |
+| 一脉相承的研究，持续修改同一假设或解释同一实验 | 试过但未采纳的路线、反例、测量细节、参数关系、仍未定论的判断 | 不能按 Todo 完结激进裁剪，应保留持续相关的研究工作集，仅移除已确认无用的细节 |
+
+Nushell 中，后续迁移依赖 parser 修改，却未必需要 parser 的全部调试日志，这更接近第一类。SWE-Milestone 的修改本身相互依赖，并不反驳这种上下文划分；ProgramBench 的整程序重建也可能存在模块边界。但论文没有按**上下文需求重叠程度**分组消融，尚不能证明收益可直接迁移到持续耦合的研究。这是工程上的适用性判断，不是论文已经验证的结论。
+
+返回摘要能否承载后续需求，是这个判断的检查方式，不应变成“只要总结得好，什么都能裁”的假设。持续研究里尚不知道哪些观察以后会重要，恢复原历史也有代价。应检查**下一段工作是否仍在延续同一个研究现场**，结合反复返回旧路线、共享未定假设、重解释测量等信号，计入重读、重复失败、约束丢失和缓存损失。
+
+##### 与 LoopX 的结合：Todo 完结时判断上下文去留
+
+| 层 | 当前实现负责什么 | 与 Spine 的关系 |
+| --- | --- | --- |
+| Spine 工作范围 | 直接组织宿主模型 / 工具历史，在采样边界编译 | 与 agent loop 深度协同；局部返回不等于项目验收 |
+| LoopX Progressive / Delta | 渐进交付项目上下文；兼容基线下差量传输并验证重建，不满足条件回退 full | 主要作用于 LoopX 生成的工作上下文，不能据此认定已管理宿主全部 transcript |
+| LoopX compaction working memory | 实验性、默认关闭；从 Todo 标题 / note 与来源指针确定性生成短记忆 | 恢复时补充，不替换整段原始输入，也不调用模型做语义总结 |
+| LoopX History Working-Set RFC | 设计原文 / 摘要 / 延后读取与来源恢复 | 设计已接受，交付成熟度仍是 Proposal，不能算已实现全历史编译 |
+| Stride / Yardstick | 推进方向与步幅 / 测量可信度和验证缺口 | 决定投入什么、相信什么；Spine 管执行时带什么历史，树本身不会算出最优实验 |
+
+实现来源：[Progressive](https://github.com/loopx-project/loopx/blob/68fe1788518e7edbf912638dcc421e17b0c9bc31/loopx/control_plane/quota/progressive_context.ts)、[Delta](https://github.com/loopx-project/loopx/blob/68fe1788518e7edbf912638dcc421e17b0c9bc31/loopx/control_plane/quota/context_delivery.ts)、[compaction working memory](https://github.com/loopx-project/loopx/blob/68fe1788518e7edbf912638dcc421e17b0c9bc31/docs/reference/required-work-context.md)、[历史工作集 RFC](https://github.com/loopx-project/loopx/blob/68fe1788518e7edbf912638dcc421e17b0c9bc31/docs/architecture/rfcs/history-working-set-context-policy-v0.md)。差量内容可精确重建不等于模型已记住；交付字节节省也不能直接与论文总费用降幅比较。
+
+**建议把“每个 Todo 完结后触发一次上下文去留判断”作为候选策略，而不是硬编码完结即清空。** 这还不是已实现或验证有效的能力；一个 Todo 可包含多次执行尝试，每次尝试内可有多个 Spine 范围，不必为每次读文件建立持久 Todo。
+
+| 判断 | 适合情况 | 继续携带什么 |
+| --- | --- | --- |
+| 保留原上下文 | 一脉相承的研究；下一步仍高度依赖当前调试现场、未定假设或实验细节 | 连续研究工作集，必要时只裁剪已确认无关的输出 |
+| 折叠已结束范围 | 可以清楚返回结果，父任务还要继续 | 稳定父前缀、返回记忆、未完成约束和来源 |
+| 重建下一执行上下文 | 路线 / 角色明显切换，旧历史污染大，接续状态已落盘 | 目标、版本化产物、证据、预算、待返回实验及恢复入口；原始历史保留 |
+
+判断应优先看相邻工作的上下文需求重叠，再结合下一动作、预计重读代价和缓存，而非固定每 N 轮触发。无需另起长管理对话，可复用 Todo 结算时已有的状态和下一步判断。失败调查也能关闭并返回反证，但不能把“局部调查结束”改写成“目标完成”。整体链路是：**持久状态与预算 → Stride / Yardstick 决策 → 有边界执行及上下文编译 → 版本化结果与证据 → 下一次决策**。
+
+短期先验证现有 LoopX + 原生 Codex 与相同策略 + SpineCodex，核对宿主接入、恢复与证据写回兼容性，不急于维护整个 Codex fork。Todo 边界策略可比较保持、总是刷新、按依赖判断三组；必要时在同一检查点做配对续跑，但仍需完整运行检验长期收益。预算允许再做 Codex / SpineCodex × 有无 LoopX 四组，分清各自与组合贡献。
+
+验收看等预算下的最终真实成绩、成绩曲线、完整费用 / 调用数 / 缓存、重读与返工、丢失约束、错误完成与恢复成功率。等 token、等费用、等时间回答不同问题；省出的预算只有转化为更有价值的后续工作才有意义。目标与预算建模见 [有限预算下的研究规划](./Reinforcement-Learning.md#有限预算下的研究规划)及 [LoopX 预算研究规划](https://github.com/loopx-project/loopx/blob/68fe1788518e7edbf912638dcc421e17b0c9bc31/docs/research/budgeted-research-planning.zh-CN.md)。
 
 #### Claude Code 降智复盘：Agent 工程层退化监控
 
