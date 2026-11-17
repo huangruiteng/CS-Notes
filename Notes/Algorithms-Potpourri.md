@@ -114,6 +114,7 @@ https://preshing.com/20110504/hash-collision-probabilities/
   * hashmap的value存array-list的index
     * Array-list的value存pre-index + post-index + entry
   * e.g. Persia
+* Python 3 工程实现（哨兵双向链表 LRU、惰性删除堆与 `bisect` 版本化快照查表）见 [python.md - 算法与有状态编码原语](./python.md#算法与有状态编码原语python-3)
 
 #### Radix Tree
 
