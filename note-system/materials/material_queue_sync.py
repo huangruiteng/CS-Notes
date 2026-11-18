@@ -108,6 +108,35 @@ def validate_order_preserving_subset(full_ranked_refs, projected_ranked_refs):
         raise ValueError("public ranking does not preserve canonical order")
 
 
+def preserve_equivalent_catalog_order(catalog, previous_bytes):
+    """Retain the accepted array order when both rendered queues are unchanged."""
+    if previous_bytes is None:
+        return catalog
+    try:
+        previous = json.loads(previous_bytes)
+        public.validate(previous)
+    except (TypeError, ValueError):
+        return catalog
+    if any(
+        previous[key] != value for key, value in catalog.items() if key != "entries"
+    ):
+        return catalog
+
+    entries = catalog["entries"]
+    earlier = previous["entries"]
+    by_ref = {card["material_ref"]: card for card in entries}
+    if len(by_ref) != len(entries) or by_ref != {
+        card["material_ref"]: card for card in earlier
+    }:
+        return catalog
+    # Ranked cards are rendered by queue_rank. Unranked cards use array order.
+    current_unranked = [card for card in entries if card["queue_rank"] is None]
+    previous_unranked = [card for card in earlier if card["queue_rank"] is None]
+    if current_unranked != previous_unranked:
+        return catalog
+    return {**catalog, "entries": [by_ref[card["material_ref"]] for card in earlier]}
+
+
 def partition(catalog, reviews):
     decisions = {d["material_ref"]: d for d in reviews["records"]}
     if len(decisions) != len(reviews["records"]):
@@ -245,6 +274,16 @@ class QueuePublisher:
             "top_window_size": 30,
             "entries": public_entries,
         }
+        try:
+            previous_catalog = self.targets["catalog.json"].read_bytes()
+        except FileNotFoundError:
+            previous_catalog = None
+        previous_catalog_digest = (
+            digest(previous_catalog) if previous_catalog is not None else None
+        )
+        public_catalog = preserve_equivalent_catalog_order(
+            public_catalog, previous_catalog
+        )
         pages, counts = public.render(public_catalog)
         now = datetime.now().astimezone().isoformat()
         receipts = {}
@@ -315,7 +354,10 @@ class QueuePublisher:
             "public_order_preserving_subset_verified": True,
             "public_aliases_resolved_before_subset_validation": True,
             "expected_destination_digests": {
-                k: current_digest(p) for k, p in self.targets.items()
+                name: previous_catalog_digest
+                if name == "catalog.json"
+                else current_digest(path)
+                for name, path in self.targets.items()
             },
             "expected_pointer_digest": current_digest(self.pointer),
             "loopx_projection_receipts": receipts,

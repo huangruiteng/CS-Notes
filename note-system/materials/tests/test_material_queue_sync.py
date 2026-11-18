@@ -273,6 +273,25 @@ class QueuePublication(unittest.TestCase):
             tuple(exported["entries"][0]), q.PUBLIC_CARD_FIELD_ORDER
         )
 
+    def test_republish_preserves_catalog_with_equivalent_ranked_cards(self):
+        second = self.reviews["records"][1]
+        second["classification"] = "external"
+        second["public_card"] = {
+            **self.reviews["records"][0]["public_card"],
+            "material_ref": second["material_ref"],
+            "title": "Second public paper",
+        }
+        self.write_reviews()
+        self.publish()
+        path = self.publisher.targets["catalog.json"]
+        accepted = path.read_bytes()
+
+        self.records.reverse()
+        self.source["authority_revision"] = "managed-test-reordered"
+        self.publish()
+
+        self.assertEqual(path.read_bytes(), accepted)
+
     def test_source_review_pointer_and_destination_conflicts_rejected(self):
         self.publish()
         self.prepare_change()
