@@ -1312,6 +1312,8 @@ Thought:{agent_scratchpad}
 
 这个分区先看 **Agent Evaluation：把 agent eval 做成自动化测试系统**，再用 AgentCompass 理解 benchmark / harness / environment 的可组合边界，最后看 GAIA、MLE-bench、ALE、LHTB、GDPval、AppWorld、BFCL-v3 等具体任务世界。
 
+从训练角度看，先用 AppWorld 理解状态如何验收，再用 ToolSpace 理解怎样造可解任务。强化学习笔记沿用一个可运行的开票例子，从初态、失败归因走到 GRPO 手算，再对照 IQuest-Q1 的规模化数据与训练管线。[从可执行环境到 Agent RL](./Reinforcement-Learning.md#从可执行环境到-agent-rl) · [IQuest-Q1 的环境中心训练](./Reinforcement-Learning.md#iquest-q1-的环境中心训练)
+
 评测结论还需同时绑定主张、资源预算和有效性检查：见下节「预算—性能曲线与评测主张」。同预算比较、强引出能力与防护稳健性使用不同实验设计；单点分数无法独立表示系统能力上限。对于自动搜索出来的 harness，再用 [Harness-Delta Attribution](#harness-delta-attribution涨分后追问靠什么涨的) 区分额外计算、数据捷径和剩余结构收益，并用 [Rethinking Harness Evolution](./AI-Agent-Engineering.md#rethinking-harness-evolution把可迁移改进与任务内搜索拆开) 区分跨任务共享 harness 与任务内 Harness Scaling，最后独立验证 held-out 迁移。
 
 对历史预测任务，还需绑定输入的可用版本与结算时间：见 [ILE：时间边界与结果分层](#ile时间边界与结果分层)。检索时没访问未来资料、模型权重没记住未来、预测准确和投资赚钱，是不同的有效性问题。
@@ -2153,6 +2155,29 @@ cost
 ```
 
 只有在便宜且可稳定导出时，再补 `state_diff_ref / assertion_trace_ref / tool_call_trace_ref`。AppWorld 的 terminal-agent 评估方式可以作为仿真环境选项，但不宜一上来用高成本 Codex 批量跑；更合理的路线是先用便宜模型跑 batch，Codex 只做 canary / case debugging。数据切分也应按 `task_type / scenario` 做 stratified train-test split：train 负责抽经验，test 才用于 held-out claim，避免同类任务全进训练集后高估 memory utility。
+
+#### 从执行轨迹合成训练环境与任务（ToolSpace）
+
+ToolSpace 从真实工具调用里统计**哪些调用经常接得上、靠什么接上**，再实际走通候选路径，把它反推成更复杂的任务。工具图负责提出组合，执行环境检查参数与状态，验证器定义什么算完成。沿用现有服务的接口和调用关系，少量结构化数据也能拼出一个跨服务工作流。[论文 §4、图 2–3](https://arxiv.org/html/2611.05036v1#S4)
+
+1. **从轨迹建图。** 节点是工具与归一化后的参数模式。相邻调用按规则提取三类依赖：前一步的结果传给下一步作为参数，前一步写入的对象成为下一步的读写前提，失败后尝试可成功恢复的调用。边权反映观察到的条件频率。紧密相关的工具归入同一环境；有写入的环境按需构造数据库，状态查询可从快照恢复，无状态调用复用记录下来的返回。
+2. **带状态采样。** 按边权抽下一步，在当前环境中执行并核对依赖是否真的成立。若执行失败或依赖不符，恢复这一采样步之前的状态，再尝试别的分支。论文图 3 给出 28 次调用、跨 6 个环境、回退 2 次的例子。
+3. **从已走通的路径反推题目。** Kimi K3 根据路径写自然语言任务和三类验收断言，分别检查最终状态、关键中间行为和返回结果。从初态重放参考路径，全通过才保留。回放证明该初态至少存在一条满足现有断言的路径。验证质量还取决于断言能否拒绝语义上错误的结果，并接受合理的替代路径。[任务合成与回放](https://arxiv.org/html/2611.05036v1#S4.SS2) · [回放代码](https://github.com/dongguanting/ToolSpace/blob/20b35783b959645bc018f89b38f44b88ecb7a37f/Tool-Space/verification/replay.py#L13-L35)
+
+这里有三种容易混在一起的轨迹。图上走通的参考轨迹用于出题并证明可解。教师模型接题后执行，通过验收的轨迹作为 **SFT** 示范，学生从已有权重出发学习怎样行动。到了 **RL**，学生用自己的当前策略生成轨迹，验证器给每次运行成功或失败的奖励，GRPO 用同题多次尝试的相对表现更新策略。论文报告 34,376 条 SFT 样本，另筛出 653 道 RL 任务，筛选条件是 35B 模型 16 次尝试里成功 1–2 次，给稀疏奖励留下可比较的成败样本。[训练设置](https://arxiv.org/html/2611.05036v1#S6.SS1)
+
+| 论文中的比较 | 结果 |
+| --- | --- |
+| Qwen3.6-35B-A3B，七项均分 | 起点 23.0，SFT 后 41.0，追加 RL 后 43.2 |
+| 去掉状态边，Banking | 34.0 → 21.5 |
+| 去掉数据边，BFCL | 74.3 → 62.4 |
+| 744B 与 Claude Opus 5 | 两者七项均分均为 56.6，各项表现与对照来源有差异。表格支持该组均分比较 |
+
+收益集中在哪些任务，比均分更能解释方法。Banking 依赖环境中的前置状态，BFCL 对参数传递更敏感。消融支持在这套合成与训练配置里保留相应的边类型。[主结果表](https://arxiv.org/html/2611.05036v1#S6.T1) · [消融表](https://arxiv.org/html/2611.05036v1#S6.T3)
+
+**读公开样例时，重点检查一个事实变了，正确动作会不会随之改变。** `demo.py` 是手写的集成样例，预算 2,000、两笔支出 600 与 900，`NextRange` 会提示下一次读取。表格断言要求金额写对列，Slack 断言只检查项目名和两个数字是否出现，因此把支出与差额的语义对调也可能过关。公开 AutomationBench Pro 增加了资格、期限和暂停等真实工作流常见的判断条件。对其发布文件按题目 ID 联结并对初态做精确去重，300 题共有 184 个不同初态，参考调用数中位数为 40。这组统计的范围是公开评测集。检验任务质量可以只改一条初始事实，例如把一个赞助商改为暂停，检查正确行为是否从开票变为跳过，同时验证错误开票会被抓住。[demo 的断言与初态](https://github.com/dongguanting/ToolSpace/blob/20b35783b959645bc018f89b38f44b88ecb7a37f/Tool-Space/examples/demo.py#L18-L59) · [Pro 数据说明](https://github.com/dongguanting/ToolSpace/blob/20b35783b959645bc018f89b38f44b88ecb7a37f/Automation-Pro/README.md#L71-L87) · [赞助商样题](https://github.com/dongguanting/ToolSpace/blob/20b35783b959645bc018f89b38f44b88ecb7a37f/Automation-Pro/data/questions.jsonl#L7)
+
+同一方法可以用来发现长程工作的组合和出题机会。运行时还要处理原任务发布后发生的变化，以及不同领域能力如何接手。见[长程 Goal 的领域能力组合](./AI-Agent-Engineering.md#长程-goal-的领域能力组合)。
 
 #### Agent Observability：OpenTelemetry GenAI / OpenInference / agentevals
 
@@ -3335,6 +3360,8 @@ LLM-as-Judge 不能被当成天然 oracle。G-Eval 证明 LLM evaluator 可更�
 ### Eval 从指标变成训练和搜索信号
 
 传统 eval 是 post-hoc measurement；新的方向是把 evaluator / verifier / environment feedback 作为 reward、validation signal 或 scaffold-selection signal。R2E-Gym、verifiers 这类 RL-style agent gym 把环境反馈接到训练和策略改进；Meta-Harness 进一步把 harness design 本身当成自动搜索对象，搜索 prompting strategy、tool interface、control loop 或 scaffold 结构。
+
+用回放校准验证器、用结果筛选示范、在线采样做策略梯度，是同一环境的三种用途。判断发生了哪种学习，先看轨迹是谁跑的、验收结果怎么使用、优化的是模型权重还是外部 scaffold。[从可执行环境到 Agent RL](./Reinforcement-Learning.md#从可执行环境到-agent-rl)
 
 反馈一旦参与搜索，分数就同时成为优化信号；即使每轮只暴露验证集总分，也不能再把它视为完全隔离的最终测试。搜索出的涨分应继续拆成额外计算、已识别捷径与剩余结构收益，并检查独立测试迁移，见 [Harness-Delta Attribution](#harness-delta-attribution涨分后追问靠什么涨的)。
 

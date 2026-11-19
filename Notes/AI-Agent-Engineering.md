@@ -8,7 +8,7 @@
 
 | 主题 | 落点 |
 |---|---|
-| Agent loop / runtime / harness：主流 Agent-Loop 多模态调研、Dynamic Workflow、Loop Engineering Toolkit、Loom、Flowtrace、Humanize / OMH / KDA、GLM Infra Agent（dense feedback 基建优化闭环）、Waiting primitive、OpenAI Responses multi-agent、语音 Agent runtime、LoopX、Claude Tag / Agent Teams、oh-my-pi / omp² Harness Playbook、mini-SWE-agent、Codex 仓库 agentic engineering 实证、Context Management、降智复盘与模型身份巡检（ModelTrace Guard）、Agent Bucket 等 | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
+| Agent loop / runtime / harness：主流 Agent-Loop 多模态调研、Dynamic Workflow、Loop Engineering Toolkit、Loom、DSH SuperAgent、Flowtrace、Humanize / OMH / KDA、GLM Infra Agent（dense feedback 基建优化闭环）、Waiting primitive、OpenAI Responses multi-agent、语音 Agent runtime、LoopX、Claude Tag / Agent Teams、oh-my-pi / omp² Harness Playbook、mini-SWE-agent、Codex 仓库 agentic engineering 实证、Context Management、降智复盘与模型身份巡检（ModelTrace Guard）、Agent Bucket 等 | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
 | Sandbox / 远程执行控制面：不可信模型渠道的执行边界、环境生命周期与预热、Blackhole 本地隔离与断流保护、unshare 嵌套、Crabbox、Arbor、ego lite、Tutti、WakeLoop | 本文件 [Agent Sandbox 与运行环境](#agent-sandbox-与运行环境) |
 | Codex Sub-agent 源码专项：能力与 prompt 生效、上下文 fork、InputQueue、结果路由、容量与恢复、跨独立任务通信 | [Codex-Subagent.md](./Codex-Subagent.md)（完整调研、源码片段与机制图） |
 | Multi-Agent 必要性与并发协议：能力差异、强单 Agent baseline、子 Agent 合并、Held Draft、版本校验、协议选型与冲突回放 | [必要性与证据边界](./AI-Applied-Algorithms.md#多-agent-的必要性先证明收益来源再选择协作协议)、[上下文边界与子 Agent 合并](#子-agent-的合并与保留上下文边界渐进加载与回归验收)、[长推理窗口与提交协议](#multi-agent-并发控制长推理窗口与提交协议) |
@@ -834,6 +834,43 @@ Loom 不是新的 coding model，也不是 Temporal 式通用 durable runtime，
 | LoopX | 跨 run / agent 的 goal、claim、quota、evidence、gate、handoff | Loom 更窄、更深、阶段更固定；接近 software-delivery-specific State Kernel |
 
 LoopX 最值得借的是 `ActionResult + stopAllowed`、`requestRef + readGroups + writeTargets + submitTool`、candidate-to-canonical acceptance、repairable error 和 transition decision log；不宜照搬的是巨大的领域 schema、固定 SDLC，以及缺少共享并发 authority 的本地隐藏状态。
+
+#### 事件驱动工单与跨会话恢复（DSH SuperAgent）
+
+用户在群聊和 PR 里继续同一项工作时，系统负责找回原工单和执行上下文。DSH SuperAgent 用常驻 Router 承接新请求和跨任务协调，独立 Worker 并行做具体工作。长工具调用可以在后台运行，前台在当前推理步结束后接收新消息。公开研究原型是一个 DeepSeek Harness 插件，面向单个 GitHub 仓库，可选接入飞书。实现以 `8c32a9d` 的源码与测试断言为据。[设计原文 §2–4](https://mp.weixin.qq.com/s/zoS7GlReWPhfCjENGxXCdg) · [原型 README](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/README.md#L1-L9)
+
+- **订阅决定送到哪里，授权决定能做什么。** 群消息、PR 评论和 CI 结果统一成 `Trigger`，同一话题或 PR 下的事件组成 `Thread`。新请求先由程序检查来源和身份，候选再交给模型判断。默认 `observe` 仍评估需要推断意图的候选，满足接单条件时只记录 `would_accept`，获准的明确请求照常接单。接单创建 `Ticket` 和记录授权来源、规则版本、工作范围的 `Mandate`。已有归属的跟进直接送给 Worker。若“修回归”的话题里有人顺带要求新增导出按钮，Worker 可以交回消息，最后一个持有它的工单释放后再进入评估。[授权规则](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/002-authorization.md#L7-L44) · [接单模式](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/src/policy.ts#L34-L60) · [跟进测试](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/tests/followups.spec.ts#L135-L155)
+- **上下文沿引用取回。** Inline & Spill 在提示里放摘要、相邻信息和关联 ID，完整记录按需读取。一次链式召回可以沿着「消息 → 群话题 → Worker Session → 另一个 PR 讨论」找回前情。这种方式适用于关联清楚的近期工作，跨月记忆仍待解决。[设计原文 §3.3、§8.1](https://mp.weixin.qq.com/s/zoS7GlReWPhfCjENGxXCdg)
+- **工单跨执行尝试存活。** `Ticket` 代表已授权的工作，`Assignment` 代表一次执行尝试，Worker Session 保留会话历史。每个工单使用独立目录，可配置为 Git worktree。进程仍以操作者的 OS 身份执行，文件权限由该身份决定。Worker 提交 PR 并报告 `ready` 后可以释放执行名额，面板区分等待人工回答、等待验收和等待后续事件。重启时，忙碌的工单通常用同一 Session 和目录启动新 `Assignment`，还未进入会话历史的输入会重投，旧进程中的 Shell job 随进程结束。[领域模型](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/001-domain.md#L25-L43) · [执行与等待](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/003-execution.md#L5-L61) · [重启恢复](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/003-execution.md#L135-L157)
+- **本地队列记录待办，外部读回确认结果。** SQLite 保存工单、事件、决定、待执行动作和发送回执。Outbox 在同一事务中写入待发记录并入队，提交后再发送。如果 GitHub 已创建 PR、本地还没记下，新的执行尝试要先检查工作目录、Git 历史和 GitHub 状态，再决定怎么继续。[持久化表](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/007-architecture.md#L450-L466) · [Outbox 源码](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/src/app/outbox.ts#L26-L50) · [恢复指令](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/src/core/assignments.ts#L17-L22)
+
+**云端在线和执行设备可用各有自己的生命周期。** 文章设想云端 Agent Loop 持续接事件和作决策，数据库保存会话与任务状态，端侧 daemon 在真实开发环境执行并回传结果。设备离线时云端仍可接到事件，依赖该设备的步骤等它重新上线。主系统外的 Watchdog Session 还要判断 Worker 是否重复失败、缺少新证据或偏离目标。公开原型的部署文档给出可选的小时巡检，从另一个 DSH profile 检查服务和组件健康，对适合的故障尝试重启并尊重人工停止。跨设备执行与任务级语义巡检属于文章的设计探索。[设计原文 §5–6](https://mp.weixin.qq.com/s/zoS7GlReWPhfCjENGxXCdg) · [本地巡检](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/8c32a9dc5d72c033816c6a8110b37f40cf94fba4/docs/006-deployment.md#L100-L141)
+
+**固定分工缩短长尾，订阅直通减少路由开销。** 合成实验每轮约 300 条消息、20 个工作请求，每种方案重复 5 次。编码用耗时工具模拟，消息间隔和工作耗时缩至四分之一，模型调用耗时取真实值。去掉直通后完成时间接近原方案，Router 的决定多约 30%，全会话读缓存 token 多约 37%。这组证据衡量调度延迟和缓存读取，真实编码质量与总账单需要另测。[原文 §7.1](https://mp.weixin.qq.com/s/zoS7GlReWPhfCjENGxXCdg)
+
+| 方案 | 从请求到结果 P50 / P95（分钟） | 全会话读缓存 token（每轮） |
+|---|---:|---:|
+| SuperAgent | 12.4 / 15.7 | 2323 万 |
+| SuperAgent，去掉直通 | 12.6 / 15.5 | 3177 万 |
+| 单 Session + 子 Agent，中性提示 | 20.4 / 29.5 | 605 万 |
+| 单 Session + 子 Agent，优先委派 | 13.8 / 29.0 | 1082 万 |
+
+#### 长程 Goal 的领域能力组合
+
+ToolSpace 把轨迹里反复出现的工具关系变成可重放的任务。对 LoopX，更有价值的研究对象是**目标发出以后，世界继续变化，另一个会话还能依据新事实找到并组合需要的领域能力**。历史轨迹可以推荐曾经有效的搭配。当前 Goal 的验收条件、外部状态和证据版本决定这一回该调用什么、该等什么、哪些成果还能沿用。[ToolSpace 的训练环境合成](./AI-Applied-Algorithms.md#从执行轨迹合成训练环境与任务toolspace)
+
+LoopX 的 capability 以它负责的**领域结果与判断**为单位。Issue Fix 读到 GitHub 仍显示 `CHANGES_REQUESTED`，会结合更新的修复提交和完整评审线程判断是否该等复审。Kernel 根据判断接纳后续任务或安排等待。一次修复进展也能同时成为 Explore 的发现和 Periodic Report 的输入。报告交付失败时只恢复交付，修复的完成状态仍由 Issue Fix 的证据决定。[评审状态机](https://github.com/loopx-project/loopx/blob/f8ef1a63f12fb042c62b3f5b828a432da1b568b2/loopx/capabilities/issue_fix/pr_lifecycle.py#L1223-L1248) · [能力组合 RFC](https://github.com/loopx-project/loopx/pull/9011)
+
+| 环节 | 长程执行中的判据 |
+| --- | --- |
+| 发现 | 从反复出现的错误或验收缺口出发。先检查已有领域规则、Goal 的启用状态、宿主是否调用、当前证据是否齐全，再判断是否值得新增或改进能力 |
+| 调用 | 由工作时机决定。会话恢复时读当前证据，工作写回后可触发报告，需要研判时由 Agent 发起研究。涉及外部副作用时，执行前核对绑定与授权，丢响应后先对账 |
+| 组合 | 沿实际验收依赖传递带来源和版本的领域结果。两个消费者独立时沿用现有入口，有共享资源或真正依赖时再规划。输入变化只使受影响的判断需要重验 |
+| 演化 | 单个 Goal 换方法属于采用策略。多个任务反复出错时，用受影响的决定和来源版本形成候选改进，在留出任务上比较返工、漏处理和总成本，再决定是否更新领域规则 |
+
+**DSH 插件是能力的交付方式。** 例如 DSH 观察器可把 `session/event` 转为共用的观察记录，可靠性诊断能力用它判断停滞、重复和恢复。LoopX 扩展也可通过 `[[implements]]` 接入已有能力，或通过 `[[provides]]` 声明可独立验收的新结果。当前 RFC 提议先做只读参考实现，让 DSH 和另一个独立入口输入等价观察，共用一份版本化领域契约和测试用例，同时保留各自来源。再根据第二位作者实际重复编写的部分，判断是否需要生成器。现有 `loopx extension init` 生成的是独立 provider 骨架。[DSH 观察器](https://github.com/loopx-project/loopx/blob/f8ef1a63f12fb042c62b3f5b828a432da1b568b2/packages/dsh-loopx-plugin/src/observer.ts#L652-L674) · [RFC 的插件接入与骨架提案](https://github.com/loopx-project/loopx/blob/f180192083f3d1015b73e6a7d12b3ac2d2fca0a8/docs/architecture/rfcs/goal-scoped-capability-portfolio-v0.zh-CN.md#dsh-插件接入与能力作者骨架)
+
+**实验设计。** 固定模型、底层工具和预算，从真实 PR 的中间状态恢复两个新会话，两边都显示 `CHANGES_REQUESTED`。一边的修复已提交且线程全部解决，另一边仍有未解决意见。前者应等复审，后者应继续修复。分别统计无谓返工与遗漏修改，再把同一修复结果交给 Explore 和报告，制造一次报告交付失败，检查恢复时是否只重试失败的交付。测试数据可以很小，只要变化足以改变正确决策，而且错误动作能被验证器抓住。完整验收还要记录最终交付、运行成本与人工介入，实验仍待执行。[RFC 的验证与验收](https://github.com/loopx-project/loopx/blob/f180192083f3d1015b73e6a7d12b3ac2d2fca0a8/docs/architecture/rfcs/goal-scoped-capability-portfolio-v0.zh-CN.md#9-验证与验收)
 
 #### Flowtrace：把 agent 工作从 transcript 变成 git-backed trace
 
