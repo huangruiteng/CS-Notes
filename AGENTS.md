@@ -19,7 +19,7 @@
 | 请求 | 交付与边界 |
 | --- | --- |
 | 问答 / 帮我组织语言 | 直接解释或改写，保留用户语气；不默认改文件 |
-| 请你读 / 精读 / 帮我读 | 读指定范围，按[阅读协议](.codex/skills/research-material-scout/references/paper-reading-protocol.md)讲清作者论证、洞见、机制、案例、图表和证据边界；必要解释直接融入回答。只缓存读取产物，不改笔记或素材状态 |
+| 请你读 / 精读 / 帮我读 | 读指定范围，按[阅读协议](.codex/skills/research-material-scout/references/paper-reading-protocol.md)讲清作者论证、洞见、机制、案例、图表和证据边界。默认补必要基础，讲透可迁移的机制，给出可核对的例子或练习与答案。只缓存读取产物，不改笔记或素材状态 |
 | 整理笔记 | 阅读来源，按下面的笔记原则整合；不自动入素材队列 |
 | 读完 | 整理用户抓手与核心知识，并按素材流程归档对应材料；助手读过不等于用户读完 |
 | 素材 / 找素材 / 调研选材 | 使用 research-material-scout；涉及受管队列时使用 loopx-material |
