@@ -25,7 +25,7 @@
 | Agent 的个人数据源与工具边界：GreenBubbles（本机只读微信库 + policy / audit 授权层 + 个人记忆 skill 流水线） | 本文件 [Agent 应用技术架构、系统设计](#agent-应用技术架构系统设计) |
 | Octop：独立 Harness / Memory / Browser / Gateway，渐进式工具 schema、回合级记忆快照、浏览器动作反馈与群聊上下文边界 | [四组件分工](#octop将执行记忆浏览器与消息接入拆成独立组件)；[事实权威与派生视图](./AI-Applied-Algorithms.md#octop-memory事实权威派生视图与可重放召回) |
 | Personal Agent：个人状态上下文演化、行为决策、后台长程工作与前台交互；Session 复用与解耦 | [四类系统职责](#personal-agent四类系统职责与-session-边界) |
-| 结构化上下文：任务范围与执行者解耦、嵌套返回、稳定前缀、Todo 完结后的历史保留判断 | [Spine 的上下文编译与 LoopX 对照](#任务树驱动的上下文编译spine)；[压缩损伤归因](./AI-Applied-Algorithms.md#pair用同状态反事实续跑归因压缩损伤) |
+| 上下文压缩：Codex 触发条件与交接摘要、任务范围与执行者解耦、嵌套返回、稳定前缀、Todo 完结后的历史保留判断 | [Codex 压缩流程](#codex-的上下文压缩)；[Spine 的上下文编译与 LoopX 对照](#任务树驱动的上下文编译spine)；[压缩损伤归因](./AI-Applied-Algorithms.md#pair用同状态反事实续跑归因压缩损伤) |
 | Novix：专家判断改变探索方向、失败记录复用与任务评测回退；协同进化式 RSI 的证据边界 | [专家判断、失败资产与协同进化式 RSI](#novix专家判断失败资产与协同进化式-rsi) |
 | 研究反馈与工作步幅：方向 / 测法联合选择、代理校准、反证、实际采用与完整成本 | [DuoDiscover 的双循环与消融](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)；[LoopX PR #8105：Target / Yardstick / Stride 联合决策](#loopx-的研究决策targetyardstick-与-stride) |
 | Coding Agent 过程纪律：ub-mode 对照、共同验收、成本口径、CRAP 与 mutation 缺失、依赖泄漏与裁判误判 | [过程约束与 ub-mode 对照](#ai-coding-的过程约束模型懂原则不等于会稳定执行) |
@@ -2877,6 +2877,66 @@ Anthropic 封锁第三方 harness（如 OpenClaw）使用 Claude 订阅，客观
 关于“状态复用”更系统的机制（语义锚点 + radix prefix tree + 循环层 checkpoint）见 [LLM-MLSys.md - Agentic State Reuse](./LLM-MLSys.md#agentic-state-reuse面向-agent-上下文编辑的状态复用)。核心判断是：Agent 每轮编辑上下文都发生在语义块边界（thinking / tool call / tool output / turn），这正是 serving 侧 checkpoint 的最佳锚点；把 context 编辑做成语义块级操作、保留稳定前缀，是让 prefix cache 和 recurrent state 真正复用得起来的前提。FreeToken 把这条链路做成了端侧 serving 系统（多轮 TTFT 降 65-80%），证明它不是论文概念而是可工程化的收益。
 
 **市场判断**：GPU 算力的供给弹性远小于 DRAM，Token Efficiency 是决定谁能活下来的核心竞争力。
+
+#### Codex 的上下文压缩
+
+以 `openai/codex` 的 `a0a30c4`（2026-11-20）为源码快照；以下主线是**本地模型生成交接摘要**的路径。provider 支持时会走服务端 V2 压缩；`TokenBudget` 模式另有直接重建窗口、不调用摘要模型的路径，不能把本地算法概括为所有 Codex 部署的行为。[路径选择](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/core/src/tasks/compact.rs)
+
+##### 触发时机与压缩范围
+
+| 时机 | 条件与行为 |
+| --- | --- |
+| 轮首 | 新用户输入写入历史前，检查已有上下文是否达到自动压缩阈值或可用窗口上限 |
+| 轮内 | 模型 / 工具步骤结束后，若还需继续且达到阈值，则压缩再进入下一步 |
+| 轮末，可选 | 最终回答后达到可用窗口的配置比例或自动压缩限制，且没有待处理输入或取消信号时压缩；`model_post_turn_compact_threshold_percent` 未设或为 0 时关闭 |
+| 切换模型 | 换到更小窗口且当前上下文已超出相应限制时，通常先用旧模型压缩；不是每次换小模型都压缩。压缩兼容性 `comp_hash` 已知且发生变化也会触发 |
+| 手动 | `/compact` 主动请求压缩，不要求先达到阈值 |
+
+默认 `total` 计数口径下，已知声明窗口 W 时，自动阈值为其 **90%**；若模型 metadata 或 `model_auto_compact_token_limit` 给出 L，则取较小值：
+
+$$
+T=\begin{cases}
+\lfloor 0.9W\rfloor,&\text{未指定 }L,\\
+\min\!\left(L,\lfloor 0.9W\rfloor\right),&\text{已指定 }L.
+\end{cases}
+$$
+
+例如 W=200K，默认 T=180K，另设 L=150K 则提前到 150K。可用窗口还由 `effective_context_window_percent` 留出余量；轮末比例与自动阈值分别配置。`model_auto_compact_token_limit_scope=body_after_prefix` 可改为只计算本窗口稳定前缀之后的增长，但完整输入仍受可用窗口约束。[窗口计算](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/protocol/src/openai_models.rs#L573)、[触发实现](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/core/src/session/turn.rs#L1751)、[官方配置](https://developers.openai.com/codex/config-reference/)
+
+**压缩对象是当前 Session 的活动模型历史**：此前压缩产生的摘要也可能在其中。它不是把磁盘里全部原始会话记录重新读一遍，也不会自动合入其他 Session 的完整历史。
+
+##### 本地摘要：准备输入、请求模型与超窗重试
+
+1. 克隆活动历史，在副本末尾追加压缩提示词；生成请求时规范化历史，补齐工具调用缺失的结果、移除不合法的孤立结果。图片 / 音频按模型支持情况处理，无法解析的附件可能替换为占位文本，**不是统一删除全部非文本内容**。
+2. 用选定模型发起普通生成请求，`Prompt.tools` 默认为空，生成交接摘要；通常使用当前模型，模型切换压缩可能使用旧模型。
+3. 若摘要请求本身报 `ContextWindowExceeded`，从压缩副本移除最老的 item 后重试；若该 item 属于工具调用—结果对，会连带维护配对。删到无法继续仍超窗时返回错误，不保证一定成功，也不是直接删除原始存档。
+
+默认提示词如下，可由 `compact_prompt` 覆盖：[提示词原文](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/prompts/templates/compact/prompt.md)。
+
+```text
+You are performing a CONTEXT CHECKPOINT COMPACTION. Create a handoff summary for another LLM that will resume the task.
+
+Include:
+- Current progress and key decisions made
+- Important context, constraints, or user preferences
+- What remains to be done (clear next steps)
+- Any critical data, examples, or references needed to continue
+
+Be concise, structured, and focused on helping the next LLM seamlessly continue the work.
+```
+
+##### 重组：近期用户输入、规范上下文与摘要
+
+1. 从压缩前的会话快照中，**由新到旧选择多条真实用户消息**，排除旧摘要，合计预算为 **20,000 个估算 tokens**，再按原顺序保留；不是只取最后一条，也不是给整个压缩结果限制 20K。文本估算按 UTF-8 字节数除以 4 向上取整，不是“四个汉字一个 token”。
+2. 普通用户消息保留路径提取其文本部分，预算不足时截短；不会把图片自动 OCR 成文字。当前实现另有显式保留项、待处理消息等路径，因此也不能说压缩后必然只剩纯文本。
+3. 重建基础指令及权限、环境等规范上下文，通常把后者插在最后一条真实用户 / Agent 消息之前，再附上带 `SUMMARY_PREFIX` 的交接摘要。没有真实消息时退到摘要之前。可概括为“基础指令 / 稳定前缀 + 近期保留消息及重注入上下文 + 摘要”，而非让模型自行复述权限。
+4. 轮首压缩发生在本轮用户输入写入之前，因此本轮输入随后追加在压缩结果之后。安装替换历史、保存压缩检查点，再重新估算 token 并回到执行流程。
+
+**重新估算不等于无条件反复压缩直到达标。** 本地压缩函数安装一次结果后返回；后续控制流可能再次触发压缩、继续模型步骤或因错误中止。明确的重试循环之一是“摘要请求超窗 → 缩减副本输入 → 重试”，不要与压缩完成后的控制流混为一谈。
+
+源码：[本地摘要与安装](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/core/src/compact.rs#L266)、[保留用户消息与 20K 预算](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/core/src/compact.rs#L733)、[历史规范化](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/core/src/context_manager/history.rs#L1230)、[文本 token 粗估](https://github.com/openai/codex/blob/a0a30c40e8dbcc44af52e2df64dcce64368d4422/codex-rs/utils/string/src/truncate.rs#L94)。以上为静态源码核验，未运行压缩实验。
+
+与 [Spine](#任务树驱动的上下文编译spine) 的区别：这里主要按窗口压力对活动历史做整体交接，Spine 则在语义工作范围结束时折叠局部过程。二者都需要检查摘要有没有丢失下一步依赖，不能只用压缩率判断质量。
 
 #### 任务树驱动的上下文编译：Spine
 
