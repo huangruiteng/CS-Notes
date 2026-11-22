@@ -23,6 +23,7 @@ tmp*
 !/.codex/skills/wechat-article-reader/
 !/.codex/skills/xiaohongshu-reader/
 !/.codex/skills/sync-notes/
+!/.codex/skills/decision-matrix/
 .codepilot-uploads/
 # **/创作/**
 .trae/logs

@@ -25,6 +25,7 @@
 | 素材 / 找素材 / 调研选材 | 使用 research-material-scout；涉及受管队列时使用 loopx-material |
 | 为笔记核验、调研补充资料 | 服务当前笔记，避免扩展成新一轮素材入库或职业排序 |
 | sync / pull CS-Notes / 同步笔记 | 使用 sync-notes；“仅检查”不写入，“提 PR”才创建 PR |
+| 决策矩阵 / 全局决策矩阵 / 多向优先级 | 使用 [decision-matrix](.codex/skills/decision-matrix/SKILL.md)，对齐完整在途上下文（若有 `.local` 私有增量先落盘），输出求职、项目、运营、学习与个人精力的耦合决策矩阵及不做红线 |
 | 推进 TODO / 推进项目 | 按明确任务读取 .trae/todos/todos.json；先标 in-progress，完成真实产物后回写。普通笔记任务不套该流程 |
 
 AI 热点、美食、PR、飞书编辑等专门任务按对应技能处理，不在这里复制整套操作说明。

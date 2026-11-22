@@ -89,8 +89,15 @@
     {
       "name": "sync-notes",
       "files": {
-        "SKILL.md": "1a06fa95a369e43eae0f065fbe43af8f12c9092ca0d36f0f0bdde82ad090723c",
+        "SKILL.md": "1c9841212e5eab2b407130623a05a7b715112fc15140bd7096c1c7078b05783d",
         "agents/openai.yaml": "5a1cb0e2f58072d737c5fc2c53a5fe06c4dda3ef7963147d112a14ab3c36b93e"
+      }
+    },
+    {
+      "name": "decision-matrix",
+      "files": {
+        "SKILL.md": "d05e3d2045a3aadf6dfd7fcd993a695797fd321d5f9cc695ebada1578a8ab42f",
+        "agents/openai.yaml": "550ec76b241c57cb62f21dcaa2960d6b51135384d1e50406c41551b6b49c03a6"
       }
     }
   ]

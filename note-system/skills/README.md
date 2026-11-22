@@ -9,6 +9,7 @@
 | [help-me-review](../../.codex/skills/help-me-review/SKILL.md) | 沿调用链带读，解释为什么这样实现 | 分清发现与教学，移除私人项目专属检查项 |
 | [git-split-commit-pr](../../.codex/skills/git-split-commit-pr/SKILL.md) | 脏工作区拆分、公开审查、独立 PR | 删除特定机器的合并例外，保留无关修改 |
 | [sync-notes](../../.codex/skills/sync-notes/SKILL.md) | 笔记与素材的三方对账、公开提交 | 本地新增不因远端缺失归档；用户完成依据逐条核验 |
+| [decision-matrix](../../.codex/skills/decision-matrix/SKILL.md) | 多方向全局决策矩阵与优先级对齐 | 抽离私有上下文与本机快照为可选本地覆盖层，固化防近因遗漏、证据分层与人机分工纪律 |
 | [cli-creator](../../.codex/skills/cli-creator/SKILL.md) | 可组合命令、稳定 JSON、认证与安装验收 | 按已装工具链选择语言，保留原 Apache 许可与参考文件 |
 | [external-research](../../.codex/skills/external-research/SKILL.md) | 问题驱动研究，区分声称、观察、测试与推断 | 专项研究按需读 references，浏览器能力不是硬依赖 |
 | [markdown-toc](../../.codex/skills/markdown-toc/SKILL.md) | 修改前看结构、行号和落点 | 路径正确引用，跳过代码围栏里的假标题 |
