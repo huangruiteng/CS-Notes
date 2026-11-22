@@ -29,6 +29,7 @@ canonical material ref；需要隐藏私有来源标识时，导出 public-safe 
 | 字段审查 | 判断每条材料可公开的范围，绑定正文及完整 record digest | 通用规则；逐条审查证据留本地 |
 | 队列同步器 | 完整分区、分别编号、预览、版本检查、读回、回滚 | [material_queue_sync.py](./material_queue_sync.py) |
 | 三方对账 | 区分共同基线、本地新增、远端缺失与双方冲突 | [material_reconcile.py](./material_reconcile.py)，只读计划，不生成归档 |
+| 同步单次预检 | 汇总 Git 重叠脏文件、public-safe 扫描、skills manifest、三方计划与远端缺失 commit 归因 | [material_sync_preflight.py](./material_sync_preflight.py)，可选本地无损备份 |
 | 生命周期校验 | 逐条用户完成依据、误归档纠正、CAS、读回和回滚 | [material_completion.py](./material_completion.py)，provider/API 由来源入口注入 |
 | 波次与投入度重排 | 时间波次分层、阅读耗时折算 VOI、主文献优先与正交热点限额 | [material_wave_ranking.py](./material_wave_ranking.py)，保持完整集合无损 |
 | 公开渲染器 | 校验卡片、生成 Top30 / backlog / 其余候选 | [material_queue.py](./material_queue.py) |
@@ -55,9 +56,11 @@ Core 可读投影的 `primary_url` 只接受 HTTP(S)。来源 adapter 构造完�
 
 自然语言入口是 [sync-notes](../../.codex/skills/sync-notes/SKILL.md)：`sync笔记` 默认同步后提交并 push 公开内容，`sync笔记，仅检查` 输出计划，`sync笔记，提 PR` 创建 PR。同步发现的已核验错误直接修复并回写默认流程。
 
-维护者使用统一来源入口，不从历史任务脚本猜测当前身份：
+维护者使用统一来源入口，不从历史任务脚本猜测当前身份（可用 `--schema complete` 或 `--schema reconcile` 直接查看输入 JSON 模板，无需翻阅源码）：
 
 ```bash
+python3 note-system/materials/material_sync_preflight.py --repo . --upstream origin/master
+python3 note-system/materials/material_source.py --schema complete
 python3 note-system/materials/material_source.py status
 python3 note-system/materials/material_source.py complete --evidence <私有逐条完成声明.json> --phase prepare
 # 检查预览，再使用输出的 plan_file；不能改成另一份计划。

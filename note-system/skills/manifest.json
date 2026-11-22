@@ -89,7 +89,7 @@
     {
       "name": "sync-notes",
       "files": {
-        "SKILL.md": "1c9841212e5eab2b407130623a05a7b715112fc15140bd7096c1c7078b05783d",
+        "SKILL.md": "7f2f82a7b28b6ab4a53227c14a8ce3063e2a81efc49f07c063a67828d0277f98",
         "agents/openai.yaml": "5a1cb0e2f58072d737c5fc2c53a5fe06c4dda3ef7963147d112a14ab3c36b93e"
       }
     },

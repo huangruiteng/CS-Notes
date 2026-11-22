@@ -53,9 +53,66 @@ def validate_decisions(plan, evidence):
     return byref
 
 
-def preview(source, input_path, api, *, historical_rollback=False):
+def _materialize_plan_from_decisions(source, input_path, packet, api):
+    """Build an immutable project_material_completion_v1 plan from human decisions.
+
+    Eliminates manual store_id / authority_revision / record_digest plumbing while
+    enforcing the exact same validate_decisions human-statement checks.
+    """
+    decisions = packet.get('decisions')
+    if not isinstance(decisions, list) or not decisions:
+        raise ValueError('non-empty per-material lifecycle decisions required')
+    before = source.current_pointer()['authority_revision']
+    original = source.load_catalog(before)
+    by_id = {r['stable_id']: r for r in original['records']}
+    transitions = []
+    for d in decisions:
+        if not isinstance(d, dict) or not isinstance(d.get('material_ref'), str):
+            raise ValueError('invalid per-material lifecycle decisions')
+        ref = d['material_ref']
+        if ref not in by_id:
+            raise ValueError('unknown completion material')
+        rec = by_id[ref]
+        to_state = d.get('to_state')
+        if not to_state:
+            if d.get('action') == 'user_completed':
+                to_state = 'archived'
+            elif d.get('action') == 'user_keep_read_reference':
+                to_state = 'active'
+            else:
+                raise ValueError('explicit to_state required for non-default lifecycle action')
+        transitions.append({
+            'material_ref': ref,
+            'from_state': rec['lifecycle_state'],
+            'to_state': to_state,
+            'record_digest': api.sha(api.data(rec)),
+        })
+    raw_evidence = Path(input_path).read_bytes()
+    evidence_sha = api.sha(raw_evidence)
+    evidence_copy = source.root / 'completion-evidence' / f'{evidence_sha}.json'
+    api.sync.write_immutable(evidence_copy, raw_evidence)
+    plan = {
+        'schema_version': 'project_material_completion_v1',
+        'project_scope': source.cfg['project_scope'],
+        'store_id': source.store_id,
+        'authority_revision': before,
+        'evidence_file': str(evidence_copy),
+        'evidence_digest': evidence_sha,
+        'transitions': transitions,
+    }
+    validate_decisions(plan, raw_evidence)
+    plan_sha = api.sha(api.data(plan))
+    plan_file = source.root / 'operations' / f'completion-plan-{plan_sha[:24]}.json'
+    api.immutable(plan_file, plan)
+    return plan, str(plan_file)
+
+
+def preview(source, input_path, api, *, historical_rollback=False, allow_decisions_shorthand=False):
     source.context()
     plan = api.load(input_path)
+    generated_plan_file = None
+    if allow_decisions_shorthand and isinstance(plan, dict) and plan.get('schema_version') == 'material_lifecycle_decisions_v1':
+        plan, generated_plan_file = _materialize_plan_from_decisions(source, input_path, plan, api)
     if (plan.get('schema_version') != 'project_material_completion_v1'
             or plan.get('store_id') != source.store_id
             or plan.get('project_scope') != source.cfg['project_scope']):
@@ -186,17 +243,22 @@ def preview(source, input_path, api, *, historical_rollback=False):
         lifecycle_counts={state:sum(r['lifecycle_state']==state for r in original['records'])
                           for state in ('candidate','unread','active','archived','carryover')},
         stable_ids_verified=True, backup_verified=True)
-    return {'schema_version':'source_completion_preview_v1',
+    out = {'schema_version':'source_completion_preview_v1',
         'plan_digest':api.sha(api.data(plan)), 'before_revision':before, 'after_revision':after,
         'evidence_ref':evidence_ref, 'changed_refs':list(changes), 'archived_refs':sorted(archived),
         'reactivated_refs':sorted(reactivated),
         'canonical_count':len(catalog['records']), 'before_ranked':len(ranked),
         'after_ranked':len(remaining), 'inventory':inventory,
         'lossless_verified':True, 'rollback_rehearsed':True}
+    if generated_plan_file is not None:
+        out['plan_file'] = generated_plan_file
+    return out
 
 
 def settle(source, input_path, phase, api):
-    packet = preview(source, input_path, api, historical_rollback=phase == 'rollback')
+    packet = preview(source, input_path, api,
+                     historical_rollback=phase == 'rollback',
+                     allow_decisions_shorthand=phase == 'prepare')
     before, after = packet['before_revision'], packet['after_revision']
     if phase == 'prepare':
         if source.current_pointer()['authority_revision'] != before:

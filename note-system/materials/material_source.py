@@ -23,10 +23,47 @@ def load_source(repo):
     return module.create_source(repo)
 
 
+SCHEMAS = {
+    'complete': {
+        'description': 'Archive or update material lifecycle from verified human statements (two-phase prepare -> apply).',
+        'prepare_shorthand_input': {
+            'schema_version': 'material_lifecycle_decisions_v1',
+            'decisions': [
+                {
+                    'material_ref': 'material-example-id',
+                    'action': 'user_completed',
+                    'actor': 'human_user',
+                    'kind': 'user_statement',
+                    'source_ref': 'host://conversation-id#turn',
+                    'statement': 'Exact user completion quote',
+                }
+            ],
+        },
+        'remote_verified_variant': {
+            'kind': 'verified_remote_user_statement',
+            'user_message_ref': 'host://conversation-id#turn',
+            'remote_commit': '<40-char-git-oid>',
+        },
+        'commands': [
+            'python3 note-system/materials/material_source.py --repo . complete --evidence <decisions.json> --phase prepare',
+            'python3 note-system/materials/material_source.py --repo . complete --plan <plan_file_from_prepare> --phase apply',
+        ],
+    },
+    'reconcile': {
+        'description': 'Three-way import of accepted remote public cards/order into registered source without inferring completion.',
+        'commands': [
+            'python3 note-system/materials/material_source.py --repo . reconcile --base-ref <pre_fetch_head> --public-ref HEAD --phase prepare',
+            'python3 note-system/materials/material_source.py --repo . reconcile --plan <plan_file_from_prepare> --phase apply',
+        ],
+    },
+}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument('command', choices=['status', 'prepare', 'apply', 'check', 'rollback', 'complete', 'reconcile'])
+    parser.add_argument('command', nargs='?', choices=['status', 'prepare', 'apply', 'check', 'rollback', 'complete', 'reconcile', 'schema'])
+    parser.add_argument('--schema', choices=sorted(SCHEMAS), help='Print JSON input schema and CLI recipe without reading source code')
     parser.add_argument('--evidence', type=Path)
     parser.add_argument('--phase', choices=['prepare', 'apply', 'rollback'], default='prepare')
     parser.add_argument('--plan', type=Path)
@@ -34,6 +71,12 @@ def main(argv=None):
     parser.add_argument('--base-ref', help='Pre-sync Git commit for reviewed-card three-way comparison')
     parser.add_argument('--public-ref', default='HEAD', help='Accepted merged public catalog commit')
     args = parser.parse_args(argv)
+    if args.schema or args.command == 'schema':
+        payload = SCHEMAS[args.schema] if args.schema else SCHEMAS
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    if not args.command:
+        parser.error('command or --schema is required')
     try:
         source = load_source(args.repo)
         result = source.run(args)

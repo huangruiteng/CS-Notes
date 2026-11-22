@@ -19,26 +19,33 @@ description: Synchronize CS-Notes Git changes and material projections when the 
 
 ## 同步路径
 
-1. 看常用目录的分支、upstream、status、staged/unstaged diff 与未跟踪文件。对将被切换、恢复或合并的文件保存可恢复副本、原 Git revision 与 digest；临时备份及审计可以留本地，执行代码放仓库工具层。读取现有完成证据与 authority 版本。
-2. `git fetch` 后，固定 `HEAD`、upstream 和 merge-base。在 pull 或刷新生成文件前运行三方素材计划：
+1. `git fetch` 后，优先用单次预检 CLI 一次性完成分支/upstream/重叠脏文件检查、无损备份、public-safe 扫描、skills manifest 核验、三方素材计划（含 `remote_absence` 上游提交归因）与来源 `status`，不要手写临时脚本或逐个通读 `note-system/` 实现代码：
+
+   ```sh
+   python3 note-system/materials/material_sync_preflight.py --repo . --upstream origin/master --backup-dir .local/sync-backups/$(date +%Y%m%dT%H%M%S)
+   ```
+
+   `同步笔记，仅检查` 省略 `--backup-dir`。实际 upstream 优先，不写死切换到 master；临时备份及审计留本地，执行代码放仓库工具层。若暂存版与工作副本不同，两者都核对；发现控制字符等误建文件（`stray_files`）在备份核对后清理，绝不入库。
+2. 需要单独复核三方素材卡片时运行：
 
    ```sh
    python3 note-system/materials/material_reconcile.py --repo . --upstream origin/master
    ```
 
-   实际 upstream 优先，不写死切换到 master。脚本只读已获取的引用，校验完整公开卡片，输出稳定 ID 的新增/缺失/冲突与独立排名变化；不生成 lifecycle transition。若暂存版与工作副本不同，两者都核对。
-3. 无冲突时 fast-forward；脏文件按共同基线逐文件或逐 hunk 合并。保留远端脱敏与修正，同时保留本地新增。既有本地提交和远端有分歧时做可审查合并，不能 force、批量 restore/reset 或以 stash 遗留掩盖内容。确有语义冲突才问不可替代的用户判断，继续独立部分。
-4. 材料 authority 与 Git 是两个状态源。公开 catalog/Markdown 是投影，不能反向覆盖 authority。若项目已激活 Material Lifecycle，使用项目的 `loopx-material` 与 source adapter 对账：
-   - 先运行 `python3 note-system/materials/material_source.py status`，通过项目注册入口解析当前宿主与来源；归档走该入口的 `complete --evidence … --phase prepare` 和 `complete --plan … --phase apply`。缺配置与真实撤权分别诊断，不搜索历史 Goal 脚本或借用其他会话。普通 Codex 会话可绑定宿主已有工作区写权限，不要求另建 Bot Turn。
+   脚本只读已获取的引用，校验完整公开卡片，输出稳定 ID 的新增/缺失/冲突与独立排名变化；不生成 lifecycle transition。
+3. 无冲突时 fast-forward；若有 `overlapping_dirty_files` 阻塞 `git merge --ff-only`，基于已验证备份临时恢复重叠文件、fast-forward 到 upstream 后再按共同基线逐文件或逐 hunk 重放本地改动。保留远端脱敏与修正，同时保留本地新增。既有本地提交和远端有分歧时做可审查合并，不能 force、批量 restore/reset 或以 stash 遗留掩盖内容。确有语义冲突才问不可替代的用户判断，继续独立部分。
+4. 材料 authority 与 Git 是两个状态源。公开 catalog/Markdown 是投影，不能反向覆盖 authority。若项目已激活 Material Lifecycle，使用项目的 `loopx-material` 与 source adapter 对账（需要 JSON 输入格式时用 `python3 note-system/materials/material_source.py --schema complete` 或私有入口 `--schema`，无需通读 adapter 源码）：
+   - 通过 `material_sync_preflight.py` 或 `python3 note-system/materials/material_source.py status` 解析当前宿主与来源；归档可直接向 `complete --evidence <decisions.json> --phase prepare` 传入 `material_lifecycle_decisions_v1`（自动绑定 revision 与 record digest 并输出 `plan_file`），核对后再执行 `complete --plan <plan_file> --phase apply`。缺配置与真实撤权分别诊断，不搜索历史 Goal 脚本或借用其他会话。普通 Codex 会话可绑定宿主已有工作区写权限，不要求另建 Bot Turn。
    - `local_addition` 保留原 ID、body backing、读取范围和排序；远端缺少它不产生归档。
-   - 本地或远端缺条目时，先查 source disposition 与逐条用户声明；远端 PR 的笼统“读完”、助手 read_scope 或 Notes 中出现摘要均不证明用户完成。
+   - 本地或远端缺条目时，先看 `material_sync_preflight.py` 的 `remote_absences`（已归因到具体远端提交）与本机 `.local/material-lifecycle/operations/`：远端 PR/提交的笼统“读完”、助手 read_scope 或 Notes 中出现摘要均不证明用户完成。若系另一台工作站提交且本机无原消息证据，禁止全盘扫描无关 `~/.codex*` 大体积会话日志或伪造引用；先同步并推送独立的公开非队列改动，同时暂缓推送 `Learning-Materials/`（防止旧本地状态把远端已归档条目重新推回公开队列），向用户一句话列出待确认归档的条目与远端 commit，待用户确认后再执行 `complete` 与队列发布。
    - 已核验的用户完成声明才能通过现有 owner gate / CAS / receipt 改 lifecycle；材料级声明校验由 [共享实现](../../../note-system/materials/material_completion.py)维护。
    - 远端新卡片保留真实既有读取范围，不把摘要导入说成全文阅读。独立对账 lifecycle、intake 与 ranking，保留不相关材料顺序、并发新增和全部 backing。缺材料完成证据时保留当前状态，不阻塞无关笔记同步。
    - 已审查的远端卡片通过同一入口 `reconcile --base-ref <拉取前commit> --public-ref HEAD --phase prepare`，审查计划后 `reconcile --plan <返回路径> --phase apply`。该路径只接收卡片和排序，不推断完成；来源 adapter 须显式支持，不回退历史 Goal 脚本。
-5. authority 结算后重新绑定公开字段审查，执行项目入口的 prepare/apply/check，再运行：
+5. authority 结算后重新绑定公开字段审查，执行项目入口的 prepare/apply/check；若 `.codex/skills/` 中受管公开技能有改动，在完成 public-safe 审查后运行 `python3 note-system/skills/check.py --refresh`（否则运行不带 `--refresh` 的校验），再运行：
 
    ```sh
    python3 note-system/materials/material_queue.py --check
+   python3 note-system/skills/check.py
    python3 -m unittest discover -s note-system/materials/tests -p 'test_material*.py'
    git diff --check
    ```
