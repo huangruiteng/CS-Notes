@@ -16,6 +16,7 @@
 | Harness 涨分归因、能力持久化与执行反馈：同预算基线、任务内搜索与跨任务迁移、外置行为蒸馏进权重、变化规则的发现/复用/失效、旧能力回归、数据捷径、评测校准与选择偏差、冻结评测器、held-out 继承门禁、action block 静默丢弃 | [EdgeBench](./AI-Applied-Algorithms.md#edgebench持续环境学习的长程-agent-实验合同)、[ServeLearnBench](#servelearnbench从服务评分中发现复用与淘汰经验)、[Rethinking Harness Evolution](#rethinking-harness-evolution把可迁移改进与任务内搜索拆开)、[SoL-Pi](#sol-pi从开发轨迹搜索可迁移的-harness-效率机制)、[更新能力与使用收益](#harness-更新能力与使用收益)、[Harness-Zero](#harness-zero把外置-harness-行为蒸馏进权重)、[Claude build-eval / hillclimb](#claude-build-eval--hillclimb评测校准与防过拟合迭代)、[Harness-Delta Attribution](./AI-Applied-Algorithms.md#harness-delta-attribution涨分后追问靠什么涨的)、[RSI-Gym](#rsi-gym冻结评测器下的-harness-自我改进实验合同)、[工具执行的语义反馈](#工具执行的语义反馈让模型知道实际执行了什么) |
 | Muse：执行隔离、独立行动授权、工作流脚本与恢复条件 | [Secure VM / Sentinel](#muse-secure-vm-与-sentinel独立行动授权边界)、[Muse Code Workflows](#muse-code-workflows脚本编排与有条件恢复)；[Grok Bot / Muse 产品比较](./AI-Agent-Product&PE.md#agent-tobtoc-产品) |
 | Lorca：个人多设备 Agent，Device / Runner 分工、加密中继与执行权限 | [配对与信任边界](#lorca设备配对加密中继与执行权限)；[产品形态与发布状态](./AI-Agent-Product&PE.md#lorca本地运行手机操控的个人-agent-工作台) |
+| 托管 Agent 接企业执行环境：BYOC、会话租约与工具事件、数据回传、故障恢复与独立扩容 | [BYOC：托管会话与企业执行环境解耦](#byoc托管会话与企业执行环境解耦) |
 | MCP、Skill、Function Calling、Assistants API 的开发用法；CLI 与 MCP 的选型；工具调用 ID 与结果关联 | 暂留 [AI-Agent-Product&PE.md](./AI-Agent-Product&PE.md#mcp)；[CLI 已经好用，为什么还需要 MCP](./AI-Agent-Product&PE.md#cli-已经好用为什么还需要-mcp)；[tool_use_id / tool_call_id / call_id 对照](./AI-Agent-Product&PE.md#工具调用-id-与结果关联)（协议 / API 工程边界，待后续决定是否迁入） |
 | Agent 工作流 / 算法 / 评估：AFlow、AgentFlow、ATIF、τ-bench、RLM / RAH、SubAgent / MultiAgent、Temporal、Long-running control plane | [AI-Applied-Algorithms.md](./AI-Applied-Algorithms.md) |
 | 早停与交付失真：外部验收、主动停止／预算截断、真实部署评测、grader 诊断与轨迹复核 | [Reward seeking 与验收设计](./AI-Applied-Algorithms.md#reward-seeking早停与交付失真)；[RL 激励、Contrastive SDF 与 MONA](./Reinforcement-Learning.md#reward-hacking) |
@@ -90,6 +91,8 @@ AI 生成的代码不可信，必须在隔离环境中执行。Docker 容器共�
 | Ramp Inspect | Cattle：快照启动 | 每 30 分钟生成快照，新 session 从快照启动；上线约两个月时，前后端仓库已合并 PR 中约一半由其发起 |
 
 **预热降低启动成本**：把仓库准备和缓存构建前移，减少并发任务重复初始化的等待。衡量的是环境到手即可工作的时间。
+
+托管 Harness 也可以连接企业自己的 Sandbox：会话、执行实例各自管理生命周期，见 [BYOC 的接入与恢复边界](#byoc托管会话与企业执行环境解耦)。
 
 ### 执行隔离、远程环境与研究运行时
 
@@ -543,6 +546,41 @@ Lorca 把**跨端通信、实际执行和动作审批**分开：Mac UI 连接本
 组织中的交付能力还依赖跨仓业务知识、可用验证环境、生产观测和人工发布节点。[Manus-mono 案例](#manus-mono统一上下文与逐步补齐的交付能力)展示了从当前瓶颈逐步补工具的路径；这是作者公开的实践叙述，未提供可审计的 runtime 实现。
 
 ### 核心架构、Session 与组件边界
+
+#### BYOC：托管会话与企业执行环境解耦
+
+> 来源：Qoder《[Qoder Cloud Agents × 阿里云 Agent Sandbox BYOC 接入实战](https://mp.weixin.qq.com/s/aQ-wXX3ufpQwiFMSCO4m7w)》（2026-11-23）；核对 [Qoder Environment 文档](https://docs.qoder.com/cloud-agents/environments)、[示例架构与 API](https://github.com/hongxiaolong/qoder-byoc-sandbox-example/blob/cd65099617439ee6d7fcbbf379731f8f5c20b48a/docs/architecture.md)及 Worker 关键实现。未运行云端示例。
+
+BYOC（Bring Your Own Cloud）在这里指：**平台维护会话和 Harness，企业选择工具执行环境。**访问内网、使用业务身份、安装指定依赖，不必连带接管整套 Agent。执行位置和数据回传权限是两个问题：原始报表可以留在企业侧汇总，但返回给模型的明细、日志、附件仍会进入托管平台。
+
+| 对象 | 负责什么 |
+| --- | --- |
+| Session / Events | 保存用户消息、工具请求和结果，让会话进度独立于执行实例 |
+| Harness | 组织上下文、调用模型、调度工具，并根据结果决定下一步 |
+| Environment / Work | Environment 绑定外部执行端；Work 表示 Worker 承接的会话级工作及租约 |
+| Worker / Sandbox | Worker 接收调用并回传；Sandbox 提供浏览器、Python、文件和进程环境 |
+
+![原文图 5：Work 管会话租约，Session Events 传递调用与结果](./AI-Agent-Engineering/qoder-byoc-session-execution.png)
+
+QCA 示例把 Worker 和 Python 放在 Analysis Sandbox，Chromium 放在 Browser Sandbox。Worker 不再运行一套模型循环。两条通道分别是：
+
+- **领取与续租**：Worker 按 Environment `poll → ack → heartbeat`，文章描述状态依次为 `queued → starting → active`；代码等待首次心跳成功才执行工具。同一会话多轮消息可共用一条 Work，不能把每次工具调用当成一个新 Work。
+- **调用与结果**：Harness 将工具请求写入 Session Events；Worker 通过 CDP 下载 CSV，显式复制到 Analysis Sandbox 并核对 SHA-256，再按后续调用执行分析；结果通过工具调用 ID 写回原会话。Skill 提供方法，真正执行仍由工具完成。[Worker 实现](https://github.com/hongxiaolong/qoder-byoc-sandbox-example/blob/cd65099617439ee6d7fcbbf379731f8f5c20b48a/src/qoder_byoc_sandbox_example/environments/self_hosted/worker.py)
+
+**拆开的收益来自生命周期不同。**会话可能持续数小时，工具只运行几分钟；持久会话支撑恢复，执行侧按负载独立扩容，Harness 也有机会先推理、需要工具时再准备环境。缩容则先停止分派、处理在途调用、保存文件，再释放实例；暂停与恢复还要处理租约、连接和权限。托管减少底层运维，企业仍负责 Worker 调度、业务授权与数据规则。
+
+恢复要分别照顾三种状态：会话事件记录“请求与结果”，持久存储保存“后续要用的文件”，业务系统记录“操作是否已生效”。如果业务写入成功、Worker 却在回传前掉线，应按业务操作标识查询并回补，或通过幂等机制重试。调用 ID 只负责关联；示例按 ID 缓存结果，也不能保证任意崩溃点下的副作用恰好一次。该示例未挂载持久 Volume，释放 Sandbox 后不承诺文件恢复。
+
+**企业执行入口同时检查调用和回传。**在可运行模型代码的 Sandbox 之外，由可信组件核验用户身份、资源权限并代理凭据；网络策略限制可访问范围，回传规则覆盖正文、附件、日志和错误。示例使用合成数据，仍回传字段结构和最多三条样例记录；文件路径检查及子进程凭据过滤不构成完整进程隔离。[示例安全边界](https://github.com/hongxiaolong/qoder-byoc-sandbox-example/blob/cd65099617439ee6d7fcbbf379731f8f5c20b48a/SECURITY.md)
+
+最小尝试路径：准备 Python 3.11+、Docker / Buildx、阿里云 AK/SK（临时凭证另需 STS Token）、地域与 QCA 国际站 PAT，从[固定版本 README](https://github.com/hongxiaolong/qoder-byoc-sandbox-example/blob/cd65099617439ee6d7fcbbf379731f8f5c20b48a/README.md)运行 `./start.sh` 向导：
+
+1. 准备 Browser / Analysis 模板和实例，创建 Agent 并绑定报表分析 Skill。
+2. 创建 `config.type=self_hosted` 的 Environment，用 `environment_id` 和 Agent 创建 Session，再启动 Worker 领取 Work。仅创建 self-hosted Environment 不会自动启动托管容器或部署 Worker。
+3. 用合成报表验证下载、分析及原会话追问；默认三轮分别验收 100、65、101 条记录，产物位于 `var/results/<run_id>/`，全部通过后显示 `LIVE_PASS`。
+4. 保存产物并显式回收资源。`Ctrl+C` 会保留资源与进度；Sandbox 按使用量计费，新购预付费 ACR 需单独退订。镜像拉取配置中的 VPC 不等于执行实例已接入企业内网，真实网络与身份还需另行配置。
+
+可复用的是会话接入、Worker 协议、执行模板及审计设施；新增业务主要补工具与资源授权。其接口分层与 [Claude Managed Agents](./AI-Applied-Algorithms.md#cmaclaude-managed-agents应用与托管-agent-runtime-的事件契约)相近，具体协议和安全保证仍按各平台核对。
 
 #### Personal Agent：四类系统职责与 Session 边界
 
