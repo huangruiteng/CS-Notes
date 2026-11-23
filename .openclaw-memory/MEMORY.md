@@ -452,4 +452,15 @@
 
 ---
 
-*最后更新：2026-11-20*
+### 38. Memory Dreaming Promotion 每日执行记录（2026-11-23 新增）
+- **2026-11-23 执行情况**：
+  - ✅ Memory Dreaming Promotion cron 触发（03:00）
+  - ✅ 检查了当前 todos.json 状态
+  - ✅ 创建了当天的 memory 文件（memory/2026-11-23.md）
+  - ✅ 刷新了 .local/CODEX_TODO_TRIAGE_INDEX.md
+  - ✅ 复盘近期经验，更新了 MEMORY.md
+- **当前 todos.json 状态**：仅 todo-20260504-012 [P1] pending（assignee: user，feedback_required: true）
+
+---
+
+*最后更新：2026-11-23*
