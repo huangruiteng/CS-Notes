@@ -29,6 +29,8 @@
 
 后训练复习按[方法地图](#学习地图目标数据与参数)进入：SFT 与数据、RL 奖励、蒸馏 / RFT、参数高效适配及权重组合分别回答不同问题，模型能力与推理配置分开检查。
 
+代码模型按[数据与训练主线](#代码模型的数据与训练)阅读：质量筛选与跨语言迁移 → 仓库演化和补全 → 长轨迹中训练 → SFT／可验证 RL → 按任务评测；[循环 Transformer](#循环-loop-transformer共享参数增加计算深度)补充参数共享与计算深度这条架构线。
+
 ## 主流大模型系列
 
 ### 豆包大模型 2.0 (Doubao-Seed-2.0)
@@ -1266,6 +1268,34 @@ Athanor 中，温度 0.8 的训练 rollout 很少重复，greedy 评测却循环
 
 > [【InfiniTensor】大咖课-韩旭-知识密度牵引下的大模型高效计算](https://www.bilibili.com/video/BV1oSYfzfEXQ)
 
+### 循环 Loop Transformer：共享参数增加计算深度
+
+普通深层模型用不同层的参数逐步变换表示；循环模型让同一组 Transformer 层多次处理隐藏状态。以 [IQuest-Coder 的 LoopCoder](https://arxiv.org/html/2603.16733v1#S2.SS1) 为例，公开配置固定执行两轮。可以用下面的概念式理解参数复用，实际第二轮还读取第一轮的 KV，并非两次完全相同的函数调用：
+
+$$
+h^{(1)}=F_\theta(h^{(0)}),\qquad
+h^{(2)}=F_\theta(h^{(1)};K^{(1)},V^{(1)})
+$$
+
+第一轮保存各层的全局 KV；第二轮用当前 query 分别读取第一轮的全局上下文与本轮的局部上下文，再逐头门控融合：
+
+$$
+g=\sigma(w^\top q+b),\qquad
+O=gO_{\mathrm{global}}+(1-g)O_{\mathrm{local}}
+$$
+
+公开的 40B-Loop-Instruct 配置为 `num_hidden_layers=80`、`loop_num=2`、`loop_window_size=64`、40 个 query heads / 8 个 KV heads、最大上下文 131,072。代码在外层遍历 loop、内层复用同一个 `self.layers`，并分别管理 shared / local cache。这里 global 表示跨完整可见前缀，不是读取未来 token；源码仍传递因果掩码。论文对 position shift 的措辞较简略，实现解读以这个固定版本为准。[配置](https://huggingface.co/IQuestLab/IQuest-Coder-V1-40B-Loop-Instruct/blob/61e8589747f6987ec7725e4ffe205f7a84561bd2/config.json) · [循环与缓存实现](https://huggingface.co/IQuestLab/IQuest-Coder-V1-40B-Loop-Instruct/blob/61e8589747f6987ec7725e4ffe205f7a84561bd2/modeling_iquestloopcoder.py#L953) · [门控实现](https://huggingface.co/IQuestLab/IQuest-Coder-V1-40B-Loop-Instruct/blob/61e8589747f6987ec7725e4ffe205f7a84561bd2/modeling_iquestloopcoder.py#L699)
+
+参数共享节省的是相对于“不共享的额外深度”的权重存储；重复执行仍消耗计算，第二轮还需要注意力和缓存。80 层执行两轮也不等于训练了一个拥有 160 组独立参数的模型，延迟、吞吐和质量需要实测。
+
+| 增加哪种计算 | 在哪里发生 | 与 LoopCoder 的关系 |
+| --- | --- | --- |
+| 循环深度 | 一次模型前向内部，多次变换隐藏状态 | Loop 架构；不会自动写出更多思考 token |
+| 显式 CoT | 自回归生成更多推理 token | Thinking 后训练路线；可以与 Loop 组合 |
+| Agent 闭环 | 调工具、读观察、再调用模型 | Harness 与环境中的多轮交互；不是模型内部 loop |
+
+因此，Loop / 普通架构与 Thinking / Instruct 是两个轴。两类后训练分支都可以有 SFT 和 RL，不能把 Instruct 当成“没有 RL”。作者称 Loop-Thinking 为研究型原型，不声称它在所有任务上都最好；结果见[代码模型评测](#评测结果与归因边界)。训练基础设施则用融合门控注意力 kernel 降低访存开销、上下文并行传递 KV 分片，并通过确定性重算与张量指纹检测静默硬件错误。这些是让训练可运行的系统配套，不是各组件收益的独立消融。[训练基础设施](https://arxiv.org/html/2603.16733v1#S2.SS2) · [原型定位](https://github.com/IQuestLab/IQuest-Coder-V1/blob/d3e5f0e728eb281706b6a9a6470d7fe4ba0b3c93/README.md)
+
 ### KV压缩
 
 #### Intro
@@ -2209,18 +2239,6 @@ https://zhuanlan.zhihu.com/p/631363482
     * 20 million MC questions
     * **exclude MC(multiple choice) data from both the pre-training and fine-tuning stages**
 
-## DeepSeek-Coder
-
-> DeepSeek-Coder: When the Large Language Model Meets Programming -- The Rise of Code Intelligence
-
-* Continue Pre-Training From General LLM
-  * To further enhance the natural language understanding and mathematical reasoning abilities
-    of the DeepSeek-Coder model, we perform additional pre-training from the general language
-    model DeepSeek-LLM-7B Base (DeepSeek-AI, 2024) on 2 trillion tokens, resulting in **DeepSeek-**
-    **Coder-v1.5 7B**
-  * ![image-20250503231326154](./AI-Algorithms/image-20250503231326154.png)
-    * 和仅用代码数据训练的模型对比
-
 ## DeepSeek-V2
 
 ### MLA + MoE
@@ -2253,7 +2271,220 @@ but can achieve stronger performance than MHA
   DeepSeek 67B. In addition, the prompt input throughput of DeepSeek-V2 exceeds 100K tokens
   per second.
 
-## DeepSeek-Coder-V2
+## 代码模型的数据与训练
+
+代码模型要从“会补全一段代码”走到“能在仓库中完成修改”，需要把技术事实、代码结构、修改过程和环境反馈接起来。[IQuest-Coder-V1 技术报告（arXiv v1）](https://arxiv.org/html/2603.16733v1)发布 7B、14B、40B 稠密模型，以 Code-Flow 组织这条训练路线：通用与代码预训练、高质量代码退火、32K→128K 中训练，最后分成 Thinking / Instruct 后训练。这条线描述同一个模型的训练顺序；另有一条数据生产线：已有模型在环境中生成、验证交互经验，再把整理后的轨迹供给中训练或后训练。它提供的是整套配方与成品评测；理解时应把每步解决的问题和单独收益的证据分开。
+
+![IQuest-Coder-V1 图 2：预训练与退火、两阶段中训练、Thinking 与 Instruct 后训练](./AI-Algorithms/iquest-coder-training-pipeline.png)
+
+图中的 Loop / 普通模型是架构分支，Thinking / Instruct 是后训练分支；两条后训练路线都包含 SFT 和 RL。图 2 与正文对 Stage1 checkpoint 的命名位置不完全一致，学习顺序按阶段和数据理解，具体 checkpoint 以模型卡为准。[原图与引言](https://arxiv.org/html/2603.16733v1#S1.F2) · [Loop 架构](#循环-loop-transformer共享参数增加计算深度)
+
+### 轨迹数据回流：环境与后训练模型如何生产基座语料
+
+**后训练既可以改进一个模型，也可以间接提高训练数据的生产能力。**预训练／中训练／后训练描述的是接受训练的模型所处阶段；人类示范、模型合成、环境交互描述的是数据来源，两者不是一一对应。一个已经做过 SFT／RL 的模型，可以在可执行环境中探索、解题和验证，把留下的经验整理成另一个模型或下一代模型的基座训练语料。环境提供状态变化与反馈，模型选择行动，harness 记录完整交互；并不是环境单独凭空生成优质样本。
+
+下面是通用的数据回流示意，不代表 IQuest 已公开实现了全部箭头：
+
+```mermaid
+flowchart LR
+  A[已有模型：可以已做 SFT 或 RL] --> B[在任务环境中行动与观察]
+  B --> C[轨迹、代码修改、执行反馈与验收结果]
+  C --> D[质检、去重、筛选、切分与序列化]
+  D --> E[新模型的继续预训练或中训练]
+  D --> F[指令 SFT 或拒绝采样微调]
+```
+
+例如，一次运行留下“读代码 → 修改 → 测试失败 → 利用报错修复 → 测试通过”。只保存最终代码，主要留下结果；保留动作、观察与修订关系，才有机会训练错误恢复和状态追踪。材料进入训练集后，需要定义序列格式、上下文长度、采样权重与 loss mask：环境输出可以作为后续行动的条件，哪些 token 直接计损失取决于配方，不能默认整段日志都当成正确行为模仿。失败步骤可作为恢复过程的上下文，但失败动作本身是否接受正向监督，需要另外设计。
+
+| 同一类交互经验用在哪里 | 主要怎样学习 | 与数据产生方式的关系 |
+| --- | --- | --- |
+| 继续预训练／中训练 | 将整理后的轨迹、代码、日志等纳入训练混合，学习相应序列与状态转换模式 | 可以消费其他已后训练模型离线生成的数据；不要求学生自己在线跑环境 |
+| 指令 SFT／拒绝采样微调 | 把筛选后的调用、回复和修复过程作为条件示范，拟合选定 token | 验证器帮助选数据，更新本身仍可用交叉熵 |
+| 在线 RL | 当前或近期策略在环境中采样，使用奖励与行为概率更新策略 | 需要处理样本新鲜度、策略分布与信用分配，不能把任意旧教师日志直接当 on-policy 数据 |
+
+学习阶段与数据来源分开，才能理解“后训练产生预训练样本”：**前代模型的后训练在时间上先完成，它生产的数据可以进入后代模型更早的训练阶段。**这不是同一个 checkpoint 的时间顺序倒转。基座训练也不只消费天然网页和代码；是否叫继续预训练、mid-training 或 SFT，应看具体训练流程、目标和 mask，不由“数据是模型生成的”单独决定。RL 后生成再筛选的数据还可以流向 SFT，例如 [DeepSeek-R1 的 RL→拒绝采样→Base SFT](#自蒸馏与拒绝采样微调筛选成功行为再拟合)；这个案例本身不是回流到从零预训练的证据。
+
+IQuest-Coder 已公开的连接是：[§3.2](https://arxiv.org/html/2603.16733v1#S3.SS2) 将包含命令、日志、错误、测试结果的完整 Agent 轨迹纳入 32K→128K 中训练；[§4.1–4.2](https://arxiv.org/html/2603.16733v1#S4.SS1) 用强模型合成、自动环境与验证构建后训练数据；[§4.3](https://arxiv.org/html/2603.16733v1#S4.SS3) 再进行竞赛编码与 SWE 的 RL。报告没有交代中训练轨迹的全部生成模型谱系，也没有证明最终 RL 模型产出的数据又进入了自身从零预训练。确定的事实是“环境交互经验进入中训练”，完整的跨代数据闭环是可据此设计的扩展。
+
+#### 已有研究中的数据回流与任务工厂
+
+下面几项研究分别接通了不同环节，不能把它们拼成某一家已经完整实现的统一管线。本次核验对应公开版本与指定章节，未独立训练复现。
+
+| 研究 | 谁生产什么，交给谁学习 | 直接支持的结论 |
+| --- | --- | --- |
+| [daVinci-Dev §3.2、§4.2](https://arxiv.org/html/2601.18418v1#S3.SS2) | GLM-4.6 在 SWE-Agent＋真实仓库 Docker 环境中，每题最多采 4 条轨迹；供 Qwen2.5-Base 中训练，再用成功子集 SFT | 环境轨迹可以成为基座中训练语料，同类经验还可跨阶段复用 |
+| [DeepSeek-R1 §2.3.3、§2.4](https://arxiv.org/html/2501.12948v1#S2.SS3.SSS3) | 从推理 RL checkpoint 采样并筛出约 600k 推理样本，混入约 200k 通用样本，对 DeepSeek-V3-Base 做 SFT；这批数据也用于较小模型的蒸馏 | RL 的收益可以经数据转移给另一个 checkpoint 或学生，学生不必重复教师的全部 RL；此处是 SFT，不是从零预训练 |
+| [ToolSpace §4](https://arxiv.org/html/2611.05036v1#S4) | 真实调用轨迹→数据／状态／重试依赖图→可执行随机游走→反推任务与断言→重放验收→教师重新解题 | 旧轨迹不仅是训练样本，还能成为新任务和跨环境组合的原材料；合成的参考调用链与后来教师的解题轨迹是不同产物 |
+| [IQuest-Q1 §4.1–4.2](https://arxiv.org/html/2610.30949v1#S4.SS1) | API、技能、文档、PR／issue 和去标识使用记录→任务工厂→参考解、验证器、反复试跑与修复→可用训练实例 | 前沿数据生产已延伸到任务、环境与验收器本身的构造；仍需区分生成任务和证明泛化收益 |
+
+**daVinci-Dev 把“环境产数进入中训练”做成了可检查的实验。**过滤超出 128K 的轨迹后，得到约 18.5k 条通过测试的轨迹（0.7B tokens）和 55.5k 条未通过的轨迹（2.4B），原始环境语料共 3.1B。中训练包含两类，成功子集按 3 倍采样，因此有效训练量为 4.5B；最后的 SFT 只用成功子集。成功与失败都包含真实动作和观察，但末轮未成功不等于每一步都无价值。这里原始 token、加权训练暴露量、SFT 选样是三种口径。[采集与分组](https://arxiv.org/html/2601.18418v1#S3.SS2) · [数据配方](https://arxiv.org/html/2601.18418v1#S4.SS2)
+
+其 Table 4 给出 72B 模型的两个对照。评测使用 SWE-Agent、temperature 0、128K 上下文、最多 100 步，Pass@1 对 4 次运行取平均；作者修正了少量原参考补丁无法通过的测试，因此这些分数宜用于论文内部比较，不直接等同于未经改动的公开榜单成绩。[评测设置](https://arxiv.org/html/2601.18418v1#S4.SS1)
+
+| 比较 | SWE-bench Verified Pass@1 | 能说明什么 |
+| --- | --- | --- |
+| 只用环境轨迹做 MT → 环境轨迹＋Python PR 数据做 MT，均无 SFT | 47.1 → 54.8 | 交互反馈与代码修改知识在该配方中互补；训练量也从 4.5B 增至 46.4B |
+| Python PR 做 MT → PR＋环境轨迹做 MT，之后都用成功轨迹 SFT | 56.5 → 57.8 | 轨迹提前进入 MT 后，最终 SFT 仍可受益；MT 训练量从 41.9B 增至 46.4B |
+
+分数差分别是 7.7、1.3 个百分点。它们支持在该配方中加入相应数据的实际收益，但不是等 token 的纯组成消融，也没有独立证明“1＋1＞2”或某种能力只能靠 MT 获得。加入更多一般 PR 数据后，作者的完整 MT 配方为 73.1B＝26.7B 一般 PR＋41.9B Python PR＋4.5B 加权环境轨迹；先训练一般 PR，再训练后两者，最终 72B／32B 分别为 58.5／56.1。[Table 4 与分析](https://arxiv.org/html/2601.18418v1#S5.SS2) · [分阶段配方](https://arxiv.org/html/2601.18418v1#A1.SS1)
+
+公开仓库还提供 SWE-agent 轨迹转 XML function-calling 格式、tokenize 和按长度过滤的入口，说明“环境产物→训练样本”需要实际格式适配，而不是把日志文件直接交给 trainer。本次核验工具说明，没有执行转换或训练。[固定版本工具入口](https://github.com/GAIR-NLP/daVinci-Dev/blob/81968c804fe59aa3991b30e6f67ce9998334529e/env_traj_utils/README.md)
+
+综合这些研究，可以把环境看成可重复运行的经验生产设施：任务工厂决定覆盖什么，求解模型决定能探索出什么，真实执行提供可用于检验假设的反馈，验证器决定哪些经验值得保留，训练配方再决定经验如何写入模型。较强的后训练模型可以提高造数能力，经过训练的学生又可能参与下一轮造数；这是可设计的迭代闭环，不保证每轮都提高。只增长文本量可能放大重复与模型偏差，执行反馈、训练／评测隔离和跨环境验证决定是否获得了有效的新经验。
+
+这条数据流也接上了[环境能力迁移](./Reinforcement-Learning.md#训练环境所训练能力的可迁移性)：环境的价值既可以是直接提供 RL 奖励，也可以是产出可供多个阶段、多个模型复用的经验。衡量时要看留出任务上的能力收益、有效覆盖与造数／验收成本，而不只数轨迹或 token；不能由“环境更多、模型更强”直接推出语料必然更好。
+
+### 数据质量：减少重复、补事实、保结构
+
+数据质量控制决定训练量有多少真正用于学习新而正确的模式。IQuest-Coder §3.1 的几个环节处理不同问题，不能互相替代：
+
+| 环节 | 怎样做、解决什么问题 | 保证到哪里 |
+| --- | --- | --- |
+| 清洗与层级去重 | 删除网页噪声，在仓库／文件等层面精确去重，再用模糊或语义相似度去重；减少镜像、fork、近重复文件反复占预算 | 相似不必然重复，阈值过强也会丢掉有意义的变体 |
+| Benchmark 去污染 | 排除与评测题、答案等重叠的语料，防止把记忆题目当泛化 | 依赖检索范围与匹配方法，不能仅凭“做过去污染”证明零泄漏 |
+| AST 分析 | 把源码解析成抽象语法树，检查语法／结构，并按表达式、语句、函数构造样本 | 语法成立不保证类型、依赖、边界条件或执行行为正确 |
+| 小型质量分类器 | 大模型按信息密度、教育价值、有害内容等标注样本，再训练通用文本、代码、数学的领域代理分类器，规模化筛选 | 代理可能继承教师偏好；报告称优于 FastText，但未给足可复算的分类器消融 |
+| 技术事实 QA | 加入约 6,600 万条 CodeSimpleQA-Instruct，补充 API、语言语义和工程知识 | QA 数量不等于独立知识量，模型审核不能替代事实源与执行验证 |
+
+[预训练数据处理](https://arxiv.org/html/2603.16733v1#S3.SS1)。例如 `return a / b` 可能完全符合 AST 语法，但遇到 `b=0` 仍失败；AST 提供结构检查，测试提供特定输入下的行为证据。
+
+CodeSimpleQA-Instruct 的来源链是“召回技术文档 → 清洗与质量筛选 → code-text embedding、DBSCAN 知识聚类 → 按簇抽样生成 QA → 对照原文用 LLM judge 保留正确项”。按簇抽样意在减少高频主题挤占长尾知识；问题要求客观、单一明确答案，尽量选择稳定事实。上游论文报告约 66.9M 合成训练样本，不能与约 1.5K 的人工评测题混为一谈，也不能称为数千万条人工核验事实；版本相关的 API 行为仍要记录版本。[CodeSimpleQA §3.1](https://arxiv.org/html/2512.19424v1#S3.SS1)
+
+### 跨语言混合：辅助数据与重复采样的机会成本
+
+IQuest-Coder 的数据配方引用了 [Scaling Laws for Code §4](https://arxiv.org/html/2512.13472v1#S4)。Bilingual 在这里指两种编程语言。实验选 Python、Java、JavaScript、TypeScript、C#、Go、Rust，七个单语言基线加两两混合，共 28 种配置。以 Java 为目标：
+
+| 方案 | 训练数据 | 总训练量 | 比较指标 |
+| --- | --- | --- | --- |
+| 单语言重复 | 64B Java 数据重复两遍 | 128B tokens | Java 验证集 loss |
+| 双语言混合 | 64B Java＋64B 辅助语言 | 128B tokens | 同一个 Java 验证集 loss |
+
+B 为十亿，64B 即 640 亿 tokens；加号表示组成，不要求先后训练。这里固定总 token 暴露量，用其他语言替换目标语言的第二遍重复；不是与 128B 新目标语言数据比较，也没有证明墙钟时间或 FLOPs 完全相等。
+
+为避免原文符号问题，本笔记把正向收益定义为：
+
+$$
+G_{i\leftarrow j}=L_i(i+i)-L_i(i+j)
+$$
+
+下标表示在目标语言 i 上评估。正值表示混合后的验证损失更低；loss 衡量预测留出代码 token 的误差，不是编程题通过率。作者报告大多数目标语言受益，尤其强调 Java–C#、JavaScript–TypeScript 的语法和范式相近：共享参数可以从另一种表达中学习相同控制流、对象关系和程序模式。多样性与重复程度同时改变，因此这仍是共享表征／正则化的解释，实验未单独隔离“语言相似性”的因果作用。
+
+作者还报告 Python 的不对称现象：作为辅助语言可以帮助其他目标，但以 Python 为目标时，多数辅助语言带来轻微退步，Java 例外。同一个 Java＋Python 模型，考 Java 时与 Java＋Java 比，考 Python 时与 Python＋Python 比；评测分布和基线不同，迁移收益不必对称。新数据的迁移收益需要抵消目标语言重复次数减少的损失。本节仅测试 50:50，不能据此认定它是最优比例。
+
+![Scaling Laws for Code 原始 Table 1：绝对 loss 与增益标注存在冲突](./AI-Algorithms/code-scaling-bilingual-table1.png)
+
+**这张表只能连同错误说明阅读。**原式写“混合 loss − 基线 loss”却称正数为改善；正文说对角线增益为零，表格却给绝对 loss。Java 对角线为 0.7942、C# 列为 0.8069，却标改善 20.58%；按这两数实际是 loss 上升约 1.60%。正文另写 0.903→0.718，可算得下降约 20.5%，但不是同一组数。HTML 与 PDF 都有冲突，不能自行重新排列来修表。因此，“六种语言全部受益”、具体增益与语言排名暂保留为作者报告，等待更正或原始结果；20.5% 即使成立也只是 loss 降幅。[原表与解释](https://arxiv.org/html/2512.13472v1#S4.SS2)
+
+可迁移的配方问题是：数据有限时，下一批训练 token 花在重复旧数据还是引入相关数据上，谁对目标能力的边际收益更高？进一步把它理解为不同环境训练共享／互补能力，是研究假设；区分能力共享、能力组合与跨环境泛化，见[训练环境所训练能力的可迁移性](./Reinforcement-Learning.md#训练环境所训练能力的可迁移性)。
+
+### Code-Flow：从代码快照到仓库状态迁移
+
+静态文件展示代码“是什么”，提交历史还展示“在已有约束下怎样修改”。IQuest-Coder 从仓库生命周期中构造：
+
+$$
+(\mathcal R_{\mathrm{old}},\mathcal P,\mathcal R_{\mathrm{new}})
+$$
+
+三者分别是旧仓库状态、patch、新仓库状态。作者从项目提交历史的 40%–80% 分位区间选起点，再向后寻找有代表性的修改，意图减少过早搭架子和零碎维护的干扰。这个区间是数据构造启发式，不意味着所有项目都在这里成熟；原文也没有给出所有三元组的精确序列化、loss mask 或配比，不能自行断言只训练预测 patch。[§3.1](https://arxiv.org/html/2603.16733v1#S3.SS1)
+
+举例：旧版函数加一个参数，patch 同时调整调用方和测试，新版仓库呈现修改后的依赖关系。这样的样本可以提供跨文件一致性、修改意图与状态转换线索。commit 本身通常不含完整的“为什么试这条路线、执行后哪里失败”，所以它仍需与执行轨迹互补，不能把版本差异直接当作带验证的成功规划。
+
+FIM（Fill-in-the-Middle）则训练“给定前后文补中间”。文件级序列为：
+
+~~~text
+<|fim_prefix|>{code_pre}<|fim_suffix|>{code_suf}<|fim_middle|>{code_mid}<|im_end|>
+~~~
+
+仓库级 FIM 在此之前加同仓库的相关文件，帮助模型利用函数定义、类型与调用约束：
+
+~~~text
+<|repo_name|>{repo_name}<|file_sep|>{file_path1}
+{file_content1}
+<|file_sep|>{file_path2}
+{file_content2}
+<|file_sep|>{target_file}
+<|fim_prefix|>{code_pre}<|fim_suffix|>{code_suf}<|fim_middle|>{code_mid}<|im_end|>
+~~~
+
+切分可以随机选字符边界／整行，也可以依据 AST 选表达式、语句和函数节点。前者覆盖编辑位置，后者保留语法单元；两者用于构造补全任务。FIM 虽然让模型看到了待补位置的 suffix，但在序列化后仍是从可见前缀自回归预测答案，不是取消因果 mask。[FIM 与仓库补全](https://arxiv.org/html/2603.16733v1#S3.SS1)
+
+### 中训练：把推理、行动与长上下文接起来
+
+预训练先建立一般表示，高质量代码退火进一步调整分布；随后，中训练在正式指令后训练前加入三类互补材料：
+
+| 数据 | 主要学习线索 | 与其他材料的差别 |
+| --- | --- | --- |
+| Reasoning QA：数学、编程、逻辑 | 拆解问题、检查一致性、表达推导 | 提供推理结构，但不一定真的执行动作 |
+| Agent 完整轨迹 | 行动→观察→修订，读命令结果、日志、错误和测试 | 训练利用环境反馈，不能只保留最后正确代码 |
+| Commit 与文件／仓库 FIM | 修改依赖、跨文件补全、仓库级上下文 | 提供代码世界的结构与演化信息 |
+
+32K 阶段先学习较长的推理与交互，再延伸到 128K，使用专门长序列覆盖仓库级问题。长窗口是容纳历史的条件，能否利用错误恢复、维持计划还取决于训练分布；不能只改最大长度配置就假设获得长程能力。报告称这些中训练材料提供逻辑支架、缓解分布迁移，但没有公开足以拆解各数据类别贡献的完整消融。[§3.2](https://arxiv.org/html/2603.16733v1#S3.SS2)
+
+### 后训练：示范可执行行为，再用结果反馈改进
+
+后训练覆盖 API 编排、全栈工程、竞赛编码、代码推理、Text-to-SQL、代码编辑、终端、仓库软件工程、工具使用与 GUI。作者用模型合成任务／解答，通过扰动、测试驱动合成、反向生成和多阶段过滤扩充数据；客观任务尽量执行验证，主观任务结合规则、reward model 与多 agent 讨论。验证器的可观测范围仍限制标签质量。[§4.1](https://arxiv.org/html/2603.16733v1#S4.SS1)
+
+SFT 阶段学习经过筛选的示范，配合 sequence packing、跨样本 attention mask、保守的余弦学习率调度，以及由基础指令到更难和对抗样本的三阶段课程。Packing 提高硬件利用率，mask 防止独立样本互相偷看；课程改变学习顺序。报告称 SFT 的 token 量接近预训练规模，但未提供可复算的分阶段总量与完整配比，不能直接据此复现预算。[§4.2](https://arxiv.org/html/2603.16733v1#S4.SS2)
+
+后续反馈分两类：
+
+| 训练问题 | 行为与奖励 | 与监督示范的区别 |
+| --- | --- | --- |
+| 竞赛编码 RL | 当前策略生成程序，以测试通过率给奖励，使用 GRPO 与 Clip-Higher，不加显式 KL 惩罚 | 不只模仿教师答案，而是提高组内相对更成功行为的概率 |
+| SWE-RL | 云端沙箱中的多步工具交互，以测试套件通过情况及效率正则评分，使用 GRPO | 模型要在自己造成的状态中继续行动，学习调试、恢复与资源取舍 |
+
+去掉显式 reference KL，不等于删除新旧策略的概率比与 clipping。Clip-Higher 放宽正优势样本的上侧裁剪，让被采到并取得好结果的低概率行为有更多学习空间；数值例子、负优势方向与熵塌缩动机见 [DAPO 非对称裁剪](./Reinforcement-Learning.md#dapo-非对称裁剪如何影响正负优势)。IQuest 报告没有公开该项的具体阈值，不能把 DAPO 的 0.20／0.28 自动当作它的配置。
+
+专业化也可能损伤原有通用能力，即 alignment tax。作者用 replay buffer、动态数据混合和组合设计保留已有能力。Thinking 更强调显式推理轨迹，Instruct 强调通用与代码指令遵循；两者均可继续 RL，不能把竞赛／SWE 两类任务与这两个模型分支机械一一对应。[§4.3](https://arxiv.org/html/2603.16733v1#S4.SS3)
+
+一个公开评测轨迹展示了“行动—反馈—修订”：Voting estimator 在配置 weights 且某个 estimator 为 `None` 时失败。Agent 复现后，首次编辑因缺少 `new_str` 删除了整个校验块，随后又遇到缺少 `path` 的工具错误；继续读取状态、修正 guard，保留原校验逻辑，轨迹记录了 18 个原有测试与 16 个自写边界测试通过。这是一次错误恢复的具体形态，不是训练样本来源证据，也没有独立终局评分或本地复跑，不能用它证明 RL 导致了恢复能力。[公开轨迹包，第 31 条记录](https://github.com/IQuestLab/IQuest-Coder-V1/blob/d3e5f0e728eb281706b6a9a6470d7fe4ba0b3c93/IQuest-Coder-Eval/SWE-Verified/traj.zip)
+
+### 评测结果与归因边界
+
+不同 benchmark 检查不同环节，不能只摘一项高分代表“代码能力”：
+
+| 评测 | 主要考什么 | 指标阅读 |
+| --- | --- | --- |
+| CrossCodeEval | 利用跨文件上下文补全 | EM 为完全匹配，ES 为编辑相似度；不等于程序执行正确率 |
+| EvalPlus、BigCodeBench、FullStackBench | 函数正确性、库组合与全栈编程 | 测试通过受测试覆盖限制；HumanEval+／MBPP+ 扩充了测试 |
+| CRUXEval、LiveCodeBench | 前者按代码求输出／反求输入，后者偏竞赛编码 | 输出推理、约束反推与完整解题不是同一能力 |
+| Mercury | 正确性与执行效率 | Pass@1 与基于参考运行时间分布的 Beyond@1 分开看 |
+| Spider、BIRD | 跨数据库 schema 的 SQL 与真实数据查询 | 表中为执行准确率，不是 SQL 文本 EM |
+| Terminal-Bench、SWE-bench Verified | 终端环境任务、issue 驱动的仓库修复 | 同时依赖模型、harness、工具与预算 |
+| Mind2Web、BFCL V3、安全评测 | 网页动作、函数调用及安全表现 | 分别看任务与协议，不能从 coding 分数外推 |
+
+[报告 §5、表 2–8](https://arxiv.org/html/2603.16733v1#S5)。例如 CrossCodeEval 的 40B Base 平均 EM 为 57.8、ES 为 85.7；二者不同，不能说 85.7% 的补全完全正确。几个较有辨识度的成品对比是：
+
+| 作者报告的配置 | LiveCodeBench v6 | FullStackBench | SWE-Verified（表 7） |
+| --- | ---: | ---: | ---: |
+| 40B Instruct | 46.9 | 71.4 | 70.4 |
+| 40B Thinking | 77.7 | 54.8 | 71.2 |
+| 40B Loop-Instruct | 48.5 | 68.3 | 76.2 |
+| 40B Loop-Thinking | 81.1 | 59.5 | 76.2，图 3 却为 69.4，待澄清 |
+
+[表 3](https://arxiv.org/html/2603.16733v1#S4.T3) · [表 4](https://arxiv.org/html/2603.16733v1#S4.T4) · [表 7](https://arxiv.org/html/2603.16733v1#S5.T7)。Thinking 在竞赛题上的优势并不意味着所有任务都更好；Loop 也不统一胜出。普通 40B Instruct 的 BIRD／Spider 为 70.5／92.2，Thinking 为 53.6／78.1；Mercury Beyond@1 同样是 83.6 对 71.1。应按目标任务比较后训练分支，而不是把“更多思考”视为统一升级。
+
+图 1 将 Loop-Thinking 的 LiveCodeBench v6 与 Loop-Instruct 的其他成绩拼在一张图中，并非同一个 checkpoint 完成全部成绩。引言声称 Code-Flow 和中训练消融支持规划、分布迁移和恢复能力，但正文没有完整公开对应对照；成品分数不能分离数据、架构、后训练与 harness 的贡献。[图 1 注释](https://arxiv.org/html/2603.16733v1#S0.F1)
+
+读取的公开 SWE 启动脚本设 `MAX_STEPS=200`、`TEMPERATURE=1.0`、`MAX_RETRIES=1` 与 131,072 上下文；同一版本 [README 的 Benchmark Parameters](https://github.com/IQuestLab/IQuest-Coder-V1/blob/d3e5f0e728eb281706b6a9a6470d7fe4ba0b3c93/README.md#benchmark-parameters) 却把 SWE 温度列为 0.0，全部评测协议尚未重建。比较成本需要同时记录任务预算、工具时间、输出／推理 token、模型内部循环计算与缓存；参数量、输出长度、最终分数任一个都不能替代总成本。本笔记核验了报告、相关引用、公开实现与一条轨迹，没有独立训练或复现榜单。[固定版本评测入口](https://github.com/IQuestLab/IQuest-Coder-V1/blob/d3e5f0e728eb281706b6a9a6470d7fe4ba0b3c93/IQuest-Coder-Eval/SWE-Verified/R2E-Gym/benchmark/bench/loopcoder/loopcoder.sh)
+
+### 从通用基座继续预训练
+
+代码专业化也可以从已有通用模型的中间 checkpoint 起步。下面两代 DeepSeek-Coder 保留了继续预训练的数据量、奖励设计及其历史变化；与 IQuest 的整套管线互为参照。
+
+#### DeepSeek-Coder
+
+> DeepSeek-Coder: When the Large Language Model Meets Programming -- The Rise of Code Intelligence
+
+* Continue Pre-Training From General LLM
+  * To further enhance the natural language understanding and mathematical reasoning abilities
+    of the DeepSeek-Coder model, we perform additional pre-training from the general language
+    model DeepSeek-LLM-7B Base (DeepSeek-AI, 2024) on 2 trillion tokens, resulting in **DeepSeek-**
+    **Coder-v1.5 7B**
+  * ![image-20250503231326154](./AI-Algorithms/image-20250503231326154.png)
+    * 和仅用代码数据训练的模型对比
+
+#### DeepSeek-Coder-V2
 
 > DeepSeek-Coder-V2: Breaking the Barrier of Closed-Source Models in Code Intelligence
 
@@ -3435,7 +3666,7 @@ API 返回的文本作为固定标签；梯度通过开源学生与生成的 ada
 | 参数组合 | 已有模型怎样形成一个新模型？ | 权重平均、task vector、外推 |
 | 推理与测量 | 权重固定时怎样生成、怎样计分？ | temperature / top-p、输出预算、验证器、评测 split |
 
-这些维度可以组合：蒸馏数据能用于 SFT，SFT 或 RL 能用 LoRA 更新，RFT 的最后一步也是 SFT。RLHF / RLVR 描述奖励来源，PPO / GRPO 描述更新算法，不能把这些名称当作互斥阶段。来源：[InstructGPT](https://arxiv.org/abs/2203.02155)、[DeepSeekMath §4](https://arxiv.org/html/2402.03300v3#S4)、[Athanor §2 / §5.1](https://arxiv.org/pdf/2610.21055v1)。
+这些维度可以组合：已后训练模型的环境轨迹可以成为其他模型的继续预训练／中训练语料，见[轨迹数据回流](#轨迹数据回流环境与后训练模型如何生产基座语料)；蒸馏数据能用于 SFT，SFT 或 RL 能用 LoRA 更新，RFT 的最后一步也是 SFT。RLHF / RLVR 描述奖励来源，PPO / GRPO 描述更新算法，不能把这些名称当作互斥阶段。来源：[InstructGPT](https://arxiv.org/abs/2203.02155)、[DeepSeekMath §4](https://arxiv.org/html/2402.03300v3#S4)、[Athanor §2 / §5.1](https://arxiv.org/pdf/2610.21055v1)。
 
 跨阶段比较看固定协议下的任务表现：SFT 交叉熵、GRPO 训练奖励、RFT 保留率的尺度与数据各不相同，不能直接互比为模型能力。验证集用于选择配方，held-out 用于检查迁移；推理温度、输出预算、chat template、评测种子与分数聚合方式也属于测量条件。六任务等权平均不代表训练数据按六类等量，更不代表六项能力各自都提高。
 
@@ -3728,6 +3959,8 @@ $$
 
 ### Mid Training
 
+继续预训练如何消费环境轨迹，先看[轨迹数据回流](#轨迹数据回流环境与后训练模型如何生产基座语料)。其中已用 daVinci-Dev 一手论文核对造数模型、成功／失败分组、3.1B 原始与 4.5B 加权训练量，以及 MT 后再次 SFT 的对照；下文保留此前二手文章的解释，强判断不应替代这些具体证据。
+
 本节保留所引文章对 Agent-Native Data 的主张与实验叙述。其中“Post-training 无法创造未见能力”“未知缺口再多后训练也无济于事”是作者的强判断，不是普遍成立的能力边界定理。Mid-training 与 post-training 的阶段命名、数据分布及计算预算需要分别核对；更可靠的问题是特定数据与更新能否带来未见任务上的可验证增益。下文 Interplay 的阈值也只属于该合成实验设定。
 
 #### 为什么 Mid-training 在 Agent 时代变得如此关键？
@@ -3773,9 +4006,9 @@ $$
   - 真实反馈：模型看到的不是人工构造的完美数据，而是真实的 Runtime Error。它必须学会根据报错去自我修正。
   - 这赋予了模型"自我反思"的本能。
 
-**两类数据的协同效应：1+1>2**
+**两类数据的互补：作者称之为协同效应**
 
-* 团队的实验揭示了一个关键发现：两类数据形成互补，缺一不可。
+* 作者强调两类数据互补，并主张缺一不可。原始 Table 4 中，加入另一类数据也增加了训练量，因此不能据此证明严格的“1＋1＞2”或普遍必要性；具体数值与对照条件见[一手研究核验](#已有研究中的数据回流与任务工厂)。
 * 这说明：
   - PR数据提供"知识和广度"：跨语言、跨框架的软件工程模式，让模型见识足够多的"什么样的问题对应什么样的解决思路"；
   - 环境轨迹提供"深度和真实性"：动态交互和反馈循环，让模型习得"如何在不确定环境中迭代求解"。
