@@ -26,7 +26,7 @@
 | --- | --- |
 | 建立共同判断 | [历史与商业飞轮](#14-从自由软件到云服务技术与商业的循环) → [三种匹配](#46-衡量成功) → [商业模式与竞争](#10-开源商业化) |
 | 讨论产品和收入 | [付费价值](#101-从用户价值到付费价值) → [双路线图](#103-双路线图与免费付费边界) → [市场拓展与销售](#121-四阶段漏斗与责任分工) |
-| 讨论开放边界和治理 | [许可证](#3-开源许可证和知识产权管理) → [治理](#5-治理和托管模式) → [贡献者与维护者](#7-将贡献者发展为维护者) |
+| 讨论开放边界和治理 | [许可证](#3-开源许可证和知识产权管理) → [DRI 与 TSC](#决策权限维护者dri-与-tsc) → [组织席位和计票](#组织席位计票与治理变更) → [贡献阶梯](#贡献阶梯权限随责任增加) |
 | 参与项目或减轻维护负担 | [高效参与开源](#高效参与开源时间信任与维护负担tison) → [公司交付与上游协作](#23-forkupstream-与冲突) → [个人退出边界](#14-开源项目的落幕) |
 | 形成合作方案 | [合作讨论清单](#合作讨论清单)；案例按需回查，第 15 章与 Zowe 附录提供工程和生态对照 |
 
@@ -172,6 +172,8 @@
 
 公司品牌与项目品牌也应分别设计。[a16z](https://a16z.com/open-source-from-community-to-commercialization/)以 Databricks / Spark 说明分开命名的路径：有利于区分社区资产与商业产品；同名则更容易承接认知，但也可能让商业决策直接消耗社区信任。命名不会自动带来改许可证的权利；应明确商标所有者、授权规则、共同品牌和社区对外表达的边界。
 
+协议提案何时需要补一致性测试，以及通过公开测试与获得官方认证的关系，见[协议提案与一致性测试](#协议提案与一致性测试)。
+
 ### 3.6 Kimi K3 License：开放权重的定制商业许可（我的拓展）
 
 * 事实：2026-07-27 月之暗面发布 Kimi K3（2.8T 参数开放权重模型），完整权重放 Hugging Face / ModelScope，代码仓库与权重统一使用自研 [Kimi K3 License](https://raw.githubusercontent.com/moonshotai/kimi-k3/main/LICENSE)（[GitHub 仓库](https://github.com/MoonshotAI/Kimi-K3)）。Hugging Face 把它登记为 `license: other` / `license_name: kimi-k3`（[模型卡](https://huggingface.co/moonshotai/Kimi-K3)），不是 OSI 标准许可证；官方口径说 "open-weight"（开放权重），不说 "open source"。
@@ -316,6 +318,51 @@
   * 单一组织资助：e.g. Mozilla 裁撤 Rust 员工——单点资助意味着组织裁员会直接打击项目；
   * 基金会：e.g. Python Software Foundation（管理 PyCon、处理 Python 项目法律事务、为开发提供资助）与 LFE；PSF 是 501(c)(3)、LFE 是 501(c)(6)，对前者捐赠可抵税；配套技术咨询委员会（TAC）。
 
+### 决策权限：维护者、DRI 与 TSC
+
+第二家厂商准备投入工程师维护兼容实现时，会关心三件事。能否通过贡献获得技术权限，遇到不兼容变更能否参与讨论，以及能否独立验证互操作性。许可证和托管主体提供合作基础，章程、提案记录与测试说明这些权利怎样落实。例如 MCP 章程分别规定贡献者保留版权、代码和规范采用 Apache-2.0 为默认许可，以及治理修订还需 LF Projects 批准。技术决策权另由治理条款分配。 [MCP 项目政策](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/governance.mdx#general-project-policies)
+
+**TSC（Technical Steering Committee，技术委员会）**的 steering 指把握方向。它是负责项目整体技术方向的机构，权限可能涉及路线图、公共接口、发布策略与跨领域争议，由章程具体定义。**DRI（Directly Responsible Individual，直接负责人）**是对某项工作主责的人，负责收集意见、推动决策和跟进结果。能否拍板取决于这次授权的范围。
+
+| 事项 | 通常由谁处理 | 交付或升级条件 |
+| --- | --- | --- |
+| 局部修复、重构、常规发布 | 领域负责人、具有相应权限的 Maintainer 或 Committer | 负责测试、评审和合并。影响公共契约或其他模块时升级 |
+| 某项大功能提案有争议 | 团队可指派这项提案的 DRI | 明确授权范围，收集受影响方反馈，记录决定和理由，并跟进实现 |
+| 项目方向、破坏兼容的协议变更、跨组争议 | TSC 或章程指定的核心维护者机构 | 记录技术影响、替代方案与迁移安排。遇到僵局按章程升级 |
+| 预算、商业合作、生态建议 | 章程指定的理事会或赞助与咨询机制 | 区分建议权、资源分配权、技术表决权与合并权限 |
+
+vLLM 的 Core Maintainers 直接承担 TSC 职责，发布季度路线图并决定重大技术方向。协作政策区分两次委任。RFC 的 `assignee` 可以帮助推进讨论和评审。争议较大的功能，维护者团队可另行指派一名 Committer 做 DRI，听完各方意见后对该 RFC 拍板、督促实现。Core 在项目级事项无法达成共识时则由 Lead Maintainers 兜底。模型方和硬件厂商可通过顾问渠道提出需求，硬件适配可走平台插件，重大变更的理由和替代方案仍应留下公开记录。 [vLLM 治理流程](https://github.com/vllm-project/vllm/blob/186882d9e865ccfabc9f75146a708c4a68524c8e/docs/governance/process.md) · [协作规则](https://github.com/vllm-project/vllm/blob/186882d9e865ccfabc9f75146a708c4a68524c8e/docs/governance/collaboration.md)
+
+MCP 把具体领域交给 Maintainers，跨领域和规范问题交给 Core，Lead 保留最终否决权。兴趣组（IG）梳理问题和用例，给出建议。工作组（WG）交付提案、实现或组件，在章程授权的范围内可以先尝试懒共识，有阻塞异议再表决，仍无法解决则升级。指定 Core 处理组内升级争议时，要核对其与当事方的组织关联。龙蜥采用机构分工，理事会负责战略、预算和组织事项，技术委员会统筹架构和 SIG，运营委员会负责生态与活动。总章程允许理事单位指派技术委员，也开放其他伙伴和个人参选。组织参与方式和技术权限边界都应从实际章程判断。 [MCP 治理章程](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/governance.mdx) · [MCP 工作组与兴趣组](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/working-interest-groups.mdx) · [龙蜥组织架构](https://openanolis.cn/organization) · [龙蜥总章程第七章](https://openanolis.cn/assets/static/OpenAnolis-Charter.pdf#page=7)
+
+### 组织席位、计票与治理变更
+
+**席位约束决定谁能坐进委员会，计票约束决定针对某件事怎样算多数。** Valkey 限制同一组织及其关联组织的雇员、承包商、代表合计最多占 TSC 三分之一，就任后委员各有一票。CNCF 的组织平衡投票是可选模块，项目自行列出适用事项和每组织票数。例子里六位维护者来自 A 公司三人、B 公司两人及一位独立贡献者，若对指定治理事项采用每组织一票，就按三票计、两票过半，日常 PR 和发布保留原工作流。 [Valkey 席位与表决](https://github.com/valkey-io/valkey/blob/80bb13e2a82b331512af2175a7f1117c313e4db2/GOVERNANCE.md) · [CNCF 组织平衡投票模板](https://github.com/cncf/project-template/blob/e66ba44f724d00f66c84932593c5a229fee3564b/GOVERNANCE-org-balanced-voting.md)
+
+把三分之一席位上限放到小型 TSC，允许的整数席位要向下取整。以下以满员、每位独立委员单独计为一种归属为例。
+
+| TSC 总席位 | 同一组织最多占席 | 坐满至少需要的不同归属数 |
+| ---: | ---: | ---: |
+| 5 | 1 | 5 |
+| 6 | 2 | 3 |
+| 7 | 2 | 4 |
+
+五席有时比六席难组成。离职和并购也会改变校验结果。例如九席中同一组织占四席，撤掉其中一席却暂时无人补位，会变成八席中的三席，仍超过三分之一。章程应说明关联关系、空缺怎么算、谁接收变动报告，以及怎样回避、调席或补选。Valkey 要求发现超限尽快通知和处理，力争在通知后 30 天内恢复并记录步骤。如果章程规定个人席位，同时又希望给合作方长期参与资格，可以单独设顾问席。若合作方有权指派某席的继任者，就应明确其身份、表决权及是否计入组织上限。 [Valkey TSC](https://github.com/valkey-io/valkey/blob/80bb13e2a82b331512af2175a7f1117c313e4db2/GOVERNANCE.md#technical-steering-committee) · [CNCF 选举模板](https://github.com/cncf/project-template/blob/e66ba44f724d00f66c84932593c5a229fee3564b/GOVERNANCE-elections.md#limitations-on-company-representation)
+
+表决要分别写清事项范围、参与资格、出席门槛和赞成票的分母。Valkey 的重大技术决策优先走简单多数，两周内未获多数且无 TSC 成员投反对票时，可由至少两名委员在相关 Issue 或 PR 明确支持，通过 `+2` 放行。有反对票就走简单多数规则。增减委员、改章程或委托子项目治理权属于重大治理决定，需要全体 TSC 至少三分之二。假设九席中六人出席，三赞成、两反对、一弃权，Valkey 的重大治理决议需要六张赞成票，不能通过。按龙蜥总章程第 22 条的技术委员会规则，这组票数达到三分之二出席门槛，也达到与会代表至少一半赞成的门槛。 [Valkey 表决规则](https://github.com/valkey-io/valkey/blob/80bb13e2a82b331512af2175a7f1117c313e4db2/GOVERNANCE.md#voting) · [龙蜥总章程第 22 条](https://openanolis.cn/assets/static/OpenAnolis-Charter.pdf#page=7)
+
+**规则本身也要有修改和继任程序。** MCP 由 Lead 提出书面章程修改，投票前至少留五天评论。全体 Core 至少三分之二赞成后还需 LF Projects 批准。如果 Lead 全部空缺，Core 应在 30 天内以多数票任命继任者，空缺期间以三分之二票治理。CNCF 的起步路径可以是由现任维护者共治，出现决策拥堵时考虑向工作组授权，出现组织过度集中时考虑组织计票、席位限制或选举委员会，子项目有独立贡献者和发布节奏时考虑分权。选举模板还要填实任期、选民和候选资格、补选办法。 [MCP 继任与章程修订](https://modelcontextprotocol.io/seps/2085-governance-succession-and-amendment) · [MCP 项目政策](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/governance.mdx#general-project-policies) · [CNCF 维护者理事会模板](https://github.com/cncf/project-template/blob/e66ba44f724d00f66c84932593c5a229fee3564b/GOVERNANCE-maintainer.md#when-to-evolve-this-governance) · [CNCF 选举模板](https://github.com/cncf/project-template/blob/e66ba44f724d00f66c84932593c5a229fee3564b/GOVERNANCE-elections.md)
+
+### 协议提案与一致性测试
+
+协议规则要能让另一家团队独立实现，并用相同用例验证。以 MCP 为例，新增协议行为、修改消息结构或引入不兼容变更通常走 SEP（Specification Enhancement Proposal）。相关 WG 通常先讨论并赞助，也有 Core 赞助的例外。赞助者负责把提案交给 Core 评审并跟进产物。Core 评估可运行原型、生态收益、设计取舍和反馈，批准后提案才进入 `Accepted`。对于改变可观测协议行为的标准类提案，进入 `Final` 前还要完备规范文本、参考实现与一致性用例，要求参考实现通过该用例。 [MCP SEP 指南](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/sep-guidelines.mdx)
+
+SEP‑2484 要求用 `sep-NNNN.yaml` 将规范条款中的 `MUST`、`SHOULD` 等逐项映射到检查项或有理由的排除。参考实现证明一种实现走得通，一致性用例把多个实现都要遵守的行为写成断言。测试与规范不一致时以规范为准。提交结果并获得官方徽章则是另一道流程，例如 [Zowe 一致性计划](#35-品牌一致性机会) 要求提交结果供 Open Mainframe Project 审核。 [SEP‑2484](https://modelcontextprotocol.io/seps/2484-conformance-tests-required-for-final-seps) · [Zowe 官方认证流程](https://openmainframeproject.org/our-projects/zowe-conformance-program/)
+
+以跨宿主 Agent 的公开契约为例，可以约定一条用例。任务等审批时中断，恢复后重复收到同一回执，已经完成的写入只生效一次。每个适配器用同样初态、事件顺序和断言自测。采用方可自愿提交经过审阅的状态变化、耗时和错误码，维护者用公开的合成输入复现，再把故障变成后续版本共同跑的回归测试。这是隔离原始业务数据后交换验证成果的一种做法。其前提是诊断字段可审阅，而且公开用例能重现触发条件。
+
+起草一页章程时，可以用四个场景快速验算。局部修复谁可以合并，有争议的扩展由谁拍板，破坏公共协议要提交什么证据，委员换雇主或退出后按什么规则补位。每项写出决策人、公开记录、有效门槛和后续责任。公开章程能验证规则的设计，实际制衡效果还要用真实任命、争议议案和席位调整记录检验。
+
 ### 互惠的三层含义与协作信任（圆桌拓展）
 
 [Mirko Boehm 26:55–29:13](https://www.youtube.com/watch?v=3cw75N8AzQ8&t=1615s) 强调：互惠首先是一种社会交换，不能只从许可证强制义务理解；他观察到，大规模宽松许可项目也可以有强烈的互惠规范。
@@ -369,6 +416,22 @@ Git history 仍用于定位版本、bisect、审计和追踪演化；决策与�
   * 公共演讲/布道：能代表项目对外沟通；
   * 社群管理：能处理冲突、授权、带人。
 * 成长路径本质：从“做贡献”到“做判断、带人、定规则”；项目要主动把责任和信任移交，而不是等贡献者自己抢。
+
+### 贡献阶梯：权限随责任增加
+
+一条可用的晋升路径要回答贡献者下一步能承担什么、权限在哪里生效、谁确认和何时收回。MCP 将代码、文档、规范、分诊和社区工作都计为贡献。通常参与 2–3 个月且至少有一项贡献获接纳后，可以申请 Member。提名可由来自不同组织的两位 Member 或 Maintainer 背书，也可由一位 Core 或 Lead 背书。被提名者可以自行发起提名，但仍需背书，随后留出七天供反馈。 [MCP 贡献阶梯](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/contributor-ladder.mdx)
+
+| 角色 | 可以做什么 | 对什么负责 |
+| --- | --- | --- |
+| Contributor | 在开放入口提问题、提交贡献或参加讨论 | 给出问题与贡献的上下文 |
+| Member | 分诊、参与评审、在规范仓库开 PR，可担任 WG 或 IG 负责人 | 跟进所分派的问题，并协助新贡献者 |
+| Maintainer | 合并职责范围内的改动 | 一个领域的测试、文档、发布和交接。MCP 通常要求先做满六个月 Member，再由 Core 批准 |
+| Core Maintainer | 评审规范提案，处理跨领域和争议决策 | 整体技术方向和治理。由 Lead 批准或直接任命 |
+| Lead Maintainer | 终裁、否决和任免 Core | 项目延续和最后一级升级。按创始角色继任规则补位 |
+
+SEP‑2148 的早期提案曾单列 Reviewer。评审指出它与 Member 和 Maintainer 的权限边界模糊，最终版保留 Member 参与评审、Maintainer 负责领域合并。角色少一层，贡献者仍能从评审逐步走到实际负责某个领域。离任或长期不活跃后，可以保留贡献荣誉并撤下现用权限。 [SEP‑2148](https://modelcontextprotocol.io/seps/2148-contributor-ladder) · [Reviewer 讨论](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2148#discussion_r2932166846) · [MCP 退出与休眠规则](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/862397cec702e8f828713071da501cf56158e8fc/docs/community/contributor-ladder.mdx#inactivity-stepping-down-and-removal)
+
+vLLM 更看领域能力和长期维护实绩，例如落地有影响的 RFC、改善核心路径性能、长期维护子系统或推动重要兼容工作。章程列的约 30 个高质量 PR、约 10 次深入评审，是过往 Committer 的经验范围。提名由 Committer 发起，经讨论和两周反馈期后再配置权限和所有权记录。可以用这些实际责任判断候选人是否就绪，再把[项目级表决权](#组织席位计票与治理变更)留给另有章程授权的角色。 [vLLM Committer 提名规则](https://github.com/vllm-project/vllm/blob/186882d9e865ccfabc9f75146a708c4a68524c8e/docs/governance/process.md#committer-proposal-process)
 
 ### 企业内外共享的贡献工作流
 
@@ -450,6 +513,8 @@ Raft 当前的实际政策是发布快照镜像、不公开内部开发历史、
 作者也承认：复杂改动的完整自然语言描述可能比代码更长，此时可以接受代码或辅以流程图、架构图。这使分歧更接近**怎样选择贡献载体、保留证据并分配整理成本**。
 
 我的综合判断：贡献接口宜保留简洁的问题说明、相关 diff、复现步骤、实验记录与已知局限；维护者可用 Agent 去重、提炼带原文回链的摘要，再决定沿用实现还是重写。需要比较贡献者整理、自动化处理、人工 review、重实现与重新验证的总成本。
+
+vLLM 已把 AI 辅助改动写进贡献规则。提交者需审阅改动、理解行为、运行相关测试，并披露 AI 协助。项目仍用常规质量和评审要求判断提交，并要求把零散机械清理合并为有明确范围的工作。这个例子把提交权和验证责任放在同一个人身上，适合与[维护者合并权限](#决策权限维护者dri-与-tsc)一起看。 [vLLM 的 AI 辅助贡献规则](https://github.com/vllm-project/vllm/blob/186882d9e865ccfabc9f75146a708c4a68524c8e/docs/governance/process.md#ai-assisted-contributions)
 
 边界也要保留：自动化 review 会漏报、误报或丢失细节，不能把“信息更多”直接等同于“有利无弊”；多人反馈要区分版本、场景、独立性与选择偏差，不能把重复反馈当独立证据。**拒绝合入外部代码，不必等于拒绝外部验证信号；改由内部 Agent 实现，也仍需重新验证。**
 
