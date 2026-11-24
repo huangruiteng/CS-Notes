@@ -52,7 +52,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读2.0报告选节与图1，固定版README、异步RL指南及SWE集成README。重点：策略陈旧度、可信轨迹/奖励与在线权重更新；完整多进化面治理仍是议程。未全文精读或训练复现，GPU/沙箱与维护费用待评估。",
-      "queue_rank": 5
+      "queue_rank": 9
     },
     {
       "material_ref": "material-cbe958ab171a9e5a253d7a4b",
@@ -174,7 +174,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "S｜高优先亲读。已读Ethan主文和Lilian Weng 2026-07-04原文全文、benchmark附录与参考文献，实看ACE/MCE架构图，其他图和底层论文/源码/实验未完整核验。以持久文件、显式并行、上下文/工作流/harness/optimizer演化串起研究地图，保留updating与benefit分离、弱模型失败、评测及权限边界。建议30–45分钟读Patterns、Context Engineering、Self-Improving Harness和Future Challenges，整理优化对象/反馈/状态/失败/全成本对照。实际收益与搜索维护总成本待验证。",
-      "queue_rank": 32
+      "queue_rank": 23
     },
     {
       "material_ref": "material-56c5827a0463d91465ce4ba2",
@@ -236,7 +236,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "从最小 agent loop 追到 session 与扩展点，区分核心责任和可替换策略。",
-      "queue_rank": 54
+      "queue_rank": 18
     },
     {
       "material_ref": "material-9ca7ef3f36a72cef9555014d",
@@ -4696,7 +4696,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "",
-      "queue_rank": 56
+      "queue_rank": 58
     },
     {
       "material_ref": "material-261f0603a6f664e39b84a80d",
@@ -7477,7 +7477,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读原帖/作者补充、固定daf52e7任务及权限文档；长文正文与媒体未读，17万runs/工作日为作者自报。重点：issue/run分离、完成不等于验收、活性与故障分类重试、临时API令牌不等于本机沙箱。未运行或全面审计源码；当前source-available附商用限制。A档生产平台参照。",
-      "queue_rank": 38
+      "queue_rank": 47
     },
     {
       "material_ref": "material-4e22a1bc3a1d32d0015d3e8b",
@@ -8980,7 +8980,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "对照六阶段产物链，说明模型自动化、人工 gate 与持续评估分别落在哪里。",
-      "queue_rank": 65
+      "queue_rank": 66
     },
     {
       "material_ref": "material-f67bd6e238be438de8d6f6d8",
@@ -9064,7 +9064,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "画出 durable state 与 leased executor 的边界，解释 worker 重启和任务恢复的区别。",
-      "queue_rank": 29
+      "queue_rank": 15
     },
     {
       "material_ref": "material-learn-shareai-claude-code-20260831",
@@ -9386,7 +9386,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "比较缓存稳定前缀、文件外置记忆、目标复述与失败证据各自解决什么问题。",
-      "queue_rank": 52
+      "queue_rank": 19
     },
     {
       "material_ref": "material-raft-source-available-prompt-request-20260924",
@@ -9438,7 +9438,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "训练接口参考：先读rollout/轨迹/信用分配契约，再按问题定位源码；框架清单不代替RL原理。沿用既有记录，未新增运行验证。",
-      "queue_rank": 26
+      "queue_rank": 37
     },
     {
       "material_ref": "material-jit-agent-just-in-time-harness-evolution-20260829",
@@ -9563,7 +9563,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "17 节连接类型、纯决策、提交时验证、并发历史、日志与恢复、共识、存储与排队；用公开 commit 固定的 LoopX 代码作案例。 基础课主入口：先读状态机、事务、幂等与 fencing，再用日志/共识/恢复章节提出反例；讲义→练习→Lab，不以读完17节代替理解。",
-      "queue_rank": 30
+      "queue_rank": 5
     },
     {
       "material_ref": "material-distributed-systems-loopx-exercises",
@@ -9587,7 +9587,7 @@
       "lifecycle": "candidate",
       "read_scope": "executable_tested",
       "note": "SQLite 演示盲重试余额 80、原子去重余额 90；覆盖参数冲突、提交前回滚、epoch 条件写和 snapshot 版本；write skew 是抽象内存模型。 配套讲义使用：先预测每个故障的结果，再运行、解释修复条件；不是另开一门框架课。",
-      "queue_rank": 66
+      "queue_rank": 6
     },
     {
       "material_ref": "material-chyroc-open-muse",
@@ -9614,7 +9614,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已选读 DSec v1 摘要、引言及 §2、§4–6、§8；X 仅截断预览，配图与后续未读。关注环境分层、按需加载、超卖 QoS、trainer／worker／sandbox 状态归属、结果复用和 pause／resume。性能与规模是作者报告，未复现；§8 不验证 RL 集成。优先读 §4、§6。",
-      "queue_rank": 12
+      "queue_rank": 4
     },
     {
       "material_ref": "material-raft-cold-wake-20261005",
@@ -9972,7 +9972,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "A：读 §2–3 与附录 I/J，区分未被召回、被使用与条件贡献；用于暴露日志和预算匹配的检索干预。已读问题/方法及部分实现限制，未全面审查实验、代码或复现；gold pool 与未来效用外推限制需保留。",
-      "queue_rank": 55
+      "queue_rank": 57
     },
     {
       "material_ref": "material-rudder-delayed-credit-20261012",
@@ -10041,7 +10041,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "历史v1全文/附录及图1/4证据保留；本次仅补读X/Aiolus解读及原论文题头摘要，机构Together AI。SC去drift不等于恢复on-policy梯度；OpenAI终极算法传闻未证实。代码图遮挡，未复现。选读§4/A1/A2与staleness反例。",
-      "queue_rank": 7
+      "queue_rank": 11
     },
     {
       "material_ref": "material-cheekypint-meta-muse-wonder-20261013",
@@ -10067,7 +10067,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "已读2026-04-08官方正文全文及4张架构图/接口表像素；外链docs、API/源码、安全审计与独立复现未读。A档：session事件日志、可替换harness与sandbox分离，恢复计算与保存事实各有职责；context管理可换而原事件可追溯，凭证通过resource绑定或vault/proxy。日志追加幂等不证明外部effect exactly-once。厂商报告p50 TTFT约降60%、p95降超过90%，不是任务成功率，缺原始对照。选读解耦章节、接口表与session/context章节，可转恢复故障矩阵和状态所有权检查表。",
-      "queue_rank": 53
+      "queue_rank": 16
     },
     {
       "material_ref": "material-longharness-2610-13075",
@@ -10200,7 +10200,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读原帖主文和配图像素，并追读OpenAI 2026-10-14官方文章全文、维护提示词与成本图的文字数据；未核验内部PR、生产遥测或独立复现，成本图未做像素检查。重点是死代码证据链、保留killswitch、间接引用与跨服务依赖、Permanent开关转人工、CI按日节省量排序，以及同仓库快照/模型仅改一条AGENTS规则的成对重放。1400+PR/800k行、镜像48%、CPU约0.42%与CI收益是作者报告；零观测调用不等于永远无用途，AGENTS提示是实验建议而非已证实增益。A：优先读规则对照与分阶段维护方法，转成一页证据/风险/收益检查表；工程参考进入ranked backlog，不挤占前沿研究与基础选读。",
-      "queue_rank": 63
+      "queue_rank": 64
     },
     {
       "material_ref": "material-sac-littleprince-2109962425512734739",
@@ -10323,7 +10323,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读官方文章正文与报告数字；图像、原始数据与独立复现未核验。相同model/harness/task改变资源配置，Terminal-Bench 1×到3×的故障率下降但分数差未超噪声；更宽资源也会改变可用策略，不能把消除故障等同能力提升。6pp及3×是作者特定实验，不是通用阈值。先读How we got here、Other sources of variance、What we recommend，约15分钟；形成CPU/RAM保证值与硬上限、并发、临时盘、timeout/latency和故障开销的匹配表，再读自身完整轨迹。",
-      "queue_rank": 13
+      "queue_rank": 26
     },
     {
       "material_ref": "material-scaling-discovery-forgetting-2610-20563",
@@ -10337,7 +10337,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读作者原帖主文/可见回复（两条Show more未展开），arXiv2610.20563v1经HTML404后读PDF及TeX§1–6、Table1–4、A/B任务与完整prompt；实际看Fig2/4/5，Fig2另补完整第4页，未读帖图/代码或复现。S：周期清空session与可见候选历史，仅继承best+score，配合四agent异步候选共享恢复探索；不同于SLA保留研究state及Fork-and-Flush继承全workspace。同checkpoint各续30proposals的team消融：continue+1.4%/$24.67，forget+9.2%/$15.32，均三次且方差大；非等全成本，主结果单模型/Pi、四编程任务。优先§3、4.3/Table3/Fig4、§5及AppB，转为保留/清除/触发/采用/评分/费用消融卡，审计历史不直接删除。按用户高优先级要求置首读区，其他素材相对顺序保留。",
-      "queue_rank": 46
+      "queue_rank": 30
     },
     {
       "material_ref": "material-terminal-rsi-2610-22192",
@@ -10695,7 +10695,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已核验CMU课程镜像第二版2018标记，抽读PDF69–70、81–82、96、184、483–485相关段落；非全书精读。优先Ch3/4、§8.2、§17.2，再按需17.3，约8–12小时含小型DP练习。先理解状态、Bellman与时间抽象，不要求现在通读RL。",
-      "queue_rank": 45
+      "queue_rank": 38
     },
     {
       "material_ref": "material-howard-confidence-sequences-1810-08240",
@@ -10776,7 +10776,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读X主帖、当前StableReinforce/Datum文档，定向核对固定SDK的采样标志、span校验及loss枚举；未读完整SDK/服务端算法，未跑训练。看点：record_stability_info=True、同Session sequence_id、完整loss侧sampled span、一天有效期；KL约束sampler与learner，当前支持k1/k3而非reference-policy KL。Alpha内部稳定性是官方报告，所读页面无完整算法/公开对照，不混同R1-Reward同名方法。作为异步RL provenance与失配检查表备查，建议接在Score Centering后读。",
-      "queue_rank": 25
+      "queue_rank": 34
     },
     {
       "material_ref": "material-google-ax-agent-orchestrator-20260922",
@@ -10818,7 +10818,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "沿用远端既有阅读记录（原 read_scope：recorded_review）；本次同步只核对完整公开卡片，未重新阅读全文。已选读 arXiv v2 §1–6、关键公式及 Fig.2–8 图注/内嵌案例，核对官方 README；未完整读附录/轨迹、逐图查看或复现。相同步骤监督下，只优化当前奖励与事先的长期价值审批，削弱“先写弱测试、再轻易通过”等多步 reward hacking。§4.4 显示用冻结策略 rollout 结果作审批会重新引入漏洞；不消除单步作弊，可能损失监督者无法预见的长期收益。S 档优先读 §3、§4.4、§6；用于理解信用分配，不能直接等同于 best-only 或低频 hidden feedback。",
-      "queue_rank": 23
+      "queue_rank": 14
     },
     {
       "material_ref": "material-hermit-2114769723879464983",
@@ -10941,7 +10941,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜原帖及可见作者后续已读，未称完整线程；论文v1正文§1–5、成本A.4、预测D.1及PDF表1/3、图6/7已核对，非全附录/源码精读。冻结TabPFN把训练记录作为数值上下文，预测损失/曲线、比较配置并用新观测选择实验；KAN补参考坐标。OOD不全胜；Hero案例用了目标早期观测，仅评分后续14点至进度14.61%，完成预测未验证，预测冻结早于完整评分规则。1.79秒是特定H200 joint-context测试，不等于整套研究流程或费用收益。建议选读2.4与4/D.1，提炼预测→选实验→实际反馈及完整成本schema；未复现。",
-      "queue_rank": 58
+      "queue_rank": 60
     },
     {
       "material_ref": "material-spawn-ai-pilled-jsnnsa-20261029",
@@ -10968,7 +10968,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜原帖正文、论文v1正文1–4.5及附录A/B/D/E已读，图1/2、表1/2/8像素核对；非全附录/源码精读，代码入口404，未复现。MM维护进展和事实，CO清历史保检查点；SFT+ME-ARPO学习多episode策略。GAIA103题Avg@8，Qwen纯prompt20.4→SFT41.6→RL42.8，非Pass@8；输入token1078K→136K不等于总成本。训练后CO4.3→0.21，非越清越好。定性扰动显示重置会丢失复核证据，来源指针与重新验证仍待设计；BrowseComp仅前150题。与同名多Agent CORAL分开。建议选读4.3和D/E，提炼checkpoint、证据引用、失效与重验证契约。",
-      "queue_rank": 34
+      "queue_rank": 32
     },
     {
       "material_ref": "material-tutti-collaboration-tradeoffs-2116172953348166063",
@@ -11029,7 +11029,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "A｜固定commit根/包README全文，威胁模型§1–5/宿主责任/S1，接入egress与conformance章节及当前changelog已读；未审实现、跑测试或安装。单配置生成隔离、CSP、能力gates和Agent手册；opaque无服务器，served支持独立origin与持久页面，可选runtime仍需后台鉴权。宿主frame-src与默认gates不可漏；不保证CPU/内存、内容真实或完全防焦点窃取。声明发布0.14.7，主分支另有Unreleased。先摘要，可转为显示边界/负对照契约表；部署和跨浏览器维护成本未量化。",
-      "queue_rank": 64
+      "queue_rank": 65
     },
     {
       "material_ref": "material-dan-koe-life-reset-2010751592346030461",
@@ -11082,7 +11082,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜已读X原帖正文及Factory 2026-10-29文章全文文字/方法说明；仅看封面像素，交互图1–7未完成视觉核验，未审源码或复现。PTC以JS组织有界并发/过滤/写后逐项校验，原始结果留程序/日志；新工具尾追加保缓存，后台完成唤醒，跨模型实验后工程师审核。151工单/312工具/2请求为作者案例，直接调用36–107请求是估算；98%按请求、91.5%按token，不能混为费用节省；默认行号使Opus单题成本降22%却令Kimi升32%。优先读Script设计表、Agent Factory和Methodology，转为模型请求/工具执行/校验覆盖/全成本的结果卡。",
-      "queue_rank": 62
+      "queue_rank": 63
     },
     {
       "material_ref": "material-gad-goal-aware-dynamic-2610-39193v1",
@@ -11275,7 +11275,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读作者主帖与完整结果回复、固定602f735 README/评测协议/接入说明，选读UCB并读Memory barrier；框架与四结果图先前已核验，新回复配图未读。9B模型提策略、DeepSeek V4写代码；权重固定，更新UCB统计或文本记忆。HKUDS AgentPilot与Stanford AgentFlow须区分。保留sampled-B/admission/final-C、20actions对10candidates和TB起点差异，token节省为作者比较，不等同总成本优势；未复现。接Resolution/SIM阅读策略选择、成对反馈与失败经验。",
-      "queue_rank": 16
+      "queue_rank": 31
     },
     {
       "material_ref": "material-harness-s-2611-04277",
@@ -11320,7 +11320,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读Z Potentials推荐语、编辑观察及01–09完整访谈，区分受访者陈述与编辑归纳。关注需求驱动后训练、模型/Harness协同、记忆时效、克制主动服务与Skill/框架双层授权设计。30+行业/8000+能力、上下文约减40%、单任务Token约1.6倍均缺公开统计协议；不直接推导降本、留存或完成率。未核验内部实现/案例原始轨迹。",
-      "queue_rank": 36
+      "queue_rank": 45
     },
     {
       "material_ref": "material-drex-decision-models-2611-07854",
@@ -11537,7 +11537,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "重点核对预算版 Bellman 目标、Stride 隐性启发式显式化与五阶段探索算子契约：对照 Kendall tau-b 多点标尺保真度与前沿断崖检测、p* 盈亏平衡门槛、五元组原子 Checkpoint 反事实配对分叉，以及机制岛精英保留防局部爬山坍缩；同时审视 Stride prompt 默认注入边界，防止未采用算子增加控制税。",
-      "queue_rank": 17
+      "queue_rank": 25
     },
     {
       "material_ref": "material-alphaevolve-2506-13131",
@@ -11550,7 +11550,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "LLM 驱动演化代码搜索的一手技术白皮书：核对 §2.1–2.6 的 EVOLVE-BLOCK 全文件演化接口、SEARCH/REPLACE 差分改写、轻量模型广度吞吐与强模型深度突破混用、由快到慢的评测级联与多指标反馈，以及 §2.5/§4 的 MAP-Elites + 岛模型种群维护与五项消融，作为机制岛演化规划器的一手源头文献。",
-      "queue_rank": 47
+      "queue_rank": 36
     },
     {
       "material_ref": "material-boca-multifidelity-bo-icml2017",
@@ -11605,7 +11605,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "A｜已读2026-11-12官方文章正文及两段TOML配置。关注可信Gateway与执行隔离、管理员requirements与运行config分工、受管网络/文件/进程/secret边界、模型审查、Agent身份和受限日志。500+部署与生产力是作者自述，缺对照和误判率；OCE为pilot，未审关联实现/配图或部署验证。先摘要，转为权限拒绝、身份撤销与日志访问对照表。维护与模型审查有持续成本，金额未量化。",
-      "queue_rank": 59
+      "queue_rank": 61
     },
     {
       "material_ref": "material-tabbit-bitter-browser-use-20261114",
@@ -11667,7 +11667,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读v1主文§1–7/表1–7，实看Fig5/8/9；其余图、源码与独立复现未核验。Open/Close/Next支持同Agent嵌套任务，Spawn独立委派；持久SpineTree保留轨迹，已完成scope仅投影结果。GPT SWE Score38.1→42.6（+4.5pp、11.8%相对），费用-32.4%；GPT ProgramBench费用反增5.4%，Qwen SWE总token也上升。Folding对照未FoldGRPO训练；缓存前缀可复用不等于实测命中。先30–40分钟读§4、5.5.1/5.5.3/6，关注scope边界、证据恢复与全成本。",
-      "queue_rank": 41
+      "queue_rank": 22
     },
     {
       "material_ref": "material-khazix-agent-prompts-2122268349707219333",
@@ -11736,7 +11736,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜高优精读（已读 arXiv v1 主文 §1–§5，未本地复现）：提出超越静态代码切片的 Code-Flow 演化管线，把仓库 commit、patch 迁移与文件/仓库级 FIM 纳入预训练与中训练；§3 覆盖层级去重、AST 语法过滤与 32K→128K（Reasoning QA+Agent 闭环轨迹+提交历史）两阶段中训练；§2/§4 解析共享权重两轮迭代 LoopCoder 架构、回放防对齐税、去 KL Clip-Higher GRPO 竞赛编码 RL 与云端沙箱 SWE-RL 双轨分叉训练。",
-      "queue_rank": 2
+      "queue_rank": 7
     },
     {
       "material_ref": "material-swegym-r2egym-areal-env-rl-20261117",
@@ -11754,7 +11754,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜高优精读（已读三篇 arXiv v1 摘要与方法/实验主干，未复现集群实验）：打通可验证环境到异步 RL 吞吐闭环——SWE-Gym 构建 2,438 个真实 Python 可执行任务并分离轨迹条数与唯一实例/仓库扩展律；R2E-Gym 通过 SweGen 提交逆向翻译与自动单测合成扩至 8,135 个环境，并用 Exec-Based 测试 Agent+Exec-Free 排序器的混合验证突破单轴饱和（42–43%→51%）；AReaL 以可中断 rollout worker、staleness 上界控制与解耦 PPO 目标消除长尾等待，吞吐达 verl 最高 2.57 倍。",
-      "queue_rank": 4
+      "queue_rank": 8
     },
     {
       "material_ref": "material-coding-step1-python3-containers-streaming-20261117",
@@ -11769,7 +11769,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜独立编码第一阶段（建议 2.5h，零补全纯标准库冷默）：覆盖 deque/Counter/defaultdict/dict 顺序陷阱、bisect 时间戳历史快照查找与单调谓词模板、heapq 真值表+单调序+懒删除优先队列与周期重建、头尾双哨兵双向链表哈希 LRUCache（对照 OrderedDict），以及跨分片断包恢复的流式协议解析器；验收标准为单文件闭卷手写并通过边界自测断言。已核对 Python 3 官方文档与公开笔记对应章节。",
-      "queue_rank": 9
+      "queue_rank": 42
     },
     {
       "material_ref": "material-coding-step2-graph-dp-bounded-async-20261117",
@@ -11784,7 +11784,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜独立编码第二阶段（建议 3h，零补全闭卷盲敲）：覆盖 Kahn 入度拓扑排序、三色 DFS 有向环路节点精确还原、路径压缩加按秩合并并查集、单调双端队列滑动窗口极值、区间合并扫描线、记忆化搜索转显式状态 DP，以及基于 asyncio.Semaphore 配合超时与退避重试的有界并发调度器；验收标准为单题 20 分钟内盲敲完成并覆盖空图、自环、超时取消边界测试。已核对官方文档与公开算法笔记。",
-      "queue_rank": 11
+      "queue_rank": 43
     },
     {
       "material_ref": "material-coding-step3-stateful-engine-transactions-20261117",
@@ -11799,7 +11799,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜独立编码第三阶段（建议 3.5h，渐进演化工程模拟）：训练 Part 1→Part 2→Part 3 连续叠加约束而不推倒重写的结构设计，围绕 dataclasses 状态不变量建模，裸写支持嵌套 begin/commit/rollback 撤销日志、精确时间点快照与惰性 TTL 淘汰的内存键值引擎，以及含租约过期回收、优先级抢占与幂等去重的任务调度状态机；验收标准为三阶段复用核心模型且零回归通过全套断言。已核对官方文档与工程笔记。",
-      "queue_rank": 19
+      "queue_rank": 40
     },
     {
       "material_ref": "material-coding-step4-gqa-kvcache-grpo-mock-20261117",
@@ -11813,7 +11813,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "S｜独立编码第四阶段（建议 3.5h，底层算子手撕与计时通关）：用纯 PyTorch 张量原语裸写因果掩码 Grouped-Query Attention（含 Q/KV 头数分组广播、数值稳定缩放 softmax 与 Prefill/Decode 两阶段 KV Cache 动态拼接），手撕 GRPO/DAPO 组内归一化优势、response token mask 对齐、Clip-Higher 非对称裁剪策略梯度损失与 ratio 检查，并以一次 75 分钟单屏无辅助计时模考收口。已核对 PyTorch 文档与论文定义。",
-      "queue_rank": 24
+      "queue_rank": 41
     },
     {
       "material_ref": "material-slopcodebench-20261117",
@@ -11826,7 +11826,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "读了 v2 的任务协议、指标定义、结果与表 6，并对照 v1 的规模。v2 含 36 题、196 个检查点。Agent 需要沿用自己写的代码应对后续规格，每轮同时检查新增行为和此前测试。结构侵蚀指标看高复杂度函数承载的复杂度占比。表 6 中它与下一轮是否通过的相关性接近零，与下一轮成本的相关性为正。未运行评测。 挑一条需求轨迹，把本轮通过、历史回归、结构变化、下轮成本列成四列。",
-      "queue_rank": 50
+      "queue_rank": 55
     },
     {
       "material_ref": "material-nokv-workbench-20261117",
@@ -11936,7 +11936,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "部署者自述用五个团队、约八个 Agent 跑了数月。两次尝试都把组织结构当成了记忆归属；项目状态进入了用户画像。已合并的 #2236 解释 user 的凭证与数据归属，讨论则补上接入端容易漏掉的契约：请求头选读取视图，写入时须给相应消息稳定的 peer_id。发帖人最终选定每个 Agent 一个 user，项目作为 peer，共享事实另存 resources 或交给外层。回帖确认了迁移方向，效果仍待部署验证。 用同一条项目事实走一次写入和召回，分别标注凭证、消息归属、读取视图与共享资源。",
-      "queue_rank": 51
+      "queue_rank": 56
     },
     {
       "material_ref": "material-ov-failure-transfer-20261117",
@@ -12125,7 +12125,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "三层架构（Base/领域插件/单题记忆）与五阶段研究闭环；外层维护将证明、失败和反例变成流程/知识/工具改进，非权重训练。已读固定8cef516 README/v6变更，选读维护与接入说明；未看演进视频/逐图、审完整证明或复现。重点看最难剩余分支预检、全归档反例反馈与修复误差停止；v3研究后吸收进v6，部分证书外置或待独立审阅。",
-      "queue_rank": 44
+      "queue_rank": 52
     },
     {
       "material_ref": "material-qwen38-27b-pi-adapter-20261118",
@@ -12139,7 +12139,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "固定pi内AsyncGRPO+LoRA适配；已读X、固定620eceb模型卡全文含折叠更正及旧方法文，未读图/运行。SWE旧29.4→62.7混入9个base隧道失败，已修正39.2→64.7；TB86题39.5→55.8。SWE和18题TB参与选点，另68题TB未参与；轮数节省取双双做对任务，不能拼接thinking基线或当费用节省。旧博客配方非本次Qwen；新发布稿不可读，总成本/版本鲁棒性未核。",
-      "queue_rank": 27
+      "queue_rank": 13
     },
     {
       "material_ref": "material-longcat25-20261119",
@@ -12152,7 +12152,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "官方博客：长程Agentic RL的数据/环境合成、partial rollout、跨任务与Harness混训、MOPD和训推一致性。已读博客渲染全文、评测表/脚注及固定60032d9模型卡部分；未读图片/演示或复现。首读RL/MOPD/训推一致性；未定位独立2.5论文，2603.27538为LongCat-Next。",
-      "queue_rank": 28
+      "queue_rank": 33
     },
     {
       "material_ref": "material-model-generation-zhengmianai-20261119",
@@ -12178,7 +12178,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "当前e1e5669主线为多Harness持久化运行时；自演化属Earlier Exo，论文绑定c5c1963。已读README/架构/示例并定向读接口、guardian facade/test；选读论文机制/实验/负例，实看Fig3/6/7、Table1，未全源码/附录/复现。关键：canonical日志≠prompt，恢复依Harness；默认guardian仅build，host模块trusted。AppWorld成本收益有学习摊销，quests和小模型反例保留。首读状态/替换契约与恢复边界。",
-      "queue_rank": 33
+      "queue_rank": 17
     },
     {
       "material_ref": "material-resolution-hypothesis-2611-23068v1",
@@ -12192,7 +12192,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读v1主文、官方项目页及方差/候选池/选择/捷径审计选定附录，实看主图2–5和分布密度图；未全附录/代码复现。固定权重的产物演化要分开衡量提出与选择：独立运行方差、评分捷径和幸运高分会掩盖真实收益。7方法、6模型非完整网格；密度由观测运行重采样。审计8/12基准找到捷径，也保留真实检索收益；16次验证使均分61.4→64.4%，代价约16倍验证rollout。候选级证据主要限TB技能池；完整数据待acceptance。首读分布图、捷径审计与高分辨率选择实验。",
-      "queue_rank": 14
+      "queue_rank": 27
     },
     {
       "material_ref": "material-sim-crsi-2611-18856v1",
@@ -12205,7 +12205,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读v1主文及SIM实现、预算/重复、迁移选定附录，实看Fig1/2/4；未全附录/作者代码复现。SIM面向Harness优化器，按根因保留修改理由、评估前预测、实测正负结果与模型/任务来源。10组成对编码续跑9/10获益、平均+2.36分；其他域多单run，跨代有负例，accepted不等修复成功。全量读取无检索，未证明数据库/检索实现优劣或等token收益。连读Resolution，先校准改进再保留经验；对照固定版本LoopX文档，沿已有Reward Memory owner评估契约与消费路径，provider可换。",
-      "queue_rank": 15
+      "queue_rank": 29
     },
     {
       "material_ref": "material-agentenv-kvcache-ai-8b41edf",
@@ -12222,7 +12222,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已精读固定commit 8b41edf的README/CLAUDE/architecture/snapshots/volumes/p2p/services及miles/codex接入文档，未审计全量Rust/Go源码或本地Linux KVM复测。核心以OverlayBD(LSMT)+Linux 6.8+ ublk取代userfaultfd：内存与磁盘分层只读快照通过引用计数共享ublk块设备复用宿主机Page Cache，COW分叉exclusive卷，uvm-ublk-daemon(group_commit_size=0)崩溃不丢设备，gateway/scheduler+iroh P2P分发并暴露E2B/Miles/Codex接口。作者报告支撑Kimi K3 150万镜像、50ms内恢复、100ms内快照与9.6x内存超卖。对照DSec，用于评估Checkpoint增量状态分叉与RL环境底座。",
-      "queue_rank": 1
+      "queue_rank": 2
     },
     {
       "material_ref": "material-stitch-loop-2123100817863663686",
@@ -12235,7 +12235,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读官方主帖与11/18博客全文，实看UI图；未看演示视频/完整回复串或实测。持续闭环为建议→含取舍的方案→人选方向/云沙箱PR→线上反思；内置安全、延迟与可访问性。支持CLI/MCP与其他coding agent混用，不能称锁死Gemini。全球waitlist、Ultra优先；价格、数据合同和实际净收益未知。A档quick，先看四阶段、人审与混合模型边界；同名记忆论文及提示技能另计。",
-      "queue_rank": 39
+      "queue_rank": 48
     },
     {
       "material_ref": "material-openviking-agent-context-windows-20260911",
@@ -12249,7 +12249,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读博客正文及固定版README/捕获实现；模型自主换窗、归档回读与双层交接。单任务对照，未复现、图表未逐图核验；实验扩展需互斥加载，捕获存在长度/拒绝边界。重点读上下文重建与失败处理。",
-      "queue_rank": 22
+      "queue_rank": 35
     },
     {
       "material_ref": "material-loopforge-wechat-uk67iouc-20261110",
@@ -12263,7 +12263,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读微信正文、部分动图静态帧及固定版README/公开范围/历史验证记录。看五层SOP、客观门禁、接管与复盘处方；收益为团队自报，公共默认面向可信团队，需配置项目资产。未部署或全面核验源码。",
-      "queue_rank": 40
+      "queue_rank": 49
     },
     {
       "material_ref": "material-ripo-2607-10169",
@@ -12277,7 +12277,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读v2正文§1–6及表1–6文字，实看Fig1(a)，补读Aiolus解读。按旧策略概率调clip以保留探索；局部近似不是全局硬约束，内部300B收益为作者自述。未逐图/源码审计或复现。先读§3–4及不对称预算反例。",
-      "queue_rank": 8
+      "queue_rank": 12
     },
     {
       "material_ref": "material-uw-mode-longhai-2123784333018456547",
@@ -12304,7 +12304,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "Cornell 2026-11-20后训练研究地图：六方向覆盖harness、性格训练、开源RL环境、推理效率、RL与多智能体scaling。先看21–33、40–46页，聚焦环境数据、公平算力分配及产出与理解的区别。已读原帖和演讲文字；配图、引用论文与视频未完整核验。",
-      "queue_rank": 31
+      "queue_rank": 39
     },
     {
       "material_ref": "material-terminal-bench-challenges-20260618",
@@ -12318,7 +12318,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "官方大型单任务长程测试床：Rust编译器提速、16H100单文件推理引擎、JS/WASM WebGL。已读发布与固定版三题规范/入口验证器、Rust评分链和52项清单；子目录README写5项与脚本不同，正确性reward不代表性能提升。先读README与Rust验证器形成预算/验收卡；未运行、未全审测试框架或看渲染图。",
-      "queue_rank": 18
+      "queue_rank": 28
     },
     {
       "material_ref": "material-zfinance-data-market-20261122",
@@ -12332,7 +12332,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "Z Finance行业评论：把数据供应链激励、评测利益冲突与训练效果验收连接起来。已读正文、实看Gandalf核查示例，定向核验OpenAI审计与ATLAS官方案例；59.4%仅指138道选择性审计题。匿名指控、报价/估值/市场规模未独立核实；其余配图/全部引用及实验未核验。建议提炼来源追溯、独立测试集、同预算消融的验收卡。",
-      "queue_rank": 57
+      "queue_rank": 59
     },
     {
       "material_ref": "material-gsi-meta-solver-2122315968890474517",
@@ -12346,7 +12346,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "结构优先→专用求解→核验→工具积累。已读主帖、方法页、Research选段及R-0018/R-0004；未读完整回复/全目录/媒体，未运行或外部审阅。R-0018只测预声明类别与预制solver，未展示自动生成；宣传250+与目录112口径未逐项对账，速度不作端到端收益。先读Evidence/Limits，形成证据分层表。",
-      "queue_rank": 49
+      "queue_rank": 54
     },
     {
       "material_ref": "material-harness-compositional-generalizers-20261120",
@@ -12360,7 +12360,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "本人明确高优。Harness控制局部调用观察，学习分解策略；surrogate环境以廉价/模拟工具训练后迁移。已读论文核心§1–4/附录选段、固定版实验/SFT说明，实看Fig1/3/6对应PNG；未全文或复现。46.1→58.5为+12.4分/相对26.9%，token≠美元/墙钟；递归提示单用退步，链池有选择。首读§2/3.3/4与Tables4–6。",
-      "queue_rank": 10
+      "queue_rank": 24
     },
     {
       "material_ref": "material-tensorlean-ptx-formal-verification-20261120",
@@ -12374,7 +12374,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读微信可见正文、CertiK公告、固定版本README及3个issue；未读技术博客全文/全部图表，论文、验证器和证明待发布，未跑GPU或证明。公告38问题、当前README39问题；已报告不等于已修复，PTX保证不等于全栈保证。A：具体数值/并发反例与规格边界。",
-      "queue_rank": 48
+      "queue_rank": 53
     },
     {
       "material_ref": "material-sao-single-rollout-2607-07508v1",
@@ -12388,7 +12388,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读SAO v1正文/附录A-B/表1-5，实看图2-5；Li²SAO仅摘要、1-3节、附录D及表3/4。128轨迹batch不等于batch=1；区分DIS稳定收益与单采样增量，保留critic预训练未公开、冷启动、工具预算及成本未知。未运行训练或复现。S：异步RL、行为概率与信用分配的优先阅读。",
-      "queue_rank": 6
+      "queue_rank": 10
     },
     {
       "material_ref": "material-memt-1-pro-native-memory-2610-26825v4",
@@ -12402,7 +12402,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读报告v4相关架构/Pro训练/评估/成本/限制/附录B，实看图4/7与表3；读固定README、推理指南相关章节及Pro脚本。53.08仅本次参数化记忆组第一；48 MiB排除权重/KV；66倍和编码增益来自Nano。保留非商用软件许可与状态恢复/隐私边界，未跑模型。与Mem-T/MoT-GRPO不同。",
-      "queue_rank": 35
+      "queue_rank": 44
     },
     {
       "material_ref": "material-production-systems-agent-infra-tradeoffs-20261123",
@@ -12419,7 +12419,7 @@
       "lifecycle": "candidate",
       "read_scope": "full_text",
       "note": "S｜高优从零闭卷精读与双语言手抄演练（建议 4.5h，Python 3 + Rust 对照）：系统覆盖六大核心支柱——(1) Linux/虚拟内存与网络排障（4 级页表/HugePages、CoW fork 缺页毛刺、cgroup OOM、epoll ET 饥饿、CLOSE_WAIT vs TIME_WAIT、HTTP/2 队头阻塞与 SSE 游标续传）；(2) 硬件并发内存序与取消安全（StoreLoad 乱序、64B 伪共享、Acquire/Release 无锁 SPSC 环、RAII 许可守卫、select! 取消安全帧解码）；(3) 存储与分布式共识（B+Tree vs LSM、五大隔离异常、Quorum 盲区、Raft Figure 8 旧 Term 禁令、Outbox/Saga、Fencing 幂等账本与嵌套 Undo Log）；(4) 高并发在线服务治理（缓存四大灾备、Cache-Aside 脏回填 Lease 根治、有界负载一致性哈希、令牌桶/三态熔断/Hedged Requests）；(5) GPU 与 MoE/RL 训推全栈算术（6Ψ FLOPs、Ring-AllReduce 推导、5D 并行、Paged/RadixAttention、PD 分离、投机解码数学无损证明与 Online Softmax）；(6) 四道综合架构演练大题。本次全文扩充核验。",
-      "queue_rank": 3
+      "queue_rank": 1
     },
     {
       "material_ref": "material-personal-agent-48-notes-20261123",
@@ -12431,7 +12431,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读本次可见正文1–48条，实看任务分布/使用侧重/持续使用三图；未取原始评论或会议录音。保留1500+抓取与1244场景反馈、2737任务提及的口径；三例回顾非留存率。重点是用户补做成本、主动推进与停止、记忆时效及人×时间数据；市场/内部实践/商业预测未独立验证。",
-      "queue_rank": 37
+      "queue_rank": 46
     },
     {
       "material_ref": "material-shirudo-live-defense-2124980590717911527",
@@ -12445,7 +12445,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读原帖、OpenAI/Cisco正文及固定1e81ff5 README/简版安全模型，实看OpenAI观测控制图；要求/quickstart/长威胁模型仅选读，未全审源码或复现。Java4Shell为Java字节码受控演示，非eBPF案例；签名/TPM不证明防护正确。pre-release需特定内核与TPM；RL为长期原则，非训练实证。A档安全执行面参照。",
-      "queue_rank": 60
+      "queue_rank": 62
     },
     {
       "material_ref": "material-artificial-collective-intelligence-20261123",
@@ -12458,7 +12458,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读原帖及导论引言/§1–3/5–7，实看Fig27/28；§4、其余图及引文未系统核验，未复现。重点是任务串行上限、通信/相关错误成本、同预算单Agent/独立采样/关闭通信基线，以及协作信用分配与同质化。Fig27是示意图；开场大规模成果与事故未追核。A档评估框架，非新训练算法或普遍扩展证明。",
-      "queue_rank": 42
+      "queue_rank": 50
     },
     {
       "material_ref": "material-agent-memory-reading-map-2125068536913776824",
@@ -12486,7 +12486,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读原帖/官方正文、v3引言/§1–3/B/C/D.1，实看PDF Fig1/3/5，固定框架与discoveries README；未全附录/代码/复现。冻结规格+外部Comparator防改题，wiki区分证明与思路；61/15/24为来源归类，非同预算协作消融。290/11.8/8.22/2.49倍主要是逻辑位×T门成本，非实机速度；复核大题需约230GB+swap。",
-      "queue_rank": 43
+      "queue_rank": 51
     },
     {
       "material_ref": "material-anolisa-agent-system-stack-9878def83cd9",
@@ -12500,7 +12500,7 @@
       "lifecycle": "candidate",
       "read_scope": "recorded_review",
       "note": "已读固定提交 README、AW能力/安全/Tokenless文档；选读测量与隐私章节。价值在原生Hook接入、权限覆盖、最终结果采用与压缩统计口径。压缩候选收益不等于账单或质量收益；AW无压缩结果恢复入口，未覆盖工具不受保护，Hook不是OS沙箱。未安装、通读源码或复现benchmark，建议先读边界契约。",
-      "queue_rank": 61
+      "queue_rank": 3
     }
   ]
 }

@@ -5,7 +5,7 @@
 - [学习队列：Top30 与 ranked backlog](./QUEUE.md)：建议阅读顺序，每条是独立学习单元。
 - [其余候选](./CANDIDATES.md)：已收录但尚未排名，不把浏览序号当优先级。
 - [机器可读目录](./catalog.json)：稳定材料 ID、来源、档位、生命周期、读取范围与队列内排名。
-- [数据库与分布式系统补课](./distributed-systems-for-loopx/补课讲义.md)：17 节讲义，配套[练习与四周路线](./distributed-systems-for-loopx/练习与讨论.md)和[可运行实验](./distributed-systems-for-loopx/recovery_lab.py)。
+- [数据库与分布式系统补课](./distributed-systems-for-loopx/补课讲义.md)：17 节讲义，配套[练习与四周路线](./distributed-systems-for-loopx/练习与讨论.md)、[可运行实验](./distributed-systems-for-loopx/recovery_lab.py)，以及进阶专题[生产级系统工程与大模型服务权衡讲义](./distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md)、[概率 CPU 时代的语义内核](./distributed-systems-for-loopx/概率CPU时代的语义内核：从文件系统与分布式锁原理解构长程Agent控制面.md)。
 - [跨境数字支付机制导读](./payment-mechanisms/跨境数字支付机制导读.md)：约 2—4 小时，串起授权、请款、清算、3DS、自动续费、退款争议与三种余额，配流程图、余额推演和纸面练习。
 - [商业传记与通识书目](./booklists/business-biography-and-general-knowledge.md)：6 本书的书名清单。
 
