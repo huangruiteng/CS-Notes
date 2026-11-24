@@ -1349,6 +1349,24 @@ Goal 状态 → Effect 请求 → 权限 / Quota 解释
 
 **与 CH / Prime 的关系（2026-10）**：三者都把跨轮信息留在模型之外。按 [ServeLearnBench 的实验实现](#servelearnbench从服务评分中发现复用与淘汰经验)，CH 的行动与 Refiner 分层更接近 LoopX 的外置控制面；Prime 更接近自行维护文件、技能和代码的执行 runtime。LoopX 持有目标、任务、权限、证据与恢复状态，不能等同于自动学习器：Reward Memory 区分召回、采用与实际效用，效用投影只提出复核/衰减建议，不自动删除记忆或授予行动权限。能力代码改进走有边界的任务、验证与版本化启用。来源：[控制面架构](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/development/control-plane-course/02-goal-control-plane-architecture.md)、[经验消费](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/reward-memory-decision-consumption.md)、[效用投影](https://github.com/loopx-project/loopx/blob/271a3d98c601d86363159711b5672cdd6be2171d/docs/reference/protocols/reward-memory-utility-projection-v0.md)。
 
+##### 执行环境、提交权与故障恢复
+
+「概率 CPU」把一次模型推理看作产生下一步动作的执行单元。上下文是这一次判断的工作视图。任务跨 run 继续时，控制面要能独立回答目标是否已满足、谁有权提交、上一次外部操作是否已经生效。沙箱快照负责恢复磁盘和进程环境，任务检查点负责恢复目标、版本、证据和待结算动作。要从同一点分叉实验，可以设计一对匹配的检查点和沙箱句柄，恢复后再按外部操作 ID 核对已经生效的请求。 [快照保留范围](./操作系统.md#快照保留哪些状态) · [LoopX 控制面重构](https://loopx-project.github.io/loopx/blog/zh/typescript-control-plane-refactor/)
+
+以一次远程评测串起三个故障点：
+
+| 故障点 | 恢复动作 |
+| --- | --- |
+| A 在发出请求前崩溃 | 预先持久化的意图带有稳定的操作 ID 与请求摘要。恢复时据此定位原操作，先核对，再决定是否发送。 |
+| 评测方已接收，A 在记录结果前中断 | 用原操作 ID 向评测方核对。已经执行就补记原回执，确认未执行才按同一身份执行，结果未知就保持待结算。效果依赖评测方的查询和幂等能力。 |
+| B 接管后，A 带着成功回执回来 | 提交事务同时校验当前所有者、租约世代和状态前提。A 的回执可以证明旧操作曾经生效，新状态的提交权仍按当前世代判断。重放原回执也不续租。 |
+
+这里借用了两个存储经验。文件系统日志把恢复所需的记录先持久化，应用要再向外部系统核对操作结果。集群 fencing 先切断旧节点的写路径，应用则由真正接受写入的一端拒绝旧世代。把审批、依赖、资源额度等条件写成可检查状态后，调度器就可以只派发已经就绪的任务。 [JBD2 与 DLM 案例](./操作系统.md#共享存储的故障接管) · [LoopX 控制面重构，§3、§9](https://loopx-project.github.io/loopx/blog/zh/typescript-control-plane-refactor/)
+
+上下文交付也需要可核对的版本。完整事实与证据先保存，首读给必要字段与证据位置。同一个已核验的压缩周期可以交付结构化差分，周期变化或摘要不匹配时重建完整基线。公开八题数据中，112 次同周期续跑的渐进选读加差分，首读正文是同组完整包的 3.0%，含 CLI 封装为 5.0%。这是交付字节统计。推理服务的前缀缓存则看 token 前缀和缓存条件，命中率和整轮 token 成本需分别测量。 [LoopX 上下文交付](https://loopx-project.github.io/loopx/blog/zh/context-delivery/) · [vLLM 前缀缓存](https://docs.vllm.ai/en/stable/design/prefix_caching/)
+
+宿主能力也可以按显式契约接入。基础接口负责执行与读回，支持生命周期事件的宿主可以在压缩前后交还证据引用。文件权限与隔离由执行环境实施，状态写入由权威存储验权，最后由独立验收读取结果。VirtIO 的特性协商提供一个接口设计类比，各层仍须实现自己的保证。 [VirtIO 特性协商](./操作系统.md#kvm-与微虚机)
+
 #### LoopX 的研究决策：Target、Yardstick 与 Stride
 
 > 来源：[PR #8105](https://github.com/loopx-project/loopx/pull/8105)、[中文 RFC，commit `d705a0a`](https://github.com/loopx-project/loopx/blob/d705a0a81cd59af4066dac9e6599b1881433c635/docs/architecture/rfcs/target-yardstick-stride-decisions-v0.zh-CN.md)。2026-11-05 核对时 PR 为 **Open、仅文档提案**；当时不能据此确认 capability 已实现、部署或默认启用，RFC 写的“Accepted（合并后生效）”也不能当作已经合并。以下先保留该提案的设计与验收思路，再单列后续源码快照的进展。论文机制、实验与两状态局限见 [DuoDiscover](./AI-Applied-Algorithms.md#duodiscover联合搜索优化方向与测量方法)。

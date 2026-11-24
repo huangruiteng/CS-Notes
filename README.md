@@ -23,7 +23,7 @@
 | **Agent 工程与长程架构** | [AI-Agent-Engineering](Notes/AI-Agent-Engineering.md) · [AI-Agent-Product&PE](Notes/AI-Agent-Product&PE.md) · [Codex-Subagent](Notes/Codex-Subagent.md) | Agent Harness、长程控制面（[LoopX](https://github.com/loopx-project/loopx)）、上下文交付、经验记忆（OpenViking）、子智能体通信与恢复、评测与自演进（RSI） |
 | **大模型系统与 AI Infra** | [LLM-MLSys](Notes/LLM-MLSys.md) · [MLSys+RecSys](Notes/MLSys+RecSys.md) · [GPU](Notes/GPU.md) | 训练／推理成本建模、KV Cache、Continuous Batching、FlashAttention、CUDA／Triton 算子、分布式并行、MoE 与大规模搜广推引擎优化 |
 | **AI 算法与搜广推学习** | [AI-Applied-Algorithms](Notes/AI-Applied-Algorithms.md) · [AI-Algorithms](Notes/AI-Algorithms.md) · [深度学习推荐系统](Notes/深度学习推荐系统.md) · [Reinforcement-Learning](Notes/Reinforcement-Learning.md) | 预训练与后训练对齐（RLHF／GRPO）、多模态与生成模型、LLM 增强检索、召回与多目标排序、计算广告与因果实验归因 |
-| **系统底座与现代语言** | [Distributed-Systems](Notes/Distributed-Systems.md) · [Database](Notes/Database.md) · [OSTEP](Notes/OSTEP-Operating-Systems-Three-Easy-Pieces.md) · [muduo](Notes/Linux多线程服务端编程-muduo.md) · [C++](Notes/C++.md) · [Rust](Notes/Rust.md) · [TypeScript](Notes/TypeScript.md) | 操作系统内核与并发、计算机网络（Stanford CS144）、分布式一致性与事务、数据库存储引擎、Profiling 与现代系统级编程语言 |
+| **系统底座与现代语言** | [Distributed-Systems](Notes/Distributed-Systems.md) · [Database](Notes/Database.md) · [操作系统](Notes/操作系统.md) · [muduo](Notes/Linux多线程服务端编程-muduo.md) · [C++](Notes/C++.md) · [Rust](Notes/Rust.md) · [TypeScript](Notes/TypeScript.md) | 操作系统内核与并发、计算机网络（Stanford CS144）、分布式一致性与事务、数据库存储引擎、Profiling 与现代系统级编程语言 |
 
 ---
 
@@ -33,8 +33,8 @@
 
 - **计算机基础**
   - **操作系统与系统**
-    - [APUE](Notes/APUE.md) / [OSTEP](Notes/OSTEP-Operating-Systems-Three-Easy-Pieces.md)
-    - [Linux多线程服务端编程-muduo](Notes/Linux多线程服务端编程-muduo.md) / [操作系统](Notes/操作系统.md)
+    - [操作系统](Notes/操作系统.md)
+    - [APUE](Notes/APUE.md) / [Linux多线程服务端编程-muduo](Notes/Linux多线程服务端编程-muduo.md)
     - [CSAPP](Notes/CSAPP.md) / [CSAPP-Labs](Notes/CSAPP-Labs.md) / [Shell-MIT-6-NULL](Notes/Shell-MIT-6-NULL.md)
     - [Computer-Architecture](Notes/Computer-Architecture.md) / [Assembly](Notes/Assembly.md) / [Compiling](Notes/Compiling.md) / [Metaprogramming](Notes/Metaprogramming.md) / [Computer-Graphics](Notes/Computer-Graphics.md)
   - **网络与通信**
