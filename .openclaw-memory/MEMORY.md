@@ -459,8 +459,20 @@
   - ✅ 创建了当天的 memory 文件（memory/2026-11-23.md）
   - ✅ 刷新了 .local/CODEX_TODO_TRIAGE_INDEX.md
   - ✅ 复盘近期经验，更新了 MEMORY.md
+- **2026-11-24 执行情况**：
+  - ✅ Memory Dreaming Promotion cron 触发（03:00）
+  - ✅ 检查 todos.json 状态，仅 todo-20260504-012 [P1] pending（assignee: user）
+  - ✅ 创建当天 memory 文件（memory/2026-11-24.md）
+  - ✅ 刷新 .local/CODEX_TODO_TRIAGE_INDEX.md 到 2026-11-24
+- **2026-11-25 执行情况**：
+  - ✅ Memory Dreaming Promotion cron 触发（03:00）
+  - ✅ 检查 todos.json 状态，仅 todo-20260504-012 [P1] pending（assignee: user，feedback_required: true）
+  - ✅ 运行 codex_todo_triage.py --apply-codex-triage + --output 刷新索引
+  - ✅ 刷新 .local/CODEX_TODO_TRIAGE_INDEX.md（更新时间：2026-11-25）
+  - ✅ 运行 --check-mechanisms 验证流程文档/脚本/索引一致性（全部正常）
+  - ✅ 创建当天 memory 文件（memory/2026-11-25.md）
 - **当前 todos.json 状态**：仅 todo-20260504-012 [P1] pending（assignee: user，feedback_required: true）
 
 ---
 
-*最后更新：2026-11-23*
+*最后更新：2026-11-25*
