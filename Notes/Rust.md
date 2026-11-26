@@ -1359,7 +1359,7 @@ let store_a = Arc::new(store);
 let store_b = Arc::clone(&store_a);
 ```
 
-`store_a` 和 `store_b` 共同拥有同一对象。当最后一个 `Arc` 被 drop，底层对象才被释放。
+`store_a` 和 `store_b` 共同拥有同一对象。最后一个强引用被 drop 时销毁底层值 `T`。如果仍有 `Weak`，引用计数所在的分配还会保留，直到弱引用也释放。 [Rust Arc 文档](https://doc.rust-lang.org/std/sync/struct.Arc.html)
 
 需要区分三个概念：
 
@@ -1373,6 +1373,14 @@ let store_b = Arc::clone(&store_a);
 
 `Arc<T>` 只有在 `T` 满足相应约束时才是 `Send` / `Sync`。它不会把一个本来不支持跨线程使用的类型“包装成线程安全”。
 
+#### Arc 最后一次 drop 怎样取得销毁顺序
+
+读引用计数先区分两个动作。已有一个 `Arc` 才能克隆它，`Arc::clone` 需要原子地把强计数加一。这次计数更新用 `fetch_add(1, Relaxed)`。放弃一个强引用时，`drop` 用 `fetch_sub(1, Release)` 发布这个持有者在交还前已完成的访问。原子递减返回旧计数，旧值为 1 才表示自己负责销毁 `T`。 [Rust 1.97.1，Arc::clone](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2391-L2422) · [Arc::drop](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2818-L2870)
+
+例如强计数依次从 3 变成 2、1、0。最后一次递减虽然读到了旧值 1，它的读取部分仍是 Relaxed。标准库在归零分支用 `acquire!` 建立获取顺序，常规构建展开为 `fence(Acquire)`，ThreadSanitizer 构建通过 Acquire load 表达同一同步目的。引用计数上的原子读改写把前面的 Release 与最后一次递减读到的值串进 release sequence，最后一次递减的读再把这条链带给 Acquire fence。这样其他持有者放弃引用前的合法访问排在析构之前，只有执行析构的路径需要这一步获取。 [Rust 1.97.1，acquire!](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L53-L80) · [Rust fence](https://doc.rust-lang.org/std/sync/atomic/fn.fence.html)
+
+这个同步保护值的生命周期。多个线程同时更改 `T` 时，仍由 `Mutex`、`RwLock`、原子操作或消息传递维护共享状态的不变量。发布和获取的基本模型见[原子内存序](./C++.md#原子内存序各自保证什么)。
+
 #### `Arc<[T]>`：共享不可变快照，clone 只加引用计数
 
 当快照是一次 resolve、多处共享的只读数据（如能力 catalog、turn 的不可变上下文）时，用 `Arc<[T]>`：
@@ -1383,7 +1391,7 @@ capability_catalog: Arc<[Capability]>
 
 - `[T]` 是长度固定、不可增删的 slice；`Arc` 是共享所有权——父任务、子任务、多个处理阶段都可以廉价持有同一份 catalog；
 - `Arc::clone` 只增加引用计数，不复制整个数组——与 `Vec<T>`（复制成本随长度）和 `Arc<Vec<T>>`（多一层指针间接）区分；
-- 类型上没有 `&mut` 入口：运行时拿不到对数组内容的可变借用，进入处理阶段后无法偷偷改能力表；
+- 多个持有者共享同一快照时，普通共享引用只给 `&[T]`。若没有其他强引用和弱引用，可以经 `Arc::get_mut` 取得独占的可变借用。快照是否保持不可变还取决于 `T` 有无内部可变性；
 - 对应 Actor 分层原则：Actor 拥有 session mutable state；进入 turn 后只消费已经冻结的不可变事实——可变的归 Actor，只读快照用 `Arc<[T]>` 共享。
 
 ### `Send` 与 `Sync`
@@ -1404,6 +1412,35 @@ Arc<dyn EventStore + Send + Sync>
 - 该实现的共享引用可以被多个线程使用。
 
 Tokio 多线程 runtime 中，`tokio::spawn` 的 Future 通常需要 `Send`，因为任务可能在一次 `.await` 之后被调度到另一个 worker thread。
+
+#### 用原子标志发布数据
+
+线程间能安全共享类型之后，还要约定什么时候读取。一次性发布可用两个原子。`data` 是值，`ready` 是交接标志。生产者先写值，再用 Release 设置标志。消费者用 Acquire 读到 `true` 后再取值。例子使用 `thread::scope`，两个线程可以借用函数里的值，离开作用域前会等待它们结束。 [Rust Ordering](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html) · [Rust thread::scope](https://doc.rust-lang.org/std/thread/fn.scope.html)
+
+```rust
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::thread;
+
+fn main() {
+    let data = AtomicUsize::new(0);
+    let ready = AtomicBool::new(false);
+
+    thread::scope(|scope| {
+        scope.spawn(|| {
+            data.store(42, Ordering::Relaxed);
+            ready.store(true, Ordering::Release);
+        });
+        scope.spawn(|| {
+            while !ready.load(Ordering::Acquire) {
+                thread::yield_now();
+            }
+            assert_eq!(data.load(Ordering::Relaxed), 42);
+        });
+    });
+}
+```
+
+读方只可能从唯一一次 Release 读到 `true`。这条同步边把写 `data` 和读 `data` 排出先后，`data` 自身两次操作可用 Relaxed。如果把标志的两次操作也改成 Relaxed，这个全原子的例子仍可安全访问内存，但读到 `true` 时，语言不再保证 `data` 是 42。用于演示的循环会占用执行机会。需要等待实际业务消息或维护多个字段时，可以用 channel 或锁。 [沿 happens-before 读同一个例子](./C++.md#acquirerelease-怎样把数据交给另一线程)
 
 ### `Mutex<T>`：锁保护的是临界区
 

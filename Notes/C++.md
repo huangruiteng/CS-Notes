@@ -3522,69 +3522,65 @@ void finish_task() {
 
 #### Memory Coherence / Memory Consistency / Memory Order
 
-> [如何理解 C++11 的六种 memory order？ - Furion W的回答 - 知乎](https://www.zhihu.com/question/24301047/answer/83422523)
->
-> https://spcl.inf.ethz.ch/Teaching/2019-dphpc/lectures/lecture4-memory-models.pdf
->
-> https://www.cs.cmu.edu/afs/cs/academic/class/15740-f18/www/papers/ieeemicro96-adve-consistency.pdf
+##### 从缓存顺序到语言的内存模型
 
-* 为什么会出现coherence问题？
+Coherence 约束同一位置的写入次序及可读版本。Consistency 决定不同位置的操作能以什么次序被各线程观察。以 `P1` 写入 `Y = 10` 为例，若写仍在 P1 的写缓冲器（WB，write buffer）中，P2 可能读到旧值。图中的本地 L1 与共享 L2 用来辨认两个观察点。前者可能持有最新副本，后者何时更新则随缓存协议而异。对其他核可见的边界应沿一致性协议理解。 [硬件的 Store Buffer](./Computer-Architecture.md#store-buffer-与-storeload) · [Adve 与 Gharachorloo，Memory Consistency Models](https://www.cs.cmu.edu/afs/cs/academic/class/15740-f18/www/papers/ieeemicro96-adve-consistency.pdf)
 
-  - 硬件维度：
-    - ![image-20250603185505412](./C++/image-20250603185505412.png)
-    - e.g. P1执行 Y=10，这个写操作可能被P1放入其写缓冲器（WB），或者写入其L1缓存，但此时可能还没有传播到共享的L2缓存，或者P2还没有观察到这个更新。
-  - 编译器维度：在线程指令的局部视角下进行编译优化
-    - ![image-20250603233931443](./C++/image-20250603233931443.png)
-  - 详细参考 https://spcl.inf.ethz.ch/Teaching/2019-dphpc/lectures/lecture4-memory-models.pdf
+![image-20250603185505412](./C++/image-20250603185505412.png)
 
-  * P1执行 Y=10 ：这个写操作可能被P1放入其写缓冲器（WB），或者写入其L1缓存，但此时可能还没有传播到共享的L2缓存，或者P2还没有观察到这个更新。
+编译器也能在语言允许的范围内重排或合并访问。用原子操作或锁沟通跨线程约束，由编译器实现所需的硬件顺序。分析时先确定语言允许观察什么，再判断所用 CPU 怎么实现。 [ETH，Memory Models](https://spcl.inf.ethz.ch/Teaching/2019-dphpc/lectures/lecture4-memory-models.pdf)
 
-* Memory Coherence —— Coherence定义了一个读操作能获得什么样的值
-  * 通俗地说，我们可以说一个内存系统是为Coherent, 如果任何一个对数据的读操作总是返回其最近被改写的值。这个模糊且过分简单的定义主要包含了内存系统两方面的行为表现：
-* Memory Consistency Model —— Consitency定义了何时一个写操作的值会被读操作获得
-  * Sequential consistency model
-    * **SC有两点要求**：
-      1. 在每个处理器内，维护每个处理器的程序次序；
-      2. 在所有处理器间，维护单一的表征所有操作的次序。对于写操作W1, W2, 不能出现从处理器 P1 看来，执行次序为 W1->W2; 从处理器 P2 看来，执行次序却为 W2->W1 这种情况。
-  * 在无缓存的体系结构下实现SC，若干难点：
-    * Write buffers with read bypassing
-    * Overlapping writes
-    * Nonblocking reads
-  * 在有缓存的体系结构下实现SC，若干难点：
-    * Cache coherence protocols
-    * Detecting write completion
-    * Maintaining write atomicity
-* Memory Consistency的代价
-  - [体系结构书Chapter 5.6](https://acs.pub.ro/~cpop/SMPA/Computer Architecture A Quantitative Approach (5th edition).pdf) 给出了为保证SC，一个写操作的耗时从 50 cycles 变为 170 cycles 的例子
-  - --> 因此引入多种Memory Order，细化场景，尽可能降低这一代价
-  - 允许专家通过采用更合理的内存序获得更大的性能提升；同时允许在对性能要求不是那么严格的程序中采用默认的内存序,使得程序更容易理解
-* Synchronized-with 与 happens-before 关系
-  * 【变量视角】如果线程 A 写了变量 x, 线程 B 读了变量 x, 那么我们就说线程 A, B 间存在 synchronized-with 关系。
-  * 【指令视角】对于多线程而言,如果一个线程中的操作 A inter-thread happens-before 另一个线程中的操作 B, 那么 A happens-before B.
-  * 【从变量到指令】如果一个线程中的操作 A synchronized-with 另一个线程中的操作 B, 那么 A inter-thread happens-before B
-* C++11中的六种memory order
-  * sequential consistent(memory_order_seq_cst),
-  * relaxed(memory_order_seq_cst)
-  * acquire release(memory_order_consume, memory_order_acquire, memory_order_release, memory_order_acq_rel)
-* 顺序一致次序 sequential consistent
-  * 对应memory_order_seq_cst
-  * 保证了 —— 全局总序
-    * 从同步的角度来看，一个顺序一致的 store 操作 synchroniezd-with 一个顺序一致的需要读取相同的变量的 load 操作
-    * 在 load 之后执行的顺序一致原子操作都表现得像在 store 之后完成
-* 松弛次序 relaxed
-  * 对应memory_order_relaxed
-  * **在 relaxed ordering 中唯一的要求是在同一线程中，对同一原子变量的访问不可以被重排**
-* 获取-释放次序 acquire release
-  * 对应memory_order_release, memory_order_acquire, memory_order_acq_rel.
-  * Acquire-release 中没有全序关系,但它提供了一些同步方法
-    * 原子 load 操作是 acquire 操作(memory_order_acquire)
-    * 原子 store 操作是 release操作(memory_order_release)
-    * 原子read_modify_write操作(如fetch_add(), exchange())可以是 acquire, release 或两者皆是(memory_order_acq_rel).
-  *  **同步是成对出现的,它出现在一个进行 release 操作和一个进行 acquire 操作的线程间。 一个 release 操作 syncrhonized-with 一个想要读取刚才被写的值的 acquire 操作。**
-    * **Acquire (获取) : 确保在当前线程中，此原子操作之前的所有内存操作（读或写）的结果，对于其他线程来说，在该原子操作执行之前或执行时可见。**
-    * **Release (释放) : 确保当前线程中的原子操作本身，对于其他线程来说，在该线程后续的任何内存操作变得可见之前可见。**
-  * 这意味着不同线程仍然看到了不一样的次序,但这次序是被限制过了的。当我们在此再引入 happens-before 关系时，就可以实现更大规模的顺序关系。（[3] Listing 5.8, 5.9）
-* 进阶内容：acquire-release间的数据依赖与memory_order_consume
+![image-20250603233931443](./C++/image-20250603233931443.png)
+
+顺序一致性（Sequential Consistency，SC）要求能把所有处理器的内存操作排成一条全局顺序，又保留每个处理器自己的程序顺序。无缓存设计中的 write buffers with read bypassing、overlapping writes 与 nonblocking reads 要考虑这个约束。有缓存时还要协调 cache coherence protocols、detecting write completion 和 maintaining write atomicity。C++ 的 SeqCst 内存序为标了该序的原子操作和相应 fence 建立统一顺序，混入其他内存序时还需按各自规则推导。 [C++ 工作草案，原子操作顺序](https://eel.is/c++draft/atomics.order)
+
+旧例的两个写记作 `W1`、`W2`，分别把初值为 0 的 `X`、`Y` 写成 1。如果 `P1` 先读 `X=1` 再读 `Y=0`，它观察到的顺序要求 `W1` 在 `W2` 之前。如果 `P2` 先读 `Y=1` 再读 `X=0`，它观察到的顺序反过来。所有操作遵守 SC 时，同一个总序无法容纳两组结果。这个例子检验两个观察者能否共同解释同一组写。
+
+##### 原子内存序各自保证什么
+
+下表用 Rust 的 `Ordering` 命名。C++ 的常量采用 `std::memory_order_*` 的形式，对应后缀为 `relaxed`、`acquire`、`release`、`acq_rel` 和 `seq_cst`。C++11 的六项还包括按数据依赖推导的 `std::memory_order_consume`，属于旧教材的进阶主题，具体语义按标准版本查。 [Rust Ordering](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html) · [C++ 工作草案，原子操作顺序](https://eel.is/c++draft/atomics.order) · [C++11 顺序的旧笔记来源](https://www.zhihu.com/question/24301047/answer/83422523)
+
+| 内存序（Rust / C++） | 编译器与硬件须满足的语义 | 典型用法 | 常见误用与排查 |
+| --- | --- | --- | --- |
+| `Relaxed` | 单次访问不可撕裂，同一原子对象仍有一条修改顺序（modification order）。单靠它无法同步其他变量。 | 独立监控计数 `metrics.fetch_add(1, Relaxed)`，或读取只有本线程更新且不承担交接职责的原子游标。 | 用 `ready.store(true, Relaxed)` 通知另一线程读非原子 `data`。如果对 `data` 的冲突访问没有其他同步，就会构成数据竞争，导致未定义行为（UB）。 |
+| `Release`（写）+ `Acquire`（读） | A 用 `M.store(..., Release)` 发布。B 的 `M.load(Acquire)` 读自这次写入或其 release sequence 时，A 发布前的普通与原子访问 happens-before B 获取后的访问。 | SPSC Ring（单生产者、单消费者环形队列）交接槽位，自旋锁 Acquire 加锁、Release 解锁。[`Arc::drop`](./Rust.md#arc-最后一次-drop-怎样取得销毁顺序) 用 `fetch_sub(1, Release)` 递减，常规构建在归零分支经 `fence(Acquire)` 后析构。 | 标志反复写入同一个值时，要追踪读取来自哪次写。`Arc::drop` 若仅以 Relaxed 递减，其他持有者交还前的访问就缺少这条通向析构的同步边。 |
+| `AcqRel` | 原子读改写（read-modify-write，RMW）读取时 Acquire，写入时 Release，既获取之前的发布，又发布自己此前的操作。只需单向保证时，RMW 也可选 Acquire 或 Release。 | `exchange`、`fetch_add` 或 CAS 成功时的读改写。 | CAS 失败只有读取，失败路径须选择读取允许的内存序。 |
+| `SeqCst` | 读、写、读改写分别提供 Acquire、Release、AcqRel 的语义。所有 SeqCst 原子操作和 SeqCst fence 还共享一条总序。 | 用总序分析 [Dekker/Peterson 式双标志互检](#seqcst-怎样排除双零)。例如生产者先写 `queue_non_empty` 再读 `worker_sleeping`，worker 先写 `worker_sleeping` 再读 `queue_non_empty`。 | 热路径一律使用 SeqCst 可能带来额外的排序成本。先确认正确性证明是否依赖总序，再用目标平台的汇编和基准检验实际成本。 |
+
+Relaxed 保留同一原子对象的可观察次序。例如一条线程先后两次 load 同一个原子，第二次读到的修改在该对象的 modification order 中不能早于第一次。这是 read-read coherence。跨地址则要另建同步。例如仅用 Relaxed 写入 `ready = true`，读方随后访问另一非原子 `data`。若冲突访问没有其他同步，C++ 数据竞争（data race）会导致未定义行为（UB）。如果 `data` 也是原子，单对象访问各自安全，跨变量的旧值组合仍要由内存序约束。 [C++ 工作草案，data races](https://eel.is/c++draft/intro.races)
+
+##### Acquire/Release 怎样把数据交给另一线程
+
+以单次发布为例，线程 A 先写 `data`，再对 `ready` 做 Release store。线程 B 通过 Acquire load 读到这次发布后，才读 `data`。在有其他原子读改写参与时，B 也可能读到从该 Release 开始的 release sequence 所写的值。
+
+```mermaid
+flowchart LR
+    Write["A 写 data"] -->|线程内先后| Release["A 对 ready 做 Release store"]
+    Release -->|B 读到这次发布| Acquire["B 对 ready 做 Acquire load"]
+    Acquire -->|线程内先后| Read["B 读 data"]
+```
+
+图中间的同步边叫 synchronizes-with。把两端各自的 sequenced-before 接上，就得到 A 写 `data` happens-before B 读 `data`。C++11 旧教材使用 inter-thread happens-before 这个术语表示跨线程可推导的先后关系，旧摘记把练习定位为 `[3] Listing 5.8、5.9`。B 若读到的仍是 `ready` 的初始值，这次读取还没建立同步边。对相互独立的原子对象，也不能凭 Acquire/Release 假定所有线程共享一个全局总序。SeqCst store 和 load 读自同一次发布时仍有这条同步边，同时还需满足 SeqCst 的总序约束。 [C++11 草案，inter-thread happens-before](https://timsong-cpp.github.io/cppwp/n3337/intro.multithread) · [C++ 工作草案，原子顺序与 release sequence](https://eel.is/c++draft/atomics.order) · [Rust 原子发布例程](./Rust.md#用原子标志发布数据)
+
+- 自旋锁的成功加锁用 Acquire，交还锁用 Release。前任持有者临界区内的写由解锁发布给下一任持有者。自旋时用于探测锁是否忙的读可用 Relaxed，取得锁时再做有 Acquire 的原子操作。
+- SPSC Ring（单生产者、单消费者环形队列）用 `tail` 发布已经写好的槽位。生产者写槽后 Release 更新 `tail`，消费者 Acquire 读到对应进度后才用槽。反方向用 `head` 发布已消费的槽，生产者确认后才复用。两边单写仍需验证槽位的生命周期和容量。高频游标还可按[缓存行分开布局](./Computer-Architecture.md#伪共享为何让独立写入也争用)。
+- Rust `Arc` 的最后一个持有者需要获取其他持有者释放前的访问顺序，引用计数自身也参与同步。见 [Arc 的最后一次 drop](./Rust.md#arc-最后一次-drop-怎样取得销毁顺序)。
+
+##### SeqCst 怎样排除双零
+
+取[Store Buffering 例子](./Computer-Architecture.md#store-buffer-与-storeload)的两个原子，`X`、`Y` 初始都为 0。线程 0 做 store `W_X`，再 load `R_Y`。线程 1 做 store `W_Y`，再 load `R_X`。如果四步都用 SeqCst，两个读都为 0 就要求下面的总序。每次读到 0 需要排在对方的写 1 前面，所得顺序成环。
+
+$$
+W_X < R_Y < W_Y < R_X < W_X
+$$
+
+如果两个 store 只用 Release、两个 load 只用 Acquire，两个读都读到了初始值时，没有读到对方发布的值，因而这两条跨线程同步边都没有建立。上面的全序约束也就没有了。 [C++ 工作草案，SeqCst 的总序](https://eel.is/c++draft/atomics.order) · [x86-TSO 的双零例子](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf)
+
+一个常见的双标志问题是，生产者写 `queue_non_empty` 后读 `worker_sleeping`，worker 写 `worker_sleeping` 后检查 `queue_non_empty`。如果两边都看到旧值，可能出现生产者未发唤醒而 worker 准备睡下。把这四步作为 SeqCst 原子，在这个单次双标志模型里可以排除双零。完整的 Dekker/Peterson 互斥与真实的睡眠唤醒还要证明各自的其余步骤，例如如何把检查和阻塞接起来。 [睡眠前必须确认没错过交还](./操作系统.md#睡眠前必须确认没错过交还)
+
+##### 同步顺序的成本
+
+体系结构教材 §5.6 用一次写从约 50 cycles 增至 170 cycles 的例子说明实现 SC 的潜在代价，适用于教材模型。强内存序可能增加屏障或限制重排，是否产生额外指令取决于平台、操作和编译器。可以先用 C++ 默认的 SeqCst 建立容易核对的证明，Rust 需要显式传入顺序。要放宽热点上的内存序，先验证完整协议仍正确，再在目标平台量差异。 [Computer Architecture: A Quantitative Approach，5th edition，§5.6](https://acs.pub.ro/~cpop/SMPA/Computer%20Architecture%20A%20Quantitative%20Approach%20%285th%20edition%29.pdf)
 
 #### DOD
 

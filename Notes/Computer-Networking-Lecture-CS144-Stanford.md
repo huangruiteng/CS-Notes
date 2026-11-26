@@ -463,87 +463,49 @@ protocol可能的运转方式 (ARQ: automatic repeat request)
 * urgent pointer：和URG联系，指出哪里urgent
 
 ##### 2-11 TCP Setup and Teardown
-状态机的实现很简洁，核心是如何 set up 和 clean up (port number, etc)
 
+###### 握手与两个监听队列
 
-**3-way handshake**
+普通三次握手（3-way handshake）由 active opener 发 `SYN` 和初始序号（initial sequence number），passive opener 回 `SYN+ACK` 和自己的序号，前者再回 `ACK`。序号给后续字节定位，TCP 也支持双方同时主动打开（simultaneous open）。带数据的 TCP 段可以只有 1 字节数据。SSH 单次按键是短写的例子，实际发送大小还取决于应用封装和缓冲。 [RFC 9293，Establishing a Connection](https://www.rfc-editor.org/rfc/rfc9293.html#section-3.5)
 
-Active opener and Passive opener
+| Linux 监听阶段 | 当前在等什么 | 从哪里看容量 |
+| --- | --- | --- |
+| SYN queue（半连接队列） | 普通握手已收到 SYN，等待握手完成。 | 半连接请求的上限看每监听 socket 的 `net.ipv4.tcp_max_syn_backlog`，启用 SYN cookies 时的行为需单独判断。 |
+| Accept queue（全连接队列） | 已完成建连，等应用 `accept()` 取走。 | `listen(fd, backlog)` 设定的 backlog 受 `net.core.somaxconn` 截断，通常用两者的较小值理解名义上限。 |
 
-1. client: SYN, 送base number(syqno) to identify bytes
-2. server: SYN+ACK, 也送base number
-3. client: ACK
+当主事件循环被 CPU 密集回调占住，可能没及时调用 `accept()`，造成全连接排队。队列满时，新 SYN 可能被丢弃，已走到最后一次 ACK 的连接也可能无法进入 accept queue。表现可为重传、超时或重置，取决于报文到达阶段、内核路径与 `tcp_abort_on_overflow` 等配置。客户端自认为连上时，服务端应用也可能还没接受这条连接。 [listen(2)](https://man7.org/linux/man-pages/man2/listen.2.html) · [Linux IP sysctl](https://docs.kernel.org/networking/ip-sysctl.html#tcp-variables) · [TCP backlog：旧例图](https://www.cnblogs.com/Orgliny/p/5780796.html) · [事件循环与 epoll](./操作系统.md#epoll-的监视集合与就绪队列)
 
-支持“simultaneous open”
+###### 半关闭、CLOSE_WAIT 与 TIME_WAIT
 
-传送TCP segment，最小可以1byte，比如在ssh session打字
-
-**connection teardown**
-
-1. client: FIN
-2. server: (Data +) ACK
-3. server: FIN
-4. client: ACK
+连接关闭两个方向各自进行。假设客户端先发 `FIN`，服务端确认 `ACK`，仍可发完其方向剩余数据。服务端应用结束写方向后发自己的 `FIN`，客户端再回 `ACK`。只收到对端 `FIN` 时，本端进入 `CLOSE_WAIT`，之后发出自己的 `FIN` 才到 `LAST_ACK`。本例客户端在发出最后的 ACK 后进入 `TIME_WAIT`，服务端收到确认后到 `CLOSED`。哪一边担任客户端与哪一边先关闭是两回事，同时关闭时双方也可能进入 `TIME_WAIT`。 [RFC 9293，Closing a Connection](https://www.rfc-editor.org/rfc/rfc9293.html#section-3.6)
 
 <img src="Computer-Networking-Lecture-CS144-Stanford/018.jpg" alt="Clean Teardown" style="zoom:45%;" />
 
-* [为什么 TCP 协议有 TIME_WAIT 状态](https://draveness.me/whys-the-design-tcp-time-wait/)
-  * `TIME_WAIT` 仅在主动断开连接的一方出现，被动断开连接的一方会直接进入 `CLOSED` 状态，进入 `TIME_WAIT` 的客户端需要等待 2 MSL 才可以真正关闭连接
-  * 不直接关闭连接的原因：
-    * 防止延迟的数据段被其他使用相同源地址、源端口、目的地址以及目的端口的 TCP 连接收到
-      * RFC 793
-      * `#define TCP_TIMEWAIT_LEN (60*HZ) /* how long to wait to destroy TIME-WAIT state, about 60 seconds	*/`
-			* 但是如果主机在过去一分钟时间内与目标主机的特定端口创建的 TCP 连接数超过 28,232，那么再创建新的 TCP 连接就会发生错误，也就是说如果我们不调整主机的配置，那么每秒能够建立的最大 TCP 连接数为 ~470
-    * 保证 TCP 连接的远程被正确关闭，即等待被动关闭连接的一方收到 `FIN` 对应的 `ACK` 消息
-      * 防止TIME-WAIT 较短导致的握手终止，服务端发送`RST`
-  * 处理方案：除了上图的两者，还可以：
-    * 修改 `net.ipv4.ip_local_port_range` 选项中的可用端口范围，增加可同时存在的 TCP 连接数上限；
+`TIME_WAIT` 给旧四元组（源 IP、源端口、目的 IP、目的端口）上的延迟报文留出消失时间，也让最后的 ACK 丢失时仍能确认对方重传的 FIN。如果本端连接状态已经消失，重传的 FIN 可能在 CLOSED 路径收到 RST，关闭就无法按原来的确认路径收尾。协议以 2 MSL（Maximum Segment Lifetime）描述等待期。 [RFC 793 历史规范](https://www.rfc-editor.org/rfc/rfc793.html) · [RFC 9293 §3.10.7.1，CLOSED](https://www.rfc-editor.org/rfc/rfc9293.html#section-3.10.7.1) · [为什么 TCP 有 TIME_WAIT](https://draveness.me/whys-the-design-tcp-time-wait/)
 
-* [Scaling Techniques for Servers with High Connection Rates](https://domsch.com/linux/lpc2010/Scaling_techniques_for_servers_with_high_connection%20rates.pdf)
-  * problems
-    * Servers with high connection/transaction rates
-      * TCP servers, e.g. web server
-      * UDP servers, e.g. DNS server
-    * On multi-core systems, using multiple servicing threads, e.g. one thread per servicing core.
-      * The single server socket becomes bottleneck
-      * Cache line bounces
-      * Hard to achieve load balance
-      * Things will only get worse with more cores
-  * Single TCP Server Socket
-    * solution 1: Use a listener thread to dispatch established connections to server threads
-      * The single listener thread becomes bottleneck due to high connection rate
-      * Cache misses of the socket structure
-      * Load balance is not an issue here
-    * solution 2: All server threads accept() on the single server socket
-      * Lock contention on the server socket
-      * Cache line bouncing of the server socket
-      * Loads (number of accepted connections per thread) are usually not balanced 
-        * Larger latency on busier CPUs
-        * It can almost be achieved by accept() at random intervals, but it is hard to decide the interval value, and may introduce latency
-  * Single UDP Server Socket
-  * New Socket Option - SO_REUSEPORT
-    * Allow multiple sockets bind()/listen() to the same local address and TCP/UDP port 
-      * Every thread can have its own server socket
-      * No locking contention on the server socket
-    * Every thread can have its own server socket No locking contention on the server socket
-    * Load balance is achieved by kernel - kernel randomly picks a socket to receive the TCP connection or UDP request
-    * For security reason, all these sockets must be opened by the same user, so other users can not "steal" packets
-  * How to enable?
-    * sysctl net.core.allow_reuseport=1
-    * Before bind(), setsockopt SO_REUSEADDR and SO_REUSEPORT
-    * Then the same as a normal socket - bind()/listen() /accept()
-  * Known Issues
-    * Hash
-    * Have not solved the cache line bouncing problem completely
-      * Solved: The accepting thread is the processing thread
-      * Unsolved: The processed packets can be from another CPU
-        * Instead of distribute randomly, deliver to the thread/socket on the same CPU （input queue和server thread一一对应）
-        * But hardware may not support as many RxQs as CPUs
-    * Some scheduler mechanism may harm the performance
-      * Affine wakeup - too aggressive in certain conditions, causing cache misses
+Linux v6.12 源码常量 `TCP_TIMEWAIT_LEN` 为 `60*HZ`。旧笔记按 28,232 个临时端口与 60 秒估算，固定源地址和目标 IP/端口、每条连接都占满等待时间且没有复用时，光端口占用给出的量级约 470 个新连接每秒。若同一窗口的连接数超过端口池，新的连接可能拿不到可用源端口。增加 `net.ipv4.ip_local_port_range` 可扩大该算例的端口池，实际还要看保留端口、连接寿命和 NAT。 [Linux v6.12，TCP_TIMEWAIT_LEN](https://github.com/torvalds/linux/blob/adc218676eef25575469234709c2d87185ca223a/include/net/tcp.h)
 
+###### 用状态和计数定位连接故障
 
+| 线上看到什么 | 先建立哪条证据 | 从哪一层下手 |
+| --- | --- | --- |
+| `CLOSE_WAIT` 持续堆积 | 已收到对端 FIN。本端可以有正常的半关闭，持续增长或长时间滞留再查对应进程、fd 持有时间与应用关闭路径。 | 对照异常分支、连接池归还／销毁与事件循环停顿，确认最终有没有关闭或结束写方向。 |
+| 客户端或反代 `TIME_WAIT` 很多 | 对照 TCP 新建／关闭速率、主动关闭方、临时端口占用与 `connect()` 的具体错误。高连接周转时这个状态本身可以很常见。 | 优先测 HTTP Keep-Alive、复用 gRPC channel 或连接池，减少建连。确认有临时端口压力后再看端口范围与复用策略。 |
+| 偶发建连超时或 SYN 重传 | 在监听进程所在网络命名空间看 `ss -lnt` 的 `Recv-Q`（待接受连接）和 `Send-Q`（名义 backlog），与 `netstat -s` 或 `nstat -az` 中 `TcpExtListenOverflows` / `TcpExtListenDrops` 的增量对齐。 | `ListenOverflows` 增长支持 accept queue 溢出的判断。`ListenDrops` 也会由其他丢弃路径增加。结合两端报文、握手时延和 `accept()` 速率区分链路丢包与服务接入不足。 |
 
+`net.ipv4.tcp_tw_reuse=1` 表示启用全局 TIME_WAIT 复用，具体是否复用还受安全条件和版本约束。当前 Linux 文档还列出 `2`（仅 loopback）与 `0`（关闭）。旧 `tcp_tw_recycle` 曾根据对端时间戳做快速回收，NAT 下多个客户端共享地址时可能误判，已从主线移除。 [Linux IP sysctl，tcp_tw_reuse](https://docs.kernel.org/networking/ip-sysctl.html#tcp-variables) · [tcp_tw_recycle 移除提交](https://github.com/torvalds/linux/commit/4396e46187ca5070219b81773c4e65088dac50cc) · [Linux 监听队列统计](https://docs.kernel.org/networking/snmp_counter.html#tcpextlistenoverflows-and-tcpextlistendrops) · [监听队列字段源码](https://github.com/torvalds/linux/blob/adc218676eef25575469234709c2d87185ca223a/net/ipv4/tcp_diag.c#L17-L28)
+
+###### 多核下怎样分担连接接入
+
+旧报告从高 connection/transaction rate 的 TCP Web 服务、UDP DNS 服务出发，讨论单个服务 socket 在每核各有 worker 时的锁竞争、cache line bouncing 与负载不均。不同方案移动的是监听队列、处理线程或两者。 [Scaling Techniques for Servers with High Connection Rates](https://domsch.com/linux/lpc2010/Scaling_techniques_for_servers_with_high_connection%20rates.pdf)
+
+| 接入方式 | 代价落在哪里 |
+| --- | --- |
+| 单 listener 线程接收后再分派 | 分派者掌握负载，可挑 worker。连接率过高会先压住接入线程，跨核交接也可能使 socket 数据离开热缓存。 |
+| 所有 worker 对单个 socket 调 `accept()` | 仍共享一条队列与锁，分配可能不匀，忙 CPU 上的延迟可能偏高。旧报告讨论过随机打散 accept 时机，这也会增加等待。由多个 epoll 实例监听这一 socket 时，还要看[唤醒范围](./操作系统.md#多-worker-监听时谁会被唤醒)。 |
+| 每个 worker 独立 socket，使用 `SO_REUSEPORT` | 每个 socket 在 `bind()` 前启用选项。绑定进程需有相同的有效 UID，以防其他用户加入相同地址的分流组。TCP worker 有各自的监听队列并执行 `listen()/accept()`。Linux 的常见默认分流用流的四元组哈希选成员，UDP 也可以用 reuseport 分流，实际负载取决于流量分布。 |
+
+旧报告曾列 `net.core.allow_reuseport=1`、`SO_REUSEADDR` 与 `SO_REUSEPORT` 等历史配置。现代 Linux 从 `socket(7)` 核对 `SO_REUSEPORT`，地址复用按 `SO_REUSEADDR` 的语义另行选择。各接入队列的竞争可以分开，网卡收包的 CPU、执行 `accept()` 的 CPU 和处理请求的 CPU 仍可能不同。原报告讨论了把 RX queue 与 worker 对齐的亲和性方案，硬件队列数与调度器的 affine wakeup 会影响收益。 [socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html) · [Linux v6.12，reuseport 监听匹配](https://github.com/torvalds/linux/blob/adc218676eef25575469234709c2d87185ca223a/net/ipv4/inet_hashtables.c) · [多核队列与缓存亲和性](./操作系统.md#多核负载均衡亲和性与异构核心)
 
 ##### 2-12 TCP Recap
 
@@ -552,6 +514,31 @@ IP和UDP都是best-effort and unreliable，但是我们不需要担心truncation
 * Data checksum (UDP)
 
 
+
+##### HTTP 多路复用与队头阻塞
+
+队头阻塞（Head-of-Line Blocking / HOL Blocking）发生在后面的工作已可用，却必须等前面的一项。沿同一条连接看，HTTP 的版本变化改变了哪一层要求排队。
+
+| 协议 | 一条连接里怎样并发 | 仍在哪一层等 |
+| --- | --- | --- |
+| HTTP/1.1 | Keep-Alive 可以复用连接。若使用 pipelining 并发发请求，响应还得按请求顺序发。客户端也可用多条连接做并发。 | 同一连接里的慢响应可能让后面的响应排在后面。 |
+| HTTP/2 | 将二进制帧按 stream ID 交错传输（Stream Multiplexing），多个响应可以同时推进。 | 所有帧仍在一条有序 TCP 字节流上。某段丢失后，缺口后到达的字节要等补齐，其中可能有其他 stream 的帧。 |
+| HTTP/3（QUIC） | HTTP 请求用 QUIC stream。QUIC 常在用户态运行在 UDP 之上，用 stream ID 和各自的字节偏移重组。丢失的数据可在新包重传。 | 缺口主要阻塞包含该缺失数据的流。一个包也能包含多个流的数据。各流仍共享连接的拥塞控制，部分头部还可能等 QPACK 的依赖更新。 |
+
+[HTTP/1.1 §9.3.2，Pipelining](https://www.rfc-editor.org/rfc/rfc9112.html#section-9.3.2) · [HTTP/2 §5，Streams and Multiplexing](https://www.rfc-editor.org/rfc/rfc9113.html#section-5) · [QUIC 的流](https://www.rfc-editor.org/rfc/rfc9000.html#section-2) · [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) · [QPACK](https://www.rfc-editor.org/rfc/rfc9204.html)
+
+假设 A、B 两个响应正在发送，装有 A 数据的网络包丢了，而装有 B 数据的后一个包到了。在 HTTP/2 中，如果 B 的帧位于同一条 TCP 字节流的缺口之后，接收方得等缺口补齐。在 HTTP/3 中，如果只有 A 的数据丢失，B 的数据完整且没有其他依赖，B 可以先交给应用。
+
+```mermaid
+flowchart LR
+    Gap["A 丢包，B 的数据已到"]
+    Gap --> TCP["HTTP/2：按整条 TCP 字节流排序"]
+    Gap --> QUIC["HTTP/3：按各自的 QUIC stream 排序"]
+    TCP --> Hold["B 的字节在缺口之后，等待补齐"]
+    QUIC --> Pass["B 的数据完整时可以交付，A 等补齐"]
+```
+
+弱网下，多条独立的 HTTP/1.1 TCP 连接可把单次重传的等待限制在其中一条。高丢包时，一条 HTTP/2 TCP 连接上的并发流可能因此比多条独立连接受影响更广。吞吐比较还要看 RTT、连接数、请求大小和拥塞控制，按自己的链路测。流式应用还会受反向代理缓冲和消费速度影响，按 [流式服务排障与恢复](./Software-Engineering.md#流式服务排障与恢复) 核对事件时间线。
 
 <img src="Computer-Networking-Lecture-CS144-Stanford/016.jpeg" alt="HTTP" style="zoom:45%;" />
 
@@ -769,7 +756,6 @@ Queues with Random Arrival Processes (Queueing Theory)
 
 
 
-* [TCP backlog: syns queue and accept queue](https://www.cnblogs.com/Orgliny/p/5780796.html)
 * [What is a REST API?](https://www.youtube.com/watch?v=Q-BpqyOT3a8)
   * Representational State Transfer (REST)
   * Architecture style
@@ -864,8 +850,8 @@ subscription = filter + ordered event stream + cursor + reconnect + replay/resyn
 
 - **filter**：客户端能看到哪些资源和事件，必须在服务端重新做鉴权，不能只信客户端传来的 topic。
 - **event stream**：事件要有稳定 schema 和顺序语义；跨 partition 是否全序，必须明确。
-- **cursor**：记录客户端已经处理到哪里，例如 SSE 的 `id` / `Last-Event-ID`。
-- **reconnect**：连接断开后重新建立，并使用退避和 jitter 防止大规模同时重连。
+- **cursor** 记录续读的位置。SSE 的 `id` / `Last-Event-ID` 跟踪 `EventSource` 解析到的事件 ID，业务另有处理确认时，应按应用的处理水位续读。
+- **reconnect** 在断开后重建订阅。大量连接一同断开时，可控客户端可用退避和 jitter 错开重连。 [Full Jitter 的重连算例](./Software-Engineering.md#用-full-jitter-打散重连)
 - **replay / resync**：游标仍在保留窗口内就补发缺失事件；游标过旧或出现 gap，就重新拉 snapshot。
 
 因此，SSE 的自动重连不等于可靠投递。若服务端只向当前连接写数据、没有 durable event log，断线期间的事件仍会丢失；若事件可能重放，客户端还要按 `event_id` 幂等应用。工程上通常追求 **at-least-once + idempotency**，不要轻易声称 exactly-once。
@@ -896,7 +882,7 @@ data: {"task_id":"t1","percent":80}
 | `data` | 事件载荷；连续多个 `data:` 行会用换行符连接。 |
 | `event` | 事件类型；缺省时触发 `message`。 |
 | `id` | 更新客户端保存的 last event ID；重连时浏览器通过 `Last-Event-ID` 发回。 |
-| `retry` | 建议的重连等待时间，单位为毫秒。 |
+| `retry` | 设置原生客户端的重连等待时间，单位为毫秒。 |
 | `:` | 注释行，不触发业务事件，常用作应用层 heartbeat。 |
 
 ```javascript
@@ -917,7 +903,7 @@ source.close();
 
 原生 `EventSource` 的请求方向是 client -> server，业务数据方向只有 server -> client；构造器只暴露 URL 和 `withCredentials`，不能方便地携带 POST body 或自定义 `Authorization` header。浏览器场景通常使用同源 cookie、短期签名 URL，或改用基于 `fetch()` 的流式客户端。跨域订阅还要正确配置 CORS 与 credentials；不要把长期 token 放进 URL，因为 URL 容易进入日志和监控。
 
-服务端可用 HTTP `204 No Content` 告诉原生客户端停止重连。普通断开会触发自动重连；生产实现还应发送周期性注释 heartbeat，避免代理、网关或负载均衡器把空闲连接回收。15 秒只是 WHATWG / RFC 示例中的经验值，实际间隔必须小于整条链路上最短的 idle timeout。
+普通断开时，原生 `EventSource` 会按重连机制尝试接回。服务端可用 HTTP `204 No Content` 告诉客户端停止重连。注释 heartbeat 可以让活跃的订阅通过代理和负载均衡器的空闲检查，前提是实际路径上的 browser、CDN、WAF、LB、gateway、reverse proxy 和 server 都能让心跳通过，间隔小于相关的 idle / read timeout。15 秒是 WHATWG / RFC 示例量级。页面卸载、切换资源或订阅完成时可主动 `close()`。服务端检测断连后释放与订阅绑定的 writer 和 producer，独立长任务是否继续由任务生命周期决定。 [WHATWG Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html) · [流式服务计时与背压](./Software-Engineering.md#用业务进展计时与背压)
 
 ##### Snapshot + delta：避免订阅启动时的竞态
 
@@ -933,7 +919,7 @@ SUBSCRIBE after=snapshot_cursor
   -> 丢弃局部推断，重新获取 snapshot
 ```
 
-`snapshot_cursor` 把快照与增量流接起来，避免“读取快照之后、建立订阅之前”发生的更新落入缝隙。更严格的实现应保证 snapshot 对应一个确定的日志位置；否则即使有 cursor，也可能重复或漏掉边界事件。
+`snapshot_cursor` 把快照与增量流接起来。读取快照到建立订阅之间也可能产生事件，用与快照对应的确定日志位置才能补齐这个窗口。若快照和游标分别读取、来自不同位置，即使有游标也可能重复应用或漏掉边界事件。断线后可按同一日志继续读。若协议保证单任务序号连续，跳号就能提示有缺失。加了筛选后，如果游标仍用全局日志序号，序号不连续也可能只是跳过不可见的事件。历史重放切回实时订阅时，还要处理重放期间的新事件。 [从断点重放并接回实时流](./Software-Engineering.md#从断点重放并接回实时流)
 
 ##### 选型
 
@@ -949,12 +935,9 @@ LLM API 常说“用 SSE 流式返回 token”，很多实现实际是 **SSE 格
 
 ##### 生产检查清单
 
-- **代理缓冲**：应用必须及时 flush；NGINX 默认 `proxy_buffering on`，可对该路由关闭，或由 upstream 返回 `X-Accel-Buffering: no`。否则服务端明明逐条写，客户端却成批收到。
-- **超时与心跳**：核对 browser、CDN、WAF、LB、gateway、reverse proxy、server 各层 idle / read timeout；heartbeat 要穿过整条链路。
-- **慢消费者与背压**：为每个 subscriber 使用有界队列，明确 `drop / coalesce / disconnect / resync` 策略。TCP 变慢只会把压力向上游传播，不会替应用决定保留哪些业务事件。
-- **容量**：长连接主要消耗 file descriptor、socket / request state、内存和负载均衡连接槽；关注 `active_connections`、连接建立率、重连率、发送队列大小、event lag、drop / replay 数和连接时长。
-- **生命周期**：客户端切换资源、页面卸载或任务结束时主动 `close()`；服务端检测断连并取消 producer，避免后台继续计算和写入。
-- **正确性测试**：覆盖断网重连、重复事件、乱序 / gap、游标过期、代理缓冲、token 过期、服务重启和重连风暴，而不只测正常持续输出。
+长连接占用 file descriptor、socket / request state、队列内存和负载均衡连接槽。观察 `active_connections`、建连与重连率、发送队列、event lag、drop / replay 数和连接时长。TCP 流控会传播读写压力，应用要为每个 subscriber 定义在有界队列满时是丢弃（drop）、合并（coalesce）、断开（disconnect）还是重新同步（resync）。 [流式服务容量与背压](./Software-Engineering.md#用业务进展计时与背压)
+
+测试可以沿事件到达、状态恢复、授权三条证据走。分别做直连与代理对照，确认 flush 后能及时看到完整事件。模拟断网、重复、乱序、gap、游标过期、网关重启和重连风暴，核对恢复后的最终状态。token 到期时还需验证重新订阅是否重新鉴权。 [反向代理缓冲对照](./Software-Engineering.md#反向代理为何把事件成批送达) · [流式服务恢复与验收](./Software-Engineering.md#重连接管与未知提交)
 
 #### Proxy / Tunnel / SSH Port Forwarding
 

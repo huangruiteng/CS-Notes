@@ -170,15 +170,15 @@ class SentinelList:
 
 ### GIL
 
-https://zhuanlan.zhihu.com/p/20953544
+#### GIL 决定谁能执行，锁保护共享操作
 
-https://opensource.com/article/17/4/grok-gil
+在常规启用 GIL 的 CPython 中，同一个解释器内一次只有一条持有 Global Interpreter Lock（GIL）的线程执行 Python 字节码。大部分纯 Python CPU 密集型计算很难直接靠多线程加速。阻塞 I/O 期间、部分 C 扩展执行期间可以释放 GIL，其他线程仍有机会运行。
 
-https://wiki.python.org/moin/GlobalInterpreterLock
+CPython 3.2 将按 tick 检查的旧间隔（check interval）换成以秒计的时间间隔。设计目标包括让竞争中的线程切换更可预期，减少锁争用及相关系统调用。`sys.setswitchinterval()` 设置的是理想间隔，实际时机还受长操作与 OS 调度影响。 [Python 3.2 的线程改动](https://docs.python.org/3/whatsnew/3.2.html#multi-threading) · [切换间隔](https://docs.python.org/3.14/library/sys.html#sys.setswitchinterval) · [GIL 旧笔记来源](https://zhuanlan.zhihu.com/p/20953544) · [Grok the GIL](https://opensource.com/article/17/4/grok-gil) · [Python Wiki](https://wiki.python.org/moin/GlobalInterpreterLock)
 
-主要是cpu密集型效率低
+一个线程读到 `key` 不在缓存里，到它算出并写入之间，另一个线程也可能读到同样的旧状态。即便对应的一次字典访问在某个构建里是安全的，「检查、计算、写回」仍是三步。若同一 key 只允许初始化一次，可以用同一把 `threading.Lock` 包住整个流程，或由一个线程经队列统一管理这份状态。锁要保护的是这条业务约束。
 
-在python3.x中，GIL不使用ticks计数，改为使用计时器（执行时间达到阈值后，当前线程释放GIL），这样对CPU密集型程序更加友好，**但依然没有解决GIL导致的同一时间只能执行一个线程的问题，所以效率依然不尽如人意。**
+free-threaded CPython 是可禁用 GIL 的构建。Python 3.14 文档说明 `dict`、`list` 等内置类型当前使用内部锁保护部分并发访问，业务上的复合操作仍需显式同步。某些未声明兼容的 C 扩展可能在导入时重新启用 GIL，当前进程可用 `sys._is_gil_enabled()` 检查。 [CPython 3.14 Free-threading HOWTO](https://docs.python.org/3.14/howto/free-threading-python.html)
 
 ### GC 垃圾回收
 

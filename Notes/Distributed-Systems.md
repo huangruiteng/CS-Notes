@@ -123,19 +123,26 @@
 * **只有完整结果才能提交**：失败尝试可以进入 trace，但不能安装为正式状态。带副作用的调用还需要 idempotency key、去重或补偿，避免“响应丢失后重试”把同一操作执行两次。
 * **风险**：过载时的大量重试会形成 retry storm，并把下游压力放大成 cascading failure。
 
-* **退避 (Backoff)**
-  * **目的**：避免立即重试给故障服务带来持续压力，给系统恢复的时间。
-  * **策略**：
-    * **固定退避 (Fixed Backoff)**：每次重试等待固定时间 (e.g., 1s, 1s, 1s)。
-    * **指数退避 (Exponential Backoff)**：等待时间随重试次数指数增长 (e.g., 1s, 2s, 4s, 8s)。
-      * 公式：$$WaitTime = Base \times 2^{Attempt}$$
-      * 通常会设置最大等待时间 (Max Interval) 和最大重试次数 (Max Retries)。
+退避（Backoff）给故障服务恢复时间。固定退避（Fixed Backoff）如每次等 1 秒。指数退避（Exponential Backoff）按重试次数放大间隔，例如 1、2、4、8 秒，并设置最大等待（Max Interval）、最大重试次数（Max Retries）与整体 deadline。一批客户端同时失败时，固定间隔和确定性的指数间隔都会让后续尝试集中，抖动（Jitter）把到达打散，缓解重试惊群（Thundering Herd）。
 
-* **抖动 (Jitter)**
-  * **目的**：防止所有客户端在同一时刻重试（即**惊群效应, Thundering Herd**），将流量打散。
-  * **Full Jitter**：$$Wait = Random(0, Base \times 2^{Attempt})$$
-  * **Equal Jitter**：$$Temp = Base \times 2^{Attempt}; Wait = Temp/2 + Random(0, Temp/2)$$
-  * **Decorrelated Jitter**：$$Wait = Random(Base, Wait_{prev} \times 3)$$
+从第 0 次重试计数。基础等待为 `base`，等待上限为 `cap`。假设基础等待为正且在上限以内，该轮指数窗口如下。
+
+$$
+B_n=\min(\mathrm{cap},\mathrm{base}\cdot 2^n)
+$$
+
+Full Jitter 随机化整个窗口，Equal Jitter 至少等半个窗口，Decorrelated Jitter 用上一轮实际等待决定下一轮的抽样区间。以下记三种策略的等待为相应的 $D_n$。Decorrelated Jitter 首次抽样前将上一轮等待初始化为 `base`，抽样后再截到 `cap`。
+
+$$
+\begin{aligned}
+D_n^{\mathrm{full}} &\sim \operatorname{Uniform}(0,B_n),\\
+D_n^{\mathrm{equal}} &= B_n/2+U_n,\qquad U_n\sim \operatorname{Uniform}(0,B_n/2),\\
+D_n^{\mathrm{decorrelated}} &= \min(\mathrm{cap},V_n),\qquad
+V_n\sim \operatorname{Uniform}(\mathrm{base},3D_{n-1}^{\mathrm{decorrelated}}).
+\end{aligned}
+$$
+
+[AWS 的退避与抖动分析](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) · [流式网关的 Full Jitter 算例](./Software-Engineering.md#用-full-jitter-打散重连)
 
 * **相关模式**
   * **断路器 (Circuit Breaker)**：当失败率达到阈值时，暂时切断请求，快速失败，避免无意义的重试。

@@ -268,6 +268,10 @@ ROCm：https://developer.amd.com/resources/rocm-learning-center/
 
 #### Cache Coherence
 
+##### 缓存行的一致性与所有权
+
+多个 CPU 可以缓存同一地址的副本。Cache coherence（缓存一致性）约束同一位置的写入次序和各核能读取的版本。MESI 用 Modified、Exclusive、Shared、Invalid 表示一条 cache line 在本地的状态。写入者取得缓存行的可写所有权时，常需使共享副本失效。这份协调以缓存行为单位。跨多个地址的读写还能按什么顺序被其他核观察，则要看 memory consistency model。 [缓存一致性与内存一致性讲义](https://spcl.inf.ethz.ch/Teaching/2019-dphpc/lectures/lecture4-memory-models.pdf) · [语言层的内存序](./C++.md#memory-coherence--memory-consistency--memory-order)
+
 * [显存为什么不能当内存使？内存、Cache和Cache一致性](https://zhuanlan.zhihu.com/p/63494668)
   * 有 GDDR 和 PC DDR 设计初衷不同导致的问题
   * 为什么不能通过PCIe来扩展普通内存？
@@ -307,7 +311,56 @@ The two most common mechanisms of ensuring coherency are *[snooping](https://en.
 * scalability of multi-thread applications can be limited by synchronization 
   * 延伸：PCIe 内部 memory （包括 PCIe 后面的显存、NvRAM 等）的割裂性在服务器领域造成了很大问题，CXL 的引入为解决这个问题提供了技术手段
 
-* synchronization primitives: LOCK PREFIX、XCHG
+##### Store Buffer 与 Store→Load
+
+对普通的 write-back 可缓存内存，x86-TSO（Total Store Order）允许逻辑处理器在先前的 store 对外可见之前，完成对另一个地址的 load。可以用每个硬件线程的 FIFO Store Buffer 来推演。Store 先进入本地待提交队列，之后才进入其他处理器可观察的顺序。Load 如遇本线程缓冲中同一地址的写，可以通过 store forwarding 读到该值。这里的「提交」描述可观察顺序，硬件可用缓存和互连完成。 [Sewell 等，x86-TSO §1、§3.1](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf) · [Intel SDM，Vol. 3A，Memory Ordering](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+
+Store Buffering litmus test 让两个地址 `X`、`Y` 初始都为 0。核 0 按程序顺序执行 `X = 1` 再读 `Y`，核 1 执行 `Y = 1` 再读 `X`。即使每个核都按源码顺序发出指令，两个读也可能都得到 0。
+
+```mermaid
+flowchart LR
+    Start["初始 X = 0，Y = 0"]
+    Start --> WX["核 0 暂存 X = 1"]
+    Start --> WY["核 1 暂存 Y = 1"]
+    WX --> RY["核 0 读 Y，得到 0"]
+    WY --> RX["核 1 读 X，得到 0"]
+    RY --> Publish["这一种交错中，两次写随后对外可见"]
+    RX --> Publish
+```
+
+在两个线程各自的 store 与 load 之间放置 x86 的 `MFENCE`，可排除这个双方都读 0 的执行。适当位置的 locked 原子读改写（LOCK prefix、内存操作数的 `XCHG`）也能建立所需顺序。Rust/C++ 可以通过原子内存序表达程序要求，并由编译器选择指令。四个操作都用 SeqCst 时，为什么双零无法排进全序，见[内存序与双标志例子](./C++.md#seqcst-怎样排除双零)。 [x86-TSO §3.1–3.2](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf)
+
+##### 伪共享为何让独立写入也争用
+
+False sharing（伪共享）发生在不同线程访问不同字段，其中至少一个频繁写，而字段落在同一条 cache line。假设缓存行是 64 字节，单生产者单消费者队列把两个 8 字节游标 `head`、`tail` 紧挨着放，同处一行时它们仅占 16 字节。生产者常写 `tail`，消费者常写 `head`。每次换核取得该行的写权限都可能让对方副本失效（Invalid）。两边轮流改自己的字段，也能把缓存行来回搬动。 [Linux 内核，False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)
+
+常见改法是给两个高频写字段分别对齐或加 padding。只把外层队列对象对齐到 64 字节，字段仍可能紧挨着。下面假定目标机器使用 64 字节缓存行，两个游标分别占用对齐的空间。 [Rust Reference，对齐修饰符](https://doc.rust-lang.org/reference/type-layout.html#the-alignment-modifiers) · [C++ 对缓存干扰大小的实现提示](https://eel.is/c++draft/hardware.interference)
+
+```rust
+use std::sync::atomic::AtomicU64;
+
+#[repr(align(64))]
+struct LineCursor(AtomicU64);
+
+struct Cursors {
+    head: LineCursor,
+    tail: LineCursor,
+}
+```
+
+```cpp
+#include <atomic>
+#include <cstdint>
+
+struct Cursors {
+    alignas(64) std::atomic<std::uint64_t> head{0};
+    alignas(64) std::atomic<std::uint64_t> tail{0};
+};
+```
+
+4 ns 的本地访问、40–80 ns 的跨核访问，以及每秒千万次游标更新，可以用来理解这种热点的量级。实际数据随 CPU 拓扑、缓存状态和读写模式而变。用原布局与分离布局做对照，固定数据量和线程绑核，看吞吐和每次操作延迟。Linux 上若硬件和工具支持，可用 `perf c2c` 找到被跨核频繁访问的缓存行，再查争用集中在同一个字段（true sharing），还是蔓延至同一行的独立字段。缓存行分离要多花空间，读对方的游标仍有必要的共享和同步。 [Linux 内核，定位 False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html#how-to-detect-and-analyze-false-sharing) · [游标的 Acquire/Release 交接](./C++.md#acquirerelease-怎样把数据交给另一线程)
+
+##### 拓扑与锁竞争的测量
 
 内存拓扑的 unbalanced 问题
 
@@ -530,9 +583,7 @@ Introduction: allocator 性能逐渐成为重点
 
 问题1: 要尽量避免 cache line 的多线程争抢问题
 
-* jemalloc instead relies on multiple allocation arenas to reduce the problem, and leaves it up to the application writer to pad allocations in order to avoid false cache line sharing in performance-critical code, or in code where one thread allocates objects and hands them off to multiple other threads.
-  * Multiple Arenas 默认是cpu core 数乘以 4
-  * 线程争抢 (false sharing)：一个 cacheline 64 bytes，如果a线程b线程每个线程共享一块malloc出来的内存的前32byte和后32byte，两个线程会争抢这个cache line。这种编程模式，依赖业务代码加一些 padding 避免争抢
+早期 jemalloc 用 multiple allocation arenas 减少分配器的共享争用。论文例子里的默认 arena 数为 CPU 核数乘以 4，实际要看版本和配置。若一个线程分配对象后交给其他线程，或者一个 64 字节对齐的块被两个线程分别写前后各 32 字节，即使分配器的 arena 已分开，也可能在数据布局上产生 false cache line sharing。性能热点可在应用侧给分配的对象补齐（pad allocations），让分给不同线程写的字段落到不同缓存行。 [伪共享与对齐例子](#伪共享为何让独立写入也争用)
 
 问题2: reduce lock contention <-> cache sloshing
 

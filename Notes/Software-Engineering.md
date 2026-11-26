@@ -577,6 +577,107 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 
 
 
+### 流式服务排障与恢复
+
+**先找最后一个有效业务事件停在哪一跳。** 对同一个任务关联 `run_id` 和事件 `seq`，依次看上游产出、网关读到、网关尝试写出和客户端收到的记录。HTTP `200` 表示响应已开始，keepalive 表示探测所在的连接仍可用。框架接受一次 `write` 可能只是将数据放进发送队列。客户端事件或应用级确认才提供送达证据。[gRPC Keepalive](https://grpc.io/docs/guides/keepalive/) · [gRPC 流控](https://grpc.io/docs/guides/flow-control/)
+
+| 现象 | 怎么区分 |
+| --- | --- |
+| 一个实例上多条无关流一起断更，事件循环的定时回调和短探针也延后 | 对齐 JVM GC / safepoint 日志、事件循环延迟、线程运行队列等待和 `cpu.stat` 的限流计数增量。进程自身的计时器也可能迟到，用独立进程或远端探针补证据 |
+| 其他流正常，某流的上游业务序号停涨 | 确认网关仍有读取机会，再查上游排队、计算和依赖调用。即使持续收到 PING 或 SSE 注释，业务步骤仍可能卡住 |
+| 上游已生成新事件，客户端还停在旧序号 | 网关没读到，查入站链路、处理调度和流控。网关已读到但批量送达，查应用 flush 和反代缓冲。发送队列逼近上限且写操作等待增长，查慢客户端与流控窗口 |
+| `CLOSE_WAIT` 持续累积 | 对端已经发送 FIN。对齐本端 fd 持有时间，查异常分支是否漏清理、连接池是否仍持有，以及处理关闭的事件循环是否延后 |
+| 新订阅连不上 | 先检查 TCP 握手与监听队列，再查 TLS 和 HTTP 建立阶段。见[连接状态与计数](./Computer-Networking-Lecture-CS144-Stanford.md#用状态和计数定位连接故障) |
+
+#### 反向代理为何把事件成批送达
+
+上游每次输出完整 SSE 事件后要及时 flush。Nginx 的 `proxy_buffering` 默认为开启。要关闭 SSE 路径的响应缓冲，可在对应的 `location` 配置 `proxy_buffering off;`，或由上游发送响应头 `X-Accel-Buffering: no`，且代理未用 `proxy_ignore_headers` 忽略它。文档中的 4 KiB 或 8 KiB 是随平台变化的默认缓冲区尺寸，前端何时收到字节还取决于各跳的 flush、压缩及传输。 [Nginx 代理缓冲](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering) · [SSE 事件分帧](./Computer-Networking-Lecture-CS144-Stanford.md#sse-的协议语义)
+
+让同一个测试上游按固定间隔发小事件，对照直连和经网关的首事件、相邻业务事件到达时间。用 `curl -N` 观察时，它关闭的是 curl 的输出缓冲。若直连逐条到而代理端成批到，继续对照代理缓冲、压缩和其他中间跳的设置。`proxy_read_timeout` 管相邻两次上游读取之间的空档，心跳可以让链路继续有读活动，业务进展仍要另行计时。WebSocket 升级后走隧道，按帧读写、空闲计时和发送队列取证。 [Nginx 读取超时](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout) · [Nginx WebSocket 代理](https://nginx.org/en/docs/http/websocket.html) · [curl --no-buffer](https://curl.se/docs/manpage.html#--no-buffer)
+
+#### 长暂停与迟到写入
+
+STW（Stop-The-World）通常指运行时暂停应用线程，例如 JVM 的部分 GC 阶段。线程也可能已经就绪却迟迟得不到 CPU，例如可运行任务过多、CPU 配额用完。单线程事件循环被同步工作占住时，影响集中在该循环承载的请求和定时器。三者都可能让 Worker 在进程仍存活时错过续约，外部租约和请求的 deadline 继续推进。[Oracle G1 GC](https://docs.oracle.com/en/java/javase/26/gctuning/garbage-first-g1-garbage-collector1.html) · [Linux cgroup v2](https://docs.kernel.org/admin-guide/cgroup-v2.html) · [Linux 调度与等待诊断](./操作系统.md#linux-公平调度与等待诊断)
+
+假设 A 持有任期 `41`，租约第 5 秒到期。A 在第 1 秒检查通过，随即暂停 12 秒。B 在第 6 秒接管并把新任期 `42` 登记到提交端。第 13 秒 A 恢复后，仍可能发出任期 `41` 的写入。**保护点在写入生效处**，存储在同一原子操作里校验当前任期和预期状态版本，再写状态或回执。任期回答谁有权写，CAS 版本回答这条变更是否还基于同一版状态。如果存储只记已见过的最大 token，必须先在那里登记 `42`，旧请求才会被拒绝。第三方写接口若只有幂等键，就用稳定操作 ID 查询和重试，并按接口能提供的保证处理未知提交。[Kleppmann 的租约与 fencing 例子](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) · [提交前的版本验证](#optimistic-concurrency-control提交前验证的并发控制)
+
+#### 用业务进展计时与背压
+
+| 时间边界 | 判定与动作 |
+| --- | --- |
+| 首事件超时 | 从开始调用到第一条有效业务事件。可把连接耗时单独观测，区分连不通、排队和已经开流但迟迟无内容 |
+| 进展超时 | 从最近一次已核验的推进起计，例如新业务序号、有效输出或明确阶段转换。心跳与重复事件维持连接活性，进展计时保持原值 |
+| 总 deadline | 限制一次调用的全程。下游调用按剩余预算运行。正常阶段耗时和用户 SLO 决定分配，资源释放上限可以另定 |
+| 写出超时 | 接收方迟迟不读时，限制它占用缓冲和转发槽位的时长。有界队列满后按约定背压或结束订阅。主动暂停读上游期间，应单独记录本端背压状态 |
+
+例如，最后一条业务事件在第 10 秒，第 12、14 秒只有心跳，进展上限 5 秒、总期限 60 秒，第 **15 秒**就该判定进展超时。正常的长计算阶段可单独设限。进程暂停时定时器回调会延后，恢复后应重查截止时点。独立观察者可以在进程外及时发现失联。[gRPC Deadlines](https://grpc.io/docs/guides/deadlines/)
+
+以下伪代码用一个 reader 和一个 writer 转发一条可重放订阅。reader 同时等待上游和 writer 的失败信号。队列上限为 64 KiB，锁内只检查容量、累计字节数和入队。单帧、writer 手中的在途帧以及协议库缓冲也各自有上限。序号在同一任务内连续，协议用终止事件区分正常结束与截断。
+
+```text
+relay(subscription, cursor, deadline):
+    progress_by = monotonic_now() + FIRST_LIMIT
+    pending = ByteQueue(limit = 64 KiB)
+    writer = start_writer(pending, write_timeout = WRITE_LIMIT,
+                          deadline = deadline)
+    try:
+        loop:
+            cutoff = min(deadline, progress_by)
+            r = wait_for_event_or_writer_failure(subscription, writer, cutoff)
+            if r.timed_out or monotonic_now() >= cutoff:
+                return classify_timeout(deadline, progress_by)
+            if r.writer_failed:
+                return SLOW_OR_DISCONNECTED_CLIENT
+            if r.eof:
+                return TRUNCATED_STREAM
+            event = r.event
+            if event.is_heartbeat:
+                continue
+            validate_task(event, subscription)
+            if event.seq <= cursor:
+                continue
+            require_next_seq(event, cursor)
+            if not pending.try_put(event):
+                return SLOW_CLIENT
+            cursor = event.seq
+            progress_by = monotonic_now() + PROGRESS_LIMIT
+            if event.is_terminal:
+                pending.seal()
+                return drain_writer(writer, until = deadline)
+    finally:
+        signal_subscription_cancel(subscription)
+        stop_writer_and_release_local_slot(writer)
+```
+
+`cursor` 是网关已读取并成功入队的水位。客户端按自己最后收到的事件重连。这里选择在写入超时或队列满时断开慢订阅，用重放换取有限的网关内存。取消信号异步传递，清理按本地界限结束。独立任务是否继续运行，按任务的授权和生命周期决定。[设计时的状态预算](#生产系统设计的五步法)
+
+#### 重连、接管与未知提交
+
+| 故障 | 安全的续接位置 |
+| --- | --- |
+| 客户端断网或读太慢 | 按客户端的游标续订已存在的任务，具体见[从断点重放并接回实时流](#从断点重放并接回实时流) |
+| Worker `SIGKILL`、OOM 或长暂停 | 由新任期从持久检查点、事件和回执接管。提交端拒绝旧任期。超时清理本端资源后，独立确认旧尝试是否仍占用下游资源 |
+| 下游卡住或终止事件缺失 | 结束本次等待，传播取消。能按已有游标继续读则走续读。需要重做业务步骤时先检查状态、预算和幂等边界 |
+| 写入超时且结果未知 | 先用原操作 ID 查回执。接收端支持幂等时复用原 ID 重试。缺少结果查询和去重保证时，保留未知状态并进入对账 |
+
+##### 从断点重放并接回实时流
+
+需要跨网关重启恢复的输出，先写入持久的只追加事件日志（Append-Only Event Log）。给每个任务的订阅流分配单调递增的 `seq_id`。SSE 可用事件的 `id` 承载这个序号，由浏览器在重连时带回 `Last-Event-ID`。WebSocket 可以在首条订阅消息里自定义 `after_seq`。若应用另有“已处理”确认位，就用确认位决定从哪里重放。网关入队水位、浏览器的事件 ID 和应用处理确认各有含义。 [SSE 的 Last-Event-ID](https://html.spec.whatwg.org/multipage/server-sent-events.html#the-last-event-id-header) · [实时订阅的游标和快照](./Computer-Networking-Lecture-CS144-Stanford.md#snapshot--delta避免订阅启动时的竞态)
+
+假设客户端已确认 41，网关开始重放时看到日志写到了 43。重放 42、43 期间，事件 44 也可能到达。直接从同一持久日志按序推进，可以在读完 43 后接着从 44 读。若历史读取和实时广播是两条路径，先订阅并缓冲实时事件，再读取重放上界。历史补至 43 后，按顺序接上实时缓冲中大于 43 的事件，并按任务及序号去重。若此后只看到 45，应回日志补 44。实时缓冲溢出也可从最近交付位置重新读日志。游标超出保留窗口时，返回明确错误，或发送相互匹配的快照与新游标。
+
+##### 用 Full Jitter 打散重连
+
+网关滚动重启可能使大量连接同时断开。固定间隔会让这些连接一起回来，再次挤压剩余实例。可控客户端为第 `n` 次重试独立抽样，`n` 从 0 开始，同时受最大尝试次数和整体期限约束。浏览器原生 `EventSource` 按自身重连机制与 SSE 的 `retry:` 字段运行，应用无需并行再开一条。 [SSE 重连规则](https://html.spec.whatwg.org/multipage/server-sent-events.html#the-eventsource-interface) · [AWS 的退避与抖动分析](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
+
+$$
+D_n\sim\mathrm{Uniform}\bigl(0,\min(\mathrm{cap},\mathrm{base}\cdot 2^n)\bigr)
+$$
+
+例如 base 为 500 ms、cap 为 8 秒，`n=3` 时从 0 到 4 秒抽样。若 1 万个客户端这一次独立抽样，窗口内平均约每秒 2,500 个重连，实际峰值会波动。验收时对齐重连 QPS、接入容量与重放耗时，重连成功后还要核对是否补齐业务序号。 [退避及重试预算](./Distributed-Systems.md#可靠性与容错模式-reliability--fault-tolerance) · [Outbox 与重试](#outbox把业务提交与异步投递绑定)
+
+故障注入的验收点有三个。暂停旧 Worker 到新任期完成登记，恢复后验证提交端拒绝旧写。让上游只发心跳，验证业务进展仍然超时。让客户端停读，验证发送缓冲到上限后能释放资源，重连能从客户端水位补齐持久事件。超时触发是中间现象，最终验收看权威记录、资源归还和客户端看到的序号。
+
 ### 级联故障：容量、流量与恢复回路
 
 **可用性机制也可能放大故障：转移流量能绕开坏节点，但若剩余节点存在相同的负载敏感缺陷，故障转移就会把局部过载推成全局失效。** 可靠性需要同时验证故障条件、隔离边界和恢复过程，不能只验证正常运行与单节点切换。
@@ -644,6 +745,42 @@ Mutation testing 的成本较高，因为每个 mutant 都可能触发一次测�
 “维护规则”不等于拒绝不同意见：应说明规则保护的系统性质、破坏后的后果，以及改变规则需要满足的条件。需要跨团队权衡时，将理由、最终决策者和复核条件写清楚，避免系统仅依赖一个人的记忆和拍板。
 
 产品节奏可用“预研一代、开发一代、量产一代”组织：同一技术领域并行审视未来可行性、当期交付和线上／量产可靠性，并让实际使用反馈影响后续设计。它是协调不同成熟度工作的框架，不要求所有软件项目照搬芯片的一年一代节奏。架构评价最终要回到可用产品与客户反馈，局部技术最优并不自动形成商业闭环。
+
+### 生产系统设计的五步法
+
+1. **约束和容量。** 定义工作单位、负载形状、资源配额、延迟 SLO 和一致性语义。容量计算找每项资源的承载上限，调用链分析找请求的串行等待下限。
+2. **事实源和不变量。** 分别说明外部效果、已核验的观测和当前执行授权由谁记录。遇到抢占或并发提交，说明状态版本何时推进、租约如何换任期、哪个提交端原子拒绝旧版本或旧任期。[一个动作的三种事实](../Learning-Materials/distributed-systems-for-loopx/补课讲义.md#1-一个动作的三种事实)
+3. **核心原语。** 手写决定正确性的那一小段逻辑，例如游标读写、水位抢占或原子提交。给出锁或事务的范围、容量上限、超时分支和清理路径。
+4. **故障和恢复。** 分别推演客户端断网、进程退出、运行暂停、下游卡流和未知提交。对每条路径找可继续的检查点，区分重连、任务接管和外部效果对账。[流式服务排障与恢复](#流式服务排障与恢复)
+5. **取舍和扩展拐点。** 分别代入请求到达率、单次工作量、流时长和状态体积的变化，说明何时要限流、加实例或拆状态，并用能够区分瓶颈的观测验证。
+
+#### 用量纲估算容量与瓶颈
+
+**先定义 QPS 数什么，再把需求换成每项资源的单位。** 新开流、流内事件、重连和下游调用各有速率。一条 HTTP/2 连接可以承载多条逻辑流，内存要分别计算连接级的 socket / TLS 状态、每条流的应用状态和缓冲。峰值测量还要带上时间窗口、请求大小与读写比例。
+
+在稳定、边界一致的系统中，Little 定律用平均在途数 $L$、有效吞吐 $\lambda$ 和平均停留时间 $W$ 连接速率与存量。算已建立的流就以建立到释放为边界。算入口排队就使用同一队列的吞吐和平均排队时长。P99 用于描述延迟尾部，容量上界还要看并发实测分布、突发和限流配置。[Little 定律](https://web.mit.edu/dimitrib/www/Queueing_Data_Nets.pdf)
+
+$$
+L=\lambda W,\qquad 100\ \text{流/秒}\times20\ \text{秒}=2{,}000\ \text{活跃流}.
+$$
+
+同样是 100 次/秒，若每次只占用 20 ms，平均在途只有 2。以下以每秒接纳 100 条新流、平均存活 20 秒为例。参数都是手算假设。
+
+| 资源 | 需求与拐点 | 验证证据 |
+| --- | --- | --- |
+| CPU 核数 | 每流累计用 30 ms CPU，100 流/秒约占 3 个满载核。若 8 核实例给该负载的规划预算为 5.6 核，约 187 流/秒触线 | 测单流 CPU 时间、单核忙度、调度等待和 CPU 配额。同步代码占住一个事件循环时，单核可以先于机器整体饱和 |
+| 主内存 DRAM | 每流状态和缓冲合计预算 256 KiB，含前面的 64 KiB 待发队列。2,000 条活跃流需 500 MiB。扣掉基础进程和连接开销后，若有 2 GiB 流预算，可容纳约 8,192 条，按 20 秒约为 410 流/秒 | 看每流用量、发送缓冲水位、峰值并发和 cgroup 内存。只延长流的寿命时，同时驻留的状态也会变多 |
+| 磁盘 IOPS | 每流 4 次读、1 次耐久提交，读命中 90%。若未命中的读和每次提交各折为一次设备操作，约需 40 读 + 100 写相关操作/秒。在同样混合与耐久配置下，若存储在尾延迟预算内可承担 1,000 IOPS，约对应 714 流/秒 | 看缓存命中、设备队列、实际读写与 `fsync` 或事务提交尾延迟。写放大、复制、批量刷盘会改变逻辑操作到物理 I/O 的换算 |
+| GPU HBM | 下游 GPU 每个解码 batch 步若搬 5 GB，有效带宽上限 800 GB/s，则仅搬运至少约 6.25 ms，带宽天花板约 160 batch 步/秒。再按每步有效输出 token 数换算 token/s。另算显存能放下多少权重、KV cache 和工作区 | 按相同 batch、上下文长度和精度查看实际字节流量、带宽与算力利用率。[GPU Roofline 笔记](./GPU.md#roofline-model) |
+| 跨机网络 | 带宽按每秒请求数 × 每次网络字节数估算。RTT 按关键路径的串行往返次数算，并行时看完成所需的最慢返回或法定多数 | 对齐端到端 trace 和网络信号，分辨应用排队、链路传输与重传，再核对何处必须等待远端确认 |
+
+单实例网关在本例里先碰到 CPU 规划预算，约为当前负载的 1.9 倍。若单流仍只做同样的工作、平均寿命从 20 秒拉到 80 秒，原 QPS 就需要约 2,000 MiB，DRAM 更早吃紧。若直接提高到 1,000 流/秒，同形状估计约需 30 核、4.9 GiB 流状态和 1,400 设备操作/秒。水平扩展可以分摊网关的计算与驻留状态。共享存储若仍只有 1,000 IOPS 预算，需要另行优化写入路径或按任务分片。先固定单流形状逐级增压，核对哪项资源先到预算、哪段队列开始增长、吞吐何时停止增长。[NVIDIA Nsight Compute](https://docs.nvidia.com/nsight-compute/NsightCompute/) · [Google SRE 过载治理](https://sre.google/sre-book/handling-overload/)
+
+#### 按关键路径分配尾延迟
+
+首个**业务事件**在本例中从客户端发起新流请求计时。对成功收到首事件的请求统计 P99，目标为 300 ms。同时在所有接纳请求中统计首事件超时率与完成率，流中记录相邻有效事件的间隔。延迟分配可先取入口排队 20、网关处理 15、授权与同步确认 35、下游首事件 200、回传 30 ms。若一致性要求两次串行跨区确认，每次 RTT 下限 80 ms，确认就至少花 160 ms。其余阶段按原分配耗尽，合计是 425 ms。这个算式用于找预算冲突，端到端 P99 用整条路径的样本计算。
+
+一致性应写成具体的读写承诺。例如展示进度允许短暂落后，重连时按序号补齐。执行授权和状态写入在提交端原子校验，成功回执在约定的耐久边界之后返回。如果把确认改成异步，接口分别表达「已接收」和「已耐久提交」，再重算首事件路径。[Google SRE 尾延迟监控](https://sre.google/sre-book/monitoring-distributed-systems/#worrying-about-your-tail-or-instrumentation-and-performance)
 
 ### NIH：别用来源代替技术判断
 
