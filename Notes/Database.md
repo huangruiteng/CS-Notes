@@ -39,32 +39,178 @@
 
 #### 其它
 
-* [从零开始深入理解存储引擎](https://mp.weixin.qq.com/s/sEml0lH2Zj-b_sIFRn2wzQ) TODO
 * Data Analytics
   * 图右sql来自tpc-h
 
 
 ![image-20250525014902754](./Database/image-20250525014902754.png)
 
-### 存储引擎概览（MongoDB）
+### 存储引擎
 
-- WiredTiger（默认）：压缩（snappy/zstd/none）、文档级并发、checkpoint+journal 持久化；缓存默认≈物理内存的 50%，`storage.wiredTiger.engineConfig.cacheSizeGB` 可调。
-  - ![image-20251219020216341](./Database/image-20251219020216341.png)
-    - WiredTiger 和 mysql 的异同：都用了 Btree，但叶子节点间没有用链表连接
+#### 从一条商品记录理解键、排序和索引
 
-- In-Memory：数据驻内存，重启数据丢失；适合低时延的临时数据。
-- MMAPv1：旧引擎，已弃用。
-- 机制：
-  - Checkpoint 将脏页刷盘形成一致性快照；Journal 写前日志，`j:true` 保障落盘。
-  - 集合与索引均为内部表；`_id` 索引必有，压缩与缓存策略可分集合配置。
-  - 文档级锁并发；通过 eviction 与写入节流保持稳定。
-- 调优：
-  - 压缩：通用选 `snappy`；冷数据多选 `zstd`；热写路径可按集合关闭压缩。
-  - 缓存：热点溢出时提高 cache 或优化查询/索引；避免单次聚合读取超大文档。
-  - 一致性：生产默认 `w:"majority", j:true`；读用 `readConcern: majority`。
-- 参考：
-  - WiredTiger：https://www.mongodb.com/docs/manual/core/wiredtiger/
-  - In-Memory：https://www.mongodb.com/docs/manual/core/inmemory/
+想象一个小库存表。你给出商品编号，数据库返回库存数量。商品编号是**键（key）**，库存数量是**值（value）**。存储引擎决定这些记录怎样放进内存和磁盘，又怎样被查到、修改和恢复。下面两种结构都从这四条记录开始。
+
+| 商品编号（键） | 10 | 20 | 30 | 40 |
+| --- | --- | --- | --- | --- |
+| 库存（值） | 5 | 8 | 6 | 9 |
+
+`Get(30)` 是**点查**，找编号 30。`Scan(20, 40)` 是**范围扫描**，找编号 20 到 40 的所有记录，例子里包含两个端点。`Put(30, 12)` 把商品 30 的库存改为 12，`Put(25, 4)` 给新商品 25 记入库存 4。`Delete(30)` 删除编号 30 的记录。下面的操作逐条执行，查询读取当时最新的数据。
+
+如果记录无序地堆在一起，查一个不存在的编号可能要逐条扫完。按编号排序后，一段范围会连在一起。进一步把记录按组装入**页（page）**，就可以用一份**索引（index）**记录哪些键应去哪一页查。例如 `10、20` 在 P1，`30、40` 在 P2，索引记下分界 `30`，查询就可以先去对应的页。若把所有记录直接排在一个大数组里，向中间插入 `25` 可能要移动后面大量记录。B+Tree 用一棵树维护有序的页，LSM-Tree 允许多份有序数据暂时并存，再做合并。 [Berkeley CS 186，B+Tree](https://cs186berkeley.net/notes/note4/) · [LevelDB 文件组织](https://github.com/google/leveldb/blob/main/doc/impl.md)
+
+#### B+Tree 怎样定位并更新数据页
+
+##### 手推点查、页分裂和范围扫描
+
+**B+Tree（B+ 树）是一棵平衡的多路查找树。** 最上面的**根页（root）**是入口，叶页上方的**内部页（internal page）**用分隔键导航，最下面的**叶页（leaf page）**保存按键排序的记录或记录的位置。一个内部页可以有多个子页，所以称为多路。所有叶页都在同一层，所以从根走到任一叶页的步数相同。经典 B 树也允许内部节点带记录。B+ 树把记录或其定位信息放在叶层，方便沿叶页顺序扫描。 [Berkeley CS 186，B+Tree 的性质与插入](https://cs186berkeley.net/notes/note4/) · [CMU 15-445，Tree Indexes](https://15445.courses.cs.cmu.edu/fall2024/notes/08-indexes1.pdf)
+
+本例规定每个叶页能放两条记录。开始时 P1 放 `10→5、20→8`，P2 放 `30→6、40→9`。根页只有分隔键 `30`，小于 30 去 P1，等于或大于 30 去 P2。
+
+1. `Get(30)` 从根进入 P2，在叶页里找到 `30→6`。
+2. `Put(30, 12)` 沿同一条路找到 P2，将该记录改成 `30→12`。分隔键仍然是 `30`。
+3. `Put(25, 4)` 先去 P1。插入后有 `10、20、25` 三条记录，装不进一页，于是把 `25→4` 放到新叶页 P3。在根页新增分隔键 `25` 和指向 P3 的指针。分隔键 `25` 用来导航，`25→4` 留在叶层。
+4. `Scan(20, 40)` 先从根找到 20 所在的 P1，取到 `20→8`，再沿叶页链接依次经过 P3、P2，得到 `25→4、30→12、40→9`。
+
+图里三个叶页处于同一层。根页的箭头用于选页，叶页链接的顺序是 `P1 → P3 → P2`。
+
+```mermaid
+flowchart TB
+    Root["根页 · 分隔键 25、30"]
+    Left["叶页 P1 · 10→5，20→8"]
+    Middle["叶页 P3 · 25→4"]
+    Right["叶页 P2 · 30→12，40→9"]
+    Root -->|小于 25| Left
+    Root -->|25 到 29| Middle
+    Root -->|30 及以上| Right
+```
+
+InnoDB 与 PostgreSQL 的页式索引也会连接同层页面。范围扫描可以沿链接推进，逻辑上相邻的页仍可能分散在磁盘上。 [PostgreSQL 17 §64.1.4.1，B-tree 页结构](https://www.postgresql.org/docs/17/btree.html#BTREE-STRUCTURE) · [InnoDB 8.4.0，游标跨页源码](https://github.com/mysql/mysql-server/blob/mysql-8.4.0/storage/innobase/btr/btr0pcur.cc)
+
+接着执行 `Delete(30)` 时，教学模型也会先沿索引找到 P2，从页里移走 `30→12`，P2 还有 `40→9`。一般的 B+ 树算法中，如果删除让页太空，可以从相邻页重新分配记录，或合并两页，并更新父页的分隔键和指针。实际数据库可以把物理清理延到后台。 [CMU 15-445，Deletion](https://15445.courses.cs.cmu.edu/fall2024/notes/08-indexes1.pdf#page=2) · [PostgreSQL 17，B-tree 清理](https://www.postgresql.org/docs/17/btree.html)
+
+##### 为什么几层就能查很多记录
+
+一个内部页能指向多少个子页，称为**扇出（fan-out）**。扇出越大，多走一层能覆盖的记录越多。假设每个叶页放 200 条记录，100 万条需要 5,000 个叶页。若一个内部页最多指向 200 个子页，5,000 个叶页只需 25 个父页，1 个根页就能指向这 25 个父页。理想情况下三层就够。类似的高扇出索引可先用 3–4 层估算，实际高度取决于数据量和页容量。
+
+用索引取到位置后再取整行，叫**回表**。InnoDB 的聚簇索引通常按主键组织，叶页承载行记录。另一份按其他字段建立的二级索引，用主键来定位整行，回表可能再走一趟聚簇索引。PostgreSQL 把数据行放在独立的堆表里，B-tree 的叶页通常保存行指针（TID），指向页号和页内位置。如果一次查询要的列都在索引里，这个索引就覆盖了该查询，查询有机会直接从索引取值。范围扫描若需要逐条回表，按索引相邻的记录也可能落在分散的数据页上。 [InnoDB 聚簇与二级索引](https://dev.mysql.com/doc/refman/8.4/en/innodb-index-types.html) · [PostgreSQL 行指针](https://www.postgresql.org/docs/17/storage-page-layout.html) · [PostgreSQL 17 §11.9，回表与索引只读扫描](https://www.postgresql.org/docs/17/indexes-index-only-scans.html)
+
+**树高和读盘次数要分开算。** 假设点查时上层页都在内存，只有叶页需要一次随机读。若回表恰好还要另读一页，就是两次。这是讲义里 1–2 次随机读盘的适用场景。范围扫描的实际 I/O 还取决于跨了多少页、返回多少行，以及这些行是否需要回表。 [讲义 §3.1](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#31-单机存储双引擎btree-原地更新-vs-lsm-tree-追加合并)
+
+页式「原地更新」允许改动已有逻辑页，稍后将修改过的页写回磁盘。事务层仍可能保存同一记录的多个版本。插入造成页分裂时，父页也可能装满，分裂可以一直向上传到根页。若根页也分裂，树加一层，所有叶页仍保持同一深度。并发实现用短时页闩（latch 或 buffer lock）保护结构修改，事务层的锁保护逻辑记录的并发访问。 [PostgreSQL 17.0 B-tree 实现说明](https://github.com/postgres/postgres/blob/REL_17_0/src/backend/access/nbtree/README)
+
+#### LSM-Tree 怎样读取新旧版本
+
+##### 手推写入、刷表和查找
+
+**LSM-Tree（Log-Structured Merge-Tree，日志结构合并树）把更新攒在内存里，再成批写出新的有序文件。** 在这个例子里，磁盘上的旧文件保留 `30→6`，新写入的 `30→12` 单独记录。两个 `30` 是同一件商品先后两次写入得到的两个**版本**。点查按写入先后找本次读取可见的最新版本。
+
+能按键查找和按键顺序遍历的内存表叫 **MemTable**。达到容量阈值时，它被冻结成 **Immutable MemTable**，此后只读，新写入交给另一张内存表。后台把冻结表按键顺序写成磁盘上的只读表 **SSTable（Sorted String Table）**。这个过程叫刷表（flush）。在下面的分层例子里，新刷出的文件先放在第 0 层（L0），合并后可进入第 1 层（L1）。RocksDB 默认用跳表（Skip List）实现 MemTable，也支持其他内存表结构。 [RocksDB MemTable](https://github.com/meta/rocksdb/wiki/RocksDB-Overview#memtable) · [LevelDB 文件组织](https://github.com/google/leveldb/blob/main/doc/impl.md)
+
+沿用刚才两次写入，先 `Put(30, 12)`，再 `Put(25, 4)`。旧的四条数据都在一个 L1 文件里。
+
+| 执行到哪一步 | 较新的数据 | L1 旧文件 | 此时 `Get(30)` |
+| --- | --- | --- | --- |
+| 开始 | 空 | `10→5、20→8、30→6、40→9` | `6` |
+| 写完两笔 | MemTable 中有 `25→4、30→12` | `10→5、20→8、30→6、40→9` | `12` |
+| 刷表后 | L0 新文件中有 `25→4、30→12` | `10→5、20→8、30→6、40→9` | `12` |
+
+写入先 `30` 后 `25`，刷表按键写成 `25、30`。磁盘上同时有 `30→6` 和 `30→12`，查询返回较新的 `30→12`。如果这时执行 `Scan(20, 40)`，两份文件都从第一个不小于 20 的键开始。L1 读到 `20`，L0 读到 `25`，先取较小的 `20`，再把 L1 的位置移到下一条。重复这个过程，遇到两个 `30` 时只取较新且可见的值，再把两份文件的位置都往前推进。最终返回 `20→8、25→4、30→12、40→9`。扫描遇到最新可见版本是删除标记的键，会跳过该键。 [FAST ’22，点查与范围扫描对照](https://www.usenix.org/system/files/fast22-qiao.pdf#page=12)
+
+##### 文件多了以后怎样少读、怎样合并
+
+点查先看可写和冻结的 MemTable，再找磁盘文件。L0 的文件可覆盖相同的键范围，例如两个文件的范围分别是 `25–30` 和 `28–35`，查 `30` 时两个都可能有记录。使用分层合并（Leveled Compaction）时，L1 及更深层在同一层内按键范围分开。把文件范围排好序后，可以反复比较中间位置、排除一半范围，这就是二分查找。选出文件后，再经 SSTable 的索引定位数据块。启用布隆过滤器（Bloom Filter）时，过滤信息可缓存到内存。若它能排除这个键，就可以跳过对应文件或分区。若给出「可能在」，还要查数据块确认。 [RocksDB Leveled Compaction](https://github.com/meta/rocksdb/wiki/Leveled-Compaction) · [RocksDB Bloom Filter](https://github.com/meta/rocksdb/wiki/RocksDB-Bloom-Filter)
+
+Bloom Filter 的收益取决于可以跳过多少次读盘。LSM-Tree 一次未命中有机会跳过多份候选文件的数据块。B+Tree 的分隔键已经把唯一键点查缩到一个候选叶页。上层页已缓存时，额外过滤器通常最多省一次叶页读盘，频繁查不存在的键且叶页常需读盘时更可能划算。 [Berkeley CS 186，B+Tree 查找](https://cs186berkeley.net/notes/note4/) · [RocksDB Bloom Filter](https://github.com/meta/rocksdb/wiki/RocksDB-Bloom-Filter)
+
+**Compaction（后台合并）**用类似的归并方法，将选中的有序文件写成新文件。若没有读者还需要旧版，例子里的 L0 与 L1 可合成 `10→5、20→8、25→4、30→12、40→9`，省去旧的 `30→6`。快照（snapshot）允许读者继续看到某一时刻的数据，合并时要保留这些读者仍需要的版本。实际引擎可以只合并选中的重叠文件，并把结果写成多个文件。 [LevelDB Compaction](https://github.com/google/leveldb/blob/main/doc/impl.md#compactions) · [RocksDB Snapshot](https://github.com/meta/rocksdb/wiki/Snapshot)
+
+`Delete(30)` 也会写出一个新版本，叫**删除标记（tombstone）**。看到这次删除的读取会返回「找不到」，即使旧文件里还有 `30→12` 或 `30→6`。后台清理这个标记前，要确认它挡住的旧值不会再次暴露，且相关快照已无需这些版本。 [LevelDB Compaction 与删除标记](https://github.com/google/leveldb/blob/main/doc/impl.md#compactions)
+
+#### 手推自测
+
+1. **B+Tree**。回到两次写入刚结束时执行 `Scan(27, 35)`，第一站是哪一页，最后返回什么？
+2. **LSM-Tree**。两次写入已刷成 L0 文件，旧 L1 文件还在。此时 `Delete(30)` 刚写入 MemTable，`Get(30)` 会返回什么？
+
+**答案**
+
+1. 从 P3 开始，因为 `25 ≤ 27 < 30`。P3 的 `25` 小于下界，接着沿叶页链接去 P2，返回 `30→12`，见到 `40` 后停止。
+2. 返回找不到。可见的最新版本是删除标记，磁盘上的 `12` 和 `6` 都被它挡住。
+
+#### 页、缓冲池与 WAL
+
+前面看到写入先到内存。假设 `30→12` 还没写进数据文件，机器就断电了。内存里的更改会丢失，恢复时要靠已经写入持久存储的记录补做这次修改。
+
+- **数据库页（Page）**是页式引擎缓存、索引寻址和刷写的单位。一页常放多条记录，索引可以先定位页号，再确定记录在该页的位置。页大小由引擎决定。InnoDB 默认索引页为 16 KiB。 [InnoDB 索引页](https://dev.mysql.com/doc/refman/8.4/en/innodb-physical-structure.html)
+- **缓冲池（Buffer Pool）**缓存数据库页。命中时可直接在内存中使用。被修改且尚未写回的页称为脏页（dirty page），可以积累多次更新后一起刷写。数据页的缓存与回写还可能经过操作系统的页缓存，具体由 I/O 模式决定。 [操作系统的页缓存与直接 I/O](./操作系统.md#页缓存回写与直接-io)
+- **预写日志（Write-Ahead Log，WAL）**为崩溃恢复记录更改。页式引擎要求相关 WAL 先持久化，才能把对应脏页写入持久的数据文件。内存里的页可以先变脏，提交何时确认取决于同步策略。崩溃后可以重放日志补上尚未写回的数据。 [PostgreSQL 17 §28.3，WAL](https://www.postgresql.org/docs/17/wal-intro.html) · [WAL 记录、checkpoint 与恢复](./Software-Engineering.md#wal-recordcheckpoint-与恢复)
+
+两类引擎都可以用 WAL 恢复，日常查询仍走前面手推的页和有序表。以 RocksDB 为例，启用 WAL 并将 `WriteOptions.sync` 设为 `true` 时，WAL 持久化后就可以确认写入，SSTable 可以稍后生成。日志按**写入顺序**记录 `30` 再 `25`，便于恢复。SSTable 按**键顺序**保存 `25` 再 `30`，便于查找和合并。下图中的 `K=B` 就是把商品 30 的库存改成 12。 [RocksDB 写入与同步](https://github.com/meta/rocksdb/wiki/Basic-Operations#synchronous-writes)
+
+```mermaid
+flowchart TB
+    Put["写入 K = B"]
+    subgraph PageTree["页式 B+Tree"]
+        direction TB
+        PageLog["追加 WAL / Redo Log"]
+        PageCache["在 Buffer Pool 中修改目标页"]
+        DataFile["后台把脏页写回数据文件"]
+        PageCache --> DataFile
+        PageLog -.->|相关日志先持久化| DataFile
+    end
+    subgraph MergeTree["LSM-Tree"]
+        direction TB
+        MergeLog["追加 WAL"]
+        Memtable["在 MemTable 中记录新版本"]
+        Frozen["冻结为 Immutable MemTable"]
+        L0["顺序生成不可变 SSTable（L0）"]
+        Merged["Compaction 合并为新的有序文件"]
+        Memtable --> Frozen --> L0 --> Merged
+        MergeLog -.->|恢复尚未刷表的更新| Memtable
+    end
+    Put --> PageLog
+    Put --> PageCache
+    Put --> MergeLog
+    Put --> Memtable
+```
+
+#### B+Tree 与 LSM-Tree 路径对照
+
+| 维度 | 页式 B+Tree（InnoDB / PostgreSQL B-tree 索引） | LSM-Tree（RocksDB / LevelDB / Pebble） |
+| --- | --- | --- |
+| **写入路径** | 顺序追加 WAL（如 InnoDB 的 Redo Log）＋修改 Buffer Pool 中的目标页 → 后台刷脏页。 | 顺序追加 WAL ＋更新 MemTable → 冻结为 Immutable MemTable → 按键顺序刷成不可变 SSTable（Leveled 下进入 L0）。 |
+| **读取路径** | **沿树定位叶页**。按分隔键逐层找，范围查询沿叶页扫，索引缺少所需列时回表。 | **在有序段中查版本**。MemTable → 候选 L0 文件（范围可重叠）→ 按层定位 L1…Lk（Leveled）。Bloom Filter 可排除肯定不含目标键的文件，范围查询归并多个有序段。 |
+| **放大权衡** | **读路径短，小改动也可能刷整页**。InnoDB 默认索引页为 16 KiB，启用完整 Doublewrite 时还会写保护副本。 | **成批顺序写有利于吞吐**。后台 Compaction 会反复读写文件，可能带来 CPU、I/O 和尾延迟尖峰。L0 积压可触发写限速或暂停（Write Stall）。 |
+| **Compaction 流派** | 以刷页、页分裂和按需合并来维护树。 | **Size-Tiered** 合并大小相近的段，通常少重写，候选较多。<br>**Leveled**（RocksDB 默认）自 L1 起保持同层文件的键范围不重叠，点查候选较少，合并可能反复重写下层数据。 |
+
+表中实现口径采用 InnoDB 8.4、PostgreSQL 17 的 B-tree 索引与 RocksDB 的常见配置。SQLite 可用已有的页、B-tree 和 WAL 例子回顾，MongoDB 的 WiredTiger 则可以对照缓存、checkpoint 和 journal。 [SQLite 记录级写入](#整文档重写与记录级更新) · [WiredTiger 的部件与配置](#存储引擎概览mongodb) · [讲义 §3.1 原表](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#31-单机存储双引擎btree-原地更新-vs-lsm-tree-追加合并) · [Pebble 项目说明](https://github.com/cockroachdb/pebble)
+
+#### 怎样估算读、写、空间放大
+
+**读放大**看一次查询要检查多少候选、读多少块。点查未命中也可以用实际读盘次数衡量。**写放大**用一段时间内引擎实际写出的字节除以逻辑写入字节，比较时说明 WAL、Doublewrite 和 Compaction 是否计入。**空间放大**用磁盘占用除以同口径的有效数据量。B+Tree 的页内空闲影响平时的占用，LSM-Tree 的旧版本、删除标记也会暂占空间，还要计入合并时新旧文件并存的峰值。
+
+- **页级写入与页内空闲。** 假设一次改动只有 64 B，独占一次 16 KiB 刷页，仅这一份数据页就是 256 倍写入。同页多次改动可以合并。InnoDB 的 Doublewrite 会先写一份可恢复的页，再写数据文件，以应对一页只写到一半就崩溃的情况。保护副本可以顺序批写。预留空间和页分裂都会改变填充率。页内留空会多占一些空间，也给后续插入和更新留出余地。页平均填充约三分之二时，才会留下约三分之一的页内空间。InnoDB 8.4 文档给出的聚簇索引页填充示例中，顺序插入约为 15/16，随机插入可以在 1/2 到 15/16 之间。 [InnoDB 页结构与填充率](https://dev.mysql.com/doc/refman/8.4/en/innodb-physical-structure.html) · [InnoDB Doublewrite Buffer](https://dev.mysql.com/doc/refman/8.4/en/innodb-doublewrite-buffer.html)
+- **Size-Tiered 的临时空间。** 有序段相近时再合并，通常减少重复重写，查询时也可能要检查更多有序段。RocksDB 的 Universal Compaction 体现这种取舍。一次全量合并若输入和输出都约为 100 GiB，新旧文件同时存在时，这部分会暂占约 200 GiB，对应约 2 倍的临时估算。实际峰值还取决于被选中的段、销毁时机和存活版本。 [RocksDB Universal Compaction](https://github.com/meta/rocksdb/wiki/Universal-Compaction#double-size-issue)
+- **Leveled 的稳态空间。** 假设底层 100 GiB 已代表一份完整的有效数据，较小层的额外占用按 10 倍目标容量比递减，几何和约为 111.1 GiB，得到约 1.1 倍的简化估算。WAL、快照保留的旧版本、合并输出和实际层大小会改变这个数。RocksDB 的目标层大小可配置，也支持按底层实际大小动态分层。 [RocksDB 层目标大小](https://github.com/meta/rocksdb/wiki/Leveled-Compaction#level-target-size)
+
+$$
+\frac{100+10+1+0.1+\cdots}{100}=\frac{10}{9}\approx1.11
+$$
+
+排查写入 P99（约 99% 的写请求在这个耗时内完成）时，可以对齐 L0 文件数、待合并字节、设备 I/O 与 WAL 同步耗时。如果前两项在持续上涨，就要看后台能否跟上前台。在同一个时间窗口内，逻辑写入 80 MiB/s、引擎写放大 3 倍，单写入就约需 240 MiB/s。设备若只稳供 200 MiB/s，积压会增长。RocksDB 达到 `level0_slowdown_writes_trigger` 会限速，到 `level0_stop_writes_trigger` 会等后台推进，待 flush 的内存表和 compaction 债务也各有门槛。 [RocksDB Write Stalls](https://github.com/meta/rocksdb/wiki/Write-Stalls)
+
+#### 按工作负载选择 B+Tree 或 LSM-Tree
+
+| 工作负载（workload） | 优先考虑 | 原因 |
+| --- | --- | --- |
+| 命中为主的随机点查，对读延迟敏感 | B+Tree | 沿一条路径定位叶页。上层页已缓存、叶页有查询所需数据时，可能只需一次读盘。 |
+| 按键范围读多条记录，叶页已包含查询所需的数据 | B+Tree | 找到起点后沿叶页扫。LSM 的范围扫描可能要归并多个文件里的数据和版本。 |
+| 持续大量写入小记录，键分散，频繁改动的数据页装不进缓存 | LSM-Tree | 把分散的小写攒成有序批次，减少逐个刷写不同数据页的开销。持续吞吐取决于后台合并能否跟上。 |
+| 按递增主键追加，或反复更新少量热点页 | 两者实测 | B+Tree 主键索引的写入可集中在末端或少量页，刷盘前能合并多次修改。 |
+
+实测时用同一份数据和请求分布，固定硬件、缓存预算和持久性要求（如都在 WAL 落盘后确认）。让写入跑到后台积压趋稳，再比较吞吐、P99 和写放大。 [USENIX，写放大与访问模式](https://www.usenix.org/publications/loginonline/revisit-b-tree-vs-lsm-tree-upon-arrival-modern-storage-hardware-built) · [InnoDB 顺序插入](https://dev.mysql.com/doc/refman/8.4/en/innodb-physical-structure.html) · [RocksDB 写入限速](https://github.com/meta/rocksdb/wiki/Write-Stalls)
+
+另有待读材料。 [从零开始深入理解存储引擎](https://mp.weixin.qq.com/s/sEml0lH2Zj-b_sIFRn2wzQ)
 
 ### SQLite
 
@@ -689,8 +835,109 @@ g.V().has("id", C.id).has("type", C.type)
 
 ### 数据一致性
 
-* 多版本并发控制(Multiversion concurrency control, MCC 或 **MVCC**)
-  * 是数据库管理系统常用的一种并发控制，也用于程序设计语言实现事务内存。MVCC意图解决读写锁造成的多个、长时间的读操作饿死写操作问题。每个事务读到的数据项都是一个历史快照（snapshot)并依赖于实现的隔离级别。写操作不覆盖已有数据项，而是创建一个新的版本，直至所在操作提交时才变为可见。快照隔离使得事物看到它启动时的数据状态
+#### 一次转账中的事务与快照
+
+Alice 有两张卡，A 和 B 各有 500 元。从 A 转 100 元到 B，需要改两行。**事务（transaction）**把这两次改动放在一起。`BEGIN` 开始事务，`COMMIT` 提交整笔改动，`ROLLBACK` 撤销本事务尚未提交的改动。下面的 `UPDATE` 修改余额，`WHERE` 指定要改哪张卡。例子假设两张卡都存在且余额足够。
+
+```sql
+BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 'A';
+UPDATE accounts SET balance = balance + 100 WHERE id = 'B';
+COMMIT;
+```
+
+两笔改动一起生效或一起撤销，叫**原子性（atomicity）**。同时有另一个事务查账时，它能读到哪个时刻的余额、写冲突怎么处理，由**隔离级别（isolation level）**规定。下面用 `T1`、`T2` 表示两个数据库会话各自运行的一笔事务。 [PostgreSQL 16，事务入门](https://www.postgresql.org/docs/16/tutorial-transactions.html) · [讲义 §3.2](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#32-五大并发异常与事务隔离级别完整对照表)
+
+事务内也可以设**保存点（savepoint）**，从中途撤销一组修改并保留此前的进度。外层事务仍决定整笔事务最终提交还是回滚。 [Rust 保存点与 Undo Log 的手推例子](./Rust.md#保存点与撤销日志undo-log)
+
+转账提交前，其他事务可以看到旧版 `A=500、B=500`。提交后，新的读取可以看到 `A=400、B=600`，较早的快照仍可能看到旧版。**快照（snapshot）**规定这次读可以使用哪些版本，普通查询通常也能看到本事务此前的写入。**多版本并发控制（Multiversion Concurrency Control，MVCC，也写作 MCC）**保留或重建旧版本，普通读因此可以继续用旧值，减少读写互相阻塞，缓解长读使写入迟迟拿不到锁的问题。PostgreSQL 保存多个行版本，InnoDB 可用 undo log 重建旧值。多版本技术也可用于软件事务内存（Software Transactional Memory，STM）。 [PostgreSQL MVCC](https://www.postgresql.org/docs/16/mvcc-intro.html) · [InnoDB 多版本实现](https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html) · [Generic Multiversion STM](https://anon.cs.rochester.edu/u/scott/papers/2013_Li_DISC_GMV.pdf)
+
+#### 普通查询会看到什么
+
+##### 脏读、不可重复读与读偏差
+
+**脏读（Dirty Read）**。`T1` 把 A 改成 400，还没提交。`T2` 就读到了 400。若 `T1` 随后回滚，400 从未成为已提交的余额。`READ COMMITTED` 只允许普通查询看到其他事务已提交的修改，因此能挡住这种读法。 [PostgreSQL 16，Read Committed](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED)
+
+现在让只读事务 `T2` 先查 A，得到 `500`，然后让 `T1` 从 A 向 B 转 `100` 并提交。此时已提交余额是 `A=400、B=600`。`T2` 在原事务里再查 A，读已提交会读到 `400`，可重复读仍会读到 `500`。读已提交的两次查询都读到了已提交的值，同一行的结果却从 `500` 变成 `400`，这叫**不可重复读（Non-repeatable Read）**。
+
+如果 `T2` 第二次查的是 B，再把两次查询结果相加，两种隔离级别会算出不同的总额。
+
+| 隔离级别 | 转账前查 A | 转账后查 B | 查账合计 |
+| --- | --- | --- | --- |
+| `READ COMMITTED`（读已提交） | `500` | `600` | **`1100`** |
+| `REPEATABLE READ`（可重复读） | `500` | `500` | **`1000`** |
+
+转账前后的总额都是 `1000`。`1100` 来自把转账前的 A 和转账后的 B 加在一起，这叫**读偏差（Read Skew，也称读偏序）**。 [Berenson 等，Read Skew](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-95-51.pdf#page=9)
+
+**数据新鲜度**关心这次读能否看到刚提交的更新。**事务内读一致性**关心多次读到的值能否对应同一个时点。PostgreSQL 和 InnoDB 的读已提交为每条普通 `SELECT` 取语句开始时的快照。可重复读对同一事务的普通读有更严格的约束，要求沿用已建立的事务快照。在这个例子里，快照在第一次查 A 时建立，所以别人提交后，`T2` 仍看到转账前的余额。 [PostgreSQL 16，Read Committed](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED) · [PostgreSQL 16，Repeatable Read](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-REPEATABLE-READ) · [InnoDB 一致性读](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)
+
+刷新余额时，结束旧事务再发起新查询，此例中会看到 `A=400`。核对总额时，多条查询可共用一个事务快照。在 `READ COMMITTED` 下，用一条 `SELECT SUM(balance) FROM accounts WHERE id IN ('A', 'B')` 也能让两张卡的余额取自同一个语句快照。 [PostgreSQL 16，语句快照](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED)
+
+##### 幻读看的是同一个条件命中了哪些行
+
+**幻读（Phantom Read）**发生在重新执行同一个查询条件时。`T2` 查询 42 号班次的在岗医生，结果是 Alice 和 Bob。`T1` 新增一条 Carol 在岗的记录并提交。`T2` 重新查询，`READ COMMITTED` 下可能多出 Carol。删除或更新也可能让某一行离开或进入结果集。普通读复用稳定快照时，两次仍可看到原来的名单。如果业务决策依赖这个名单，还需要考虑别的事务能否同时修改它。 [PostgreSQL 16，事务隔离](https://www.postgresql.org/docs/16/transaction-iso.html) · [InnoDB 幻读与范围锁](https://dev.mysql.com/doc/refman/8.4/en/innodb-next-key-locking.html)
+
+#### 先读再写的两种并发错误
+
+##### 丢失更新发生在同一行
+
+计数器 `v=0`，`T1` 和 `T2` 都执行 `SELECT v`，在应用里算出 `v + 1 = 1`。`T1` 写入 1 并提交，`T2` 仍按自己算好的结果写入 1。两次加一最终只留下 1。这就是**丢失更新（Lost Update）**，库存扣减和用量计数也容易遇到同类问题。
+
+- InnoDB 的默认 `REPEATABLE READ` 允许普通 `SELECT` 读旧快照，后续 `UPDATE` 仍能对当前行写入应用传来的绝对值，所以这个写法可能丢失更新。
+- PostgreSQL 的 `REPEATABLE READ` 会拒绝第二个事务更新快照之后被并发事务改过并提交的行。这体现了先提交者获胜（First-Committer-Wins）。上例里，较晚的 `UPDATE` 就可能报 SQLSTATE `40001`，调用方应回滚并重跑整笔事务，让应用重新读数和计算。 [InnoDB 普通读与 DML 的可见性](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html) · [PostgreSQL 16，Repeatable Read 的写冲突](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-REPEATABLE-READ) · [Berenson 等，Snapshot Isolation](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-95-51.pdf)
+
+同一行的更新可以直接写 `UPDATE t SET v = v + 1 WHERE id = 1`，由数据库基于待更新的行计算。业务逻辑必须先读后算时，可用带版本的比较并交换（Compare-And-Swap，CAS），在 `UPDATE` 里加 `WHERE id = ... AND version = old_v` 并递增版本，更新不到行时重新读取和判断。也可以在同一事务内先用 `SELECT ... FOR UPDATE` 读取并锁住该行，用返回值计算后再写入。并发失败时，按引擎的错误语义重试整笔决策。 [InnoDB 锁定读取的计数器例子](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html) · [SQLite 原子累加与条件状态迁移](#原子累加与条件状态迁移)
+
+##### 写偏差可以发生在不同行
+
+医院要求任何时刻**至少一名医生在岗**。Alice 和 Bob 当下都在岗。两人各开一笔事务，各自读到在岗人数为 2，于是各把自己的行改成离岗。**快照隔离（Snapshot Isolation，SI）**让事务按稳定快照读，并检查同行写冲突。这里读的是同一组数据，写的是不同行，同行检查不会触发。两笔事务可以一起提交，最后无人值班。这是**写偏差（Write Skew，也称写偏序）**。如果串行执行，先完成的人可以请假，后执行的人只会看到一人值班，应保留在岗状态。 [Berenson 等，Write Skew](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-95-51.pdf#page=9) · [PostgreSQL 16，Serializable 示例](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-SERIALIZABLE)
+
+```mermaid
+sequenceDiagram
+    participant T1 as T1（Alice 请假）
+    participant D as 排班表
+    participant T2 as T2（Bob 请假）
+    T1->>D: 读到 Alice 和 Bob 都在岗
+    T2->>D: 读到 Alice 和 Bob 都在岗
+    T1->>D: 只修改 Alice 为离岗
+    T2->>D: 只修改 Bob 为离岗
+    T1->>D: COMMIT
+    T2->>D: COMMIT
+    Note over T1,T2: 快照隔离允许这两次提交<br/>最终在岗人数为 0
+```
+
+#### 四种事务隔离级别
+
+表中是 PostgreSQL 16 和 MySQL 8.4 InnoDB。普通读指没有加锁修饰的 `SELECT`，两次读取使用相同数据范围。 [读已提交与可重复读的转账对照](#脏读不可重复读与读偏差)
+
+| 隔离级别 | 普通查询读到什么 | 案例里的并发结果 |
+| --- | --- | --- |
+| `READ UNCOMMITTED`（读未提交） | InnoDB 可读到未提交的改动。PostgreSQL 按 `READ COMMITTED` 处理。 | 下一行的异常也可能发生。InnoDB 还可能脏读，例如读到后来被回滚的 400。 |
+| `READ COMMITTED`（读已提交） | 每条普通查询有自己的快照。 | 能挡住脏读。两次读可能看到不同余额、算出 1100 或多查到一位医生。先读再写还可能丢失更新或发生写偏差。 |
+| `REPEATABLE READ`（可重复读） | 两个引擎的普通查询都复用事务快照。 | 本节的不可重复读、读偏差和幻读可以避免。同行丢失更新的处理因引擎而异，医生案例的写偏差仍可能出现。 |
+| `SERIALIZABLE`（可串行化） | PostgreSQL 仍读事务快照。InnoDB 在多语句事务中给普通查询加共享锁。 | 成功提交的事务等价于某个逐一执行的顺序。两笔都据旧结果请假的事务无法一起成功，具体实现可能等待或报错。 |
+
+PostgreSQL 的默认级别是 `READ COMMITTED`，InnoDB 的默认级别是 `REPEATABLE READ`。在 `REPEATABLE READ` 下，PostgreSQL 用第一条非事务控制语句建立快照，InnoDB 通常由第一次一致性读建立。因此，只发 `BEGIN` 还未必固定视图。SQL 标准允许 `REPEATABLE READ` 出现幻读，这两个实现给普通 `SELECT` 提供了更强的快照行为。InnoDB 的加锁读有自己的可见性与加锁规则。 [PostgreSQL 16，事务隔离](https://www.postgresql.org/docs/16/transaction-iso.html) · [MySQL 8.4 InnoDB，事务隔离](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html)
+
+#### 怎样保护跨行规则
+
+「至少一人在岗」是**不变量（invariant）**，也就是每次提交后的排班都要满足的规则。请假决策读了两个人的状态，只写其中一行。负责这条规则的事务需要共同采用一种并发控制方式。
+
+1. **可串行化（Serializable）**。PostgreSQL 使用可串行化快照隔离（Serializable Snapshot Isolation，SSI）。`T1` 读到了 Bob 的旧状态而 `T2` 随后改了 Bob，要保留这次观察，串行顺序就得让 `T1` 在 `T2` 前面。这是读写反依赖（rw-antidependency）。`T2` 读 Alice、`T1` 改 Alice，又要求反过来。两个顺序要求形成环。SSI 跟踪这类依赖并检查可能成环的危险结构，可能报 `40001`，此时要重读、重算并重试整个事务。InnoDB 的 `SERIALIZABLE` 在多语句事务里把普通 `SELECT` 当作共享锁读取（`FOR SHARE`），可能发生锁等待或死锁。自动提交的单条只读查询可以使用普通一致性读。 [PostgreSQL 16，Serializable](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-SERIALIZABLE) · [Ports 与 Grittner，PostgreSQL SSI](https://www.vldb.org/pvldb/vol5/p1850_danrkports_vldb2012.pdf) · [MySQL 8.4 InnoDB，Serializable](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html)
+2. **先锁住作决定所依赖的行（悲观锁）**。如果班次成员固定，两笔事务都可先用 `SELECT doctor_id, on_call FROM doctors WHERE shift_id = 42 FOR UPDATE` 锁住整个班次的记录，在同一事务中检查人数再更新。各锁自己那行时，两边仍持有不同的锁。如果插入也能改变判断，范围锁需要覆盖相关的索引区间。
+   1. 例如 InnoDB 在 `REPEATABLE READ` 下沿 `(shift_id, doctor_id)` 扫描班次做加锁读时，可以用 Next-Key Lock。它把索引记录锁（Record Lock）与前方间隙锁（Gap Lock）组合起来，挡住落在锁定间隙里的插入。完整唯一键命中通常只锁该记录，`READ COMMITTED` 则通常没有这种间隙保护。 [InnoDB 加锁读](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html) · [InnoDB 索引锁与间隙锁](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking.html)
+   2. FOR UPDATE 锁住记录
+3. **让竞争写到同一条协调记录**。为每个班次存一行排班摘要，带有 `version`，做 CAS 版本递增。任何影响在岗规则的更新都在同一事务内读版本、检查排班，再执行 `UPDATE shift_guard SET version = version + 1 WHERE shift_id = ... AND version = old_v`，只有抢到版本才修改医生状态并一起提交。两个请求都读到版本 7 时，只有一个能把 7 改成 8。另一个收到条件未命中或序列化失败后，回滚并以新版本和最新排班重新作决定。 [提交前校验与乐观并发控制](#optimistic-concurrency-control乐观并发控制)
+
+#### 手推事务交错
+
+1. 在 PostgreSQL 中，`T2` 执行 `BEGIN ISOLATION LEVEL REPEATABLE READ`，尚未读取任何数据。`T1` 随后完成转账并提交。`T2` 第一次普通查询会读到哪组余额？
+2. 两位医生都读到两人在岗，再分别锁住自己的那行并请假。这让两次决策共享了哪把锁？
+
+**答案**
+
+1. 如果 `T2` 没有提前建立快照，第一次查询读到 `A=400、B=600`。快照在本例中的首次查询建立。
+2. 两边各锁一行，没有共同锁。要保护同一个班次的规则，可让两次决策都先锁住完整读集，或都争用同一条班次协调记录。
 
 #### Optimistic Concurrency Control：乐观并发控制
 
@@ -801,6 +1048,16 @@ LIMIT 100;
   * 分片架构
   * ReplicaSet 主从结构，元数据和用户数据存储可用性高，但维护成本高，建议使用云托管服务
 * 和 AI 天然结合：文档数据库的特点
+
+#### 存储引擎概览（MongoDB）
+
+WiredTiger 是 MongoDB 默认的存储引擎，普通集合的数据和索引组织为内部表。普通集合默认有唯一 `_id` 索引。WiredTiger 与 InnoDB 都使用 B-tree。下图对照跨叶页的路径，InnoDB 可以沿相邻叶页继续，WiredTiger 的 row-store 游标会通过树遍历找到下一页。 [MongoDB 8.0 的 WiredTiger](https://www.mongodb.com/docs/v8.0/core/wiredtiger/) · [MongoDB `_id` 索引](https://www.mongodb.com/docs/manual/indexes/#default-id-index) · [MongoDB r8.0.0，WiredTiger 游标源码](https://github.com/mongodb/mongo/blob/r8.0.0/src/third_party/wiredtiger/src/btree/bt_curnext.c)
+
+![image-20251219020216341](./Database/image-20251219020216341.png)
+
+- **缓存与并发。** MongoDB 8.0 的 WiredTiger 缓存默认取「内存减 1 GB 后的一半」与 0.256 GB 中较大者，大内存下接近 50%。`storage.wiredTiger.engineConfig.cacheSizeGB` 控制实例的缓存预算。建集合时可通过 `storageEngine` 传入引擎支持的表级配置，如 `cache_resident` 可将该对象的页排除在缓存驱逐之外。WiredTiger 提供文档级写并发，常见读写采用乐观并发控制。MongoDB 在全局、库和集合层使用意向锁，检测到写冲突时可以重试。缓存驱逐（eviction）和写节流用于控制缓存压力。热点溢出时，可以调整缓存、查询与索引，并检查超大聚合或文档。 [WiredTiger 缓存与并发](https://www.mongodb.com/docs/manual/core/wiredtiger/) · [MongoDB 8.0，集合级 `storageEngine` 配置](https://www.mongodb.com/docs/v8.0/reference/command/create/) · [MongoDB r8.0.0，WiredTiger 表级配置](https://github.com/mongodb/mongo/blob/r8.0.0/src/third_party/wiredtiger/dist/api_data.py#L235-L238)
+- **压缩与恢复。** 按集合比较 `snappy`、`zstd` 和 `none`。通用数据可从 `snappy` 对照，冷数据可测 `zstd`，写入热路径可对照关闭压缩，比较 CPU 和 I/O。Checkpoint 把一致的快照保存到数据文件，Journal 记录可以在崩溃后从 checkpoint 重放的修改。`j:true` 要求日志持久化，`w:"majority"` 要求多数确认，实际隐式默认和日志行为受副本集配置影响。`readConcern: majority` 对应多数提交的可读边界。 [WiredTiger 压缩与恢复](https://www.mongodb.com/docs/v8.0/core/wiredtiger/) · [MongoDB 写关注](https://www.mongodb.com/docs/v8.0/reference/write-concern/) · [MongoDB 读关注](#read-concern读关注)
+- **其他引擎。** In-Memory 用于低延迟临时状态，进程重启后无法从磁盘恢复数据。MMAPv1 是已弃用的历史引擎。 [MongoDB In-Memory](https://www.mongodb.com/docs/manual/core/inmemory/)
 
 #### 数据模型 Data Model
 

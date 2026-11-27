@@ -3532,7 +3532,9 @@ Coherence 约束同一位置的写入次序及可读版本。Consistency 决定�
 
 ![image-20250603233931443](./C++/image-20250603233931443.png)
 
-顺序一致性（Sequential Consistency，SC）要求能把所有处理器的内存操作排成一条全局顺序，又保留每个处理器自己的程序顺序。无缓存设计中的 write buffers with read bypassing、overlapping writes 与 nonblocking reads 要考虑这个约束。有缓存时还要协调 cache coherence protocols、detecting write completion 和 maintaining write atomicity。C++ 的 SeqCst 内存序为标了该序的原子操作和相应 fence 建立统一顺序，混入其他内存序时还需按各自规则推导。 [C++ 工作草案，原子操作顺序](https://eel.is/c++draft/atomics.order)
+顺序一致性（Sequential Consistency，SC）要求执行结果能用一条保留各处理器程序顺序的内存操作序列来解释。无缓存设计中的 write buffers with read bypassing、overlapping writes 与 nonblocking reads 要考虑这个约束。有缓存时还要协调 cache coherence protocols、detecting write completion 和 maintaining write atomicity。
+
+**`SeqCst`（Sequentially Consistent）要求每次执行都存在一条涵盖所有 `SeqCst` 原子操作和 `SeqCst` 栅栏（fence）的共同总序。** 任意两个排入总序的操作都有先后。总序遵守这些操作之间的 strongly happens-before，包括同一线程的程序顺序，并与各原子对象的一致性规则相容。不同执行可以有不同的交错。`SeqCst` 读、写、读改写分别保有 `Acquire`、`Release`、`AcqRel` 的语义。混用其他内存序时，读值还要结合对应的规则推导。 [C++ 工作草案，原子操作顺序](https://eel.is/c++draft/atomics.order) · [Rust `Ordering::SeqCst`](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html#variant.SeqCst)
 
 旧例的两个写记作 `W1`、`W2`，分别把初值为 0 的 `X`、`Y` 写成 1。如果 `P1` 先读 `X=1` 再读 `Y=0`，它观察到的顺序要求 `W1` 在 `W2` 之前。如果 `P2` 先读 `Y=1` 再读 `X=0`，它观察到的顺序反过来。所有操作遵守 SC 时，同一个总序无法容纳两组结果。这个例子检验两个观察者能否共同解释同一组写。
 
@@ -3563,20 +3565,54 @@ flowchart LR
 图中间的同步边叫 synchronizes-with。把两端各自的 sequenced-before 接上，就得到 A 写 `data` happens-before B 读 `data`。C++11 旧教材使用 inter-thread happens-before 这个术语表示跨线程可推导的先后关系，旧摘记把练习定位为 `[3] Listing 5.8、5.9`。B 若读到的仍是 `ready` 的初始值，这次读取还没建立同步边。对相互独立的原子对象，也不能凭 Acquire/Release 假定所有线程共享一个全局总序。SeqCst store 和 load 读自同一次发布时仍有这条同步边，同时还需满足 SeqCst 的总序约束。 [C++11 草案，inter-thread happens-before](https://timsong-cpp.github.io/cppwp/n3337/intro.multithread) · [C++ 工作草案，原子顺序与 release sequence](https://eel.is/c++draft/atomics.order) · [Rust 原子发布例程](./Rust.md#用原子标志发布数据)
 
 - 自旋锁的成功加锁用 Acquire，交还锁用 Release。前任持有者临界区内的写由解锁发布给下一任持有者。自旋时用于探测锁是否忙的读可用 Relaxed，取得锁时再做有 Acquire 的原子操作。
-- SPSC Ring（单生产者、单消费者环形队列）用 `tail` 发布已经写好的槽位。生产者写槽后 Release 更新 `tail`，消费者 Acquire 读到对应进度后才用槽。反方向用 `head` 发布已消费的槽，生产者确认后才复用。两边单写仍需验证槽位的生命周期和容量。高频游标还可按[缓存行分开布局](./Computer-Architecture.md#伪共享为何让独立写入也争用)。
+- SPSC Ring（单生产者、单消费者环形队列）用 `tail` 发布已经写好的槽位。生产者写槽后 Release 更新 `tail`，消费者 Acquire 读到对应进度后才用槽。反方向用 `head` 发布已消费的槽，生产者确认后才复用。两边单写仍需验证槽位的生命周期和容量。高频游标还可按缓存行分开布局。 [Rust 的 SPSC 端点与完整实现](./Rust.md#spsc-环形队列怎样交接槽位) · [伪共享与缓存行布局](./Computer-Architecture.md#伪共享为何让独立写入也争用)
 - Rust `Arc` 的最后一个持有者需要获取其他持有者释放前的访问顺序，引用计数自身也参与同步。见 [Arc 的最后一次 drop](./Rust.md#arc-最后一次-drop-怎样取得销毁顺序)。
 
 ##### SeqCst 怎样排除双零
 
-取[Store Buffering 例子](./Computer-Architecture.md#store-buffer-与-storeload)的两个原子，`X`、`Y` 初始都为 0。线程 0 做 store `W_X`，再 load `R_Y`。线程 1 做 store `W_Y`，再 load `R_X`。如果四步都用 SeqCst，两个读都为 0 就要求下面的总序。每次读到 0 需要排在对方的写 1 前面，所得顺序成环。
+这个 Store Buffering（SB）例子用两个原子变量 `X`、`Y`，在线程启动前都初始化为 `0`，运行中每个变量只写一次 `1`。`W` 是写入（write / store），`R` 是读取（read / load），下标表示读写的是哪个变量。「双零」指两个 load 都返回 `0`。 [Store Buffering 与写缓冲](./Computer-Architecture.md#store-buffer-与-storeload)
+
+| 线程 | 第一步 | 第二步 |
+| --- | --- | --- |
+| 线程 0 | `W_X` 写 `X = 1` | `R_Y` 读 `Y` |
+| 线程 1 | `W_Y` 写 `Y = 1` | `R_X` 读 `X` |
+
+四步都用 `SeqCst` 时，可以从初始状态按同一条总序重放四个操作。保留各线程的先写后读，每次读取取该变量此前的最近写入值。若 `W_Y` 排在 `R_Y` 前，`R_Y` 就会读到 `1`。因此，假设 `R_Y` 读到初值 `0`，它就得排在 `W_Y` 前。假设 `R_X` 也读到 `0`，它同样得排在 `W_X` 前。 [C++ 工作草案，SeqCst 的总序](https://eel.is/c++draft/atomics.order)
+
+图中的实线是线程内的两条先后关系，虚线是两个读都返回 `0` 时要求的先后关系。把四条边接起来，就要求 `W_X` 排在自己之前。这里的 `<` 表示操作在总序中的先后。
+
+```mermaid
+flowchart LR
+    WX["W_X 写 X = 1"] -->|线程 0 先写后读| RY["R_Y 读 Y"]
+    RY -.->|读到 Y = 0 的条件| WY["W_Y 写 Y = 1"]
+    WY -->|线程 1 先写后读| RX["R_X 读 X"]
+    RX -.->|读到 X = 0 的条件| WX
+```
 
 $$
 W_X < R_Y < W_Y < R_X < W_X
 $$
 
-如果两个 store 只用 Release、两个 load 只用 Acquire，两个读都读到了初始值时，没有读到对方发布的值，因而这两条跨线程同步边都没有建立。上面的全序约束也就没有了。 [C++ 工作草案，SeqCst 的总序](https://eel.is/c++draft/atomics.order) · [x86-TSO 的双零例子](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf)
+例如 `W_X → R_Y → W_Y → R_X` 是合法的。线程 0 在 `Y` 写入前读到 `0`，线程 1 在 `X` 写入后读到 `1`。按线程 0、线程 1 的次序记，读值可以是 `(0, 1)`、`(1, 0)` 或 `(1, 1)`。
 
-一个常见的双标志问题是，生产者写 `queue_non_empty` 后读 `worker_sleeping`，worker 写 `worker_sleeping` 后检查 `queue_non_empty`。如果两边都看到旧值，可能出现生产者未发唤醒而 worker 准备睡下。把这四步作为 SeqCst 原子，在这个单次双标志模型里可以排除双零。完整的 Dekker/Peterson 互斥与真实的睡眠唤醒还要证明各自的其余步骤，例如如何把检查和阻塞接起来。 [睡眠前必须确认没错过交还](./操作系统.md#睡眠前必须确认没错过交还)
+**`Release` / `Acquire` 允许双零。** 两条线程仍各自先写后读。跨线程配对时要追读取来源，`R_X` 读自 `W_X` 才会建立 `W_X → R_X` 的同步关系（synchronizes-with），`Y` 同理。两次 `Acquire` load 都可以取初始化的值并返回。此时这四步之间只有各自线程内的 happens-before，两个原子各自的修改顺序都允许这次读取。 [C++ 工作草案，Release/Acquire 的配对](https://eel.is/c++draft/atomics.order#2)
+
+在 x86-TSO 模型中，对普通写回可缓存内存，两笔写可以先分别进入两个核自己的写缓冲（store buffer）。随后各核读取对方写的地址，此时对方的新值仍在缓冲里，两个读便都返回 `0`。两笔写可以在两个读之后才对外可见。 [x86-TSO 的双零例子](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf)
+
+**这个例子在 x86 上需要让本核的写先对外可见，后面的读再按这个顺序取值。** 下表是 Apple Clang 16 用 `-O2` 将 32 位原子整数的先写后读编译到 x86-64 的结果，只列访问内存的指令。 [LLVM 的 x86 原子操作映射](https://llvm.org/docs/Atomics.html#atomics-and-codegen)
+
+| 内存序 | 写 `X = 1` | 随后读 `Y` |
+| --- | --- | --- |
+| `Release` / `Acquire` | `mov` | `mov` |
+| `SeqCst` / `SeqCst` | `xchg` | `mov` |
+
+带内存操作数的 `xchg` 隐式带锁，把这次写的可见性排在后续读之前。用 `mov` 写入、`MFENCE`、`mov` 读取，也能在两条线程分别建立这条约束。在 x86-TSO 模型中，`MFENCE` 要等本核屏障前的写离开写缓冲并对外可见，后面的读才在内存顺序中生效。可见性由缓存一致性系统保证，数据可以仍留在缓存里。实际指令何时发起读取由硬件决定，最终读值须遵守这个顺序。 [x86-TSO §3.1，写缓冲模型](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf#page=4) · [§3.2，`XCHG` 与 `MFENCE` 双零测试](https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf#page=6)
+
+若 `X = 1` 先于 `Y = 1` 对外可见，线程 1 又在自己的 `Y = 1` 对外可见之后才读 `X`，因此它必读到 `1`。`Y` 先可见时，线程 0 必读到 `1`。这就是同一条总序约束在该 x86 例子里的表现。
+
+双标志唤醒用的是同一个结构。生产者入队后将 `queue_non_empty` 置为 `true`，再读 `worker_sleeping` 决定是否发通知。Worker 先将 `worker_sleeping` 置为 `true` 表示准备睡，再读 `queue_non_empty` 确认是否还有活。如果两边都读到初始的 `false`，生产者跳过通知，worker 以为队列仍空。单次握手的这四步用 `SeqCst`，至少一方会读到对方的 `true`。
+
+等待接口还要处理最后一次检查与实际阻塞之间的竞态。例如 worker 先读到队列空，生产者随后看见睡眠意图并发送通知，worker 最后才开始阻塞。若通知只针对当时在等的线程，这次唤醒就可能丢失。用同一把互斥锁保护队列状态的修改和检查，条件变量的 `wait` 会原子地解锁并进入等待，醒来后重新检查。完整的 Dekker/Peterson 互斥也需证明其余步骤。若标志后来会清零，还要追踪读到的 `0` 来自初值还是某次清零。 [睡眠前必须确认没错过交还](./操作系统.md#睡眠前必须确认没错过交还) · [C++ 工作草案，条件变量等待](https://eel.is/c++draft/thread.condition.condvar)
 
 ##### 同步顺序的成本
 

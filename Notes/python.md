@@ -4,7 +4,7 @@
 
 ## 阅读地图
 
-1. 「[算法与有状态编码原语（Python 3）](#算法与有状态编码原语python-3)」整理纯手写场景的容器复杂度、边界陷阱、`bisect` 二分不变量、`heapq` 惰性删除堆与哨兵双向链表骨架。
+1. 「[算法与有状态编码原语（Python 3）](#算法与有状态编码原语python-3)」整理纯手写场景的容器复杂度、边界陷阱、`bisect` 二分不变量、`heapq` 惰性删除堆、哨兵双向链表骨架与 Fencing 幂等账本。
 2. 「[语言机制与对象模型](#语言机制与对象模型)」覆盖 GIL、GC、作用域（LEGB）、基础数据、关键词、函数/装饰器、上下文管理器、`class`、`abc` 与 `typing` 类型收窄。
 3. 「[容器、函数式与数据处理](#容器函数式与数据处理)」汇总字符串、正则、迭代器、`collections`、`dataclasses`、`functools`、`itertools`、时间、数值与序列化工具。
 4. 「[并发、异步与系统交互](#并发异步与系统交互)」包含 `asyncio`、线程池/进程池、子进程、超时控制与系统文件操作。
@@ -165,6 +165,71 @@ class SentinelList:
         node.next = self.tail
         self.tail.prev = node
 ```
+
+### Fencing 与幂等账本
+
+一次业务操作的 `op_id` 在重试、接手时保持不变。`payload_hash` 是请求内容的稳定摘要，账本用它识别“复用了同一个 ID，却换了请求”。`token` 随每次成功领取递增，用于拒绝旧执行者的写入。例子中同一个对象负责发号和存储，领取成功时就会更新存储端的最大代次。 [租约与资源端的校验边界](./Distributed-Systems.md#租约fencing-与幂等回执)
+
+| 顺序 | 调用 | 结果 |
+| --- | --- | --- |
+| 1 | A 在 `t=0` 领取，带 `token=1` 开始 `op-7` | `EXECUTE`，账本记录 `IN_FLIGHT`，当前执行代次为 `1`。 |
+| 2 | A 暂停超过 5 秒，B 领取 | B 拿到 `token=2`，`_max_token` 升到 `2`。 |
+| 3 | B 用相同摘要开始 `op-7` | `EXECUTE`，未提交的操作改由代次 `2` 接手。 |
+| 4 | A 恢复并尝试提交，B 随后提交 | A 的 `1` 被拒绝。B 写入数据，将账本改为 `COMMITTED` 并保存结果。 |
+| 5 | B 的响应丢失，客户端用有效代次重试同一请求 | 返回 `COMMITTED` 和旧回执。若同一个 ID 换了摘要，则报冲突。 |
+
+`_epoch` 负责发号，`_max_token` 是资源端的代次下限，单条操作记录中的 `rec[2]` 是该操作的执行代次。同代次再次碰到 `IN_FLIGHT` 会得到 `IN_FLIGHT_OTHER`，可以等结果或查询状态。`commit_write` 既检查资源端的代次下限，也检查这笔操作归谁执行。
+
+下例使用 Python 3.10 起支持的 `X | None` 类型注解。
+
+```python
+class FencedIdempotentLedger:
+    def __init__(self, ttl_ms: int = 5000) -> None:
+        self._ttl, self._epoch, self._max_token = ttl_ms, 0, 0
+        self._owner: str | None = None
+        self._expires_at = 0
+        self._ops: dict[str, list] = {}  # op_id -> [payload_hash, state, token, result]
+        self._kv: dict[str, object] = {}
+
+    def acquire_lease(self, worker: str, now_ms: int) -> int | None:
+        if self._owner and self._owner != worker and now_ms < self._expires_at:
+            return None
+        self._epoch += 1
+        self._owner, self._expires_at = worker, now_ms + self._ttl
+        self._max_token = max(self._max_token, self._epoch)
+        return self._epoch
+
+    def _fence(self, token: int) -> None:
+        if token < self._max_token:
+            raise PermissionError(f"stale fencing token {token} < {self._max_token}")
+        self._max_token = token
+
+    def begin_or_replay(self, op_id: str, payload_hash: str, token: int) -> tuple[str, object]:
+        self._fence(token)
+        rec = self._ops.get(op_id)
+        if rec is None:
+            self._ops[op_id] = [payload_hash, "IN_FLIGHT", token, None]
+            return "EXECUTE", None
+        if rec[0] != payload_hash:
+            raise ValueError("idempotency key reused with mismatched payload")
+        if rec[1] == "COMMITTED":
+            return "COMMITTED", rec[3]
+        if token > rec[2]:
+            rec[2] = token
+            return "EXECUTE", None
+        return "IN_FLIGHT_OTHER", None
+
+    def commit_write(self, op_id: str, token: int, key: str, val: object, res: object) -> None:
+        self._fence(token)
+        rec = self._ops.get(op_id)
+        if rec is None or rec[2] != token:
+            raise PermissionError("not current fenced owner of operation")
+        if rec[1] != "COMMITTED":
+            self._kv[key] = val
+            rec[1], rec[3] = "COMMITTED", res
+```
+
+这段内存示例假设调用串行、代次来自同一签发端，且开始和提交使用同一份请求内容。`_fence` 只比较代次，`commit_write` 也未把实际写入内容与摘要绑定。部署时应验证 token 的签发与资源作用域，摘要应覆盖实际提交的请求，同库业务数据和回执应在同一个持久事务中写入。 [代码出处，讲义 §3.5](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#35-双语言对照手抄原语二fencing-幂等账本python与嵌套事务-undo-logrust)
 
 ## 语言机制与对象模型
 
@@ -1086,6 +1151,51 @@ loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
 loop.close()
 ```
+
+#### 用增量缓冲解析字节帧
+
+字节流的读取边界和协议的帧边界各自推进。一次 `read` 可能只拿到半帧，也可能拿到多帧。例如依次 `feed(b"ab")`、`feed(b"c\nx\n")`，前一次先留下 `ab`，后一次返回 `[b"abc", b"x"]`。把残余字节存在连接所持有的解析器里，每次读成功后立即调用同步的 `feed`，再去等下一次 I/O。若一个 Future 已消耗 `ab`，却把它只存在随取消销毁的局部缓冲里，重读时只能从 `c\n` 接起。 [讲义 §2.3，流式半包解析](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#23-双语言对照手抄原语一流式半包解析与异步取消安全python-vs-rust)
+
+`asyncio.wait(..., return_when=asyncio.FIRST_COMPLETED)` 返回 `(done, pending)`，仍在 `pending` 的读取任务可以继续运行。由连接的读者处理已完成的读取结果，并决定保留等待中的任务，或显式 `cancel()` 后等待它退出。接着读同一条流时，应由同一读者接续已消费的字节和尚在进行的读取。 [Python `asyncio.wait`](https://docs.python.org/3/library/asyncio-task.html#asyncio.wait) · [Rust 的读操作取消语义](./Rust.md#select-取消与半帧恢复)
+
+`_pos` 记第一条未完成帧的起点，`_scan` 记下一次搜索的起点。`bytearray.find(分隔符, 起点)` 返回整个缓冲区里的下标，找不到返回 `-1`。默认 `b"\n"[0]` 是整数 `10`。若从 `b"hi\nok\npar"` 的下标 `3` 开始查找，返回 `5`，切出 `[3:5]` 就得到 `b"ok"`。保留单独的 `_scan` 后，下一批字节到来时可以跳过半帧中已经查过的前缀。 [Python `bytes` / `bytearray` 的 `find`](https://docs.python.org/3/library/stdtypes.html#bytes.find)
+
+```python
+class ChunkedFrameStreamParser:
+    def __init__(self, max_frame_bytes: int = 65_536, delimiter: bytes = b"\n") -> None:
+        if max_frame_bytes < 0 or len(delimiter) != 1:
+            raise ValueError("expected a nonnegative limit and a one-byte delimiter")
+        self._max = max_frame_bytes
+        self._delim = delimiter[0]
+        self._buf = bytearray()
+        self._pos = self._scan = 0
+
+    def feed(self, chunk: bytes) -> list[bytes]:
+        self._buf.extend(chunk)
+        frames: list[bytes] = []
+        while True:
+            nl = self._buf.find(self._delim, self._scan)
+            end = len(self._buf) if nl == -1 else nl
+            if end - self._pos > self._max:
+                self._buf.clear()
+                self._pos = self._scan = 0
+                raise ValueError("frame exceeds max_frame_bytes")
+            if nl == -1:
+                self._scan = end
+                break
+            frames.append(bytes(self._buf[self._pos:nl]))
+            self._pos = self._scan = nl + 1
+
+        if self._pos >= 4096 and self._pos * 2 >= len(self._buf):
+            del self._buf[:self._pos]
+            self._scan -= self._pos
+            self._pos = 0
+        return frames
+```
+
+两项阈值都满足才删除已消费的前缀。`del` 原地修改同一个 `bytearray`，原先位于 `_pos` 的剩余字节现在从下标 `0` 开始，搜索下标也减去删除长度。CPython 3.14 删前缀会先推进内部有效数据起点 `ob_start`，较大缩容时会分配新空间并复制剩余字节。切帧时构造独立的 `bytes` 也会复制内容。 [CPython 3.14.0 `bytearray` 删除与缩容](https://github.com/python/cpython/blob/v3.14.0/Objects/bytearrayobject.c) · [Python 可变序列](https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types)
+
+`max_frame_bytes` 限定帧正文，完整帧和半帧都检查。超限会清空状态并报协议错误，该次 `feed` 不返回局部结果。网络读入大小、待处理帧队列与连接数还需各自设限，因为 `feed` 先追加整个 `chunk`。在连接 EOF 时，余留的未终止帧按截断处理。
 
 ### 多线程编程 - concurrent
 

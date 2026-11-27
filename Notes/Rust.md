@@ -10,7 +10,7 @@
 6. “异步 Rust”解释 `.await?`、Future 状态机、`BoxFuture`、Tokio、task-local 和 fire-and-forget。
 7. “错误处理、Option 与重试”集中整理 `Result::map`、`?`、fallback、`Option::take/filter/transpose/flatten` 和 typed retry。
 8. “Trait、多态与领域类型”说明 enum、newtype、`From`、泛型、`dyn Trait`、boxed Future、supertrait 组合角色和 trait 转发实现。
-9. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、shallow/deep merge、Actor、event replay、双写与测试。
+9. “Runtime 工程模式与验证”把语言机制放回 SQLx / SQLite、保存点与 Undo Log、shallow/deep merge、Actor、event replay、双写与测试。
 
 ## 代码组织：crate、package 与 module
 
@@ -1375,9 +1375,21 @@ let store_b = Arc::clone(&store_a);
 
 #### Arc 最后一次 drop 怎样取得销毁顺序
 
-读引用计数先区分两个动作。已有一个 `Arc` 才能克隆它，`Arc::clone` 需要原子地把强计数加一。这次计数更新用 `fetch_add(1, Relaxed)`。放弃一个强引用时，`drop` 用 `fetch_sub(1, Release)` 发布这个持有者在交还前已完成的访问。原子递减返回旧计数，旧值为 1 才表示自己负责销毁 `T`。 [Rust 1.97.1，Arc::clone](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2391-L2422) · [Arc::drop](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2818-L2870)
+**强计数归零选出析构者。归零分支的 `Acquire` 把其他持有者放弃引用前对 `T` 的访问排在析构之前。** 已有强引用时，`Arc::clone` 用 `fetch_add(1, Relaxed)` 原子地增加强计数。放弃强引用时，`drop` 用 `fetch_sub(1, Release)` 读旧计数、写入减一后的值并返回旧值。这是一次原子读改写（read-modify-write，RMW），读取部分为 `Relaxed`，写入部分用 `Release` 发布该持有者之前对 `T` 的访问。返回旧值 `1` 的线程把计数减到 `0`，负责析构 `T`。 [Rust 1.97.1，Arc::clone](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2391-L2422) · [Arc::drop](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L2824-L2877) · [Rust Ordering::Release](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html#variant.Release)
 
-例如强计数依次从 3 变成 2、1、0。最后一次递减虽然读到了旧值 1，它的读取部分仍是 Relaxed。标准库在归零分支用 `acquire!` 建立获取顺序，常规构建展开为 `fence(Acquire)`，ThreadSanitizer 构建通过 Acquire load 表达同一同步目的。引用计数上的原子读改写把前面的 Release 与最后一次递减读到的值串进 release sequence，最后一次递减的读再把这条链带给 Acquire fence。这样其他持有者放弃引用前的合法访问排在析构之前，只有执行析构的路径需要这一步获取。 [Rust 1.97.1，acquire!](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L53-L80) · [Rust fence](https://doc.rust-lang.org/std/sync/atomic/fn.fence.html)
+| 放弃强引用的线程 | 读到的旧计数（`Relaxed`） | 写入的新计数（`Release`） | 后续 |
+| --- | --- | --- | --- |
+| A | `3` | `2` | 返回 |
+| B | `2` | `1` | 返回 |
+| C | `1` | `0` | 获取前面的发布，再析构 `T` |
+
+在同一计数器的修改顺序中，A 的 `Release` 写入 `2`，B 紧接着用 RMW 写入 `1`。**B 写的 `1` 既是 B 自己的 `Release` 写入，也属于 A 开始的 release sequence。** 这条序列由起头的 `Release` 和同一原子上紧随其后的连续 RMW 组成。 [Release sequence 的定义](https://eel.is/c++draft/intro.races#5)
+
+C 的 `fetch_sub` 以 `Relaxed` 读到 B 写的 `1`。随后的 `fence(Acquire)` 利用这次读取，分别与 A、B 的 `Release` 建立同步。对前两位持有者各自而言，先后关系是 **访问 `T` → `Release` 递减 → C 的 `Acquire` 栅栏 → C 析构 `T`**。 [Rust fence](https://doc.rust-lang.org/std/sync/atomic/fn.fence.html) · [原子操作与 Acquire fence 的同步规则](https://eel.is/c++draft/atomics.fences#4)
+
+例如，A 持锁修改 `Arc<Mutex<Vec<_>>>` 里的 `Vec`，解锁后放弃引用。C 最后以独占方式清理 `Vec` 时，引用计数的同步把 A 的修改排在清理之前。每个离开的持有者都做 `Release`，只有执行析构的路径做 `Acquire`。
+
+归零分支的 `acquire!` 宏在普通构建中展开为 `fence(Acquire)`。开启 ThreadSanitizer 后，宏改为对强计数做 `load(Acquire)`，让检测器识别同步并避免误报。在上面的例子里，这次读取看到 C 刚写下的 `0`。C 的递减也是连续的 RMW，因此这个 `0` 仍属于 A 和 B 各自的 release sequence。 [Rust 1.97.1，acquire!](https://github.com/rust-lang/rust/blob/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/sync.rs#L53-L80)
 
 这个同步保护值的生命周期。多个线程同时更改 `T` 时，仍由 `Mutex`、`RwLock`、原子操作或消息传递维护共享状态的不变量。发布和获取的基本模型见[原子内存序](./C++.md#原子内存序各自保证什么)。
 
@@ -1441,6 +1453,102 @@ fn main() {
 ```
 
 读方只可能从唯一一次 Release 读到 `true`。这条同步边把写 `data` 和读 `data` 排出先后，`data` 自身两次操作可用 Relaxed。如果把标志的两次操作也改成 Relaxed，这个全原子的例子仍可安全访问内存，但读到 `true` 时，语言不再保证 `data` 是 42。用于演示的循环会占用执行机会。需要等待实际业务消息或维护多个字段时，可以用 channel 或锁。 [沿 happens-before 读同一个例子](./C++.md#acquirerelease-怎样把数据交给另一线程)
+
+#### SPSC 环形队列怎样交接槽位
+
+SPSC（Single Producer, Single Consumer）让一个端点入队、另一个端点出队。按本例命名，生产者独写 `tail`，消费者独写 `head`。各方读取自己的游标时用 `Relaxed`，观察对方发布的进度时用 `Acquire`。
+
+- **交出数据。** 生产者初始化 `slots[tail]`，再以 `Release` 推进 `tail`。消费者以 `Acquire` 确认有已发布元素，再取出 `slots[head]`。
+- **归还槽位。** 消费者取走元素后以 `Release` 推进 `head`。生产者以 `Acquire` 确认空位后，才复用相应槽位。
+
+`head == tail` 表示空，推进后的 `tail` 等于 `head` 表示满。数组有 `N` 个槽，留一格区分空和满，可用容量为 `N - 1`。满时 `try_push` 返还原值，由调用方决定等待、重试或背压。`#[repr(align(64))]` 在预期为 64 字节缓存行的机器上把两个高频游标分开。 [Linux 内核环形缓冲区，head/tail 的命名与本例互换](https://docs.kernel.org/core-api/circular-buffers.html#using-memory-barriers-with-circular-buffers) · [伪共享与对齐](./Computer-Architecture.md#伪共享为何让独立写入也争用)
+
+`UnsafeCell` 允许通过共享引用访问内部槽位，`MaybeUninit<T>` 表示空槽还没有一个可读取的 `T`。讲义的核心代码把 `try_push(&self)` 和 `try_pop(&self)` 开放在一个 `Sync` 对象上，安全调用者就能让两个生产者写同一槽位。下面通过一次独占借用拆出一对端点，分别用 `&mut self` 串行化各端的调用。端点借用结束后，队列析构负责销毁尚未取出的元素。 [讲义 §2.3，SPSC 原语](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#23-双语言对照手抄原语一流式半包解析与异步取消安全python-vs-rust) · [UnsafeCell](https://doc.rust-lang.org/std/cell/struct.UnsafeCell.html) · [MaybeUninit](https://doc.rust-lang.org/std/mem/union.MaybeUninit.html)
+
+```rust
+mod spsc {
+    use std::cell::UnsafeCell;
+    use std::mem::MaybeUninit;
+    use std::sync::atomic::{
+        AtomicUsize,
+        Ordering::{Acquire, Relaxed, Release},
+    };
+
+    #[repr(align(64))]
+    struct PaddedIndex(AtomicUsize);
+
+    pub struct SpscRing<T, const N: usize> {
+        head: PaddedIndex,
+        tail: PaddedIndex,
+        slots: [UnsafeCell<MaybeUninit<T>>; N],
+    }
+
+    pub struct Producer<'a, T, const N: usize>(&'a SpscRing<T, N>);
+    pub struct Consumer<'a, T, const N: usize>(&'a SpscRing<T, N>);
+
+    // SAFETY: split grants a single endpoint per side. The two cursors
+    // transfer an initialized slot, then its free space, across threads.
+    unsafe impl<T: Send, const N: usize> Sync for SpscRing<T, N> {}
+
+    impl<T, const N: usize> SpscRing<T, N> {
+        pub fn new() -> Self {
+            assert!(N >= 2);
+            Self {
+                head: PaddedIndex(AtomicUsize::new(0)),
+                tail: PaddedIndex(AtomicUsize::new(0)),
+                slots: std::array::from_fn(|_| UnsafeCell::new(MaybeUninit::uninit())),
+            }
+        }
+
+        pub fn split(&mut self) -> (Producer<'_, T, N>, Consumer<'_, T, N>) {
+            (Producer(self), Consumer(self))
+        }
+    }
+
+    impl<T, const N: usize> Producer<'_, T, N> {
+        pub fn try_push(&mut self, value: T) -> Result<(), T> {
+            let ring = self.0;
+            let tail = ring.tail.0.load(Relaxed);
+            let next = (tail + 1) % N;
+            if next == ring.head.0.load(Acquire) {
+                return Err(value);
+            }
+            // SAFETY: this producer owns the free slot at tail.
+            unsafe { (*ring.slots[tail].get()).write(value) };
+            ring.tail.0.store(next, Release);
+            Ok(())
+        }
+    }
+
+    impl<T, const N: usize> Consumer<'_, T, N> {
+        pub fn try_pop(&mut self) -> Option<T> {
+            let ring = self.0;
+            let head = ring.head.0.load(Relaxed);
+            if head == ring.tail.0.load(Acquire) {
+                return None;
+            }
+            // SAFETY: tail has published this slot. This consumer takes it once.
+            let value = unsafe { (*ring.slots[head].get()).assume_init_read() };
+            ring.head.0.store((head + 1) % N, Release);
+            Some(value)
+        }
+    }
+
+    impl<T, const N: usize> Drop for SpscRing<T, N> {
+        fn drop(&mut self) {
+            let mut head = *self.head.0.get_mut();
+            let tail = *self.tail.0.get_mut();
+            while head != tail {
+                // SAFETY: the endpoints are gone. [head, tail) is initialized.
+                unsafe { self.slots[head].get_mut().assume_init_drop() };
+                head = (head + 1) % N;
+            }
+        }
+    }
+}
+```
+
+例如 `N = 3`，连续两次入队后满。消费者取走第一个元素并发布 `head`，生产者就可以继续入队。核对实现时，分别验收回绕后的 FIFO 顺序、满时返还原值，以及销毁队列时留下的非 `Copy` 元素只析构一次。
 
 ### `Mutex<T>`：锁保护的是临界区
 
@@ -1974,6 +2082,61 @@ async fn main() -> anyhow::Result<()> {
 - async task 中执行阻塞 I/O 或长时间 CPU 计算，会占住 runtime worker，拖慢其他 task。短期阻塞工作用 `spawn_blocking`；大量 CPU 计算通常交给 Rayon 或专用线程池。
 
 一句话：**Rust 提供 Future 语言协议，Tokio 提供让 Future 持续向前运行的执行系统。**
+
+#### `select!` 取消与半帧恢复
+
+在 `tokio::select!` 中，未完成的分支若由这次调用拥有，就会随该次选择结束而被丢弃。外部持有并 pin 住的 Future 可以通过 `&mut` 参与选择，在下一轮继续 poll。关键证据是 Future 已消费了几字节，以及这部分进度存在哪里。半帧如果只在被丢弃的 Future 局部变量里，下一次读会从已经推进的字节流接起。 [Tokio `select!` 的取消安全与借用例子](https://docs.rs/tokio/latest/tokio/macro.select.html#cancellation-safety)
+
+Tokio 的 `read` / `read_buf` 在尚未完成、分支输给其他等待项时，保证这次读取未消费输入。`read_exact` 和 `read_to_end` 可能分多次取得输入，取消后重建会丢失调用内部的进度。续读同一连接时，可用具备取消安全保证的 `read`，成功后立即把实际收到的字节交给连接拥有的解码器，再进行下一次 `.await`。两次读取分别得到 `ab` 和 `c\n` 时，解码器保留 `ab`，最终交付一条 `abc` 帧。 [Tokio `AsyncReadExt`](https://docs.rs/tokio/latest/tokio/io/trait.AsyncReadExt.html#method.read) · [Python 增量解码器与 `asyncio.wait`](./python.md#用增量缓冲解析字节帧)
+
+#### RAII 配额守卫
+
+RAII（Resource Acquisition Is Initialization）把资源的持有期绑定在对象的生命周期上。成功扣减额度后得到 `PermitGuard`，它用 `Arc<PermitPool>` 让同一个池活到归还发生，`n` 记住归还数量。池里有 3 个名额时，申请 2 个后剩 1 个。若期间没有其他申请，guard 析构后回到 3 个。 [讲义 §2.3，RAII guard](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#23-双语言对照手抄原语一流式半包解析与异步取消安全python-vs-rust)
+
+```rust
+mod permits {
+    use std::sync::atomic::{
+        AtomicUsize,
+        Ordering::{Acquire, Relaxed, Release},
+    };
+    use std::sync::Arc;
+
+    pub struct PermitPool {
+        available: AtomicUsize,
+    }
+
+    pub struct PermitGuard {
+        pool: Arc<PermitPool>,
+        n: usize,
+    }
+
+    impl PermitPool {
+        pub fn new(available: usize) -> Arc<Self> {
+            Arc::new(Self {
+                available: AtomicUsize::new(available),
+            })
+        }
+
+        pub fn try_acquire(self: &Arc<Self>, n: usize) -> Option<PermitGuard> {
+            let pool = Arc::clone(self);
+            pool.available
+                .fetch_update(Acquire, Relaxed, |free| free.checked_sub(n))
+                .ok()?;
+            Some(PermitGuard { pool, n })
+        }
+    }
+
+    impl Drop for PermitGuard {
+        fn drop(&mut self) {
+            self.pool.available.fetch_add(self.n, Release);
+        }
+    }
+}
+```
+
+`fetch_update` 把检查额度和扣减合为一次原子更新。额度不足时立刻返回 `None`。扣减与构造 guard 之间没有 `.await`，归还也只做一次同步的原子加法。申请成功时的 `Acquire` 若读自某次 `Release` 归还或其 release sequence，就把归还前的访问排在接手后访问之前。若另设阻塞等待队列，还要有唤醒协议。 [Rust 原子内存序](https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html)
+
+正常退出、`?` 提前返回、panic 栈展开，以及由 Future 持有 guard 时丢弃该 Future，都沿 `Drop` 归还额度。`panic = "abort"` 直接终止进程。这个守卫管理本地额度，已经提交的外部效果按各自的事务、幂等和恢复协议处理。 [Rust 析构作用域](https://doc.rust-lang.org/reference/destructors.html) · [panic 栈展开](https://doc.rust-lang.org/reference/panic.html#unwinding) · [Tokio 异步取消](https://tokio.rs/tokio/tutorial/select#cancellation)
 
 ### Task-local：给一次异步调用链附加隐式上下文
 
@@ -3090,6 +3253,90 @@ Goal 把“累计用量 + 超预算切换状态”放进同一条 SQL，是数�
 
 - [`let _accounting_permit = ...acquire().await?`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/tool.rs#L303-L365) 中，下划线前缀只抑制未使用变量警告；permit 仍被保留到作用域结束，drop 时释放信号量。这里保护的是“取 snapshot → 等数据库写入 → 推进记账基线”的整个过程，包含 `.await`。不要随意改成 `let _ = ...`，后者不保留 guard。
 - [`i64::saturating_sub`](https://github.com/openai/codex/blob/04483f4ce5694d471e471583d4ca286908d7c8b7/codex-rs/ext/goal/src/accounting.rs#L313-L333) 在有符号整数溢出时截到 `i64::MIN/MAX`，不等于减法最低为 0：`3_i64.saturating_sub(5) == -2`。代码里 `output_tokens.max(0)`、snapshot 的非正增量过滤、SQL 层 delta 的 `.max(0)` 是另外的防线，不能把它们混成一个“饱和减法自动去负数”。
+
+### 保存点与撤销日志（Undo Log）
+
+一笔事务执行到一半，可以先标记当前位置。这个标记叫**保存点（savepoint）**，之后可以只撤销标记之后的改动。用内存键值表手写这个机制时，写入会立即更新 `data`，同时把每次写入前的旧值记入撤销日志 `undo`。`begin()` 把当时的日志长度压进 `savepoints`，两层嵌套事务就有两个回退位置。
+
+`HashMap::insert` 会交回旧值。`Some(old)` 表示键原本存在，回滚时写回 `old`。`None` 表示键原本不存在，回滚时删除新插入的键。日志拥有旧值，所以 `V` 无需实现 `Clone`。`key.clone()` 留一份键给日志，另一份交给 `HashMap`。 [Rust `HashMap::insert`](https://doc.rust-lang.org/std/collections/struct.HashMap.html#method.insert)
+
+| 步骤 | `x` 的当前值 | `undo` 记录的旧值，从早到晚 | `savepoints` |
+| --- | --- | --- | --- |
+| 初始 | `0` | `[]` | `[]` |
+| 外层 `begin()`，写 `x=1` | `1` | `[0]` | `[0]` |
+| 内层 `begin()`，写 `x=2` | `2` | `[0, 1]` | `[0, 1]` |
+| 内层 `commit()` | `2` | `[0, 1]` | `[0]` |
+| 外层 `rollback()` | `0` | `[]` | `[]` |
+
+内层提交相当于把改动交给外层，只弹出内层的保存点，旧值仍需保留。外层回滚时倒着撤销，先写回 `1`，再写回 `0`。若内层写入 `x=2` 后改为执行 `rollback()`，它只把 `x` 恢复到 `1`，然后外层仍可提交。最外层提交才清空日志。
+
+```rust
+use std::collections::HashMap;
+use std::hash::Hash;
+
+pub struct NestedTxnKv<K, V> {
+    data: HashMap<K, V>,
+    undo: Vec<(K, Option<V>)>,
+    savepoints: Vec<usize>,
+}
+
+impl<K: Eq + Hash + Clone, V> NestedTxnKv<K, V> {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+            undo: Vec::new(),
+            savepoints: Vec::new(),
+        }
+    }
+
+    pub fn get(&self, key: &K) -> Option<&V> {
+        self.data.get(key)
+    }
+
+    pub fn set(&mut self, key: K, value: V) {
+        let previous = self.data.insert(key.clone(), value);
+        if !self.savepoints.is_empty() {
+            self.undo.push((key, previous));
+        }
+    }
+
+    pub fn begin(&mut self) {
+        self.savepoints.push(self.undo.len());
+    }
+
+    pub fn commit(&mut self) -> bool {
+        if self.savepoints.pop().is_none() {
+            return false;
+        }
+        if self.savepoints.is_empty() {
+            self.undo.clear();
+        }
+        true
+    }
+
+    pub fn rollback(&mut self) -> bool {
+        let Some(savepoint) = self.savepoints.pop() else {
+            return false;
+        };
+        while self.undo.len() > savepoint {
+            let (key, old) = self.undo.pop().unwrap();
+            match old {
+                Some(value) => {
+                    self.data.insert(key, value);
+                }
+                None => {
+                    self.data.remove(&key);
+                }
+            }
+        }
+        true
+    }
+}
+```
+
+回滚只处理目标保存点之后的日志。`undo.len() > savepoint` 保证循环内有记录可弹。没有活动事务时，`commit()` 和 `rollback()` 都返回 `false`。
+
+这个例子演示的是单个内存对象的主动回滚。`&mut self` 给每次修改独占访问，进程崩溃后的恢复属于持久事务的职责。SQLite 的内层 `RELEASE` 同样把改动交给外层。SQLite 的 `ROLLBACK TO` 会保留目标保存点，上面 Rust 的 `rollback()` 则连本层保存点一起弹出。 [SQLite SAVEPOINT](https://sqlite.org/lang_savepoint.html) · [代码出处，讲义 §3.5](../Learning-Materials/distributed-systems-for-loopx/生产级系统工程与大模型服务权衡讲义.md#35-双语言对照手抄原语二fencing-幂等账本python与嵌套事务-undo-logrust)
 
 ### `serde_json::Map::extend`：用所有权表达 shallow merge
 
